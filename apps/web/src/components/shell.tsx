@@ -68,7 +68,7 @@ export function Avatar({ user, size = 36 }: { user: Pick<UserSummary, "displayNa
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`) ||
-    (href === "/learn" && pathname.startsWith("/topic")) || (href === "/roadmaps" && pathname.startsWith("/roadmap"));
+    (href === "/learn" && pathname.startsWith("/topic")) || (href === "/roadmaps" && (pathname.startsWith("/roadmap") || pathname.startsWith("/module")));
 }
 
 function Sidebar({ me }: { me: UserSummary }) {

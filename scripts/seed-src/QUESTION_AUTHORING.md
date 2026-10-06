@@ -32,7 +32,8 @@ Rules
 - No near-duplicates. Each question must test a distinct piece of knowledge.
 - Code inside question text is allowed (use \n for newlines). Keep it short.
 - Technically accurate as of 2026. If unsure about a fact, do not write that question.
-- English only.
+- Written in English, with a Brazilian Portuguese translation of every question (CLAUDE.md): `backend/TechRat.Infrastructure/Seed/Data/i18n/questions/<group>.pt-BR.json`, entries `{"id", "title", "question", "options" (same order), "explanation"}`. Code, identifiers and anything in backticks stay byte-identical; keep product names and common dev jargon.
+- Answer-length bias: in each file (English and Portuguese) the correct option may be the strictly longest option in at most 35% of the questions (aim for ≤ 30%, without making it the shortest most of the time).
 
 Reference URLs
 - NEVER invent URLs. Prefer official docs: Microsoft Learn, MDN, PostgreSQL docs, Docker docs, Kubernetes docs, git-scm.com, docs.python.org, react.dev, nodejs.org, typescriptlang.org, AWS/Azure/Google Cloud docs, OWASP, RFC Editor (rfc-editor.org), opentelemetry.io, redis.io, mongodb.com/docs, kernel.org docs, docs.github.com, docs.oracle.com / dev.java, spring.io, kafka.apache.org, platform.openai.com/docs or docs.anthropic.com / modelcontextprotocol.io, scikit-learn.org, terraform/developer.hashicorp.com, sre.google (SRE book), martinfowler.com (for patterns/architecture), refactoring.guru only if nothing official exists.

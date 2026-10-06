@@ -1,0 +1,602 @@
+[
+  {
+    "id": "aad-agents-agentic-loop",
+    "title": "O que diferencia um agente de código do autocomplete",
+    "question": "Um colega pergunta como um agente de código como o Claude Code difere do autocomplete inline de um editor. Qual descrição é a mais precisa?",
+    "options": [
+      "Ele prevê os próximos tokens no cursor enquanto você digita em um arquivo",
+      "Ele faz fine-tuning de um modelo privado no seu repositório a cada pedido",
+      "Ele repete um ciclo de coletar contexto, agir com tools e conferir resultados",
+      "Ele responde perguntas num chat, mas nunca lê nem altera arquivos no disco"
+    ],
+    "explanation": "Agentes de código executam um agentic loop: coletam contexto (buscam e leem arquivos), agem com tools (editam arquivos, rodam comandos) e verificam os resultados (testes, builds), repetindo até concluir a tarefa. O autocomplete inline só prevê texto no cursor, não há fine-tuning por pedido, e um chat que não toca em arquivos é um assistente, não um agente."
+  },
+  {
+    "id": "aad-agents-stateless-model",
+    "title": "Como uma sessão do agente lembra turnos anteriores",
+    "question": "Em uma sessão longa do Claude Code, como o modelo \"lembra\" dos arquivos que leu e das decisões tomadas antes na conversa?",
+    "options": [
+      "Os pesos dele são atualizados a cada turno com o que aprendeu até ali",
+      "O cliente reenvia a conversa e os resultados das tools a cada request",
+      "O servidor mantém um banco de dados privado da sessão para o modelo",
+      "Só fatos escritos no CLAUDE.md sobrevivem de um request para o outro"
+    ],
+    "explanation": "O modelo não guarda estado entre chamadas à API: o Claude Code reenvia o system prompt, o contexto do projeto e todas as mensagens e resultados de tools anteriores a cada request, e o prompt caching evita reprocessar o prefixo que não mudou. Nada é aprendido nos pesos, não existe banco de dados oculto por sessão, e o CLAUDE.md é só uma parte do contexto reenviado."
+  },
+  {
+    "id": "aad-agents-when-to-plan",
+    "title": "Quando vale a pena planejar antes de codar",
+    "question": "Qual destas tarefas mais se beneficia de o agente explorar e escrever um plano (por exemplo, em plan mode) antes de editar qualquer código?",
+    "options": [
+      "Renomear uma variável local com erro de grafia dentro de uma única função",
+      "Adicionar uma linha de log antes do return em um handler conhecido",
+      "Corrigir um erro de digitação em uma mensagem da tela de login",
+      "Adicionar login OAuth a um módulo de auth que ninguém do time conhece"
+    ],
+    "explanation": "Planejar vale a pena quando a abordagem é incerta, a mudança envolve vários arquivos ou o código é desconhecido, porque seguir na direção errada ali sai caro. Para mudanças que cabem em uma frase, como renomear, adicionar um log ou corrigir um typo, o plano só adiciona overhead e o agente deve simplesmente fazer."
+  },
+  {
+    "id": "aad-agents-give-a-check",
+    "title": "Deixar o agente verificar o próprio trabalho",
+    "question": "Um agente vive declarando `validateEmail` como pronto, mas você acha bugs toda vez que testa à mão. Qual mudança no pedido resolve esse ciclo mais diretamente?",
+    "options": [
+      "Pedir que ele diga o quanto confia no código antes de parar",
+      "Dar entradas de exemplo com resultados esperados e mandar rodar os testes",
+      "Trocar para o maior modelo disponível e repetir o mesmo pedido",
+      "Pedir que ele releia todo o próprio código duas vezes antes de concluir a tarefa"
+    ],
+    "explanation": "Sem uma verificação que ele possa executar, \"parece pronto\" é o único sinal de parada e você vira o ciclo de verificação. Casos de teste concretos e a instrução de rodá-los dão um sinal de passou/falhou para o agente iterar. Confiança autodeclarada, um modelo maior ou reler o código não provam que ele funciona."
+  },
+  {
+    "id": "aad-agents-reset-after-corrections",
+    "title": "Agente volta sempre a um erro já corrigido",
+    "question": "Você corrigiu o agente três vezes sobre a mesma abordagem errada em uma sessão, e cada nova tentativa volta a ela. Qual costuma ser o próximo passo mais eficaz?",
+    "options": [
+      "Repetir a correção em letras maiúsculas e marcá-la como IMPORTANTE",
+      "Rodar `/compact` para resumir as tentativas falhas e então continuar",
+      "Rodar `/clear` e recomeçar com um prompt mais preciso e as lições",
+      "Trocar para um modelo maior no meio da sessão mantendo o histórico"
+    ],
+    "explanation": "Depois de várias correções, o contexto fica cheio de abordagens falhas que continuam puxando o modelo de volta. Uma sessão limpa com um prompt inicial melhor, incorporando o que você aprendeu, quase sempre supera uma sessão longa com correções acumuladas. Compactar ainda carrega um resumo do caminho errado, ênfase no texto não remove esse ruído, e trocar de modelo mantém o mesmo histórico poluído."
+  },
+  {
+    "id": "aad-ctx-claude-md-contents",
+    "title": "O que deve ir no CLAUDE.md do projeto",
+    "question": "Qual conteúdo se encaixa melhor no arquivo `CLAUDE.md` compartilhado de um projeto?",
+    "options": [
+      "Comandos de build e teste, convenções e regras úteis em toda sessão",
+      "A referência completa da API de cada biblioteca da qual o projeto depende",
+      "As API keys pessoais de cada dev para o agente fazer deploy por eles",
+      "Um log contínuo de cada sessão anterior do agente e do que ela alterou"
+    ],
+    "explanation": "O `CLAUDE.md` é carregado no contexto no início de toda sessão, então deve ter fatos curtos e duráveis: comandos, convenções, estrutura e regras do tipo \"sempre faça X\". Material de referência extenso desperdiça contexto em todo request e deve ir para skills ou docs lidas sob demanda, segredos nunca devem ir para um arquivo commitado, e histórico de sessões é ruído."
+  },
+  {
+    "id": "aad-ctx-path-scoped-rules",
+    "title": "Enxugando um arquivo de instruções inchado",
+    "question": "O `CLAUDE.md` raiz de um monorepo chegou a 600 linhas, e 400 delas só importam para o código em `src/api/`. Qual mudança reduz o custo de contexto nas sessões que nunca tocam a API, mantendo as regras quando o agente mexe nela?",
+    "options": [
+      "Separar a seção da API em um arquivo próprio trazido por um import `@`",
+      "Mover para um arquivo em `.claude/rules/` com frontmatter `paths` em `src/api/**`",
+      "Mover as regras da API para o `CLAUDE.local.md`, que carrega após a raiz",
+      "Mover as regras da API para o `README.md` ao lado do arquivo raiz"
+    ],
+    "explanation": "Regras com o campo `paths` só carregam quando o agente lê ou edita arquivos correspondentes, então sessões em outras áreas não pagam por elas. Um import `@` ajuda a organizar, mas o arquivo importado ainda carrega na inicialização, o `CLAUDE.local.md` é um arquivo pessoal que sempre carrega, e o README não é carregado automaticamente, então as regras simplesmente se perderiam."
+  },
+  {
+    "id": "aad-ctx-personal-instructions",
+    "title": "Onde ficam instruções pessoais do projeto",
+    "question": "A Ana colocou a URL do sandbox dela e a conta de teste preferida no `CLAUDE.md` compartilhado do time, e agora as sessões dos colegas tentam usar o sandbox dela. Onde devem ficar as instruções pessoais dela para esse projeto?",
+    "options": [
+      "Em um novo arquivo `.claude/rules/ana.md` commitado junto às regras do time",
+      "Em um arquivo `AGENTS.md`, que só as ferramentas locais da Ana leem",
+      "No `CLAUDE.md` compartilhado, sob um título dizendo \"só para a Ana\"",
+      "Em um `CLAUDE.local.md` na raiz do projeto, listado no `.gitignore`"
+    ],
+    "explanation": "O `CLAUDE.local.md` carrega junto com o `CLAUDE.md`, mas serve para preferências pessoais do projeto e deve ficar no gitignore, então nunca chega aos colegas. Arquivos em `.claude/rules/` e o `AGENTS.md` são instruções compartilhadas do projeto, e um título \"só para a Ana\" ainda coloca o texto no contexto de todo mundo."
+  },
+  {
+    "id": "aad-ctx-midsession-edit",
+    "title": "Editando o CLAUDE.md no meio da sessão",
+    "question": "No meio de uma sessão você adiciona uma regra nova ao `CLAUDE.md` da raiz do projeto, mas o agente continua ignorando-a nos turnos seguintes. Qual é a explicação mais provável?",
+    "options": [
+      "O arquivo precisa ser commitado no git antes de o Claude Code lê-lo",
+      "Ele carregou no início da sessão; a edição vale após `/clear` ou restart",
+      "Arquivos de instrução da raiz só são lidos por subagents, não pela sessão",
+      "Regras adicionadas depois das primeiras 50 linhas são sempre cortadas"
+    ],
+    "explanation": "Os arquivos `CLAUDE.md` da raiz do projeto e do usuário são lidos uma vez no início da sessão e mantidos como parte do prefixo do contexto; editá-los no meio da sessão não muda o que o modelo vê até o próximo `/clear`, `/compact` ou restart. O status no git é irrelevante, a sessão principal carrega o arquivo, e não existe corte em 50 linhas."
+  },
+  {
+    "id": "aad-ctx-conflicting-files",
+    "title": "Regras conflitantes entre arquivos de instrução",
+    "question": "O `CLAUDE.md` raiz diz \"use npm\", o `packages/web/CLAUDE.md` diz \"use pnpm\" e um arquivo antigo em `.claude/rules/` diz \"use yarn\". Trabalhando em `packages/web`, o agente alterna de gerenciador de pacotes entre os turnos. O que melhor explica isso e qual é a correção?",
+    "options": [
+      "Os arquivos são concatenados, não sobrescritos, e contradições viram sorteio",
+      "O arquivo aninhado sobrescreve o da raiz, então isso é um bug de cache a reportar",
+      "Os arquivos são mesclados por voto, então crie um quarto dizendo \"pnpm\"",
+      "Só vale o último arquivo em ordem alfabética, então renomeie o do pnpm"
+    ],
+    "explanation": "O Claude Code concatena no contexto todos os arquivos de instrução encontrados (da raiz até o diretório de trabalho, mais as rules) em vez de um substituir o outro, então as afirmações contraditórias chegam todas ao modelo e ele pode seguir qualquer uma. A correção é ter uma única fonte de verdade consistente, removendo regras antigas ou conflitantes. Não existe sobrescrita, votação ou precedência alfabética a explorar."
+  },
+  {
+    "id": "aad-prompt-scoped-test-request",
+    "title": "Um pedido de testes bem delimitado",
+    "question": "Qual pedido tem mais chance de gerar um teste útil logo na primeira tentativa?",
+    "options": [
+      "Adicione mais alguns testes em foo.py para o número de cobertura subir",
+      "Teste o caso deslogado de `get_profile` em foo.py, sem mocks, e rode",
+      "Melhore a situação dos testes em foo.py do jeito que achar melhor",
+      "Olhe foo.py e me diga se talvez ele precise de mais testes algum dia"
+    ],
+    "explanation": "Bons prompts indicam o arquivo e a função, o cenário a cobrir, restrições como \"sem mocks\" e um passo de verificação. Os outros pedidos deixam o agente adivinhar o que importa, o que leva a mudanças amplas, rasas ou desnecessárias e a mais rodadas de correção."
+  },
+  {
+    "id": "aad-prompt-point-to-pattern",
+    "title": "Gerar código novo no padrão do codebase",
+    "question": "Você quer que o agente adicione um widget de calendário que pareça e se comporte como os widgets que já existem no app. O que você deve incluir no pedido?",
+    "options": [
+      "Uma nota pedindo para seguir boas práticas modernas de widgets de UI",
+      "Permissão para escolher a biblioteca de widgets popular que preferir",
+      "A indicação de um arquivo de widget existente para usar de padrão",
+      "O style guide inteiro copiado de outro projeto open source"
+    ],
+    "explanation": "Apontar um exemplo concreto do próprio repositório permite ao agente copiar suas convenções reais de estrutura, nomes e dependências. \"Boas práticas\" genéricas ou o style guide de outro projeto descrevem o codebase de outra pessoa, e deixá-lo trazer uma biblioteca nova tende a gerar código que não se encaixa."
+  },
+  {
+    "id": "aad-prompt-describe-symptom",
+    "title": "Transformando um bug report em um bom prompt",
+    "question": "Usuários relatam que o login falha depois que a sessão expira. Qual prompt dá ao agente a maior chance de uma correção certa?",
+    "options": [
+      "Corrija o bug de login que os usuários relatam depois que a sessão expira",
+      "Reescreva o módulo de auth inteiro seguindo as boas práticas de segurança",
+      "Envolva a chamada de login em try/catch para o erro sumir para o usuário",
+      "Veja o refresh de token em src/auth/, crie um teste que falha e corrija"
+    ],
+    "explanation": "Um bom prompt de bug traz o sintoma, o local provável e o que significa \"corrigido\", aqui um teste que reproduz a expiração, falha e depois passa. O prompt vago faz o agente sair procurando, reescrever aumenta escopo e risco, e engolir o erro esconde o sintoma sem corrigir a causa."
+  },
+  {
+    "id": "aad-prompt-interview-first",
+    "title": "Começando uma feature grande e nebulosa",
+    "question": "Você só tem uma ideia vaga de uma feature grande, com muitas dúvidas abertas de UX e casos de borda. Qual forma de começar com o agente costuma funcionar melhor?",
+    "options": [
+      "Deixar que ele entreviste você, escreva uma spec e implemente em nova sessão",
+      "Pedir uma primeira versão já e ir iterando sobre o que sair",
+      "Colar a ideia de uma linha e ativar a auto-aprovação para ele acabar mais rápido",
+      "Pedir uma lista de tudo que os concorrentes têm e construir tudo isso"
+    ],
+    "explanation": "Em trabalho grande e mal especificado, deixar o agente perguntar sobre implementação, casos de borda e trade-offs gera uma spec escrita, e uma sessão nova para executá-la traz contexto limpo focado na implementação. Codar de imediato ou com auto-aprovação embute suposições, e copiar concorrentes aumenta o escopo em vez de esclarecê-lo."
+  },
+  {
+    "id": "aad-prompt-success-criteria",
+    "title": "Agente deixou o CI verde do jeito errado",
+    "question": "Você pediu a um agente para \"fazer o build do CI passar\". Ele adicionou `// @ts-ignore` em duas linhas e marcou um teste que falhava como skipped. Qual foi a principal falha no pedido?",
+    "options": [
+      "Sucesso era só build verde, não corrigir a causa sem suprimir erros",
+      "Deveria ter sido uma lista numerada em vez de uma frase curta",
+      "Deveria ter indicado um modelo maior, pois os menores pegam atalhos",
+      "Deveria ter mandado o agente apagar de vez o teste que falhava"
+    ],
+    "explanation": "Agentes otimizam para o objetivo declarado, e \"fazer o CI passar\" é satisfeito silenciando erros. Um prompt melhor cola o erro real, pede a correção da causa raiz, proíbe supressões e testes pulados e pede para rodar o build de novo como prova. Formatação ou tamanho do modelo não mudam o alvo, e apagar o teste é o mesmo problema em versão pior."
+  },
+  {
+    "id": "aad-mcp-what-it-is",
+    "title": "O que é o Model Context Protocol",
+    "question": "Seu time quer que um agente de código consulte tickets no issue tracker interno durante uma sessão. Qual descrição do Model Context Protocol (MCP) explica como essa integração funciona?",
+    "options": [
+      "Um protocolo aberto para conectar aplicações de IA a tools e dados externos",
+      "Um formato de arquivo para fazer fine-tuning de modelos em código privado",
+      "Uma API de plugins proprietária que só funciona na IDE de um fornecedor",
+      "Um esquema de compressão que encolhe prompts longos antes de chegarem ao modelo"
+    ],
+    "explanation": "O MCP é um padrão aberto: uma aplicação de IA (o host) roda clientes MCP que se conectam a servidores MCP, que expõem tools, resources e prompts via JSON-RPC. Ele não treina modelos, não está preso a um fornecedor ou editor e não comprime prompts."
+  },
+  {
+    "id": "aad-mcp-primitives",
+    "title": "As primitivas centrais de um servidor MCP",
+    "question": "Quais são as três primitivas centrais que um servidor MCP pode expor a um cliente?",
+    "options": [
+      "Modelos, datasets e avaliações",
+      "Tools, resources e prompts",
+      "Hooks, skills e subagents",
+      "Endpoints, webhooks e filas de mensagens"
+    ],
+    "explanation": "Servidores oferecem tools (ações que o modelo pode invocar), resources (dados que fornecem contexto) e prompts (templates reutilizáveis). Hooks, skills e subagents são recursos do Claude Code, não primitivas do MCP, e os outros conjuntos descrevem conceitos de ML ou de mensageria."
+  },
+  {
+    "id": "aad-mcp-stdio-stdout",
+    "title": "Prints de debug quebrando um servidor MCP stdio",
+    "question": "O servidor MCP stdio local de um time funciona até alguém adicionar `print(\"loading config...\")` na inicialização. Agora o cliente acusa erros de parse e derruba a conexão. O que está errado?",
+    "options": [
+      "Servidores stdio devem logar em XML para o cliente separar logs de mensagens",
+      "O cliente aceita uma mensagem por segundo e o print passou do limite",
+      "O servidor precisa concluir o handshake antes de o Python chamar `print`",
+      "O stdout só pode levar mensagens JSON-RPC; logs vão para o stderr"
+    ],
+    "explanation": "No transporte stdio, o cliente lê mensagens JSON-RPC delimitadas por quebra de linha do stdout do servidor, e o servidor não pode escrever mais nada ali. Saída de diagnóstico vai para o stderr, que o cliente pode capturar ou ignorar. Não há formato de log em XML, limite de taxa ou regra de handshake específica de Python envolvida."
+  },
+  {
+    "id": "aad-mcp-tools-vs-prompts",
+    "title": "Escolhendo primitivas MCP por quem as controla",
+    "question": "Seu servidor MCP de incidentes deve oferecer (a) um \"template de postmortem\" que as pessoas escolhem explicitamente num menu e (b) uma ação `create_ticket` que o modelo pode decidir chamar durante uma tarefa. Quais primitivas se encaixam?",
+    "options": [
+      "(a) uma tool e (b) um resource, já que resources são invocados sozinhos",
+      "Os dois como resources, pois só resources podem ser listados pelo cliente",
+      "(a) um prompt, controlado pelo usuário, e (b) uma tool, controlada pelo modelo",
+      "Os dois como prompts, pois prompts também executam efeitos colaterais"
+    ],
+    "explanation": "Prompts MCP são templates controlados pelo usuário que exigem invocação explícita, enquanto tools são ações controladas pelo modelo, que pode descobri-las e chamá-las, idealmente com uma pessoa podendo negar. Resources são dados de contexto guiados pela aplicação, não ações, e prompts não executam efeitos colaterais por si."
+  },
+  {
+    "id": "aad-mcp-token-passthrough",
+    "title": "Servidor MCP repassando tokens do cliente",
+    "question": "Para ganhar tempo, o servidor MCP remoto de um time aceita qualquer bearer token que o cliente envia e o repassa sem mudanças para uma API interna. Uma revisão de segurança rejeita o design. Qual é o problema central?",
+    "options": [
+      "Bearer tokens devem ir no corpo JSON-RPC, nunca em headers HTTP",
+      "Os tokens deveriam ficar em cache no servidor para reconexões rápidas",
+      "Só deve aceitar tokens emitidos para ele; o repasse quebra a checagem de audience",
+      "O repasse só funciona via stdio, então o servidor precisa trocar de transporte"
+    ],
+    "explanation": "Token passthrough é um anti-pattern proibido pela especificação de autorização do MCP: um servidor que não valida a audience pode aceitar tokens emitidos para outros serviços, contornar controles downstream como rate limits, confundir a trilha de auditoria e agir como confused deputy. O servidor deve rejeitar tokens não emitidos para ele. Onde vai o header, cache ou transporte não resolvem isso."
+  },
+  {
+    "id": "aad-sub-own-context",
+    "title": "Por que delegar trabalho verboso a um subagent",
+    "question": "Por que você faria um subagent vasculhar 5.000 linhas de log em vez de fazer isso na conversa principal?",
+    "options": [
+      "Ele trabalha na própria janela de contexto e devolve só um resumo",
+      "Subagents não consomem tokens, então a análise sai de graça",
+      "Subagents conseguem ler arquivos que a conversa principal não pode abrir",
+      "Ele apaga os logs depois de lê-los para que nunca vazem depois"
+    ],
+    "explanation": "Cada subagent roda em uma janela de contexto separada, então o conteúdo verboso dos logs fica lá e só as conclusões voltam, mantendo a conversa principal focada. Os requests dele ainda custam tokens, delegar não contorna as deny rules das suas configurações, que valem para ele também, e ele não apaga nada."
+  },
+  {
+    "id": "aad-sub-description-routing",
+    "title": "Subagent customizado que nunca é usado",
+    "question": "Você criou um subagent `test-runner` em `.claude/agents/`, mas o agente nunca delega para ele, a menos que você o chame pelo nome. O que você deve mudar primeiro?",
+    "options": [
+      "Dar acesso a todas as tools para ele parecer mais capaz ao agente principal",
+      "Mover a definição inteira dele para o `CLAUDE.md` da raiz do projeto",
+      "Renomear o arquivo em maiúsculas para carregar antes dos agentes nativos",
+      "Escrever uma `description` clara de quando usá-lo, ex.: \"use proactively\""
+    ],
+    "explanation": "O Claude decide quando delegar comparando a tarefa com a `description` de cada subagent, então uma descrição vaga faz com que ele raramente seja escolhido; frases como \"use proactively after code changes\" incentivam a delegação. Mais tools, maiúsculas no nome do arquivo ou mover a definição para o `CLAUDE.md` não afetam o roteamento."
+  },
+  {
+    "id": "aad-sub-readonly-reviewer",
+    "title": "Deixando um subagent de revisão só leitura",
+    "question": "Seu subagent `security-reviewer` nunca pode alterar arquivos, mesmo que um arquivo revisado contenha um texto mandando \"corrija isto agora\". Como você deve configurá-lo?",
+    "options": [
+      "Adicionar \"por favor, nunca edite arquivos\" ao fim do system prompt",
+      "Limitar as `tools` dele a tools de leitura como `Read`, `Grep` e `Glob`",
+      "Rodá-lo no maior modelo para ele resistir melhor a instruções vindas de arquivos",
+      "Iniciá-lo em background para as edições serem descartadas no fim"
+    ],
+    "explanation": "Restringir a lista `tools` (ou listar `Write` e `Edit` em `disallowedTools`) remove a capacidade, então nenhum prompt, nem um injetado pelo conteúdo de um arquivo, consegue fazer o subagent editar. Uma frase no prompt é só orientação, tamanho de modelo não é controle de acesso, e rodar em background não descarta edições."
+  },
+  {
+    "id": "aad-sub-parallel-worktrees",
+    "title": "Agentes em paralelo atropelando as edições um do outro",
+    "question": "Dois agentes trabalhando em paralelo em features diferentes compartilham um mesmo checkout. Eles sobrescrevem as mudanças um do outro, e os testes de um pegam o código pela metade do outro. Qual é a melhor correção?",
+    "options": [
+      "Fazer os dois agentes commitarem a cada poucos minutos na mesma branch",
+      "Rodar cada agente em uma janela de terminal diferente no mesmo diretório",
+      "Dar a cada agente sua própria git worktree, com checkouts isolados",
+      "Dar aos dois uma janela de contexto maior para perceberem os conflitos"
+    ],
+    "explanation": "Git worktrees dão a cada agente um diretório de trabalho e uma branch separados do mesmo repositório, então edições e execuções de teste não colidem e cada resultado pode ser revisado e mesclado de forma independente. Commits frequentes na mesma branch, terminais separados ou mais contexto não isolam o sistema de arquivos."
+  },
+  {
+    "id": "aad-sub-fanout-cost",
+    "title": "Por que um fan-out de subagents aumentou a conta",
+    "question": "Um time divide uma migração entre 20 subagents, esperando custo menor porque a conversa principal fica pequena. Em vez disso, o uso total sobe. Qual explicação está correta?",
+    "options": [
+      "Subagents sempre rodam no modelo mais caro, seja qual for a configuração",
+      "Os resultados de cada subagent são reenviados a todos os outros a cada turno",
+      "Subagents desligam o prompt caching da sessão inteira enquanto rodam",
+      "Cada um faz seus próprios requests e aquece seu próprio cache; só o contexto principal encolhe"
+    ],
+    "explanation": "Subagents economizam espaço no contexto principal, não tokens no total: cada um começa com seu próprio system prompt e tools, faz seus próprios requests e aquece seu próprio cache em vez de ler o do pai. Para controlar o gasto, mantenha as tarefas delegadas pequenas e mande as simples para um modelo mais barato. Subagents não forçam o modelo mais caro, não transmitem resultados entre si nem desligam o cache."
+  },
+  {
+    "id": "aad-hooks-format-after-edit",
+    "title": "Rodar um formatter depois de cada edição",
+    "question": "Você quer que um formatter de código rode depois de cada arquivo que o agente escreve ou edita, sem depender de o modelo lembrar de fazer isso. O que você deve usar?",
+    "options": [
+      "Uma linha no `CLAUDE.md` pedindo para o agente sempre rodar o formatter",
+      "Uma skill descrevendo o formatter, que o agente carrega quando precisar",
+      "Um hook `PostToolUse` com matcher `Edit|Write` que roda o formatter",
+      "Um subagent só de formatação chamado no fim do dia"
+    ],
+    "explanation": "Hooks são executados pelo harness em pontos fixos do ciclo de vida, então um hook `PostToolUse` nas tools de edição roda sempre, de forma determinística. Instruções no `CLAUDE.md` e skills são contexto que o modelo pode ou não seguir, e um subagent no fim do dia deixa o código sem formatação até lá."
+  },
+  {
+    "id": "aad-hooks-userpromptsubmit",
+    "title": "Barrando segredos antes de chegarem ao modelo",
+    "question": "Devs às vezes colam senhas de produção nos prompts. Você quer um hook que rejeite esses prompts antes de o modelo vê-los. Qual evento de hook se encaixa?",
+    "options": [
+      "`PostToolUse`",
+      "`PermissionRequest`",
+      "`UserPromptSubmit`",
+      "`Notification`"
+    ],
+    "explanation": "O `UserPromptSubmit` roda quando o usuário envia um prompt e pode bloqueá-lo para que nunca chegue ao Claude. O `PostToolUse` dispara depois que a tool já rodou, o `PermissionRequest` trata dos diálogos de permissão de chamadas de tools, e hooks de `Notification` não bloqueiam nada."
+  },
+  {
+    "id": "aad-hooks-stop-gate",
+    "title": "Não deixar o agente parar com testes falhando",
+    "question": "Você quer que o agente continue trabalhando até a suíte de testes passar, em vez de encerrar o turno com testes vermelhos. Qual configuração de hook garante isso de forma determinística?",
+    "options": [
+      "Um hook `Stop` que roda os testes e bloqueia a parada citando as falhas",
+      "Um hook `SessionEnd` que roda os testes e mostra as falhas ao usuário",
+      "Um hook `Notification` que avisa sempre que o agente precisa de input",
+      "Um hook `PreToolUse` no `Bash` que recusa comandos contendo \"test\""
+    ],
+    "explanation": "Um hook `Stop` roda quando o agente tenta encerrar o turno; bloqueá-lo (exit 2 ou `decision: \"block\"` com um motivo) mantém o agente trabalhando e diz o que falhou. O `SessionEnd` não pode bloquear, o `Notification` só sinaliza, e recusar comandos de teste impediria a verificação."
+  },
+  {
+    "id": "aad-hooks-exit-code-1",
+    "title": "Hook de política que nunca bloqueia nada",
+    "question": "Um hook `PreToolUse` deveria bloquear `rm -rf`. Ele escreve um aviso no stderr e sai com código 1, mas os comandos continuam rodando. Por quê?",
+    "options": [
+      "Hooks só rodam depois da chamada da tool, então não dá para bloquear",
+      "Para bloquear, o hook precisa terminar em até 100 milissegundos",
+      "O stderr é ignorado, então o aviso precisa ir para um arquivo de log",
+      "Exit code 1 é erro não bloqueante; bloquear exige exit 2 ou um deny"
+    ],
+    "explanation": "No Claude Code, o exit code 2 (ou um JSON com `permissionDecision: \"deny\"`) bloqueia uma chamada no `PreToolUse` e envia o motivo ao Claude; qualquer outro código diferente de zero é tratado como erro não bloqueante e a ação segue. O `PreToolUse` roda antes da tool, não existe regra de 100 ms, e o stderr é justamente o que o exit 2 informa como motivo."
+  },
+  {
+    "id": "aad-hooks-fail-open-timeout",
+    "title": "Um hook de política lento usado como barreira",
+    "question": "Seu hook de comando `PreToolUse` chama um serviço remoto de políticas para aprovar comandos de deploy. Durante uma indisponibilidade, o serviço trava e o hook atinge o timeout. O que acontece com a chamada de tool pendente, e o que isso implica?",
+    "options": [
+      "Ela é negada automaticamente, então falhas são seguras por design",
+      "Ela segue pelo fluxo normal de permissões; mantenha deny rules de reserva",
+      "A sessão quebra, então o hook deve ser envolvido num loop de retry",
+      "Ela espera indefinidamente até o serviço de políticas voltar"
+    ],
+    "explanation": "Quando um hook de comando estoura o timeout, o Claude Code descarta a saída dele e a chamada segue pelo fluxo normal de permissões, então um hook travado não funciona como barreira. Restrições críticas devem existir também como deny rules ou limites de sandbox que não dependam do hook estar disponível. A chamada não é negada automaticamente, a sessão não quebra e não fica esperando para sempre."
+  },
+  {
+    "id": "aad-review-small-changes",
+    "title": "Revisando um pull request gigante gerado por agente",
+    "question": "Um agente gerou um único pull request de 3.000 linhas mexendo em 40 arquivos. Qual é a melhor forma de torná-lo revisável?",
+    "options": [
+      "Aprovar se o CI estiver verde, já que o agente testou tudo",
+      "Pedir que seja dividido em mudanças pequenas e autocontidas",
+      "Revisar só os dez primeiros arquivos e supor que o resto segue o padrão",
+      "Pedir a um segundo agente um resumo e aprovar com base nele"
+    ],
+    "explanation": "Mudanças pequenas e focadas são mais rápidas de revisar a fundo e mais fáceis de reverter, e isso vale igualmente para código escrito por IA. CI verde só prova o que os testes cobrem, amostrar arquivos pula a maior parte da mudança, e um resumo de outro modelo não substitui ler o diff."
+  },
+  {
+    "id": "aad-review-hallucinated-package",
+    "title": "Uma dependência desconhecida em código gerado por IA",
+    "question": "Um código gerado por IA importa um pacote do qual você nunca ouviu falar, e a instalação funciona. O que você deve verificar antes do merge?",
+    "options": [
+      "Nada, pois um pacote que instala sem erro é seguro para usar",
+      "Se o nome do pacote é curto o bastante para ser fácil de lembrar",
+      "Se é o pacote real e mantido que você queria, não um parecido",
+      "Se o pacote aparece em primeiro lugar ao buscar no registry"
+    ],
+    "explanation": "Assistentes às vezes sugerem nomes de pacotes que não existem, e atacantes registram nomes comumente alucinados com código malicioso. Uma instalação bem-sucedida só prova que existe algo com aquele nome, então verifique publicador, repositório e adoção antes de adicioná-lo. Tamanho do nome e posição na busca não dizem nada sobre legitimidade."
+  },
+  {
+    "id": "aad-review-fresh-reviewer",
+    "title": "Quem deve revisar as mudanças do próprio agente",
+    "question": "Depois que um agente implementa um rate limiter, você quer uma revisão por IA antes de abrir o PR. Qual configuração dá a revisão mais independente?",
+    "options": [
+      "Uma nova sessão ou subagent que vê só o diff e os requisitos",
+      "A mesma sessão que escreveu o código, revisando o próprio trabalho",
+      "A mesma sessão, mas instruída a ser duas vezes mais crítica que o normal",
+      "A mesma sessão após `/compact`, para a revisão usar menos contexto"
+    ],
+    "explanation": "Um revisor em contexto novo não tem viés a favor do código que acabou de escrever e julga o resultado por si, vendo o diff e os critérios em vez do raciocínio que o produziu. Pedir mais rigor à sessão autora, ou compactá-la, ainda reaproveita as mesmas suposições."
+  },
+  {
+    "id": "aad-review-weakened-test",
+    "title": "Agente corrigiu um teste falhando alterando o teste",
+    "question": "Um PR de um agente \"corrige\" um teste que falhava trocando o status esperado de `200` para `500`. O CI está verde. Em que o revisor deve se concentrar?",
+    "options": [
+      "Em nada, já que, se o teste passa agora, o comportamento deve estar certo",
+      "Se o arquivo de teste ainda segue as regras de nomes do projeto",
+      "Se a descrição do PR informa qual modelo escreveu o código",
+      "Se a asserção foi enfraquecida para aceitar um comportamento com bug"
+    ],
+    "explanation": "Mudar valores esperados pode transformar um teste que pegava um bug real em um que o endossa, então diffs de teste vindos de agentes merecem tanto escrutínio quanto diffs de código. Um build verde só mostra que o código bate com os testes, que acabaram de ser alterados, e nomes ou atribuição de modelo não dizem se o comportamento está certo."
+  },
+  {
+    "id": "aad-review-overengineering",
+    "title": "Agente revisor que sempre encontra alguma coisa",
+    "question": "Um time colocou um subagent de revisão adversarial em toda tarefa. Ele sempre aponta lacunas, o implementador corrige todas, e o código agora tem abstrações desnecessárias e testes para casos impossíveis. Qual é o melhor ajuste?",
+    "options": [
+      "Remover a etapa de revisão de vez, já que revisores de IA não acham bugs reais",
+      "Instruir o revisor a apontar só lacunas de corretude ou dos requisitos",
+      "Rodar o revisor várias vezes e corrigir só o que aparecer em todas",
+      "Fazer o implementador ignorar tudo a menos que uma pessoa concorde"
+    ],
+    "explanation": "Um revisor instruído a achar lacunas costuma apontar algumas mesmo quando o trabalho está bom, e perseguir todas leva a over-engineering. Limitar o escopo dele a corretude e requisitos declarados, tratando o resto como opcional, mantém a checagem independente sem o ruído. Remover a revisão perde bugs reais, e votação ou mandar tudo para pessoas aumenta o custo sem corrigir as instruções."
+  },
+  {
+    "id": "aad-sec-indirect-injection",
+    "title": "Reconhecendo prompt injection indireto",
+    "question": "Qual cenário é um exemplo de prompt injection indireto contra um agente de código?",
+    "options": [
+      "Um dev digita no chat um pedido propositalmente confuso",
+      "O README de uma dependência esconde texto mandando o agente enviar o `.env`",
+      "O agente interpreta mal um stack trace e acaba editando o arquivo errado",
+      "Um atacante faz brute force na API key que o agente usa para chamar o modelo"
+    ],
+    "explanation": "Prompt injection indireto chega por conteúdo externo que o modelo processa, como arquivos, páginas web, issues ou resultados de tools, e não pelo que o usuário digita. Um prompt confuso do usuário é entrada direta, ler mal um stack trace é um erro comum, e brute force numa chave é ataque a credenciais, não prompt injection."
+  },
+  {
+    "id": "aad-sec-instructions-not-enforcement",
+    "title": "Usando o CLAUDE.md como controle de segurança",
+    "question": "A única proteção de segredos de um time é uma linha no `CLAUDE.md`: \"Nunca leia o arquivo .env\". Por que uma revisão de segurança aponta isso, e o que é melhor?",
+    "options": [
+      "É contexto, não imposição; adicione uma deny rule como `Read(./.env)`",
+      "A linha precisa ser copiada no `CLAUDE.md` de cada subdiretório para valer",
+      "O modelo não lê dotfiles de jeito nenhum, então a linha é só redundante",
+      "A linha funciona, mas também precisa ser repetida no início de cada prompt"
+    ],
+    "explanation": "O Claude trata o `CLAUDE.md` como orientação, então um modelo confuso ou vítima de injection pode ignorá-lo. Deny rules de permissão como `Read(./.env)` são impostas pelo harness, e um sandbox no nível do sistema operacional pode adicionar outra barreira para comandos de shell. Repetir a frase não muda sua natureza, e agentes conseguem ler dotfiles."
+  },
+  {
+    "id": "aad-sec-deny-precedence",
+    "title": "Allow rules e hooks contra um deny gerenciado",
+    "question": "As managed settings negam `Bash(git push *)`. Um projeto adiciona uma allow rule para `Bash(git push origin feature/*)`, e um hook `PreToolUse` retorna `allow` para pushes. O agente roda `git push origin feature/x`. O que acontece?",
+    "options": [
+      "O push roda, porque a allow rule mais específica tem precedência",
+      "O push roda, porque a decisão de um hook sobrepõe as regras",
+      "O push é bloqueado, porque o deny vence allow rules e hooks",
+      "O usuário é consultado, porque regras em conflito viram ask"
+    ],
+    "explanation": "As regras são avaliadas primeiro deny, depois ask, depois allow, e a especificidade não muda essa ordem, então um allow não abre exceção num deny. O `allow` de um hook `PreToolUse` também não contorna deny ou ask rules. Não existe fallback de \"conflito vira ask\"."
+  },
+  {
+    "id": "aad-sec-bash-deny-not-boundary",
+    "title": "Bloqueando exfiltração com uma deny rule para curl",
+    "question": "Para impedir exfiltração de dados, um admin nega `Bash(curl *)` e `Bash(wget *)`. Por que isso não basta sozinho, e o que adiciona uma barreira real?",
+    "options": [
+      "Deny rules são ignoradas no Bash, pois só allow rules valem para o shell",
+      "O curl é sempre pré-aprovado como leitura, então a regra nunca vale",
+      "As regras precisam listar também `curl.exe`, e aí bloqueiam toda a rede",
+      "Regras casam o texto do comando, então `sh -c` ainda conecta; use allowlist no sandbox"
+    ],
+    "explanation": "Regras de permissão do Bash casam com o comando como foi escrito; o mesmo acesso de rede por outro programa, caminho completo ou `sh -c` não casa. Um sandbox imposto pelo sistema operacional com allowlist de rede restringe o que qualquer comando de shell e seus processos filhos alcançam, mesmo que um prompt injection conduza o modelo. Deny rules valem para o Bash, o curl não é auto-aprovado, e listar variantes nunca fecha todos os caminhos."
+  },
+  {
+    "id": "aad-sec-limit-blast-radius",
+    "title": "Agente de triagem exposto a issues não confiáveis",
+    "question": "Um agente faz triagem de issues públicas do GitHub. Ele tem um token com escrita em repositórios privados e acesso irrestrito à rede. Qual mudança mais reduz o impacto de um prompt injection bem-sucedido no corpo de uma issue?",
+    "options": [
+      "Um system prompt mais forte mandando ignorar instruções nas issues",
+      "Um modelo maior, melhor em perceber instruções maliciosas",
+      "Fazer o agente confirmar antes de cada ação que não sofreu injection",
+      "Um token de menor privilégio e um sandbox com allowlist de rede"
+    ],
+    "explanation": "Defesas dentro do modelo são probabilísticas, então a mitigação mais forte limita o que um agente enganado consegue fazer: um token restrito e só de leitura tira a capacidade de danificar repositórios privados, e restrições de rede no nível do sistema operacional bloqueiam exfiltração mesmo com o modelo manipulado. Texto do prompt, tamanho do modelo e autochecagens dependem de o modelo resistir ao próprio ataque que está sofrendo."
+  },
+  {
+    "id": "aad-cost-clear-between-tasks",
+    "title": "Mudando para um trabalho sem relação na mesma sessão",
+    "question": "Você terminou a correção de um bug e quer começar uma feature sem relação no mesmo terminal. O que mantém o custo e a confusão mais baixos?",
+    "options": [
+      "Seguir na mesma sessão para o agente lembrar da correção do bug que acabou de fazer",
+      "Rodar `/clear` antes, já que contexto velho é reenviado a cada turno",
+      "Colar de novo a conversa inteira do bug para nada se perder",
+      "Trocar para um modelo maior para o contexto antigo não pesar"
+    ],
+    "explanation": "Todo request leva a conversa inteira, então histórico sem relação custa tokens em cada mensagem e pode distrair o modelo. O `/clear` zera o contexto para a nova tarefa, enquanto continuar, colar o histórico de novo ou trocar para um modelo maior seguem pagando por contexto que você não precisa mais."
+  },
+  {
+    "id": "aad-cost-smaller-model-subagent",
+    "title": "Modelo mais barato para trabalho delegado simples",
+    "question": "O subagent de busca de arquivos de um time roda no maior e mais caro modelo, embora só encontre e liste arquivos. Qual é a redução de custo sensata mais simples?",
+    "options": [
+      "Configurar esse subagent para usar um modelo menor e mais rápido, como o Haiku",
+      "Dar mais tools a ele para terminar a busca em menos turnos",
+      "Mover as instruções dele para o `CLAUDE.md` para que toda sessão já as carregue no início",
+      "Desligar o prompt caching para os requests saírem mais baratos"
+    ],
+    "explanation": "Tarefas simples e bem delimitadas, como busca de arquivos, não precisam do modelo mais capaz; definir o `model` do subagent como um menor, como o Haiku, reduz custo e latência. Mais tools não baixam o preço por token, colocar as instruções no `CLAUDE.md` adiciona contexto a toda sessão, e desligar o cache aumenta o custo."
+  },
+  {
+    "id": "aad-cost-cache-unstable-prefix",
+    "title": "Cache de prompt que nunca acerta",
+    "question": "Um agente próprio construído sobre a Claude API coloca o timestamp atual no topo do system prompt a cada request. A taxa de acerto do cache é quase zero. Por quê, e o que resolve?",
+    "options": [
+      "Timestamps não são permitidos em prompts com cache, então remova datas",
+      "O cache só funciona na última mensagem do usuário, então marque esse bloco",
+      "O cache casa prefixos exatos; ponha o conteúdo fixo antes e o timestamp no fim",
+      "O cache precisa de um TTL maior, e um TTL de uma hora resolve os acertos"
+    ],
+    "explanation": "O prompt caching reaproveita um prefixo exato na ordem tools, system, messages, então uma mudança no começo do prompt invalida tudo o que vem depois. Colocar o conteúdo estático primeiro e valores voláteis como timestamps no fim mantém o prefixo estável. Datas são permitidas, o cache não se limita à última mensagem, e um TTL maior não ajuda quando o prefixo muda a cada request."
+  },
+  {
+    "id": "aad-cost-filter-verbose-output",
+    "title": "Saída enorme de testes enchendo o contexto",
+    "question": "Cada execução de testes imprime umas 10.000 linhas, e o agente lê tudo várias vezes por tarefa. O que mais reduz tokens mantendo o sinal útil?",
+    "options": [
+      "Pedir ao agente que passe os olhos na saída em vez de ler cada linha",
+      "Trocar para um modelo com janela de contexto maior para caber o log",
+      "Rodar os testes menos vezes e tentar corrigir vários problemas diferentes de uma só vez",
+      "Filtrar a saída com um hook ou script para só as falhas chegarem ao agente"
+    ],
+    "explanation": "Pré-processar a saída antes de chegar ao modelo, por exemplo com um hook que mantém só os testes que falharam, reduz dezenas de milhares de tokens a centenas e preserva o que o agente precisa; delegar a execução a um subagent é outra opção. \"Passar os olhos\" ainda envia todos os tokens, uma janela maior só aumenta o teto, e rodar menos testes enfraquece o ciclo de feedback."
+  },
+  {
+    "id": "aad-cost-model-switching",
+    "title": "Trocar de modelo toda hora encareceu a sessão",
+    "question": "Numa sessão longa, um dev alterna a cada poucos prompts entre um modelo grande para planejar e um pequeno para editar, esperando economizar. O uso acaba maior do que se ficasse no modelo grande. Qual é o principal motivo?",
+    "options": [
+      "Cada troca obriga o modelo menor a replanejar a tarefa inteira de novo, do zero",
+      "Cada modelo tem seu próprio cache, e cada troca relê o histórico sem cache",
+      "Trocar de modelo limpa a sessão, então todos os arquivos são relidos",
+      "Modelos menores sempre geram mais tokens de saída para a mesma tarefa"
+    ],
+    "explanation": "Caches de prompt são por modelo: depois de uma troca, o próximo request processa a conversa inteira sem acertos de cache, mesmo com o conteúdo idêntico. Numa sessão longa, essas leituras repetidas sem cache podem superar o preço menor por token. Trocar não limpa a conversa nem força replanejamento, e modelos menores não geram mais saída por natureza."
+  },
+  {
+    "id": "aad-ci-print-mode",
+    "title": "Rodando o Claude Code a partir de um script",
+    "question": "Qual flag roda o Claude Code de forma não interativa, para um script ou job de CI passar um prompt e receber o resultado?",
+    "options": [
+      "`--daemon`",
+      "`--headless`",
+      "`--ci`",
+      "`-p`"
+    ],
+    "explanation": "`claude -p \"...\"` (modo print) roda uma única consulta não interativa e encerra, que é como o Claude Code é usado em scripts e CI; ele se combina com flags como `--output-format` e `--allowedTools`. As outras flags não existem na CLI do Claude Code."
+  },
+  {
+    "id": "aad-ci-structured-output",
+    "title": "Lendo resultados do agente de forma confiável no pipeline",
+    "question": "Uma etapa de CI precisa ler uma lista de funções afetadas da resposta do Claude Code e falhar o job se a lista vier vazia. Qual é a abordagem mais confiável?",
+    "options": [
+      "Pedir ao agente que responda em JSON e parsear o texto que ele imprimir",
+      "Fazer grep na saída em texto por linhas que pareçam nomes de funções",
+      "Usar `--output-format json` com `--json-schema` e ler o campo estruturado",
+      "Adicionar `--verbose` para cada nome de função sair em uma linha"
+    ],
+    "explanation": "`--output-format json` devolve um envelope legível por máquina com o resultado, o ID da sessão e o uso, e acrescentar `--json-schema` faz a resposta seguir o seu schema no campo `structured_output`, permitindo parse determinístico. Pedir JSON com educação ou fazer grep em prosa é frágil, e `--verbose` adiciona logs, não estrutura."
+  },
+  {
+    "id": "aad-ci-unattended-guardrails",
+    "title": "Guardrails para um job noturno sem supervisão",
+    "question": "Um job noturno roda `claude -p` para atualizar versões de dependências e rodar testes num runner compartilhado. Ninguém está por perto para aprovar prompts. Qual configuração é a mais segura e ainda deixa o job terminar?",
+    "options": [
+      "Pré-aprovar tools via `--allowedTools`, usar `dontAsk` e limitar turnos e tempo",
+      "Usar `--permission-mode bypassPermissions`, já que ninguém responderia mesmo",
+      "Manter o modo de permissão padrão e confiar que o agente evite riscos",
+      "Liberar todo comando `Bash`, mas pedir no prompt que evite qualquer comando destrutivo"
+    ],
+    "explanation": "Pré-aprovar exatamente as tools da tarefa e usar `dontAsk` para negar todo o resto mantém a execução sem supervisão sem ampliar acesso, enquanto `--max-turns` e um timeout do job limitam trabalho descontrolado. O modo bypass remove as checagens e é só para containers ou VMs isolados, confiar no julgamento do modelo não é controle, e liberar todo `Bash` desfaz o menor privilégio."
+  },
+  {
+    "id": "aad-ci-github-token-no-trigger",
+    "title": "CI não roda nos commits do agente",
+    "question": "Seu workflow passa `github_token: ${{ secrets.GITHUB_TOKEN }}` para a Claude Code GitHub Action. O Claude faz push de commits num PR, mas os workflows de teste nunca rodam neles. Por quê?",
+    "options": [
+      "Workflows disparados por agentes de IA vêm desativados em todo repositório",
+      "O GitHub não dispara workflows para eventos feitos com o `GITHUB_TOKEN` padrão",
+      "Os commits da action não são assinados, e commits sem assinatura nunca são testados",
+      "Falta `id-token: write` ao token, e todo push precisa disso para disparar o CI"
+    ],
+    "explanation": "Para evitar execuções recursivas, o GitHub não dispara workflows a partir de eventos criados com o `GITHUB_TOKEN` embutido. Remova esse input para a action se autenticar como o Claude GitHub App, ou passe um token de app próprio, e confira se os gatilhos do CI incluem os eventos gerados pelos pushes do Claude. Não há regra específica para IA ou assinatura, e `id-token: write` serve à autenticação do app, não para disparar CI."
+  },
+  {
+    "id": "aad-ci-untrusted-pr-config",
+    "title": "Agente headless rodando em pull requests não confiáveis",
+    "question": "Um job de CI faz checkout de pull requests de colaboradores externos e roda `claude -p` neles com uma API key no ambiente. Um PR malicioso adiciona um hook em `.claude/settings.json` e um servidor em `.mcp.json`. Qual é o risco, e qual é uma mitigação sólida?",
+    "options": [
+      "Nenhum: o modo `-p` mostra um diálogo de confiança e o job só travaria",
+      "Só o `CLAUDE.md` carrega no modo `-p`, então hooks e servidores são ignorados",
+      "O `-p` roda hooks e servidores do `.mcp.json` sem perguntar; use `--bare`, sem segredos",
+      "Servidores do `.mcp.json` sempre exigem aprovação interativa, então só o hook é risco"
+    ],
+    "explanation": "Uma sessão `-p` não mostra o diálogo de confiança do workspace nem a aprovação por servidor, então roda os hooks de projeto do repositório e conecta os servidores do `.mcp.json`: execução de código escolhida pelo autor do PR. O `--bare` pula a descoberta automática de hooks, servidores MCP, skills e `CLAUDE.md`, e um job assim não deve ter segredos valiosos nem tokens de escrita. As outras opções descrevem errado como o `-p` trata a configuração do projeto."
+  }
+]

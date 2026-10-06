@@ -1,0 +1,512 @@
+[
+  {
+    "id": "sheet-formula-absolute-reference",
+    "topic": "spreadsheets",
+    "subtopic": "formulas",
+    "difficulty": "Easy",
+    "title": "Copying a formula with an absolute reference",
+    "question": "Cell C2 contains `=B2*$F$1`, where F1 holds a tax rate. You copy C2 down to C3. Which formula does C3 now contain?",
+    "options": [
+      "`=B3*$F$2`",
+      "`=B3*$F$1`",
+      "`=B2*$F$1`",
+      "`=C3*$G$1`"
+    ],
+    "correctIndex": 1,
+    "explanation": "Relative references shift with the copy, so B2 becomes B3, while the dollar signs in `$F$1` lock both the column and the row, keeping every row pointed at the single tax-rate cell. Without the `$` signs the reference would drift to F2, F3 and so on, which are empty, and nothing in the formula moves sideways when copying straight down.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/switch-between-relative-absolute-and-mixed-references-dfec08cd-ae65-4f56-839e-5f0d8d0baca9"
+  },
+  {
+    "id": "sheet-formula-mixed-reference",
+    "topic": "spreadsheets",
+    "subtopic": "formulas",
+    "difficulty": "Medium",
+    "title": "One formula for a whole multiplication grid",
+    "question": "Column A (A2:A11) holds the numbers 1 to 10 and row 1 (B1:K1) holds 1 to 10. Which formula in B2 can be filled right and down to build the full multiplication grid?",
+    "options": [
+      "`=A2*B1`, fully relative",
+      "`=$A$2*$B$1`, fully absolute",
+      "`=$A2*B$1`, column A and row 1 locked",
+      "`=A$2*$B1`, row 2 and column B locked"
+    ],
+    "correctIndex": 2,
+    "explanation": "`$A2` locks the column, so every cell keeps reading the row header in column A, and `B$1` locks the row, so every cell keeps reading the column header in row 1. Fully relative references drift away from both headers, fully absolute ones repeat 1 × 1 everywhere, and `=A$2*$B1` locks exactly the wrong parts.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/switch-between-relative-absolute-and-mixed-references-dfec08cd-ae65-4f56-839e-5f0d8d0baca9"
+  },
+  {
+    "id": "sheet-formula-sumifs-date-criteria",
+    "topic": "spreadsheets",
+    "subtopic": "formulas",
+    "difficulty": "Hard",
+    "title": "SUMIFS with a date criterion",
+    "question": "Amounts are in D2:D500, regions in B2:B500 and real dates in C2:C500. Which formula sums the amounts for region \"South\" dated on or after 1 January 2026?",
+    "options": [
+      "`=SUMIFS(B2:B500,\"South\",D2:D500,\">=\"&DATE(2026,1,1))`",
+      "`=SUMIFS(D2:D500,\"South\",B2:B500,\">=\"&DATE(2026,1,1),C2:C500)`",
+      "`=SUMIFS(D2:D500,B2:B500,\"South\",C2:C500,\">=\"&DATE(2026,1,1))`",
+      "`=SUMIF(B2:B500,\"South\",D2:D500)+SUMIF(C2:C500,\">=\"&DATE(2026,1,1),D2:D500)`"
+    ],
+    "correctIndex": 2,
+    "explanation": "SUMIFS takes the sum range first, then pairs of criteria range followed by criterion, and a comparison criterion must be built as text by joining the operator to a value: `\">=\"&DATE(2026,1,1)`. Starting with the region range or writing each criterion before its range makes Excel read the arguments as the wrong ranges, and writing the date inside the quotes would compare against literal text. Adding two SUMIF results counts rows that meet either condition (and double-counts rows meeting both) instead of requiring both.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/sumifs-function-c9e748f5-7ea7-455d-9406-611cebce642b"
+  },
+  {
+    "id": "sheet-formula-spill-blocked",
+    "topic": "spreadsheets",
+    "subtopic": "formulas",
+    "difficulty": "Medium",
+    "title": "#SPILL! from a UNIQUE formula",
+    "question": "In Excel for Microsoft 365, `=UNIQUE(A2:A500)` entered in D2 returns #SPILL! instead of a list. What is the most likely cause?",
+    "options": [
+      "UNIQUE only works on sorted data, and column A is not sorted",
+      "Some cells below D2, where the results must go, are not empty",
+      "The formula has to be confirmed with Ctrl+Shift+Enter in Excel 365",
+      "Column A contains blank cells, which UNIQUE is unable to process"
+    ],
+    "correctIndex": 1,
+    "explanation": "Dynamic array formulas spill their results into neighbouring cells; if anything occupies that spill range, Excel returns #SPILL! and shows a dashed border around the area it needs. UNIQUE does not need sorted input, Ctrl+Shift+Enter is the legacy array entry that dynamic arrays made unnecessary, and blank source cells are returned as a value rather than causing an error.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/-spill-errors-in-excel-ffe0f555-b479-4a17-a6e2-ef9cc9ad4023"
+  },
+  {
+    "id": "sheet-formula-let-repeated-lookup",
+    "topic": "spreadsheets",
+    "subtopic": "formulas",
+    "difficulty": "Hard",
+    "title": "A formula repeating the same lookup three times",
+    "question": "A formula calls the same XLOOKUP three times: once to test for an error, once to compare the result with a threshold and once to return it. Which change best improves readability and calculation cost?",
+    "options": [
+      "Wrap the whole formula in IFERROR so the lookups run only once",
+      "Switch the workbook to manual calculation mode permanently",
+      "Replace XLOOKUP with VLOOKUP, which caches its last result",
+      "Use LET to compute the lookup once and reuse it by name"
+    ],
+    "correctIndex": 3,
+    "explanation": "LET assigns names to intermediate results, so `=LET(price, XLOOKUP(...), IF(price>100, ...))` evaluates the lookup once and makes the formula readable. IFERROR does not de-duplicate the inner lookups, VLOOKUP has no result cache, and manual calculation just risks stale values instead of making the formula cheaper.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/let-function-34842dd8-b92b-4d3f-b325-b8b8f9908999"
+  },
+  {
+    "id": "sheet-lookup-xlookup-not-found",
+    "topic": "spreadsheets",
+    "subtopic": "lookups",
+    "difficulty": "Easy",
+    "title": "Custom message when XLOOKUP finds nothing",
+    "question": "You want `=XLOOKUP(A2, Ids, Names)` to show \"Not found\" instead of #N/A when the ID is missing. Which formula does that using XLOOKUP's own arguments?",
+    "options": [
+      "`=XLOOKUP(A2, Ids, Names, \"Not found\")`",
+      "`=XLOOKUP(A2, Ids, Names, 0, \"Not found\")`",
+      "`=XLOOKUP(\"Not found\", A2, Ids, Names)`",
+      "`=XLOOKUP(A2, Ids, Names, 0, -1, \"Not found\")`"
+    ],
+    "correctIndex": 0,
+    "explanation": "XLOOKUP's fourth argument, if_not_found, is returned when no match exists; without it XLOOKUP returns #N/A. The fifth argument is match_mode and the sixth is search_mode, so text placed there is invalid, and lookup_value always comes first.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/xlookup-function-b7fd680e-6d10-43e6-84f9-88eae8bf5929"
+  },
+  {
+    "id": "sheet-lookup-vlookup-approximate-default",
+    "topic": "spreadsheets",
+    "subtopic": "lookups",
+    "difficulty": "Medium",
+    "title": "VLOOKUP returning the wrong price",
+    "question": "`=VLOOKUP(A2, Products!A:C, 3)` sometimes returns the price of a different product, and the product list is not sorted. What is the cause?",
+    "options": [
+      "Whole-column references like A:C make VLOOKUP read cached values",
+      "The column index 3 is counted from column A of the current sheet",
+      "VLOOKUP cannot read another sheet unless it is wrapped in INDIRECT",
+      "range_lookup is omitted, so VLOOKUP defaults to approximate match"
+    ],
+    "correctIndex": 3,
+    "explanation": "When range_lookup is omitted VLOOKUP uses TRUE (approximate match), which assumes the first column is sorted ascending and otherwise can return a nearby, wrong row instead of #N/A. Passing FALSE (`=VLOOKUP(A2, Products!A:C, 3, FALSE)`) or using XLOOKUP, whose default is exact match, fixes it. The column index counts from the lookup table's first column, and cross-sheet references work directly.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/vlookup-function-0bbc8083-26fe-4963-8ab8-93a18ad188a1"
+  },
+  {
+    "id": "sheet-lookup-inserted-column",
+    "topic": "spreadsheets",
+    "subtopic": "lookups",
+    "difficulty": "Medium",
+    "title": "Lookups break after a column is inserted",
+    "question": "Several `VLOOKUP(..., 4, FALSE)` formulas started returning the wrong field after someone inserted a column inside the lookup table. Which approach avoids this kind of breakage?",
+    "options": [
+      "Protect the sheet so that nobody can insert columns again",
+      "Use XLOOKUP or INDEX/MATCH pointing at the return column",
+      "Increase every column index by one whenever a column is added",
+      "Move the lookup table to a separate workbook and link to it"
+    ],
+    "correctIndex": 1,
+    "explanation": "VLOOKUP's column index is a hard-coded number, so inserting a column shifts which field it returns. XLOOKUP and INDEX/MATCH reference the return range itself, and Excel adjusts that reference automatically when columns move, so the formula keeps returning the right field. Protecting the sheet or renumbering by hand treats the symptom, and an external link adds fragility.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/look-up-values-with-vlookup-index-or-match-68297403-7c3c-4150-9e3c-4d348188976b"
+  },
+  {
+    "id": "sheet-lookup-two-criteria",
+    "topic": "spreadsheets",
+    "subtopic": "lookups",
+    "difficulty": "Hard",
+    "title": "Lookup on product and region together",
+    "question": "A price table has Product in A2:A100, Region in B2:B100 and Price in C2:C100. In Excel for Microsoft 365, which formula returns the price where Product = G1 and Region = G2?",
+    "options": [
+      "`=XLOOKUP(G1&G2, A2:A100, C2:C100)`",
+      "`=XLOOKUP(G1, A2:A100, XLOOKUP(G2, B2:B100, C2:C100))`",
+      "`=VLOOKUP(G1, A2:C100, 3, FALSE)*VLOOKUP(G2, B2:C100, 2, FALSE)`",
+      "`=XLOOKUP(1, (A2:A100=G1)*(B2:B100=G2), C2:C100)`"
+    ],
+    "correctIndex": 3,
+    "explanation": "Multiplying the two Boolean arrays gives 1 only on rows where both conditions are true, so XLOOKUP finds the first 1 and returns that row's price. Searching for G1&G2 compares the joined text against product names alone, the nested XLOOKUP returns a single price instead of a filtered range, and multiplying two VLOOKUP results multiplies two unrelated prices.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/xlookup-function-b7fd680e-6d10-43e6-84f9-88eae8bf5929"
+  },
+  {
+    "id": "sheet-lookup-binary-search-unsorted",
+    "topic": "spreadsheets",
+    "subtopic": "lookups",
+    "difficulty": "Expert",
+    "title": "Binary-search XLOOKUP with sporadic wrong results",
+    "question": "To speed up lookups on 500,000 rows, someone set XLOOKUP's search_mode to 2. Most results look right, but some IDs return another customer's data or #N/A. The ID column is in load order. What is happening?",
+    "options": [
+      "search_mode 2 is a binary search that requires ascending-sorted data",
+      "search_mode 2 searches from last to first, so duplicates resolve differently",
+      "search_mode 2 turns on wildcard matching, so IDs match partial patterns",
+      "search_mode 2 is limited to 65,536 rows and wraps around beyond that"
+    ],
+    "correctIndex": 0,
+    "explanation": "search_mode 2 performs a binary search that relies on lookup_array being sorted in ascending order; on unsorted data it returns invalid results without any warning. Either sort the ID column (and keep it sorted) or use the default linear search. Searching last-to-first is search_mode -1, wildcards are match_mode 2, and there is no 65,536-row limit in modern Excel.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/xlookup-function-b7fd680e-6d10-43e6-84f9-88eae8bf5929"
+  },
+  {
+    "id": "sheet-pivot-source-layout",
+    "topic": "spreadsheets",
+    "subtopic": "pivot-tables",
+    "difficulty": "Easy",
+    "title": "Preparing data for a PivotTable",
+    "question": "Which source layout works best for building a PivotTable?",
+    "options": [
+      "One header row, one record per row and no blank rows or columns",
+      "A cross-tab with months across columns and subtotal rows between groups",
+      "Merged header cells grouping related columns under a shared title",
+      "Several small tables on one sheet separated by blank spacer rows"
+    ],
+    "correctIndex": 0,
+    "explanation": "PivotTables expect tabular data: a single header row with unique names, one record per row and a consistent data type in each column. Cross-tabs with subtotals, merged headers and blank-separated blocks all have to be unpivoted or cleaned up before a PivotTable can summarize them correctly.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/create-a-pivottable-to-analyze-worksheet-data-a9a84538-bfe9-40a9-a8e9-f99134456576"
+  },
+  {
+    "id": "sheet-pivot-percent-of-parent",
+    "topic": "spreadsheets",
+    "subtopic": "pivot-tables",
+    "difficulty": "Medium",
+    "title": "Share of each subcategory within its category",
+    "question": "A PivotTable has Category and Subcategory in Rows and Sum of Sales in Values. You want each subcategory shown as a percentage of its own category, not of the overall total. Which Show Values As option fits?",
+    "options": [
+      "% of Grand Total",
+      "% of Parent Row Total",
+      "% of Parent Column Total",
+      "% Difference From"
+    ],
+    "correctIndex": 1,
+    "explanation": "% of Parent Row Total divides each item by the total of its parent in the row hierarchy, so the subcategories within a category add up to 100%. % of Grand Total divides by the overall total, % of Parent Column Total works along the column hierarchy, and % Difference From compares each value with a chosen base item.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/show-different-calculations-in-pivottable-value-fields-014d2777-baaf-480b-a32b-98431f48bfec"
+  },
+  {
+    "id": "sheet-pivot-new-rows-missing",
+    "topic": "spreadsheets",
+    "subtopic": "pivot-tables",
+    "difficulty": "Medium",
+    "title": "New rows missing from a refreshed PivotTable",
+    "question": "A PivotTable's source is `Sheet1!$A$1:$F$500`. New rows are pasted below row 500 and the PivotTable is refreshed, but the new data does not appear. What is the durable fix?",
+    "options": [
+      "Delete the PivotTable and recreate it each time data is appended",
+      "Refresh twice, since the first refresh only reloads the pivot cache",
+      "Sort the source by date so the new rows move into the original range",
+      "Format the source as an Excel Table and base the PivotTable on it"
+    ],
+    "correctIndex": 3,
+    "explanation": "A fixed range address does not grow, so a refresh re-reads the same 500 rows. An Excel Table expands automatically as rows are added, so a PivotTable based on the table picks them up on the next refresh. Refreshing twice changes nothing, sorting would push other rows out of the range, and rebuilding the PivotTable every time is laborious and loses its layout.",
+    "referenceUrl": "https://support.microsoft.com/en-us/excel/refresh-pivottable-data"
+  },
+  {
+    "id": "sheet-pivot-distinct-count",
+    "topic": "spreadsheets",
+    "subtopic": "pivot-tables",
+    "difficulty": "Hard",
+    "title": "Counting unique customers in a PivotTable",
+    "question": "An orders table has one row per order. In a PivotTable, Count of CustomerID by month returns the number of orders, but you need the number of unique customers. What is the built-in way in Excel?",
+    "options": [
+      "Change the summary function from Count to Count Numbers",
+      "Add the data to the Data Model and use the Distinct Count summary",
+      "Drag CustomerID to Rows too so that each customer appears only once",
+      "Use Show Values As > Index to remove repeated customer IDs"
+    ],
+    "correctIndex": 1,
+    "explanation": "Count counts rows (like COUNTA), so repeat customers are counted once per order. The Distinct Count summary function counts unique values, but it is only available when the PivotTable uses the Data Model (tick 'Add this data to the Data Model' when creating it). Count Numbers still counts rows, putting CustomerID in Rows changes the layout rather than the measure, and Index is a relative-importance calculation.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/sum-values-in-a-pivottable-9ee73790-646a-42c9-9fc7-e1ca30096d9c"
+  },
+  {
+    "id": "sheet-pivot-calculated-field-sums",
+    "topic": "spreadsheets",
+    "subtopic": "pivot-tables",
+    "difficulty": "Expert",
+    "title": "A calculated field that inflates revenue",
+    "question": "The source has one row per sale with Price and Quantity. A PivotTable calculated field `Revenue = Price * Quantity` shows region totals far above the real revenue. Why?",
+    "options": [
+      "Calculated fields ignore filters, so every region sees all of the rows",
+      "The pivot cache stores Price as text and converts it on the fly",
+      "Calculated fields multiply the sums: SUM(Price) × SUM(Quantity)",
+      "Calculated fields always average the fields they reference first"
+    ],
+    "correctIndex": 2,
+    "explanation": "Calculated fields operate on the sum of the underlying data, not on individual records: each cell computes (sum of Price) × (sum of Quantity), which is not the sum of each row's price × quantity. Add a Revenue column to the source (or use a Data Model measure such as `SUMX(Sales, Sales[Price] * Sales[Quantity])`) and sum that instead. Calculated fields do respect filters and do not average first.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/calculate-values-in-a-pivottable-11f41417-da80-435c-a5c6-b0185e59da77"
+  },
+  {
+    "id": "sheet-dv-dropdown-list",
+    "topic": "spreadsheets",
+    "subtopic": "data-validation",
+    "difficulty": "Easy",
+    "title": "Restricting a Status column to fixed values",
+    "question": "You want users to pick a Status of Open, In progress or Closed from a dropdown instead of typing it. Which Excel feature should you use?",
+    "options": [
+      "Conditional formatting with one rule per status value",
+      "Sheet protection with only the Status column left unlocked",
+      "A custom number format that displays only the three words",
+      "Data validation with the List option and the allowed values"
+    ],
+    "correctIndex": 3,
+    "explanation": "Data validation of type List shows an in-cell dropdown and, with the error alert on, rejects values that are not on the list. Conditional formatting only changes appearance, a number format cannot constrain text input, and sheet protection controls whether cells can be edited at all, not which values are allowed.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/create-a-drop-down-list-7693307a-59ef-400a-b769-c5402dce407b"
+  },
+  {
+    "id": "sheet-dv-google-show-warning",
+    "topic": "spreadsheets",
+    "subtopic": "data-validation",
+    "difficulty": "Easy",
+    "title": "Allowing off-list entries in a Sheets dropdown",
+    "question": "In Google Sheets, a dropdown rejects any value that is not on its list. The team wants to allow occasional other entries but still flag them. Which setting achieves this?",
+    "options": [
+      "Change the display style to plain text so any value is accepted",
+      "Add an empty item to the list so any other value counts as valid",
+      "Under Advanced options, set 'If the data is invalid' to Show a warning",
+      "Protect the range so only the owner can type values off the list"
+    ],
+    "correctIndex": 2,
+    "explanation": "By default, entries that don't match a dropdown item are rejected; switching the advanced option 'If the data is invalid' to Show a warning lets the value in while marking the cell as invalid. The display style only changes how the dropdown looks, an empty item does not validate other text, and range protection restricts who can edit rather than which values are accepted.",
+    "referenceUrl": "https://support.google.com/docs/answer/186103"
+  },
+  {
+    "id": "sheet-dv-circle-invalid",
+    "topic": "spreadsheets",
+    "subtopic": "data-validation",
+    "difficulty": "Medium",
+    "title": "Validation added to a column with old data",
+    "question": "You add a whole-number rule (between 1 and 100) to a column that already holds 2,000 values. No errors appear, yet you suspect older entries break the rule. How do you find them in Excel?",
+    "options": [
+      "Re-enter every value, because the rule will then reject invalid ones",
+      "Use Data Validation > Circle Invalid Data to mark violating cells",
+      "Nothing is needed: Excel rejected invalid values when the rule was saved",
+      "Apply the rule again with 'Apply to all other cells' to trigger alerts"
+    ],
+    "correctIndex": 1,
+    "explanation": "Data validation checks values as they are entered; Excel does not notify you that existing cells break a newly applied rule. Circle Invalid Data draws red circles around those cells, and each circle disappears once the value is corrected. Re-typing 2,000 values is impractical, Excel rejected nothing retroactively, and reapplying the rule still only affects future input.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/more-on-data-validation-f38dee73-9900-4ca6-9301-8a5f6e1f0c4c"
+  },
+  {
+    "id": "sheet-dv-unique-ids-countif",
+    "topic": "spreadsheets",
+    "subtopic": "data-validation",
+    "difficulty": "Medium",
+    "title": "Preventing duplicate IDs at entry time",
+    "question": "You want Excel to reject a new value in A2:A1000 if the same ID already exists in that range. Which custom validation formula, written for A2 and applied to the whole range, does this?",
+    "options": [
+      "`=COUNTIF(A2,$A$2:$A$1000)=1`",
+      "`=COUNTIF($A$2:$A$1000,A2)=0`",
+      "`=COUNTIF($A$2:$A$1000,A2)=1`",
+      "`=MATCH(A2,$A$2:$A$1000,0)>0`"
+    ],
+    "correctIndex": 2,
+    "explanation": "COUNTIF takes the range first and the criterion second; with an absolute range and a relative criterion, each cell counts how often its own value appears in the whole column, and the rule passes only when that count is exactly 1. Testing for 0 rejects every entry, because the value being validated is counted too; swapping the arguments counts the wrong thing; and MATCH always finds the value itself, so that rule never fails.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/apply-data-validation-to-cells-29fecbcc-d1b9-42c1-9d76-eff3ce5f7249"
+  },
+  {
+    "id": "sheet-dv-dependent-dropdown-names",
+    "topic": "spreadsheets",
+    "subtopic": "data-validation",
+    "difficulty": "Hard",
+    "title": "Dependent dropdown that fails for one category",
+    "question": "A dependent dropdown uses List validation with source `=INDIRECT($A2)`, where each category in A2 has a named range of subcategories. It works for 'Hardware' but shows nothing for 'Office Supplies'. What is the most likely cause?",
+    "options": [
+      "INDIRECT only accepts single-word text of up to eight characters",
+      "Defined names can't contain spaces, so no name matches that text",
+      "List validation can't use formulas, only typed comma-separated items",
+      "Named ranges are case-sensitive, so the capital letters break it"
+    ],
+    "correctIndex": 1,
+    "explanation": "Defined names cannot contain spaces (underscores or periods are used instead), so 'Office Supplies' matches no name and INDIRECT fails, leaving the list empty. A common fix is naming the range Office_Supplies and using `=INDIRECT(SUBSTITUTE($A2,\" \",\"_\"))`. List validation does accept formulas, names are not case-sensitive, and INDIRECT has no eight-character limit.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/names-in-formulas-fc2935f9-115d-4bef-a370-3aa8bb4c91f1"
+  },
+  {
+    "id": "sheet-clean-trim-spaces",
+    "topic": "spreadsheets",
+    "subtopic": "sheet-cleaning",
+    "difficulty": "Easy",
+    "title": "Removing extra spaces from names",
+    "question": "Imported names look like '  Ana   Souza ' with leading, trailing and repeated spaces. What does `=TRIM(A2)` return?",
+    "options": [
+      "'AnaSouza', with every space removed",
+      "' Ana Souza ', with only the inner spaces collapsed",
+      "'Ana   Souza', with only the outer spaces removed",
+      "'Ana Souza', with single spaces between words"
+    ],
+    "correctIndex": 3,
+    "explanation": "TRIM removes leading and trailing spaces and reduces runs of spaces between words to a single space, which is exactly what imported text usually needs. It never removes the single space that separates words, and it trims the ends as well as the middle.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/trim-function-410388fa-c5df-49c6-b16c-9e5630b479f9"
+  },
+  {
+    "id": "sheet-clean-remove-duplicates",
+    "topic": "spreadsheets",
+    "subtopic": "sheet-cleaning",
+    "difficulty": "Easy",
+    "title": "What Remove Duplicates keeps",
+    "question": "In Excel you select a customer list and run Data > Remove Duplicates with only the Email column checked. What happens?",
+    "options": [
+      "Rows repeating an earlier email are deleted; the first one is kept",
+      "Every row with a repeated email is deleted, including the first one",
+      "Duplicate rows are hidden by a filter and can be shown again later",
+      "Only the duplicated email cells are cleared; the rows stay in place"
+    ],
+    "correctIndex": 0,
+    "explanation": "Remove Duplicates compares the checked columns, keeps the first occurrence and permanently deletes the later matching rows, which is why Microsoft recommends copying the data first. Filtering for unique values is the feature that hides duplicates temporarily, and the command removes whole rows of the range rather than clearing only the checked cells.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/filter-for-unique-values-or-remove-duplicate-values-ccf664b0-81d6-449b-bbe1-8daaec1e83c2"
+  },
+  {
+    "id": "sheet-clean-numbers-as-text",
+    "topic": "spreadsheets",
+    "subtopic": "sheet-cleaning",
+    "difficulty": "Medium",
+    "title": "SUM returns 0 on an imported column",
+    "question": "After importing a CSV, `=SUM(C2:C900)` returns 0. The values are left-aligned and show small green triangles. What is the problem and a quick fix?",
+    "options": [
+      "They are numbers stored as text; convert them to real numbers",
+      "The column has a filter, and SUM skips the filtered-out values",
+      "Calculation is set to manual; press F9 to recalculate the sheet",
+      "The cells use a custom format; clear the formatting to show sums"
+    ],
+    "correctIndex": 0,
+    "explanation": "Left alignment plus the green error indicator means Excel sees text that only looks like numbers, and SUM ignores text in ranges. Converting them (the error menu's Convert to Number, Text to Columns, multiplying by 1 or `VALUE`) turns them into real numbers. SUM does include filtered-out rows, manual calculation would show a stale rather than zero result, and formatting doesn't change the stored type.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/convert-numbers-stored-as-text-to-numbers-40105f2a-fe79-4477-a171-c5bad0f0a885"
+  },
+  {
+    "id": "sheet-clean-nonbreaking-space",
+    "topic": "spreadsheets",
+    "subtopic": "sheet-cleaning",
+    "difficulty": "Hard",
+    "title": "TRIM leaves spaces in web-copied text",
+    "question": "Product codes pasted from a web page still fail lookups after `=TRIM(A2)`, and the cells visibly end with a space. What is the likely cause and fix?",
+    "options": [
+      "The space is a line break; wrap the value in UPPER before trimming",
+      "TRIM only trims the left side; combine it with RIGHT to trim the end",
+      "It is a non-breaking space, CHAR(160); replace it with SUBSTITUTE first",
+      "Lookups are case-sensitive; apply LOWER to both the codes and the keys"
+    ],
+    "correctIndex": 2,
+    "explanation": "Web pages often use the non-breaking space (character 160, from the HTML `&nbsp;` entity), which TRIM was not designed to remove. `=TRIM(SUBSTITUTE(A2,CHAR(160),\" \"))` turns it into a normal space and then trims it. TRIM handles both ends, UPPER does nothing to whitespace or line breaks (CLEAN handles those), and Excel lookups are not case-sensitive.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/trim-function-410388fa-c5df-49c6-b16c-9e5630b479f9"
+  },
+  {
+    "id": "sheet-clean-date-locale-import",
+    "topic": "spreadsheets",
+    "subtopic": "sheet-cleaning",
+    "difficulty": "Expert",
+    "title": "Brazilian dates opened in US-locale Excel",
+    "question": "A CSV from a Brazilian system has dates like 03/04/2026 (3 April) and 25/04/2026. Opened directly in Excel with US regional settings, some become 4 March and others stay as text. What is the reliable fix?",
+    "options": [
+      "Format the column as Short Date after opening so Excel re-parses it",
+      "Apply DATEVALUE to each cell, which always reads dates as day/month/year",
+      "Import with the column typed as Date using the source locale (DMY)",
+      "Sort the column so the text dates and real dates can be fixed together"
+    ],
+    "correctIndex": 2,
+    "explanation": "On opening, Excel parses the text with the system's month/day order: strings valid in that order become wrong dates (3 April turns into 4 March) and impossible ones (day 25) stay text, silently corrupting the data. Importing through Power Query with Change type > Using locale (Portuguese (Brazil)) parses every value correctly. Formatting does not re-parse stored values, DATEVALUE also depends on the system date settings, and sorting fixes nothing.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/power-query/data-types"
+  },
+  {
+    "id": "sheet-chart-secondary-axis",
+    "topic": "spreadsheets",
+    "subtopic": "sheet-charts",
+    "difficulty": "Easy",
+    "title": "Plotting revenue and margin % together",
+    "question": "A column chart shows monthly revenue in millions. When you add margin % (around 0.25) as a second series, it is flattened along the bottom. What is the standard fix?",
+    "options": [
+      "Use a logarithmic scale so both series fit on the primary axis",
+      "Multiply margin % by one million so both series share one scale",
+      "Switch the whole chart to a doughnut chart with two separate rings",
+      "Use a combo chart with margin % as a line on a secondary axis"
+    ],
+    "correctIndex": 3,
+    "explanation": "When series differ widely in magnitude or unit, a combo chart lets you plot one series (here margin %) as a line on a secondary vertical axis, keeping both readable. Rescaling the data falsifies the values, doughnut charts cannot show a trend over months, and a log axis distorts the revenue bars without solving the different units. Label both axes clearly, because dual axes are easy to misread.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/create-a-combo-chart-eb4edfac-7f99-46ce-b6d5-d20225de76df"
+  },
+  {
+    "id": "sheet-chart-google-sparkline",
+    "topic": "spreadsheets",
+    "subtopic": "sheet-charts",
+    "difficulty": "Easy",
+    "title": "Tiny in-cell trend lines in Google Sheets",
+    "question": "Each row of a Google Sheet holds 12 months of sales in B2:M2. You want a small trend line inside cell N2 for each product. What should N2 contain?",
+    "options": [
+      "`=SPARKLINE(B2:M2)`",
+      "`=TREND(B2:M2, B1:M1)`",
+      "`=GROWTH(B2:M2, B1:M1)`",
+      "`=LINEST(B2:M2, B1:M1)`"
+    ],
+    "correctIndex": 0,
+    "explanation": "SPARKLINE draws a miniature chart (a line by default) inside a single cell from a range of values, which is ideal for per-row trends. TREND and GROWTH return fitted values from linear or exponential regression, and LINEST returns regression statistics; none of them draws anything. Excel offers the same idea through Insert > Sparklines.",
+    "referenceUrl": "https://support.google.com/docs/answer/3093289"
+  },
+  {
+    "id": "sheet-chart-scatter-vs-line",
+    "topic": "spreadsheets",
+    "subtopic": "sheet-charts",
+    "difficulty": "Medium",
+    "title": "Uneven x values plotted as a line chart",
+    "question": "You plot ad spend (x: 500, 800, 5,000, 20,000) against sign-ups as an Excel line chart, and the points appear evenly spaced, hiding the real relationship. What should you use instead?",
+    "options": [
+      "A 100% stacked column chart, which normalizes each category",
+      "A stacked line chart, which accumulates both series along x",
+      "A scatter chart, which places x values on a numeric value axis",
+      "A radar chart, which shows each x value on its own spoke"
+    ],
+    "correctIndex": 2,
+    "explanation": "A line chart treats the horizontal axis as categories and spaces them evenly, whatever their numeric values. A scatter (XY) chart has two value axes, so 20,000 sits far to the right of 5,000 and the relationship between spend and sign-ups is shown faithfully. Stacked and radar charts still use categorical axes and answer different questions.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/present-your-data-in-a-scatter-chart-or-a-line-chart-4570a80f-599a-4d6b-a155-104a9018b86e"
+  },
+  {
+    "id": "sheet-chart-pareto",
+    "topic": "spreadsheets",
+    "subtopic": "sheet-charts",
+    "difficulty": "Medium",
+    "title": "Finding the vital few defect causes",
+    "question": "A quality team logged 1,200 defects across 15 causes and wants to see which few causes account for most of them. Which Excel chart is designed for this?",
+    "options": [
+      "A pie chart with one slice per cause, ordered clockwise",
+      "A line chart of defect counts in the order causes were logged",
+      "A stacked area chart of each cause over the logging dates",
+      "A Pareto chart: sorted columns plus a cumulative % line"
+    ],
+    "correctIndex": 3,
+    "explanation": "A Pareto chart sorts categories in descending order and overlays a cumulative-percentage line, so you can read off how many causes reach, say, 80% of defects. Fifteen pie slices are hard to compare, logging order is meaningless for ranking, and a stacked area over time answers a trend question rather than ranking causes.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/create-a-pareto-chart-a1512496-6dba-4743-9ab1-df5012972856"
+  },
+  {
+    "id": "sheet-chart-histogram-bins",
+    "topic": "spreadsheets",
+    "subtopic": "sheet-charts",
+    "difficulty": "Hard",
+    "title": "A histogram whose shape depends on the bins",
+    "question": "An Excel histogram of delivery times uses Automatic bins and looks like one smooth hump, but a colleague says there are two peaks (same-day and 3-day deliveries). What should you do?",
+    "options": [
+      "Set a narrower bin width or more bins and compare how the shape changes",
+      "Switch to a pie chart of delivery times so both groups become visible",
+      "Sort the source data first, because histograms bin values in sheet order",
+      "Add a moving-average trendline, which reveals hidden peaks in any chart"
+    ],
+    "correctIndex": 0,
+    "explanation": "Excel's automatic bin width is calculated with Scott's normal reference rule, which assumes roughly normal data and can be too wide for a bimodal distribution, merging the two peaks. Setting Bin width or Number of bins explicitly and trying a few values reveals the real shape. Pie charts can't show a distribution, histograms don't depend on sheet order, and a trendline smooths features away rather than revealing them.",
+    "referenceUrl": "https://support.microsoft.com/en-us/office/create-a-histogram-85680173-064b-4024-b39d-80f17ff2f4e8"
+  }
+]

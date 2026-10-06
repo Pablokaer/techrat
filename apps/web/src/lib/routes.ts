@@ -4,6 +4,7 @@ import type { SearchResult } from "@techrat/types";
 export const routes = {
   topic: (slug: string, subtopic?: string) => `/topic?slug=${encodeURIComponent(slug)}${subtopic ? `&subtopic=${encodeURIComponent(subtopic)}` : ""}`,
   roadmap: (slug: string) => `/roadmap?slug=${encodeURIComponent(slug)}`,
+  module: (slug: string) => `/module?slug=${encodeURIComponent(slug)}`,
   session: (id: string) => `/practice/session?id=${encodeURIComponent(id)}`,
   profile: (username?: string) => (username ? `/profile?u=${encodeURIComponent(username)}` : "/profile"),
   practice: (params: { topic?: string; subtopic?: string; difficulty?: string; mode?: string } = {}) => {
@@ -14,6 +15,7 @@ export const routes = {
 
 export function searchHref(r: SearchResult): string {
   if (r.type === "Roadmap") return routes.roadmap(r.slug);
+  if (r.type === "Module") return routes.module(r.slug);
   if (r.type === "Subtopic") {
     const m = r.url.match(/^\/topics\/([^?]+)\?subtopic=(.+)$/);
     if (m) return routes.topic(m[1], m[2]);

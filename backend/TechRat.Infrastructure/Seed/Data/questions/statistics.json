@@ -1,0 +1,767 @@
+[
+  {
+    "id": "stat-desc-median-for-skewed-salaries",
+    "topic": "statistics",
+    "subtopic": "descriptive-statistics",
+    "difficulty": "Easy",
+    "title": "Typical value for skewed salaries",
+    "question": "At a 50-person startup, 48 employees earn between $4k and $8k per month and the two founders are recorded at $60k each. Which single statistic best describes what a typical employee earns?",
+    "options": [
+      "The arithmetic mean of all 50 salaries",
+      "The mid-range, halfway between min and max",
+      "The median of all 50 salaries",
+      "The standard deviation of all 50 salaries"
+    ],
+    "correctIndex": 2,
+    "explanation": "The median is the middle value, so two extreme salaries barely move it and it stays inside the range most employees actually earn. The mean is pulled upward by the founders' $60k, and the mid-range depends only on the two most extreme values. The standard deviation measures spread, not a typical level.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda351.htm"
+  },
+  {
+    "id": "stat-desc-iqr-outlier-fence",
+    "topic": "statistics",
+    "subtopic": "descriptive-statistics",
+    "difficulty": "Easy",
+    "title": "Applying the 1.5 × IQR outlier rule",
+    "question": "A column of order sizes has Q1 = 20 and Q3 = 40. Using the common 1.5 × IQR fences, which of these values is flagged as an outlier?",
+    "options": [
+      "65",
+      "72",
+      "−5",
+      "55"
+    ],
+    "correctIndex": 1,
+    "explanation": "The IQR is 40 − 20 = 20, so the fences are 20 − 1.5 × 20 = −10 and 40 + 1.5 × 20 = 70. Only 72 lies outside them. The value −5 looks suspicious but is still above the lower fence of −10, and 55 and 65 sit inside the upper fence.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda337.htm"
+  },
+  {
+    "id": "stat-desc-mean-above-median-skew",
+    "topic": "statistics",
+    "subtopic": "descriptive-statistics",
+    "difficulty": "Medium",
+    "title": "Mean far above the median",
+    "question": "A product's session durations have a mean of 9.2 minutes and a median of 3.1 minutes. What does this most likely tell you about the distribution?",
+    "options": [
+      "It is right-skewed: a long tail of long sessions pulls the mean up",
+      "It is left-skewed: many very short sessions drag the median down",
+      "It is symmetric, and the gap only reflects a small sample size",
+      "It is bimodal, since a mean far from the median requires two peaks"
+    ],
+    "correctIndex": 0,
+    "explanation": "When a few large values stretch the upper tail, they inflate the mean but barely affect the median, so mean > median is the typical signature of right skew, common for durations and revenue. Left skew would usually put the mean below the median. Neither symmetry nor bimodality follows from this gap alone; check a histogram to confirm the shape.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda35b.htm"
+  },
+  {
+    "id": "stat-desc-pandas-numpy-std-ddof",
+    "topic": "statistics",
+    "subtopic": "descriptive-statistics",
+    "difficulty": "Medium",
+    "title": "pandas and NumPy disagree on standard deviation",
+    "question": "For the same NaN-free column, `df['x'].std()` returns 2.14 while `np.std(df['x'].to_numpy())` returns 2.10. What explains the difference?",
+    "options": [
+      "pandas excludes the largest value as an outlier before computing it",
+      "NumPy accumulates in float32, which loses precision on large arrays",
+      "pandas computes a robust estimate based on the median absolute deviation",
+      "pandas defaults to `ddof=1` (sample) while NumPy defaults to `ddof=0`"
+    ],
+    "correctIndex": 3,
+    "explanation": "`Series.std()` divides by n − 1 (Bessel's correction for the sample variance), whereas `np.std()` divides by n unless you pass `ddof=1`, so pandas returns a slightly larger value and the gap shrinks as n grows. NumPy does not downcast float64 data to float32, and neither library drops outliers or switches to a MAD-based estimate.",
+    "referenceUrl": "https://numpy.org/doc/stable/reference/generated/numpy.std.html"
+  },
+  {
+    "id": "stat-desc-mad-robust-anomaly-threshold",
+    "topic": "statistics",
+    "subtopic": "descriptive-statistics",
+    "difficulty": "Hard",
+    "title": "Robust thresholds when one outlier masks others",
+    "question": "A latency alert flags requests outside mean ± 3 SD. In one window, a single 10-minute timeout among 1,000 requests inflates the SD so much that other clearly slow requests are no longer flagged. Which change addresses this most directly?",
+    "options": [
+      "Use mean ± 4 SD so the threshold is stricter about anomalies",
+      "Use mean ± 3 SD computed with ddof=0 instead of ddof=1",
+      "Use median ± k × scaled MAD, which extreme values barely move",
+      "Use mean ± 3 variances, since variance reacts less to one value"
+    ],
+    "correctIndex": 2,
+    "explanation": "The mean and the SD both have a breakdown point of zero: one extreme value can shift them arbitrarily, which causes this masking effect. The median and the median absolute deviation (scaled by about 1.4826 to match the SD under normality) tolerate up to half the data being contaminated. Widening to 4 SD makes masking worse, the ddof change is negligible at n = 1,000, and variance is even more sensitive than the SD because it squares deviations.",
+    "referenceUrl": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.median_abs_deviation.html"
+  },
+  {
+    "id": "stat-prob-serial-dependency-availability",
+    "topic": "statistics",
+    "subtopic": "probability",
+    "difficulty": "Easy",
+    "title": "Availability of two required services",
+    "question": "A checkout request needs both the payment service and the inventory service. Each is independently available 99% of the time. What is the probability that both are available at a given moment?",
+    "options": [
+      "98.01%",
+      "99.00%",
+      "99.99%",
+      "97.02%"
+    ],
+    "correctIndex": 0,
+    "explanation": "For independent events, P(A and B) = P(A) × P(B) = 0.99 × 0.99 = 0.9801. Hard dependencies multiply, so the combined availability is lower than that of either component. 99.99% is the chance that at least one of two redundant replicas is up, which is the opposite situation.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/calculating-availability-with-hard-dependencies.html"
+  },
+  {
+    "id": "stat-prob-mutually-exclusive-union",
+    "topic": "statistics",
+    "subtopic": "probability",
+    "difficulty": "Easy",
+    "title": "Union of mutually exclusive events",
+    "question": "Each support ticket is labelled with exactly one category. P(billing) = 0.3 and P(login) = 0.4. What is the probability that a random ticket is billing or login?",
+    "options": [
+      "0.12",
+      "0.58",
+      "0.35",
+      "0.70"
+    ],
+    "correctIndex": 3,
+    "explanation": "Because each ticket has exactly one category, the events are mutually exclusive, so P(A or B) = P(A) + P(B) = 0.7 with no overlap to subtract. 0.58 comes from wrongly treating them as independent (0.3 + 0.4 − 0.3 × 0.4), and 0.12 is the probability of both under independence, which is actually zero here.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda361.htm"
+  },
+  {
+    "id": "stat-prob-conditional-direction-table",
+    "topic": "statistics",
+    "subtopic": "probability",
+    "difficulty": "Medium",
+    "title": "Reading P(A | B) from a contingency table",
+    "question": "Of 1,000 users, 300 are on mobile and 120 of those converted; 700 are on desktop and 140 of those converted. A stakeholder asks: \"Among users who converted, what share were on mobile?\" What is the answer?",
+    "options": [
+      "40.0%",
+      "46.2%",
+      "12.0%",
+      "26.0%"
+    ],
+    "correctIndex": 1,
+    "explanation": "The question conditions on converting: P(mobile | converted) = 120 / (120 + 140) = 120 / 260 ≈ 46.2%. 40% is P(converted | mobile), the reverse conditional; 12% is the joint share of all 1,000 users who are mobile and converted; and 26% is the overall conversion rate.",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.crosstab.html"
+  },
+  {
+    "id": "stat-prob-bayes-fraud-alert",
+    "topic": "statistics",
+    "subtopic": "probability",
+    "difficulty": "Medium",
+    "title": "Base rates and a fraud model's alerts",
+    "question": "1% of transactions are fraudulent. A model flags 90% of fraudulent transactions and also flags 5% of legitimate ones. A transaction has just been flagged. Roughly how likely is it to be fraud?",
+    "options": [
+      "About 90%",
+      "About 95%",
+      "About 15%",
+      "About 50%"
+    ],
+    "correctIndex": 2,
+    "explanation": "By Bayes' theorem, P(fraud | flag) = 0.01 × 0.9 / (0.01 × 0.9 + 0.99 × 0.05) = 0.009 / 0.0585 ≈ 15%, which is the model's precision. Legitimate transactions vastly outnumber fraud, so their 5% false-positive rate produces most alerts. 90% is the recall, P(flag | fraud), and 95% is the specificity; neither is the probability asked for.",
+    "referenceUrl": "https://scikit-learn.org/stable/modules/model_evaluation.html"
+  },
+  {
+    "id": "stat-prob-waiting-time-paradox",
+    "topic": "statistics",
+    "subtopic": "probability",
+    "difficulty": "Expert",
+    "title": "Waiting time for Poisson bus arrivals",
+    "question": "Buses arrive as a Poisson process averaging one every 10 minutes. You show up at the stop at a random time. What is your expected wait for the next bus?",
+    "options": [
+      "5 minutes, half of the average gap",
+      "10 minutes, the full average gap",
+      "Under 5 minutes, since buses tend to bunch",
+      "20 minutes, the length of the gap you land in"
+    ],
+    "correctIndex": 1,
+    "explanation": "In a Poisson process the gaps are exponential and memoryless, so the remaining wait from any moment is still exponential with mean 10 minutes. The \"half the gap\" intuition fails because you are more likely to arrive during a long gap (the inspection paradox): the gap you land in averages 20 minutes, and you wait half of it on average. 5 minutes would only hold for perfectly regular buses.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda3667.htm"
+  },
+  {
+    "id": "stat-dist-normal-empirical-rule",
+    "topic": "statistics",
+    "subtopic": "distributions",
+    "difficulty": "Easy",
+    "title": "The empirical rule for a normal distribution",
+    "question": "Response times are approximately normal with mean 200 ms and standard deviation 20 ms. Roughly what share of requests take between 160 ms and 240 ms?",
+    "options": [
+      "About 68%",
+      "About 95%",
+      "About 99.7%",
+      "About 50%"
+    ],
+    "correctIndex": 1,
+    "explanation": "160 to 240 ms is the mean ± 2 standard deviations, which covers about 95% of a normal distribution. ±1 SD (180–220 ms) covers about 68%, and ±3 SD (140–260 ms) covers about 99.7%.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda3661.htm"
+  },
+  {
+    "id": "stat-dist-poisson-for-counts",
+    "topic": "statistics",
+    "subtopic": "distributions",
+    "difficulty": "Easy",
+    "title": "Modelling tickets per hour",
+    "question": "You want to model the number of support tickets arriving per hour. Tickets arrive independently at a fairly stable average rate. Which distribution is the natural first choice?",
+    "options": [
+      "Exponential",
+      "Uniform",
+      "Normal",
+      "Poisson"
+    ],
+    "correctIndex": 3,
+    "explanation": "The Poisson distribution models counts of independent events in a fixed interval at a constant average rate, and it takes only non-negative integer values. The exponential distribution describes the time between those arrivals, not the count. A normal can approximate Poisson counts when the rate is large, but it is continuous and allows negative values.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda366j.htm"
+  },
+  {
+    "id": "stat-dist-binomial-mean-sd",
+    "topic": "statistics",
+    "subtopic": "distributions",
+    "difficulty": "Medium",
+    "title": "Expected conversions and their spread",
+    "question": "A landing page converts independent visitors at 10%. For the next 200 visitors, what are the expected number of conversions and its standard deviation?",
+    "options": [
+      "Mean 20, SD ≈ 4.24",
+      "Mean 20, SD = 18",
+      "Mean 20, SD ≈ 1.34",
+      "Mean 10, SD ≈ 3.16"
+    ],
+    "correctIndex": 0,
+    "explanation": "Conversions follow a Binomial(n = 200, p = 0.1): the mean is np = 20 and the variance is np(1 − p) = 18, so the SD is √18 ≈ 4.24. Answering 18 confuses the variance with the standard deviation, and a mean of 10 confuses the rate with the count.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda366i.htm"
+  },
+  {
+    "id": "stat-dist-lognormal-mean-vs-median",
+    "topic": "statistics",
+    "subtopic": "distributions",
+    "difficulty": "Hard",
+    "title": "Back-transforming a log-normal fit",
+    "question": "Order values are positive and right-skewed, and log(order value) looks normal with mean μ and standard deviation σ. An analyst reports exp(μ) as the average order value. What is wrong?",
+    "options": [
+      "Nothing: exp of the mean of the logs equals the arithmetic mean",
+      "exp(μ) overstates the mean, since exp is convex (Jensen's inequality)",
+      "exp(μ) is the median; the mean is exp(μ + σ²/2), which is larger",
+      "exp(μ) is the mode; the median would be exp(μ − σ²) instead"
+    ],
+    "correctIndex": 2,
+    "explanation": "For a log-normal distribution, exp(μ) is the median (and the geometric mean), while the arithmetic mean is exp(μ + σ²/2). Jensen's inequality says the mean of exp(Y) exceeds exp of the mean of Y, so exp(μ) understates the average rather than overstating it. The mode is exp(μ − σ²), not the median, so the last option swaps the two.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda3669.htm"
+  },
+  {
+    "id": "stat-dist-qq-plot-heavy-tails",
+    "topic": "statistics",
+    "subtopic": "distributions",
+    "difficulty": "Hard",
+    "title": "Reading tail deviations on a Q-Q plot",
+    "question": "You plot daily returns against a normal distribution in a Q-Q plot (theoretical quantiles on x, sample quantiles on y). The points follow the line in the middle, fall below it at the far left and rise above it at the far right. What does this indicate?",
+    "options": [
+      "Heavier tails than normal: extreme moves happen more often",
+      "Lighter tails than normal: extreme moves happen less often",
+      "Strong right skew: a long upper tail with a short lower tail",
+      "Normal data: Q-Q plots always deviate at both extreme ends"
+    ],
+    "correctIndex": 0,
+    "explanation": "Below the line on the left means the smallest observations are more negative than normal quantiles predict, and above it on the right means the largest are more positive, so both tails are heavier than normal. Light tails produce the opposite pattern, and right skew bends both ends upward (above the line on the left as well as the right). A few noisy points at the extremes are common, but a systematic S-shaped departure is a real signal.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda33o.htm"
+  },
+  {
+    "id": "stat-samp-selection-bias-support-users",
+    "topic": "statistics",
+    "subtopic": "sampling",
+    "difficulty": "Easy",
+    "title": "Surveying only users who contacted support",
+    "question": "To estimate overall customer satisfaction, a team surveys only customers who opened a support ticket last month. What is the main problem with this sample?",
+    "options": [
+      "It is too small to compute a margin of error",
+      "Rounding the satisfaction scores biases the mean",
+      "Selection bias: ticket openers differ from typical customers",
+      "It triggers Simpson's paradox across customer segments"
+    ],
+    "correctIndex": 2,
+    "explanation": "Customers who contact support are more likely to have had problems, so their satisfaction differs systematically from the whole customer base, and surveying more of them will not remove that bias. Sample size affects random error, not this kind of systematic error, and rounding or Simpson's paradox have nothing to do with how the sample was chosen.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/ppc/section3/ppc33.htm"
+  },
+  {
+    "id": "stat-samp-stratified-rare-segment",
+    "topic": "statistics",
+    "subtopic": "sampling",
+    "difficulty": "Medium",
+    "title": "Sampling a rare but important segment",
+    "question": "95% of your users are on the free tier and 5% are enterprise. With a budget of 2,000 interviews, you need reasonably precise estimates for each tier and for all users combined. Which design fits best?",
+    "options": [
+      "A simple random sample of 2,000 users from the whole user base",
+      "A convenience sample made of the 2,000 most active users",
+      "Cluster sampling: pick a few signup weeks and survey all of them",
+      "Stratify by tier, oversample enterprise and weight the results"
+    ],
+    "correctIndex": 3,
+    "explanation": "A simple random sample would yield only about 100 enterprise users, so their estimate would be imprecise. Stratifying by tier lets you allocate, say, 1,000 interviews to each tier, and weighting each stratum back to its population share (95% and 5%) gives an unbiased overall estimate. Convenience samples introduce selection bias, and cluster sampling usually increases variance rather than reducing it.",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.api.typing.DataFrameGroupBy.sample.html"
+  },
+  {
+    "id": "stat-samp-margin-of-error-sqrt-n",
+    "topic": "statistics",
+    "subtopic": "sampling",
+    "difficulty": "Medium",
+    "title": "Halving a survey's margin of error",
+    "question": "A survey of 400 randomly sampled users has a margin of error of ±5 percentage points. Approximately how many respondents would you need for a margin of ±2.5 points, all else equal?",
+    "options": [
+      "800",
+      "1,600",
+      "1,200",
+      "3,200"
+    ],
+    "correctIndex": 1,
+    "explanation": "The margin of error scales with 1/√n, so halving it requires 2² = 4 times as many respondents: 4 × 400 = 1,600. Doubling n to 800 only shrinks the margin by a factor of √2, to about ±3.5 points. This square-root law is why extra precision gets expensive quickly.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/ppc/section3/ppc333.htm"
+  },
+  {
+    "id": "stat-samp-nonresponse-large-n",
+    "topic": "statistics",
+    "subtopic": "sampling",
+    "difficulty": "Hard",
+    "title": "A huge sample with a 2% response rate",
+    "question": "An in-app poll collects 50,000 responses, a 2% response rate. A colleague says the margin of error is about ±0.4 points, so the result must be accurate. What is the flaw in this reasoning?",
+    "options": [
+      "The margin of error covers random sampling error, not nonresponse bias",
+      "With 50,000 responses the real margin is closer to ±0.04 points",
+      "Margins of error are invalid once n exceeds 10% of the population",
+      "The poll needs a t-distribution instead of a normal approximation"
+    ],
+    "correctIndex": 0,
+    "explanation": "A margin of error quantifies random variation, assuming the sample behaves like a random draw from the population. If the 2% who answered differ systematically from the 98% who did not, the estimate is biased, and that bias does not shrink with more responses. The ±0.4 figure itself is about right for n = 50,000 (1.96 × √(0.25 / 50,000) ≈ 0.44 points), and t versus normal makes no difference at that size.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/ppc/section3/ppc33.htm"
+  },
+  {
+    "id": "stat-samp-cluster-design-effect",
+    "topic": "statistics",
+    "subtopic": "sampling",
+    "difficulty": "Expert",
+    "title": "Effective sample size under cluster sampling",
+    "question": "You sample 50 client companies and survey all 100 users in each, for 5,000 responses. The intraclass correlation of the metric within companies is 0.05. Roughly what is the effective sample size compared with a simple random sample?",
+    "options": [
+      "5,000, since every user answered independently",
+      "About 4,750, after removing the 5% correlated share",
+      "About 840, after dividing by the design effect",
+      "50, since only the companies count as observations"
+    ],
+    "correctIndex": 2,
+    "explanation": "With equal clusters the design effect is 1 + (m − 1) × ICC = 1 + 99 × 0.05 = 5.95, so the effective sample size is 5,000 / 5.95 ≈ 840. Users in the same company resemble each other, so each extra user adds less new information. Treating the data as 5,000 independent responses understates standard errors, while counting only the 50 companies ignores the within-company information that does exist.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/"
+  },
+  {
+    "id": "stat-ht-p-value-interpretation",
+    "topic": "statistics",
+    "subtopic": "hypothesis-testing",
+    "difficulty": "Easy",
+    "title": "What p = 0.03 actually means",
+    "question": "A two-sided test comparing a new onboarding flow against a benchmark gives p = 0.03 with n = 40. Which statement is correct?",
+    "options": [
+      "There is a 3% probability that the null hypothesis is true",
+      "There is a 97% probability that the new flow is better",
+      "The effect must be large, because p is below 0.05",
+      "If the null were true, data this extreme would occur ~3% of the time"
+    ],
+    "correctIndex": 3,
+    "explanation": "A p-value is computed assuming the null hypothesis is true: it is the probability of a test statistic at least as extreme as the one observed. It is not the probability that the null or the alternative is true, which would require prior information. A small p-value also says nothing direct about effect size; a tiny effect can be significant with enough data, and a large one can be missed with too little.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/prc/section1/prc131.htm"
+  },
+  {
+    "id": "stat-ht-non-significant-not-equivalence",
+    "topic": "statistics",
+    "subtopic": "hypothesis-testing",
+    "difficulty": "Medium",
+    "title": "Concluding \"no difference\" from p = 0.40",
+    "question": "A usability pilot with 30 users per design finds p = 0.40 for the difference in task completion time. The PM concludes that the two designs perform the same. What is the best response?",
+    "options": [
+      "Not justified: a small study can miss real effects; check the CI and power",
+      "Correct: a p-value above 0.05 proves the null hypothesis is true",
+      "Correct, but only if the test was two-sided rather than one-sided",
+      "Not justified: p = 0.40 means the new design is 40% likely to be worse"
+    ],
+    "correctIndex": 0,
+    "explanation": "Failing to reject the null is not evidence that the effect is zero; with 30 users per arm the confidence interval for the difference is probably wide enough to include meaningful effects in either direction. To claim equivalence you need an equivalence test (such as TOST) against a pre-defined margin, or at least an interval that falls entirely within it. A p-value is not the probability that either design is better or worse.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/prc/section1/prc13.htm"
+  },
+  {
+    "id": "stat-ht-paired-before-after",
+    "topic": "statistics",
+    "subtopic": "hypothesis-testing",
+    "difficulty": "Medium",
+    "title": "Before-and-after timings on the same people",
+    "question": "The same 25 analysts each ran a report before and after a database index change, and you have both timings for every analyst. Which test is most appropriate for the mean change?",
+    "options": [
+      "Welch's two-sample t-test, treating before and after as separate groups",
+      "A paired t-test on the per-analyst differences",
+      "A chi-square test of independence on the timing table",
+      "A one-sample z-test against last year's average report time"
+    ],
+    "correctIndex": 1,
+    "explanation": "Each analyst provides two linked measurements, so the right analysis works on the within-analyst differences, which removes between-person variability and usually gives far more power. An independent two-sample test wrongly treats the two sets as unrelated groups. A chi-square test is for counts in categories, and comparing with last year's average answers a different question.",
+    "referenceUrl": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_rel.html"
+  },
+  {
+    "id": "stat-ht-many-metrics-fdr",
+    "topic": "statistics",
+    "subtopic": "hypothesis-testing",
+    "difficulty": "Hard",
+    "title": "200 metrics checked after a release",
+    "question": "After a release, an analyst runs separate tests on 200 product metrics and finds 14 with p < 0.05. What is the most appropriate next step?",
+    "options": [
+      "Report all 14 as real effects, since each one passed α = 0.05",
+      "Switch to one-sided tests to confirm the 14 metrics with more power",
+      "Correct for multiplicity (e.g. Benjamini–Hochberg): ~10 hits are chance",
+      "Drop the metrics with p > 0.05 and recompute p-values for the rest"
+    ],
+    "correctIndex": 2,
+    "explanation": "With 200 tests at α = 0.05 you expect about 10 false positives even if nothing changed, so 14 hits is barely above noise. Controlling the false discovery rate (Benjamini–Hochberg) or the family-wise error rate (Bonferroni, Holm), and naming primary metrics in advance, keeps the error rate meaningful. Switching to one-sided tests or re-testing only the winners is p-hacking that inflates false positives further.",
+    "referenceUrl": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.false_discovery_control.html"
+  },
+  {
+    "id": "stat-ht-pooled-t-unequal-variance",
+    "topic": "statistics",
+    "subtopic": "hypothesis-testing",
+    "difficulty": "Expert",
+    "title": "Pooled t-test with unequal variances and sizes",
+    "question": "Group A has n = 200 with SD 5; group B has n = 20 with SD 25. An analyst compares the means with Student's pooled-variance t-test. What happens to its Type I error rate?",
+    "options": [
+      "Nothing: the t-test is robust to unequal variances at any sample sizes",
+      "It becomes conservative, because the pooled SD is dominated by group B",
+      "It is unaffected, but power drops because group B is small",
+      "It is inflated, because the pooled SE understates group B's noise"
+    ],
+    "correctIndex": 3,
+    "explanation": "The pooled variance weights each group by its degrees of freedom, so it is dominated by the large, low-variance group A and badly underestimates the uncertainty in group B's mean. The standard error is too small, so the test rejects a true null far more often than α. The pooled test is reasonably robust only with similar group sizes; when the smaller group has the larger variance it becomes liberal, which is why Welch's test (`equal_var=False` in SciPy) is the safer default.",
+    "referenceUrl": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html"
+  },
+  {
+    "id": "stat-ci-95-interpretation",
+    "topic": "statistics",
+    "subtopic": "confidence-intervals",
+    "difficulty": "Easy",
+    "title": "Interpreting a 95% confidence interval",
+    "question": "From a random sample of orders, a 95% confidence interval for the mean order value is $48 to $56. Which interpretation is correct?",
+    "options": [
+      "95% of individual orders are worth between $48 and $56",
+      "The method captures the true mean in ~95% of repeated samples",
+      "There is a 95% chance the sample mean lies between $48 and $56",
+      "The true mean is exactly $52, with 95% certainty"
+    ],
+    "correctIndex": 1,
+    "explanation": "The 95% describes the long-run behaviour of the procedure: intervals built this way from repeated random samples contain the true population mean about 95% of the time. The interval is about the mean, not about individual orders, which spread much more widely. The sample mean is known exactly (it is the centre, $52), so there is nothing probabilistic about where it lies.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/prc/section1/prc14.htm"
+  },
+  {
+    "id": "stat-ci-confidence-level-width",
+    "topic": "statistics",
+    "subtopic": "confidence-intervals",
+    "difficulty": "Easy",
+    "title": "Raising the confidence level",
+    "question": "Using the same sample, you recompute a confidence interval for a mean at 99% instead of 95%. What happens to the interval?",
+    "options": [
+      "It widens, since more confidence needs a larger critical value",
+      "It narrows, because 99% is a more precise estimate than 95%",
+      "Its width is unchanged, but its centre shifts toward the median",
+      "It is unchanged, because the data and standard error are the same"
+    ],
+    "correctIndex": 0,
+    "explanation": "The interval is the estimate ± critical value × standard error; for a normal approximation the critical value rises from about 1.96 to about 2.58, so the interval widens. Confidence and precision trade off: to be right more often with the same data, you must give a wider range. The centre stays at the sample mean.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda352.htm"
+  },
+  {
+    "id": "stat-ci-overlap-not-a-test",
+    "topic": "statistics",
+    "subtopic": "confidence-intervals",
+    "difficulty": "Medium",
+    "title": "Overlapping intervals and significance",
+    "question": "Two segments have 95% CIs for mean spend of [10.0, 12.0] and [11.8, 13.8], from independent samples. An analyst says the intervals overlap, so the difference is not statistically significant. Is that right?",
+    "options": [
+      "Yes: any overlap between two 95% CIs means p > 0.05",
+      "Yes, but only because the overlap exceeds 5% of the width",
+      "No: the intervals are wide, so the test is just underpowered",
+      "No: overlap is not a test; the CI for the difference excludes 0"
+    ],
+    "correctIndex": 3,
+    "explanation": "The standard error of a difference is √(SE₁² + SE₂²), which is smaller than SE₁ + SE₂, so two 95% intervals can overlap while the difference is still significant. Here each SE is about 0.51, the difference is 1.8 with SE ≈ 0.72, and its 95% CI is roughly [0.4, 3.2], so p ≈ 0.01. Non-overlap implies significance, but overlap does not imply its absence.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda353.htm"
+  },
+  {
+    "id": "stat-ci-clt-skewed-revenue",
+    "topic": "statistics",
+    "subtopic": "confidence-intervals",
+    "difficulty": "Medium",
+    "title": "A t-interval for heavily skewed revenue",
+    "question": "Revenue per user is very skewed: most users pay nothing and a few pay a lot. You have a random sample of 5,000 users. Is a mean ± t × SE interval reasonable for average revenue per user?",
+    "options": [
+      "No: t-intervals require normally distributed raw data at any n",
+      "No: with skewed data you must report an interval for the median",
+      "Usually: the sample mean is near normal here; bootstrap to check",
+      "Yes, and about 95% of users' revenue will fall inside the interval"
+    ],
+    "correctIndex": 2,
+    "explanation": "The t-interval needs the sampling distribution of the mean to be roughly normal, not the raw data; by the central limit theorem that usually holds at n = 5,000 unless the tail is extremely heavy, which a bootstrap comparison can reveal. Switching to the median changes the question, since the business usually needs average revenue. A CI for the mean says nothing about where 95% of individual users fall.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda352.htm"
+  },
+  {
+    "id": "stat-ci-bootstrap-median",
+    "topic": "statistics",
+    "subtopic": "confidence-intervals",
+    "difficulty": "Hard",
+    "title": "A confidence interval for a median",
+    "question": "You need a 95% confidence interval for the median page load time from 800 skewed measurements. Which approach is standard and valid?",
+    "options": [
+      "Median ± 1.96 × SD / √n, reusing the formula for a mean",
+      "Bootstrap with replacement; take percentiles of resampled medians",
+      "Resample 800 rows without replacement; take percentiles of medians",
+      "The 2.5th and 97.5th percentiles of the raw load times"
+    ],
+    "correctIndex": 1,
+    "explanation": "The bootstrap approximates the sampling distribution of the median by recomputing it on many with-replacement resamples, and the percentile (or better, BCa) interval comes from those replicates; `scipy.stats.bootstrap` implements this. Resampling all 800 rows without replacement just permutes the data, so every median is identical. SD/√n is the standard error of a mean, not a median, and percentiles of raw values describe where individual loads fall, not the uncertainty about the median.",
+    "referenceUrl": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.bootstrap.html"
+  },
+  {
+    "id": "stat-cc-common-cause-weather",
+    "topic": "statistics",
+    "subtopic": "correlation-causation",
+    "difficulty": "Easy",
+    "title": "Ice cream sales and drownings",
+    "question": "Across coastal towns, monthly ice cream sales are strongly correlated with the number of drowning incidents. What is the most plausible explanation?",
+    "options": [
+      "Eating ice cream before swimming causes drowning",
+      "More drownings drive people to buy more ice cream",
+      "Warm weather drives both, acting as a confounder",
+      "The correlation must be a data error and can be dropped"
+    ],
+    "correctIndex": 2,
+    "explanation": "Hot months bring both more ice cream purchases and more swimming, so a common cause (a confounder) produces the correlation without either variable affecting the other. Both causal stories ignore that third variable, and a real correlation driven by a confounder is not a data error. Controlling for temperature or season would make most of the association disappear.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda33q.htm"
+  },
+  {
+    "id": "stat-cc-pearson-misses-u-shape",
+    "topic": "statistics",
+    "subtopic": "correlation-causation",
+    "difficulty": "Medium",
+    "title": "Near-zero Pearson r with a clear U shape",
+    "question": "The Pearson correlation between discount depth and customer satisfaction is 0.02, but the scatter plot shows a clear U shape. What should you conclude?",
+    "options": [
+      "Strong non-linear relationship that Pearson's r cannot capture",
+      "There is no relationship, because r is essentially zero",
+      "Spearman's rank correlation will reveal a strong association",
+      "The scatter plot is misleading, so trust the coefficient instead"
+    ],
+    "correctIndex": 0,
+    "explanation": "Pearson's r measures only linear association, and the falling and rising halves of a U cancel out. Spearman's rho measures monotonic association, so it is also near zero for a symmetric U; you need a non-linear model or a binned view instead. Always plot the data: summary coefficients can hide strong structure.",
+    "referenceUrl": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.pearsonr.html"
+  },
+  {
+    "id": "stat-cc-feature-adoption-retention",
+    "topic": "statistics",
+    "subtopic": "correlation-causation",
+    "difficulty": "Medium",
+    "title": "Feature users retain better: force everyone in?",
+    "question": "Users who adopted the new reporting feature have 30% higher 90-day retention than non-adopters. A PM proposes auto-enabling it for everyone to lift retention by 30%. What is the main problem?",
+    "options": [
+      "The 30% figure needs a significance test before anyone acts on it",
+      "Retention should be measured over 30 days rather than 90 days",
+      "Auto-enabling will reduce retention because of the novelty effect",
+      "Engaged users self-select into adopting; test it with randomization"
+    ],
+    "correctIndex": 3,
+    "explanation": "Adopters chose to use the feature, and already engaged users are both more likely to adopt and more likely to stay, so the 30% gap mixes the feature's effect with selection (and possibly reverse causation). A randomized experiment, or at least a careful comparison controlling for prior engagement, is needed to estimate the causal lift. A significance test does not fix confounding, and the other options do not address the core issue.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/pri/section7/pri7.htm"
+  },
+  {
+    "id": "stat-cc-simpsons-paradox-checkout",
+    "topic": "statistics",
+    "subtopic": "correlation-causation",
+    "difficulty": "Hard",
+    "title": "Wins in every segment, loses overall",
+    "question": "A new checkout converts better than the old one on mobile and on desktop separately, yet its overall conversion is lower (3.0% vs 3.4%). Data and calculations are correct. What is the most likely explanation?",
+    "options": [
+      "Segment results are noise; the overall comparison is the reliable one",
+      "The new checkout got more mobile traffic, which converts less",
+      "This cannot happen with correct data, so a segment is mislabelled",
+      "Conversion rates cannot be compared across segments of different size"
+    ],
+    "correctIndex": 1,
+    "explanation": "This is Simpson's paradox: the overall rate is a weighted average of segment rates, and if the new checkout's traffic is weighted toward the lower-converting segment, it can win in each segment yet lose in aggregate. When the mix differs between arms, the segment-level (or mix-adjusted) comparison is the fairer one. It is entirely possible with correct data, which is why randomization and stratified analysis matter.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/"
+  },
+  {
+    "id": "stat-cc-regression-to-the-mean",
+    "topic": "statistics",
+    "subtopic": "correlation-causation",
+    "difficulty": "Hard",
+    "title": "Coaching the worst-performing stores",
+    "question": "The 20 stores with the lowest Q1 sales were enrolled in a coaching program. In Q2 their sales rose much more than the average store's. Why is this not, by itself, evidence that coaching worked?",
+    "options": [
+      "Stores picked for extreme lows tend to drift back toward average anyway",
+      "Twenty stores are too few to compute a meaningful growth rate",
+      "Q2 sales are always seasonally higher than Q1 sales for retailers",
+      "Coached stores may report their sales differently from other stores"
+    ],
+    "correctIndex": 0,
+    "explanation": "Selecting units because of an extreme measurement captures bad luck along with true weakness; the luck does not repeat, so their next measurement tends to be closer to the mean (regression to the mean). A fair evaluation needs a comparable control group, ideally low performers randomly assigned to receive coaching or not. Seasonality would affect all stores, so it cannot explain why the selected stores outgrew the average.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/"
+  },
+  {
+    "id": "stat-ab-why-randomize",
+    "topic": "statistics",
+    "subtopic": "ab-testing",
+    "difficulty": "Easy",
+    "title": "Why randomize instead of letting users opt in",
+    "question": "Why should an A/B test randomly assign users to control and treatment instead of letting users opt in to the new version?",
+    "options": [
+      "Randomization guarantees exactly equal group sizes",
+      "Randomization halves the sample size the test needs",
+      "Randomization makes significant results arrive sooner",
+      "It balances confounders, known and unknown, on average"
+    ],
+    "correctIndex": 3,
+    "explanation": "Random assignment makes the groups comparable in expectation on every characteristic, measured or not, so a difference in outcomes can be attributed to the treatment. Opt-in groups differ systematically (early adopters are often more engaged), which confounds the comparison. Randomization does not guarantee equal sizes, smaller samples or faster significance.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/pri/section7/pri7.htm"
+  },
+  {
+    "id": "stat-ab-peeking-early-stopping",
+    "topic": "statistics",
+    "subtopic": "ab-testing",
+    "difficulty": "Medium",
+    "title": "Stopping a test the first day p < 0.05",
+    "question": "A team checks its A/B test every day and stops as soon as the p-value drops below 0.05. What is the problem with this practice?",
+    "options": [
+      "Daily checks reduce power, so true effects get missed",
+      "Nothing, as long as the final sample is large enough",
+      "Repeated peeking inflates false positives well above 5%",
+      "A p-value is only valid if computed once per calendar week"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each look is another chance for random noise to cross the threshold, so stopping at the first p < 0.05 makes false positives far more likely than the nominal 5%. Either fix the sample size in advance and analyse once, or use a method designed for continuous monitoring, such as group-sequential boundaries or always-valid sequential tests. The problem is error inflation, not lost power.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/prc/section1/prc13.htm"
+  },
+  {
+    "id": "stat-ab-statistical-vs-practical",
+    "topic": "statistics",
+    "subtopic": "ab-testing",
+    "difficulty": "Medium",
+    "title": "A significant but tiny lift",
+    "question": "An A/B test with 5 million users per arm shows conversion of 5.00% vs 5.03%, p = 0.03. The new variant adds ongoing maintenance cost. How should you interpret this?",
+    "options": [
+      "Ship it: p < 0.05 shows the variant is clearly better for the business",
+      "Likely real but tiny; ship only if 0.03 points outweighs the cost",
+      "Invalid: tests with millions of users always end with p < 0.05",
+      "Re-run with fewer users, because big samples exaggerate small effects"
+    ],
+    "correctIndex": 1,
+    "explanation": "With millions of users even a 0.03-point lift can be statistically significant, but significance only says the effect is unlikely to be zero, not that it matters. Compare the confidence interval for the lift with the minimum effect worth the maintenance cost, ideally defined before the test. Large samples do not exaggerate effects or guarantee significance; they simply detect smaller ones.",
+    "referenceUrl": "https://www.statsmodels.org/stable/generated/statsmodels.stats.power.NormalIndPower.html"
+  },
+  {
+    "id": "stat-ab-sample-ratio-mismatch",
+    "topic": "statistics",
+    "subtopic": "ab-testing",
+    "difficulty": "Hard",
+    "title": "A 50/50 split that came out 50,600 vs 49,400",
+    "question": "An experiment is configured for a 50/50 split. After a week, control has 50,600 users and treatment has 49,400. What should you do first?",
+    "options": [
+      "Treat it as a sample ratio mismatch and find the cause",
+      "Ignore it: a 1.2% imbalance is normal and does not affect results",
+      "Reweight treatment users by 50,600 / 49,400 and analyse as usual",
+      "Randomly drop 1,200 control users so that both arms are equal"
+    ],
+    "correctIndex": 0,
+    "explanation": "A chi-square goodness-of-fit test against the expected 50,000/50,000 gives χ² = 14.4 and p < 0.001, so the imbalance is very unlikely to be chance. A sample ratio mismatch usually signals a bug in assignment, redirects, bot filtering or logging that may affect the arms differently, so the treatment effect cannot be trusted until it is explained. Reweighting or trimming users hides the symptom without fixing the biased composition.",
+    "referenceUrl": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.chisquare.html"
+  },
+  {
+    "id": "stat-ab-aa-test-unit-of-analysis",
+    "topic": "statistics",
+    "subtopic": "ab-testing",
+    "difficulty": "Expert",
+    "title": "A/A tests that fail far too often",
+    "question": "To validate your experimentation pipeline you run 1,000 A/A tests on historical data: users are randomized, but metrics are compared per session with a standard t-test. About 18% of the A/A tests show p < 0.05. What is the most likely cause?",
+    "options": [
+      "Nothing is wrong: with 1,000 tests some false positives are guaranteed",
+      "The tests are underpowered, which biases the p-values toward zero",
+      "Sessions of one user are correlated, but the t-test treats them as independent",
+      "The α level is too lenient and should be lowered to 0.01"
+    ],
+    "correctIndex": 2,
+    "explanation": "In a healthy A/A setup about 5% of tests are significant at α = 0.05 and p-values are roughly uniform. Randomizing by user but analysing sessions as independent observations ignores within-user correlation, so the standard error is too small and false positives inflate. Analyse at the randomization unit (per-user metrics) or use cluster-robust or delta-method standard errors; lowering α only hides a miscalibrated test, and low power would reduce rejections, not increase them.",
+    "referenceUrl": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html"
+  },
+  {
+    "id": "stat-reg-slope-interpretation",
+    "topic": "statistics",
+    "subtopic": "regression-basics",
+    "difficulty": "Easy",
+    "title": "Interpreting a regression slope",
+    "question": "An observational regression gives `monthly_spend = 12.0 + 3.5 * sessions`. How should you interpret the 3.5?",
+    "options": [
+      "Each extra monthly session goes with $3.50 more spend, on average",
+      "Each extra session causes exactly $3.50 more spend for every user",
+      "Monthly spend is always 3.5 times the number of sessions",
+      "A user with zero sessions is predicted to spend $3.50"
+    ],
+    "correctIndex": 0,
+    "explanation": "The slope is the average difference in predicted spend for a one-unit difference in sessions. Because the data are observational, it describes an association, not a guaranteed causal effect for each user. The predicted spend at zero sessions is the intercept, $12.00, and the model is additive, not a simple multiple.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/pmd/section1/pmd141.htm"
+  },
+  {
+    "id": "stat-reg-r-squared-meaning",
+    "topic": "statistics",
+    "subtopic": "regression-basics",
+    "difficulty": "Medium",
+    "title": "What R² = 0.64 tells you",
+    "question": "A simple linear regression of delivery time on distance has R² = 0.64. Which statement is correct?",
+    "options": [
+      "64% of the model's predictions are exactly correct",
+      "The slope of delivery time on distance is 0.64",
+      "The correlation between distance and delivery time is 0.64",
+      "The model explains 64% of the variance in delivery time"
+    ],
+    "correctIndex": 3,
+    "explanation": "R² is the share of the outcome's variance accounted for by the fitted model, here 64%, leaving 36% unexplained. In simple linear regression R² equals the squared correlation, so |r| = 0.8, not 0.64. R² is unitless and says nothing about the slope's size or about predictions being exactly right.",
+    "referenceUrl": "https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html"
+  },
+  {
+    "id": "stat-reg-heteroscedastic-residuals",
+    "topic": "statistics",
+    "subtopic": "regression-basics",
+    "difficulty": "Hard",
+    "title": "Residuals that fan out",
+    "question": "In a regression of order value on basket size, the residuals-vs-fitted plot shows a funnel: residual spread grows as fitted values increase. What does this mean for the usual OLS output?",
+    "options": [
+      "The slopes are biased, so the fitted line should be discarded",
+      "Slopes stay unbiased, but standard errors and p-values are unreliable",
+      "The predictors are collinear, so the coefficients are unstable",
+      "The errors are non-normal, so R² can no longer be computed"
+    ],
+    "correctIndex": 1,
+    "explanation": "A funnel indicates heteroscedasticity, i.e. non-constant error variance. OLS coefficients remain unbiased, but the usual standard errors assume constant variance, so confidence intervals and p-values can be wrong; use heteroscedasticity-robust (HC) standard errors, weighted least squares or a log transform. Collinearity concerns correlated predictors, not this residual pattern, and R² is still computable.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/pmd/section4/pmd442.htm"
+  },
+  {
+    "id": "stat-reg-multicollinearity-vif",
+    "topic": "statistics",
+    "subtopic": "regression-basics",
+    "difficulty": "Hard",
+    "title": "A negative coefficient on number of rooms",
+    "question": "A house-price model includes `sqft` and `num_rooms`, which correlate at 0.95. The `num_rooms` coefficient is negative with a huge standard error, and dropping it barely changes R². What is the best explanation?",
+    "options": [
+      "Extra rooms truly lower prices, so report the sign as it is",
+      "The model is overfitting, so R² must be computed on test data",
+      "Multicollinearity makes the individual coefficients unstable",
+      "Heteroscedasticity: residual variance grows with house size"
+    ],
+    "correctIndex": 2,
+    "explanation": "When predictors are highly correlated, the model cannot separate their individual effects, so coefficient variances blow up (check the variance inflation factor) and signs can flip, while overall predictions and R² stay fine. The coefficient compares houses with more rooms at the same square footage, an unstable and narrow comparison here, not evidence that rooms lower prices in general. Heteroscedasticity and overfitting do not explain a huge SE paired with a tiny R² change.",
+    "referenceUrl": "https://www.statsmodels.org/stable/generated/statsmodels.stats.outliers_influence.variance_inflation_factor.html"
+  },
+  {
+    "id": "stat-reg-omitted-variable-bias",
+    "topic": "statistics",
+    "subtopic": "regression-basics",
+    "difficulty": "Expert",
+    "title": "Omitting a confounder from a regression",
+    "question": "You regress salary on years of education but omit ability, which raises salary and is positively correlated with education. How is the estimated education coefficient affected?",
+    "options": [
+      "It is biased downward, since ability competes with education",
+      "It is unbiased, but its standard error is larger",
+      "It is unbiased, because ability is not in the dataset",
+      "It is biased upward, absorbing part of ability's effect"
+    ],
+    "correctIndex": 3,
+    "explanation": "Omitted-variable bias equals the omitted variable's effect on the outcome times its association with the included regressor; both are positive here, so the education coefficient is biased upward. Omitting a relevant variable that is uncorrelated with the regressors would leave the coefficient unbiased, but here that correlation is exactly the problem. Leaving a variable out of the data does not make its influence disappear.",
+    "referenceUrl": "https://www.itl.nist.gov/div898/handbook/pmd/section4/pmd446.htm"
+  }
+]

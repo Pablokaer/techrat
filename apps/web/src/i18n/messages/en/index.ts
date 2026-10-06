@@ -14,6 +14,7 @@ import { leaderboard } from "./leaderboard";
 import { learn } from "./learn";
 import { practice } from "./practice";
 import { roadmaps } from "./roadmaps";
+import { modules } from "./modules";
 import { admin } from "./admin";
 
 export const en = {
@@ -33,6 +34,7 @@ export const en = {
   learn,
   practice,
   roadmaps,
+  modules,
   admin,
 };
 

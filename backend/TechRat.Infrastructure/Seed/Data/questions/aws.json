@@ -1,0 +1,1056 @@
+[
+  {
+    "id": "awsx-iam-resource-based-policy-principal",
+    "topic": "aws",
+    "subtopic": "iam",
+    "difficulty": "Easy",
+    "title": "Policy type that names a Principal",
+    "question": "Which kind of IAM policy is attached directly to a resource, such as an S3 bucket or an SQS queue, and must say who gets access in a `Principal` element?",
+    "options": [
+      "An identity-based policy attached to a user, group or role",
+      "A resource-based policy, such as an S3 bucket policy",
+      "A permissions boundary attached to the calling IAM role",
+      "A session policy passed in during an AssumeRole call"
+    ],
+    "correctIndex": 1,
+    "explanation": "Resource-based policies live on the resource itself, so they must name the principal (account, role, user or service) they grant access to. Identity-based policies are attached to an identity and have no `Principal` element, while permissions boundaries and session policies only cap what an identity can do; they never grant access to other principals.",
+    "referenceUrl": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_identity-vs-resource.html"
+  },
+  {
+    "id": "awsx-iam-permissions-boundary-intersection",
+    "topic": "aws",
+    "subtopic": "iam",
+    "difficulty": "Easy",
+    "title": "AdministratorAccess under a permissions boundary",
+    "question": "An IAM role has the `AdministratorAccess` managed policy attached, plus a permissions boundary that allows only `s3:*` and `cloudwatch:*`. What happens when the role calls `ec2:RunInstances`?",
+    "options": [
+      "It succeeds, because the attached policy allows every action",
+      "It succeeds only when the request carries an MFA context key",
+      "It is denied, because the action falls outside the boundary",
+      "It is denied, because a boundary replaces attached policies"
+    ],
+    "correctIndex": 2,
+    "explanation": "A permissions boundary sets the maximum permissions an identity-based policy can grant: the effective permissions are the intersection of the two, so EC2 actions are denied. The boundary does not replace or grant anything by itself; an S3 action still works only because both the boundary and `AdministratorAccess` allow it. MFA has nothing to do with boundaries.",
+    "referenceUrl": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html"
+  },
+  {
+    "id": "awsx-iam-cross-account-both-sides",
+    "topic": "aws",
+    "subtopic": "iam",
+    "difficulty": "Medium",
+    "title": "Cross-account S3 read still denied",
+    "question": "A role in account A must read objects from a bucket in account B. Account B's bucket policy grants `s3:GetObject` to the role's ARN, objects use SSE-S3 and are owned by account B, yet the role still gets AccessDenied. What is most likely missing?",
+    "options": [
+      "An allow for `s3:GetObject` on that bucket in the role's own policy",
+      "A VPC peering connection between the two accounts' VPCs",
+      "An S3 Access Point, since bucket policies can't name other accounts",
+      "ACLs enabled on the bucket so that objects can be shared"
+    ],
+    "correctIndex": 0,
+    "explanation": "Cross-account access needs both sides to agree: the resource-based policy in account B must trust the principal, and an identity-based policy in account A must allow the role to make the call. Peering is a network construct and does not authorize API calls, bucket policies can name principals from other accounts, and ACLs are a legacy mechanism that is not required here.",
+    "referenceUrl": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies-cross-account-resource-access.html"
+  },
+  {
+    "id": "awsx-iam-passrole-lambda",
+    "topic": "aws",
+    "subtopic": "iam",
+    "difficulty": "Hard",
+    "title": "iam:PassRole error when creating a Lambda function",
+    "question": "A developer with `lambda:CreateFunction` tries to create a function whose execution role is `app-fn-role`. The call fails: not authorized to perform `iam:PassRole` on `app-fn-role`. What is the least-privilege fix?",
+    "options": [
+      "Attach `IAMFullAccess` so the developer can create and edit any role",
+      "Allow `iam:PassRole` on that role ARN, scoped by `iam:PassedToService`",
+      "Add the developer as a principal in the trust policy of `app-fn-role`",
+      "Grant `sts:AssumeRole` on `app-fn-role` and retry the call as that role"
+    ],
+    "correctIndex": 1,
+    "explanation": "Handing a role to a service requires `iam:PassRole` on that specific role; limiting it with `iam:PassedToService` to `lambda.amazonaws.com` stops the developer from passing it anywhere else. The developer never assumes the role (Lambda does, through the role's trust policy), so trust-policy or `sts:AssumeRole` changes miss the point, and `IAMFullAccess` opens a privilege-escalation path.",
+    "referenceUrl": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html"
+  },
+  {
+    "id": "awsx-iam-forallvalues-missing-key",
+    "topic": "aws",
+    "subtopic": "iam",
+    "difficulty": "Expert",
+    "title": "ForAllValues that allows too much",
+    "question": "A policy should let engineers remove only two approved tags:\n`{\"Effect\": \"Allow\", \"Action\": \"ec2:DeleteTags\", \"Resource\": \"*\", \"Condition\": {\"ForAllValues:StringEquals\": {\"aws:TagKeys\": [\"env\", \"team\"]}}}`\nA reviewer says it is overly permissive. Why?",
+    "options": [
+      "`StringEquals` ignores case, so `ENV` and `Team` also match the list",
+      "`aws:TagKeys` is single-valued, so only the first tag key is checked",
+      "Conditions in an Allow are skipped when `Resource` is set to `*`",
+      "`ForAllValues` is also true when the request has no tag keys at all"
+    ],
+    "correctIndex": 3,
+    "explanation": "`ForAllValues` returns true when every value in the request matches the list, and it also returns true when the context key is missing, so a request without `aws:TagKeys` is allowed. AWS recommends adding a `Null` condition (`\"aws:TagKeys\": \"false\"`) to such Allow statements. `StringEquals` is case-sensitive, `aws:TagKeys` is multivalued (which is why a set operator is needed), and conditions are evaluated regardless of the resource.",
+    "referenceUrl": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-single-vs-multi-valued-context-keys.html"
+  },
+  {
+    "id": "awsx-vpc-public-subnet-route",
+    "topic": "aws",
+    "subtopic": "vpc",
+    "difficulty": "Easy",
+    "title": "What makes a subnet public",
+    "question": "What makes a subnet a *public* subnet in an Amazon VPC?",
+    "options": [
+      "Its route table sends `0.0.0.0/0` to an internet gateway",
+      "It was created with the public flag turned on in the console",
+      "Its network ACL allows inbound traffic from `0.0.0.0/0`",
+      "It holds a NAT gateway that other instances use for egress"
+    ],
+    "correctIndex": 0,
+    "explanation": "A subnet is public when its associated route table has a route to an internet gateway; instances in it also need a public IPv4 address (or IPv6) to be reachable. There is no public flag on subnets, a permissive network ACL does not create a path to the internet, and private subnets are the ones that route through a NAT gateway.",
+    "referenceUrl": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html"
+  },
+  {
+    "id": "awsx-vpc-sg-reference-alb",
+    "topic": "aws",
+    "subtopic": "vpc",
+    "difficulty": "Medium",
+    "title": "Allowing traffic only from the load balancer",
+    "question": "App instances sit behind an internet-facing ALB. Their security group allows port 8080 from the CIDR ranges of the public subnets. What is the tighter, more maintainable rule?",
+    "options": [
+      "Allow 8080 from `0.0.0.0/0`, since the ALB already filters requests",
+      "Allow 8080 only from the ALB's security group ID as the source",
+      "Allow 8080 from the ALB's current private IPs, refreshed by a script",
+      "Replace the rule with a network ACL that blocks every port but 8080"
+    ],
+    "correctIndex": 1,
+    "explanation": "Referencing a security group as the source admits traffic only from network interfaces associated with that group, so it follows the ALB as its nodes and IPs change. Subnet CIDRs also admit any other resource in those subnets, a script tracking IPs is brittle, and network ACLs are stateless, subnet-wide and cannot express \"only from the ALB\".",
+    "referenceUrl": "https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html"
+  },
+  {
+    "id": "awsx-vpc-peering-not-transitive",
+    "topic": "aws",
+    "subtopic": "vpc",
+    "difficulty": "Medium",
+    "title": "Reaching a third VPC through a peered VPC",
+    "question": "VPC A is peered with VPC B, and VPC B is peered with VPC C. A's route table sends C's CIDR to the A-B peering connection. Traffic from A to C fails. What is the cause and the fix?",
+    "options": [
+      "Security groups can't reference peered VPCs; open the CIDRs instead",
+      "B's network ACL drops forwarded packets; add allow rules for A's CIDR",
+      "Peering is not transitive; peer A with C directly or use a transit gateway",
+      "Peered VPCs must share a single route table; merge the tables of A, B and C"
+    ],
+    "correctIndex": 2,
+    "explanation": "VPC peering is a one-to-one relationship and AWS does not support transitive routing: B will not forward traffic between its peers. Create a direct A-C peering or connect the VPCs to a transit gateway, which acts as a routing hub. NACL or security group changes cannot make B a router, and route tables always belong to a single VPC.",
+    "referenceUrl": "https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-basics.html"
+  },
+  {
+    "id": "awsx-vpc-gateway-endpoint-onprem",
+    "topic": "aws",
+    "subtopic": "vpc",
+    "difficulty": "Hard",
+    "title": "On-premises traffic and an S3 gateway endpoint",
+    "question": "A VPC has an S3 gateway endpoint and its EC2 instances reach S3 privately. On-premises servers, connected over Site-to-Site VPN, send their S3 traffic into the VPC, but it never uses the endpoint. What should the team do?",
+    "options": [
+      "Add the on-premises CIDR to `aws:SourceIp` in the endpoint policy",
+      "Associate the gateway endpoint with the virtual private gateway",
+      "Enable private DNS on the gateway endpoint for on-premises clients",
+      "Add an S3 interface endpoint and resolve S3 to its private IPs"
+    ],
+    "correctIndex": 3,
+    "explanation": "Gateway endpoints are route-table targets that only work for traffic originating inside the VPC; resources behind a VPN, Direct Connect, peering or a transit gateway cannot use them. An interface endpoint (PrivateLink) has ENIs with private IPs that on-premises hosts can reach, typically resolved through a Route 53 Resolver inbound endpoint. Gateway endpoints have no private DNS option, and policy conditions cannot extend their reach.",
+    "referenceUrl": "https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html"
+  },
+  {
+    "id": "awsx-vpc-longest-prefix-route",
+    "topic": "aws",
+    "subtopic": "vpc",
+    "difficulty": "Hard",
+    "title": "Which route wins for overlapping destinations",
+    "question": "A subnet's route table contains:\n`10.20.0.0/16 -> pcx-peering`\n`10.20.8.0/24 -> tgw-attachment`\n`0.0.0.0/0 -> nat-gateway`\nWhere does a packet to `10.20.8.15` go?",
+    "options": [
+      "To the peering connection, because it was the first route added",
+      "To the transit gateway, because the most specific match wins",
+      "To the NAT gateway, because the default route catches everything",
+      "Nowhere; overlapping destinations make the route table invalid"
+    ],
+    "correctIndex": 1,
+    "explanation": "VPC route tables use longest prefix match: `10.20.8.0/24` is more specific than `10.20.0.0/16`, so the transit gateway attachment wins. The order in which routes were added is irrelevant, the default route is only used when nothing more specific matches, and overlapping destinations with different prefix lengths are allowed.",
+    "referenceUrl": "https://docs.aws.amazon.com/vpc/latest/userguide/route-tables-priority.html"
+  },
+  {
+    "id": "awsx-compute-fargate-no-instances",
+    "topic": "aws",
+    "subtopic": "compute",
+    "difficulty": "Easy",
+    "title": "Running ECS tasks without managing instances",
+    "question": "A team wants to run containers on Amazon ECS without provisioning, patching or scaling any EC2 instances. Which option fits?",
+    "options": [
+      "The EC2 launch type with a managed Auto Scaling group of instances",
+      "The external launch type with ECS Anywhere on servers",
+      "AWS Fargate, which runs each task on AWS-managed compute",
+      "An EC2 Spot capacity provider with lifecycle hooks"
+    ],
+    "correctIndex": 2,
+    "explanation": "With Fargate you declare CPU and memory per task and AWS runs it on managed infrastructure, so there are no instances to patch or scale. The EC2 launch type (Spot or not, Auto Scaling or not) still leaves you owning instances, and ECS Anywhere runs tasks on servers you manage yourself.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html"
+  },
+  {
+    "id": "awsx-compute-instance-store-ephemeral",
+    "topic": "aws",
+    "subtopic": "compute",
+    "difficulty": "Easy",
+    "title": "Files lost after stopping an instance",
+    "question": "An application writes uploaded files to an EC2 instance store volume. After the instance is stopped and started for maintenance, the files are gone. Why?",
+    "options": [
+      "Instance store data does not persist when the instance stops",
+      "AWS wipes instance store volumes daily unless they are snapshotted",
+      "The instance moved to another AZ, and its volumes stayed behind",
+      "Instance store keeps data only when encrypted with a KMS key"
+    ],
+    "correctIndex": 0,
+    "explanation": "Instance store is temporary block storage on disks physically attached to the host; stopping, hibernating or terminating the instance releases it, while a reboot keeps it. Durable data belongs on EBS, EFS or S3. Volumes are not wiped on a schedule, a stop/start never changes the instance's AZ, and encryption does not affect persistence.",
+    "referenceUrl": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html"
+  },
+  {
+    "id": "awsx-compute-lambda-init-reuse",
+    "topic": "aws",
+    "subtopic": "compute",
+    "difficulty": "Medium",
+    "title": "Expensive setup inside a Lambda handler",
+    "question": "A Lambda function creates a new database client and parses a 30 MB configuration file inside its handler on every invocation. Under steady traffic, duration is far higher than the query itself. What is the recommended change?",
+    "options": [
+      "Raise the timeout so the setup work always has time to finish",
+      "Set reserved concurrency so each environment serves one request",
+      "Split the work into two functions that call each other directly",
+      "Do the setup outside the handler so warm invocations reuse it"
+    ],
+    "correctIndex": 3,
+    "explanation": "Code outside the handler runs once per execution environment during the init phase, and warm invocations reuse those objects, which is why AWS recommends initializing SDK clients and connections there. A longer timeout does not make anything faster, reserved concurrency only caps scaling, and chaining functions synchronously adds latency and cost.",
+    "referenceUrl": "https://docs.aws.amazon.com/lambda/latest/dg/best-practices.html"
+  },
+  {
+    "id": "awsx-compute-ecs-task-role-vs-execution",
+    "topic": "aws",
+    "subtopic": "compute",
+    "difficulty": "Medium",
+    "title": "ECS app denied although the execution role allows S3",
+    "question": "An ECS task pulls its image from ECR and ships logs to CloudWatch fine, but the application code gets AccessDenied on `s3:PutObject`. The S3 permission was added to the task *execution* role. What is wrong?",
+    "options": [
+      "ECS tasks can't call S3 directly and must send writes through SQS",
+      "The app's own AWS calls use the task role, not the execution role",
+      "The permission must be on the container instance role instead",
+      "IAM changes take effect only after the cluster is recreated"
+    ],
+    "correctIndex": 1,
+    "explanation": "The task execution role is used by the ECS agent or Fargate to pull images, fetch secrets and write logs; the task role is the one whose credentials are delivered to the containers for application calls. Relying on the container instance role would share permissions across all tasks (and does not exist on Fargate), and IAM changes apply without recreating anything.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html"
+  },
+  {
+    "id": "awsx-compute-eks-pod-identity",
+    "topic": "aws",
+    "subtopic": "compute",
+    "difficulty": "Hard",
+    "title": "Every EKS pod using the node's IAM role",
+    "question": "On an EKS cluster with EC2 nodes, every pod calls AWS with the node's instance role, which has accumulated S3, DynamoDB and SQS permissions for different apps. A security review flags it. What is the recommended fix?",
+    "options": [
+      "Give each workload its own role via EKS Pod Identity or IRSA",
+      "Store each app's access keys in Kubernetes Secrets and mount them",
+      "Run every application on its own cluster to keep node roles apart",
+      "Use Kubernetes RBAC Roles to limit which AWS APIs each pod calls"
+    ],
+    "correctIndex": 0,
+    "explanation": "With the node role, any pod on the node gets the union of all apps' permissions. EKS Pod Identity or IAM roles for service accounts (IRSA) map a Kubernetes service account to an IAM role with temporary credentials, so the node role can be trimmed (and pod access to IMDS restricted). Long-lived keys are worse, a cluster per app is costly overkill, and Kubernetes RBAC governs the Kubernetes API, not AWS APIs.",
+    "referenceUrl": "https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html"
+  },
+  {
+    "id": "awsx-s3-intelligent-tiering-unknown-access",
+    "topic": "aws",
+    "subtopic": "s3",
+    "difficulty": "Easy",
+    "title": "Storage class for unpredictable access patterns",
+    "question": "A data lake bucket holds objects whose access patterns are unknown and change over time. The team wants automatic savings without retrieval fees or hand-tuned lifecycle rules. Which storage class fits?",
+    "options": [
+      "S3 One Zone-Infrequent Access",
+      "S3 Glacier Flexible Retrieval",
+      "S3 Intelligent-Tiering",
+      "S3 Express One Zone"
+    ],
+    "correctIndex": 2,
+    "explanation": "S3 Intelligent-Tiering monitors access and moves each object between access tiers automatically, with no retrieval charges (only a small per-object monitoring fee). One Zone-IA charges retrieval fees and keeps data in a single AZ, Glacier Flexible Retrieval needs restores before reads, and Express One Zone is a high-performance class that costs more, not less.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/intelligent-tiering.html"
+  },
+  {
+    "id": "awsx-s3-presigned-upload",
+    "topic": "aws",
+    "subtopic": "s3",
+    "difficulty": "Medium",
+    "title": "Direct uploads from a mobile app",
+    "question": "A mobile app must let users upload photos straight to a private S3 bucket without the app holding any AWS credentials. Which approach is standard?",
+    "options": [
+      "Make the upload prefix public-write and validate files afterwards",
+      "Ship an IAM user's access key in the app, limited to `s3:PutObject`",
+      "Proxy every upload through an API that buffers the file in memory",
+      "Have the backend issue a short-lived presigned URL for each upload"
+    ],
+    "correctIndex": 3,
+    "explanation": "A presigned URL carries a signature from the backend's credentials, is valid only for one object and a limited time, and lets the client upload directly to S3. Public write access invites abuse, keys embedded in an app can be extracted, and proxying works but adds latency, memory pressure and cost without adding security.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html"
+  },
+  {
+    "id": "awsx-s3-object-ownership-enforced",
+    "topic": "aws",
+    "subtopic": "s3",
+    "difficulty": "Medium",
+    "title": "Objects uploaded by partners that you can't read",
+    "question": "Partner accounts upload files into your bucket. Some objects can't be read by your account even with full bucket permissions, because they are owned by the uploading accounts. Which setting fixes this going forward?",
+    "options": [
+      "Set S3 Object Ownership to Bucket owner enforced, disabling ACLs",
+      "Enable S3 Versioning so each new version belongs to the bucket owner",
+      "Turn on default encryption with SSE-S3 for all incoming objects",
+      "Require partners to send `x-amz-acl: public-read` on every upload"
+    ],
+    "correctIndex": 0,
+    "explanation": "With ACLs enabled and the Object writer setting, the uploading account owns the object. Bucket owner enforced makes the bucket owner own every object and disables ACLs, so access is governed purely by policies, which is AWS's recommended default. Versioning and encryption do not change ownership, and a public-read ACL would leak the data.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html"
+  },
+  {
+    "id": "awsx-s3-batch-replication-existing",
+    "topic": "aws",
+    "subtopic": "s3",
+    "difficulty": "Hard",
+    "title": "Replication rule that skipped existing objects",
+    "question": "A team adds a Cross-Region Replication rule to a bucket that already holds 200 million objects. A week later, only objects written after the rule was created exist in the destination. What should they do?",
+    "options": [
+      "Wait; live replication backfills existing objects over a few weeks",
+      "Run S3 Batch Replication to copy the objects that existed before",
+      "Re-create the rule with a higher priority to force a full resync",
+      "Enable Transfer Acceleration on the source to speed replication"
+    ],
+    "correctIndex": 1,
+    "explanation": "Live replication only applies to objects written after the configuration is in place. Existing objects, objects that previously failed and objects that were already replicated elsewhere are handled with S3 Batch Replication. Rule priority only resolves conflicts between rules, and Transfer Acceleration speeds up client uploads over edge locations, not replication.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-batch-replication-batch.html"
+  },
+  {
+    "id": "awsx-s3-bucket-key-kms-throttling",
+    "topic": "aws",
+    "subtopic": "s3",
+    "difficulty": "Expert",
+    "title": "KMS throttling from a high-volume SSE-KMS bucket",
+    "question": "An ingestion service writes about 20,000 small objects per second to a bucket encrypted with SSE-KMS and a customer managed key. It hits KMS throttling errors and the KMS bill is large. Which change addresses both with the least redesign?",
+    "options": [
+      "Move the bucket to client-side encryption done inside the SDK",
+      "Create one KMS key per prefix to spread requests across keys",
+      "Enable S3 Bucket Keys so S3 reuses a bucket-level data key",
+      "Use a KMS key in another Region that has a higher quota"
+    ],
+    "correctIndex": 2,
+    "explanation": "With S3 Bucket Keys, S3 obtains a short-lived bucket-level key from KMS and derives data keys from it, cutting KMS request traffic (and cost) by up to 99% without client changes. KMS request quotas are shared by all keys in the account and Region, so more keys don't help, SSE-KMS requires a key in the bucket's Region, and client-side encryption is a much larger redesign.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-key.html"
+  },
+  {
+    "id": "awsx-db-dynamodb-on-demand-spiky",
+    "topic": "aws",
+    "subtopic": "databases",
+    "difficulty": "Easy",
+    "title": "DynamoDB capacity mode for spiky, unknown traffic",
+    "question": "A new DynamoDB-backed app has unpredictable traffic that sits idle for hours and then spikes sharply. The team does not want to forecast capacity. Which capacity mode fits?",
+    "options": [
+      "Provisioned mode with a fixed number of read and write units",
+      "Provisioned mode with reserved capacity bought for one year",
+      "Global tables in two Regions so the spikes are split in half",
+      "On-demand mode, billed per request with no capacity planning"
+    ],
+    "correctIndex": 3,
+    "explanation": "On-demand mode scales with traffic and charges per read and write request, which suits new or unpredictable workloads. Fixed provisioned capacity either throttles during spikes or wastes money while idle, reserved capacity is a commitment for steady provisioned usage, and global tables are for multi-Region availability rather than capacity planning.",
+    "referenceUrl": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/on-demand-capacity-mode.html"
+  },
+  {
+    "id": "awsx-db-rds-pitr-creates-new-instance",
+    "topic": "aws",
+    "subtopic": "databases",
+    "difficulty": "Easy",
+    "title": "What an RDS point-in-time restore produces",
+    "question": "Someone ran a bad `UPDATE` on an RDS for PostgreSQL production database at 14:05. Automated backups are on with 7-day retention. What does a point-in-time restore to 14:04 do?",
+    "options": [
+      "Rolls the existing instance back in place and keeps its endpoint",
+      "Creates a new DB instance holding the data as it was at 14:04",
+      "Restores only the rows that the bad statement had changed",
+      "Applies last night's snapshot onto an existing read replica"
+    ],
+    "correctIndex": 1,
+    "explanation": "Point-in-time restore uses automated snapshots plus transaction logs to build a new DB instance, with a new endpoint, at the chosen time; the source instance is untouched. You then repoint the application or copy the needed data back. RDS has no in-place rollback or row-level restore, and snapshots are never applied onto replicas.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PIT.html"
+  },
+  {
+    "id": "awsx-db-gsi-eventual-consistency",
+    "topic": "aws",
+    "subtopic": "databases",
+    "difficulty": "Medium",
+    "title": "Item missing right after write when querying a GSI",
+    "question": "An app writes a user item to DynamoDB and immediately queries a global secondary index on `email` to find it, sometimes getting no result. Setting `ConsistentRead=true` on the query returns a validation error. Why?",
+    "options": [
+      "GSIs update asynchronously and support only eventually consistent reads",
+      "The GSI must have more write capacity provisioned than the base table",
+      "Strongly consistent reads on a GSI are only available when going through DAX",
+      "A sort key condition is required before strong reads are allowed"
+    ],
+    "correctIndex": 0,
+    "explanation": "DynamoDB propagates writes to global secondary indexes asynchronously, and GSIs support only eventually consistent reads. When read-after-write matters, read the base table by its primary key with a strongly consistent `GetItem`. DAX is an eventually consistent cache, and neither capacity settings nor sort key conditions enable strong reads on a GSI.",
+    "referenceUrl": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GSI.html"
+  },
+  {
+    "id": "awsx-db-rds-proxy-lambda-connections",
+    "topic": "aws",
+    "subtopic": "databases",
+    "difficulty": "Hard",
+    "title": "Lambda burst exhausting database connections",
+    "question": "A Lambda function using RDS for MySQL scales to 800 concurrent executions during a promotion, and the database starts refusing connections with \"Too many connections\". Which change best fixes this without hard-capping traffic?",
+    "options": [
+      "Raise the Lambda timeout so each connection is held for less time",
+      "Open and close a fresh connection in every single invocation",
+      "Put Amazon RDS Proxy in front to pool and share connections",
+      "Add a read replica and send all writes to it during the peak"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each Lambda execution environment holds its own connection, so concurrency turns directly into database connections. RDS Proxy maintains a pool and multiplexes many client connections onto fewer database connections. A longer timeout keeps connections longer, per-invocation connects add churn and still peak at concurrency, and read replicas cannot accept writes.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html"
+  },
+  {
+    "id": "awsx-db-dynamodb-optimistic-locking",
+    "topic": "aws",
+    "subtopic": "databases",
+    "difficulty": "Expert",
+    "title": "Lost update between two DynamoDB writers",
+    "question": "Two workers read the same DynamoDB item (`balance = 100`), each subtracts a different amount in memory, and each calls `PutItem` with the result. One update is lost. Which fix keeps both updates without a global lock?",
+    "options": [
+      "Use strongly consistent reads (`ConsistentRead=true`) before each put",
+      "Enable DynamoDB Streams so the overwritten value is replayed later",
+      "Switch to provisioned capacity so writes to one item are serialized",
+      "Make each put conditional on an unchanged `version` and retry on failure"
+    ],
+    "correctIndex": 3,
+    "explanation": "This is a read-modify-write race. Optimistic locking adds a `ConditionExpression` on a version attribute, so the stale writer gets `ConditionalCheckFailedException`, re-reads and retries (an `UpdateItem` with an arithmetic `SET` plus a condition also works). Strong reads don't close the gap between read and write, Streams only record changes, and capacity mode does not serialize writes.",
+    "referenceUrl": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBMapper.OptimisticLocking.html"
+  },
+  {
+    "id": "awsx-cw-memory-needs-agent",
+    "topic": "aws",
+    "subtopic": "cloudwatch",
+    "difficulty": "Easy",
+    "title": "No memory metric for an EC2 instance",
+    "question": "An EC2 dashboard shows CPUUtilization, network and disk metrics, but no memory utilization. How do you get memory metrics into CloudWatch?",
+    "options": [
+      "Enable detailed monitoring, which adds memory at one-minute resolution",
+      "Install the CloudWatch agent on the instance to publish memory metrics",
+      "Turn on VPC Flow Logs and derive memory use from traffic patterns",
+      "Move to a Nitro instance type, which reports memory automatically"
+    ],
+    "correctIndex": 1,
+    "explanation": "Memory usage is visible only inside the guest OS, so the hypervisor-level metrics EC2 publishes by default can't include it; the CloudWatch agent collects it from the OS. Detailed monitoring only raises the frequency of the existing metrics to one minute, and neither Flow Logs nor the instance type adds memory metrics.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Install-CloudWatch-Agent.html"
+  },
+  {
+    "id": "awsx-cw-metric-filter-error-alarm",
+    "topic": "aws",
+    "subtopic": "cloudwatch",
+    "difficulty": "Medium",
+    "title": "Alarming on ERROR lines without code changes",
+    "question": "An app writes JSON logs to CloudWatch Logs. The team wants an alarm when more than 20 events with `\"level\": \"ERROR\"` appear within 5 minutes, without changing code. What should they set up?",
+    "options": [
+      "A subscription filter that streams each log event to an SNS topic",
+      "A saved Logs Insights query on a dashboard refreshed every 5 minutes",
+      "A metric filter that counts ERROR events, with an alarm on that metric",
+      "A 5-minute retention policy so expiring errors emit an event"
+    ],
+    "correctIndex": 2,
+    "explanation": "Metric filters turn matching log events into a CloudWatch metric, and a standard alarm can then use a threshold of 20 over a 5-minute period. Subscription filters stream to destinations such as Lambda, Kinesis or Firehose and do not evaluate thresholds, a dashboard query does not alert anyone, and retention settings have nothing to do with alarming.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/MonitoringLogData.html"
+  },
+  {
+    "id": "awsx-cw-treat-missing-data",
+    "topic": "aws",
+    "subtopic": "cloudwatch",
+    "difficulty": "Medium",
+    "title": "Alarm flapping to INSUFFICIENT_DATA at night",
+    "question": "An alarm on a Lambda function's `Errors` metric (Sum over 5 minutes) keeps moving to INSUFFICIENT_DATA overnight when the function isn't invoked, and on-call treats it as an incident. What is the right fix?",
+    "options": [
+      "Configure the alarm to treat missing data as `notBreaching`",
+      "Lower the period to 10 seconds so data points always exist",
+      "Change the statistic from Sum to Average to fill the gaps",
+      "Delete and recreate the alarm every morning with a scheduled script"
+    ],
+    "correctIndex": 0,
+    "explanation": "With no invocations Lambda publishes no data points, so the alarm has nothing to evaluate. Each alarm can choose how to treat missing data, and `notBreaching` keeps it in OK when silence simply means no traffic. A shorter period or another statistic cannot create data that was never published, and recreating alarms only hides the behavior.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html"
+  },
+  {
+    "id": "awsx-cw-metric-filter-not-retroactive",
+    "topic": "aws",
+    "subtopic": "cloudwatch",
+    "difficulty": "Hard",
+    "title": "New metric filter shows no history",
+    "question": "After an incident, an engineer creates a metric filter for `PaymentDeclined` on a log group holding 30 days of logs, then graphs the metric for the past week. The graph is empty even though the logs contain matches. Why?",
+    "options": [
+      "Metric filters can only match plain text, not JSON log events",
+      "The graph must use high-resolution mode to show filter metrics",
+      "Filters run once a day, so the data appears after midnight UTC",
+      "Filters only publish data points for events after their creation"
+    ],
+    "correctIndex": 3,
+    "explanation": "Metric filters are not retroactive: they publish data points only for log events ingested after the filter exists. For historical analysis, query the existing logs with CloudWatch Logs Insights. Metric filters do support JSON patterns, resolution settings don't backfill data, and filters are evaluated continuously as events arrive.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/MonitoringLogData.html"
+  },
+  {
+    "id": "awsx-cw-embedded-metric-format",
+    "topic": "aws",
+    "subtopic": "cloudwatch",
+    "difficulty": "Hard",
+    "title": "PutMetricData calls slowing a busy Lambda",
+    "question": "A high-traffic Lambda function calls `PutMetricData` synchronously on every invocation to record per-request business metrics, adding latency and occasional throttling errors. Which approach does CloudWatch offer for this?",
+    "options": [
+      "Log metrics in Embedded Metric Format and let CloudWatch extract them",
+      "Move the `PutMetricData` call into a second function invoked per request",
+      "Write the metrics to a DynamoDB table and point a dashboard at it",
+      "Raise the function's memory so each `PutMetricData` call returns sooner"
+    ],
+    "correctIndex": 0,
+    "explanation": "Embedded Metric Format (EMF) lets code write structured JSON log lines that CloudWatch Logs turns into metrics asynchronously, so the function makes no metric API calls. A second synchronous function still pays the latency, dashboards cannot graph DynamoDB items as CloudWatch metrics, and more memory does not remove API throttling.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Embedded_Metric_Format.html"
+  },
+  {
+    "id": "awsx-wa-six-pillars",
+    "topic": "aws",
+    "subtopic": "well-architected",
+    "difficulty": "Easy",
+    "title": "The six Well-Architected pillars",
+    "question": "Which list matches the six pillars of the AWS Well-Architected Framework?",
+    "options": [
+      "Operational excellence, security, availability, scalability, cost optimization, sustainability",
+      "Security, reliability, performance efficiency, cost optimization, governance, observability",
+      "Operational excellence, security, reliability, performance efficiency, cost optimization, sustainability",
+      "Operational excellence, compliance, reliability, performance efficiency, cost optimization, portability"
+    ],
+    "correctIndex": 2,
+    "explanation": "The six pillars are operational excellence, security, reliability, performance efficiency, cost optimization and sustainability (the last added in 2021). Availability and scalability are covered inside reliability and performance efficiency, while governance, observability, compliance and portability are concerns addressed within the pillars rather than pillars of their own.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/framework/the-pillars-of-the-framework.html"
+  },
+  {
+    "id": "awsx-wa-small-reversible-changes",
+    "topic": "aws",
+    "subtopic": "well-architected",
+    "difficulty": "Medium",
+    "title": "Quarterly big-bang releases",
+    "question": "A team ships one large release per quarter. Each release takes a weekend and a 40-step manual runbook, and rolling back means restoring the database from backup. Which Well-Architected operational excellence design principle does this most directly violate?",
+    "options": [
+      "Make frequent, small, reversible changes",
+      "Stop guessing your capacity needs",
+      "Scale horizontally to increase aggregate workload availability",
+      "Measure overall efficiency"
+    ],
+    "correctIndex": 0,
+    "explanation": "Operational excellence asks for frequent, small, reversible changes delivered by automation, which shrinks the blast radius and makes rollback fast. A rare, huge, manual release with a restore-from-backup rollback is the opposite. The other options are real design principles, but of the reliability and cost optimization pillars, and they don't address release practice.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/framework/oe-design-principles.html"
+  },
+  {
+    "id": "awsx-wa-review-improvement-plan",
+    "topic": "aws",
+    "subtopic": "well-architected",
+    "difficulty": "Medium",
+    "title": "What to do with high-risk issues from a review",
+    "question": "A Well-Architected review of a workload in the AWS Well-Architected Tool ends with 14 high-risk issues (HRIs). What is the intended next step?",
+    "options": [
+      "Treat the review as a failed audit and freeze releases until all HRIs are gone",
+      "Prioritize the HRIs in an improvement plan and track progress with milestones",
+      "Re-answer the questions until the tool reports no HRIs, then file the report",
+      "Open an AWS Support case so that AWS remediates the HRIs in the account"
+    ],
+    "correctIndex": 1,
+    "explanation": "A Well-Architected review is a learning and prioritization mechanism, not a pass/fail audit: the tool builds an improvement plan from the identified risks, and milestones record the workload's state over time so progress is visible. Gaming the answers hides real risk, a blanket release freeze is not what the framework prescribes, and AWS does not remediate your workload for you.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/userguide/milestones.html"
+  },
+  {
+    "id": "awsx-wa-overengineered-dr",
+    "topic": "aws",
+    "subtopic": "well-architected",
+    "difficulty": "Hard",
+    "title": "Active-active DR for a 24-hour RTO tool",
+    "question": "An internal reporting tool has a business-agreed RTO of 24 hours and RPO of 12 hours. It runs active-active in two Regions, with full-size fleets and a cross-Region database in both. What would a Well-Architected review most likely flag?",
+    "options": [
+      "Nothing; active-active is always the best-architected option",
+      "The RPO is too strict for a relational database across Regions",
+      "Active-active needs a third Region to reach quorum for this RTO",
+      "The DR design far exceeds the objectives and wastes cost"
+    ],
+    "correctIndex": 3,
+    "explanation": "The framework asks you to choose the DR strategy that meets the workload's recovery objectives; with hours-level RTO and RPO, backup and restore (or pilot light) is enough at a fraction of the cost. Paying for active-active here is a cost optimization finding. Active-active is not universally best, a 12-hour RPO is easy to meet, and quorum is not a requirement for this pattern.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_planning_for_recovery_disaster_recovery.html"
+  },
+  {
+    "id": "awsx-wa-keep-people-away-from-data",
+    "topic": "aws",
+    "subtopic": "well-architected",
+    "difficulty": "Hard",
+    "title": "Hand-written SQL fixes in production",
+    "question": "To fix bad records, support engineers routinely open a bastion session to the production database and run hand-written `UPDATE` statements against customer data. Which change best reflects the security pillar's design principles?",
+    "options": [
+      "Replace ad hoc SQL with reviewed, automated runbooks run via audited tools",
+      "Give each engineer a personal database superuser so actions are attributable",
+      "Rotate the bastion host's SSH key every month and keep the current process",
+      "Move the database to a public subnet so engineers no longer need the bastion"
+    ],
+    "correctIndex": 0,
+    "explanation": "\"Keep people away from data\" asks for mechanisms that reduce or remove direct access and manual processing of data; reviewed automation lowers the risk of mistakes and leaves an audit trail. Personal superusers improve attribution but keep the risky direct access, key rotation does not change the process, and a public subnet widens exposure.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/framework/sec-design.html"
+  },
+  {
+    "id": "awsx-wa-sustainability-demand",
+    "topic": "aws",
+    "subtopic": "well-architected",
+    "difficulty": "Hard",
+    "title": "Hourly reports nobody reads",
+    "question": "A pipeline regenerates every report hourly on a fixed fleet sized for peak, while users open the reports about once a week, and all intermediate data is kept forever in S3 Standard. Which change best aligns with the sustainability pillar?",
+    "options": [
+      "Move the fleet to larger instances so each hourly run finishes sooner",
+      "Generate reports on demand, scale idle capacity to zero, expire stale data",
+      "Run a copy of the pipeline in a second Region to spread its energy use",
+      "Keep the hourly schedule but move all stored data to S3 Standard-IA"
+    ],
+    "correctIndex": 1,
+    "explanation": "The sustainability pillar asks you to align work with real demand, maximize utilization and remove data you don't need, which together cut the resources the workload consumes. Bigger instances still do useless hourly work, a second Region doubles the footprint, and a cheaper storage class lowers cost but keeps both the wasted processing and the unneeded data.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/sustainability-pillar/sustainability-pillar.html"
+  },
+  {
+    "id": "awsx-wa-s3-prefix-throughput",
+    "topic": "aws",
+    "subtopic": "well-architected",
+    "difficulty": "Expert",
+    "title": "503 Slow Down from a single hot S3 prefix",
+    "question": "A telemetry service writes about 9,000 objects per second, all under the key prefix `ingest/current/`, and gets intermittent HTTP 503 Slow Down responses from S3. Which change best follows AWS's performance guidance?",
+    "options": [
+      "Enable Transfer Acceleration so the bucket accepts a higher request rate",
+      "Ask AWS Support to raise the per-bucket PUT quota for this account",
+      "Spread keys across more prefixes and retry 503s with exponential backoff",
+      "Switch to SSE-KMS so writes go through a separately scaled request path"
+    ],
+    "correctIndex": 2,
+    "explanation": "S3 supports at least 3,500 PUT/COPY/POST/DELETE requests per second per partitioned prefix, with no limit on the number of prefixes, and returns 503 Slow Down while it scales; spreading keys across prefixes and retrying with backoff is the documented pattern. Transfer Acceleration speeds long-distance transfers, there is no per-bucket quota to raise, and SSE-KMS adds KMS calls rather than capacity.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html"
+  },
+  {
+    "id": "awsx-wa-safe-deployment-waves",
+    "topic": "aws",
+    "subtopic": "well-architected",
+    "difficulty": "Expert",
+    "title": "One bad config change, every Region down",
+    "question": "A pipeline pushed a configuration change to all 12 Regions at once, with no alarms wired into the deployment. A bug in it took the service down everywhere within minutes. Which Well-Architected practice would most directly have limited the impact?",
+    "options": [
+      "Require two senior engineers to approve each pull request before merge",
+      "Schedule every deployment for off-peak hours so fewer users are affected",
+      "Batch changes into monthly releases so the pipeline runs less often",
+      "Roll out progressively, with bake time and alarm-driven rollback"
+    ],
+    "correctIndex": 3,
+    "explanation": "Safe deployment strategies (one-box or canary first, then waves of AZs or Regions, with bake time and automatic rollback on alarms) cap the blast radius of a bad change to a small slice. More approvers can miss the same bug, off-peak timing still breaks every Region, and bigger, rarer releases make each failure worse rather than smaller.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/framework/ops_mit_deploy_risks_deploy_mgmt_sys.html"
+  },
+  {
+    "id": "awsx-cost-activate-allocation-tags",
+    "topic": "aws",
+    "subtopic": "cost-optimization",
+    "difficulty": "Easy",
+    "title": "Tag missing from Cost Explorer",
+    "question": "Every resource is tagged `CostCenter`, but the tag does not show up as a grouping option in Cost Explorer. What step is missing?",
+    "options": [
+      "Activating `CostCenter` as a cost allocation tag in Billing",
+      "Re-creating the resources, since tags added later aren't billed",
+      "Enabling AWS Config so it copies tags into the billing data",
+      "Renaming the tag to `aws:CostCenter`, the prefix billing needs"
+    ],
+    "correctIndex": 0,
+    "explanation": "User-defined tags appear in Cost Explorer and cost reports only after they are activated as cost allocation tags, and activation can take up to 24 hours and is not retroactive. Tags added after launch are fine once activated, AWS Config is not involved, and the `aws:` prefix is reserved for AWS-generated tags.",
+    "referenceUrl": "https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/activating-tags.html"
+  },
+  {
+    "id": "awsx-cost-compute-savings-plan",
+    "topic": "aws",
+    "subtopic": "cost-optimization",
+    "difficulty": "Medium",
+    "title": "Commitment that survives family and service changes",
+    "question": "A company will move steady workloads from EC2 m5 instances to Graviton instances and partly to Fargate over the next year, and may change Regions. Which commitment keeps discounts through all of those changes?",
+    "options": [
+      "An EC2 Instance Savings Plan for the m5 family in this Region",
+      "Standard Reserved Instances for m5 with a three-year term",
+      "A Compute Savings Plan with an hourly spend commitment",
+      "Spot Instances backed by a one-year capacity reservation"
+    ],
+    "correctIndex": 2,
+    "explanation": "Compute Savings Plans apply automatically across instance families, sizes, Regions and operating systems, and also cover Fargate and Lambda. EC2 Instance Savings Plans and Standard RIs are tied to a family (and Region), so moving to Graviton or Fargate leaves them unused, and Spot capacity cannot be bought as a one-year reservation.",
+    "referenceUrl": "https://docs.aws.amazon.com/savingsplans/latest/userguide/plan-types.html"
+  },
+  {
+    "id": "awsx-cost-budgets-forecast-alert",
+    "topic": "aws",
+    "subtopic": "cost-optimization",
+    "difficulty": "Medium",
+    "title": "Alert before monthly spend crosses a limit",
+    "question": "Finance wants an email as soon as AWS expects the data team's spend this month to exceed $20,000, before it actually happens. What should you configure?",
+    "options": [
+      "A CloudWatch billing alarm on `EstimatedCharges` at $20,000",
+      "An AWS Budgets cost budget for the team with a forecasted-spend alert",
+      "A Cost Explorer report emailed on the first day of every month",
+      "A Trusted Advisor check that emails when costs beat last month"
+    ],
+    "correctIndex": 1,
+    "explanation": "AWS Budgets can alert on forecasted as well as actual spend and can be filtered to a team by tag, account or cost category. The `EstimatedCharges` billing alarm fires on accrued charges for the whole account, Cost Explorer reports look backwards, and Trusted Advisor does not offer budget thresholds.",
+    "referenceUrl": "https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html"
+  },
+  {
+    "id": "awsx-cost-rightsize-before-commit",
+    "topic": "aws",
+    "subtopic": "cost-optimization",
+    "difficulty": "Hard",
+    "title": "Buying commitments before right-sizing",
+    "question": "A team buys three-year EC2 Instance Savings Plans covering its entire current fleet, and only then reviews Compute Optimizer, which shows most instances below 15% CPU. What is wrong with this order of steps?",
+    "options": [
+      "Nothing; Savings Plans shrink automatically when instances get smaller",
+      "Compute Optimizer ignores instances already covered by Savings Plans",
+      "Savings Plans block instance type changes until the term has ended",
+      "The commitment is sized to waste, so downsizing leaves it underused"
+    ],
+    "correctIndex": 3,
+    "explanation": "Right-size first, then commit: a Savings Plan is a fixed hourly spend commitment, so after downsizing the team keeps paying for the unused commitment. Savings Plans never shrink automatically, Compute Optimizer analyzes covered instances like any other, and Savings Plans don't prevent instance changes; they just stop matching usage that no longer exists.",
+    "referenceUrl": "https://docs.aws.amazon.com/compute-optimizer/latest/ug/what-is-compute-optimizer.html"
+  },
+  {
+    "id": "awsx-cost-lambda-memory-tuning",
+    "topic": "aws",
+    "subtopic": "cost-optimization",
+    "difficulty": "Hard",
+    "title": "More Lambda memory can lower the bill",
+    "question": "A CPU-bound Lambda function runs with 128 MB and takes 8 seconds per invocation. An engineer argues that raising memory can only increase the bill. Why is that not necessarily true?",
+    "options": [
+      "Lambda bills per invocation only, so memory does not change the price",
+      "CPU scales with memory, so shorter runs can offset the higher rate",
+      "Memory above 1,769 MB is billed at a lower rate per GB-second",
+      "Functions with more memory are exempt from the per-request charge"
+    ],
+    "correctIndex": 1,
+    "explanation": "Lambda allocates CPU in proportion to memory and bills by duration times configured memory, so a CPU-bound function that runs proportionally faster can cost the same or less while also cutting latency; measure it with a power-tuning test. Duration and memory both matter, the GB-second rate does not drop at higher sizes, and the request charge always applies.",
+    "referenceUrl": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-memory.html"
+  },
+  {
+    "id": "awsx-cost-cloudwatch-logs-retention",
+    "topic": "aws",
+    "subtopic": "cost-optimization",
+    "difficulty": "Hard",
+    "title": "CloudWatch Logs among the top cost items",
+    "question": "CloudWatch Logs has become a top-three line item. Most log groups use the default \"Never expire\" retention, services log at DEBUG in production, and the logs are read mainly for incident forensics. Which set of changes best cuts cost?",
+    "options": [
+      "Set retention, log at INFO, and use Infrequent Access for forensic logs",
+      "Delete every log group weekly and rely only on metrics for troubleshooting",
+      "Send all logs to another Region where CloudWatch ingestion is cheaper",
+      "Turn off KMS encryption on log groups, the main driver of ingestion cost"
+    ],
+    "correctIndex": 0,
+    "explanation": "Retention limits storage growth, reducing verbosity cuts ingestion (the dominant cost), and the Infrequent Access log class, chosen when a log group is created, lowers ingestion price for logs used mostly for ad hoc queries and forensics. Deleting everything weekly loses evidence, cross-Region shipping adds transfer cost, and encryption is not what drives ingestion charges.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatch_Logs_Log_Classes.html"
+  },
+  {
+    "id": "awsx-cost-glacier-small-objects",
+    "topic": "aws",
+    "subtopic": "cost-optimization",
+    "difficulty": "Expert",
+    "title": "Archiving millions of tiny objects raised the bill",
+    "question": "A bucket holds 500 million log objects averaging 4 KB. A lifecycle rule with a size filter that overrides the default minimum transitions them all to S3 Glacier Deep Archive, and the next bill rises sharply. What explains it?",
+    "options": [
+      "Deep Archive bills a minimum of 1 TB per bucket regardless of usage",
+      "Transitions copy each object, so both copies are billed for 180 days",
+      "Per-object transition requests and archive metadata dwarf the savings",
+      "Deep Archive requires versioning, which keeps every old copy billed"
+    ],
+    "correctIndex": 2,
+    "explanation": "Lifecycle transitions are charged per object, and each object archived to Glacier Flexible Retrieval or Deep Archive carries fixed metadata overhead (8 KB billed at S3 Standard plus 32 KB at the archive rate), which dwarfs a 4 KB payload. That is why S3 by default no longer transitions objects under 128 KB; aggregate small objects into larger archives first. There is no per-bucket minimum, no double billing from transitions, and no versioning requirement.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html"
+  },
+  {
+    "id": "awsx-cost-spot-diversification",
+    "topic": "aws",
+    "subtopic": "cost-optimization",
+    "difficulty": "Expert",
+    "title": "Spot fleet pinned to one instance type",
+    "question": "A stateless web tier runs on Spot through an Auto Scaling group that allows only `c5.xlarge` in one AZ, using the `lowest-price` allocation strategy. Interruptions often drop capacity below the minimum. Which change best improves availability while keeping Spot savings?",
+    "options": [
+      "Set a much higher Spot max price so instances are reclaimed less often",
+      "Use one larger type, such as `c5.24xlarge`, so fewer nodes are hit",
+      "Move the group to one AZ in another Region with more spare capacity",
+      "Allow many instance types across AZs with `price-capacity-optimized`"
+    ],
+    "correctIndex": 3,
+    "explanation": "Spot interruptions are driven by capacity in each pool, so drawing from many instance types and AZs with the `price-capacity-optimized` strategy (AWS's recommended default) picks deep, low-interruption pools at a low price. A higher max price does not protect against capacity reclaims, a single large type concentrates risk in one pool, and a single AZ anywhere keeps the same weakness.",
+    "referenceUrl": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-allocation-strategy.html"
+  },
+  {
+    "id": "awsx-sec-root-user-practices",
+    "topic": "aws",
+    "subtopic": "security-best-practices",
+    "difficulty": "Easy",
+    "title": "Handling the AWS account root user",
+    "question": "Which practice does AWS recommend for the root user of an AWS account?",
+    "options": [
+      "Use it for daily administration, but only from the office network",
+      "Protect it with MFA, keep no access keys, use it only for root-only tasks",
+      "Share its password with the whole on-call rotation so it's there in emergencies",
+      "Create root access keys and keep them in Secrets Manager for automation"
+    ],
+    "correctIndex": 1,
+    "explanation": "The root user has unrestricted access and can't be limited by IAM policies, so AWS recommends strong MFA, no root access keys, and using it only for the few tasks that require it, with everyday work done through roles or IAM Identity Center. Network location doesn't reduce its power, sharing the password destroys accountability, and root access keys are exactly what attackers look for.",
+    "referenceUrl": "https://docs.aws.amazon.com/IAM/latest/UserGuide/root-user-best-practices.html"
+  },
+  {
+    "id": "awsx-sec-guardduty-crypto-mining",
+    "topic": "aws",
+    "subtopic": "security-best-practices",
+    "difficulty": "Medium",
+    "title": "Detecting an instance talking to a mining pool",
+    "question": "An EC2 instance starts communicating with a known cryptocurrency-mining pool. Which service is designed to detect this automatically by analyzing sources such as VPC Flow Logs, DNS query logs and CloudTrail events?",
+    "options": [
+      "AWS Config",
+      "Amazon Inspector",
+      "AWS Trusted Advisor",
+      "Amazon GuardDuty"
+    ],
+    "correctIndex": 3,
+    "explanation": "GuardDuty is the managed threat detection service: it analyzes CloudTrail, VPC Flow Logs and DNS logs (plus optional sources) with threat intelligence and anomaly detection, and raises findings such as crypto-mining activity. AWS Config records and evaluates resource configuration, Inspector scans workloads for software vulnerabilities, and Trusted Advisor checks accounts against best practices.",
+    "referenceUrl": "https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html"
+  },
+  {
+    "id": "awsx-sec-session-manager-close-ssh",
+    "topic": "aws",
+    "subtopic": "security-best-practices",
+    "difficulty": "Medium",
+    "title": "SSH open to the world for remote access",
+    "question": "A security group allows SSH (port 22) from `0.0.0.0/0` so engineers can reach instances from home. Which change best removes the exposure while keeping shell access auditable?",
+    "options": [
+      "Use Session Manager, close port 22 and log every session",
+      "Move SSH to port 2222 so internet scanners stop finding it",
+      "Keep port 22 open but require longer RSA keys for everyone",
+      "Give each instance an Elastic IP in a public subnet instead"
+    ],
+    "correctIndex": 0,
+    "explanation": "Session Manager provides shell access through the SSM agent with no inbound ports, authorizes it with IAM, and can log sessions to S3 or CloudWatch Logs. A different port is only obscurity, stronger keys still leave the service exposed to the internet, and public Elastic IPs increase rather than reduce exposure.",
+    "referenceUrl": "https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager.html"
+  },
+  {
+    "id": "awsx-sec-github-oidc-broad-sub",
+    "topic": "aws",
+    "subtopic": "security-best-practices",
+    "difficulty": "Hard",
+    "title": "GitHub OIDC trust policy that is too broad",
+    "question": "A production deploy role trusts GitHub's OIDC provider with these conditions:\n`\"StringEquals\": {\"token.actions.githubusercontent.com:aud\": \"sts.amazonaws.com\"}, \"StringLike\": {\"token.actions.githubusercontent.com:sub\": \"repo:acme/*\"}`\nWhat is the problem?",
+    "options": [
+      "OIDC roles must be assumed with `sts:AssumeRole`, not a web identity call",
+      "The `aud` value must be the role ARN, or STS rejects every token",
+      "Any workflow in any `acme` repo, on any branch, can deploy to production",
+      "`StringLike` is not supported for OIDC claims, so the role is unusable"
+    ],
+    "correctIndex": 2,
+    "explanation": "The `sub` claim identifies the repository and the ref or environment, so `repo:acme/*` lets every repository in the organization, from any branch or pull request workflow, assume the production role. Scope it to the deploy repository and a protected branch or environment (for example `repo:acme/deploy:environment:prod`). The `aud` value `sts.amazonaws.com` is correct, `AssumeRoleWithWebIdentity` is the right call, and `StringLike` is supported.",
+    "referenceUrl": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html"
+  },
+  {
+    "id": "awsx-sec-scp-management-account",
+    "topic": "aws",
+    "subtopic": "security-best-practices",
+    "difficulty": "Hard",
+    "title": "SCP that didn't stop an admin from disabling CloudTrail",
+    "question": "An SCP denying `cloudtrail:StopLogging` and `cloudtrail:DeleteTrail` is attached to the organization root. During an audit, an admin role in the management account stops the organization trail successfully. Why?",
+    "options": [
+      "SCPs attached to the root apply only to accounts created after it",
+      "SCPs do not affect users or roles in the management account",
+      "An `AdministratorAccess` policy overrides explicit SCP denies",
+      "CloudTrail actions cannot be restricted by organization policies"
+    ],
+    "correctIndex": 1,
+    "explanation": "SCPs restrict member accounts only; nothing in the management account is limited by them, which is why AWS advises keeping workloads and broad access out of that account. Root-attached SCPs apply to all existing member accounts, an explicit deny in an SCP beats any IAM allow there, and CloudTrail actions can be denied by SCPs.",
+    "referenceUrl": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html"
+  },
+  {
+    "id": "awsx-sec-s3-securetransport-deny",
+    "topic": "aws",
+    "subtopic": "security-best-practices",
+    "difficulty": "Hard",
+    "title": "Bucket policy that fails to enforce HTTPS",
+    "question": "To enforce HTTPS, a bucket policy contains only:\n`{\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"arn:aws:iam::111122223333:root\"}, \"Action\": \"s3:GetObject\", \"Resource\": \"arn:aws:s3:::reports/*\", \"Condition\": {\"Bool\": {\"aws:SecureTransport\": \"true\"}}}`\nRoles in that account whose identity policies allow `s3:GetObject` still read objects over plain HTTP. What fixes it?",
+    "options": [
+      "Add an explicit `Deny` when `aws:SecureTransport` is `false`",
+      "Change the condition operator from `Bool` to `StringEquals`",
+      "Enable default encryption so the bucket rejects plain HTTP",
+      "Replace `:root` with each role's ARN so that the condition gets evaluated"
+    ],
+    "correctIndex": 0,
+    "explanation": "Within the same account, access is granted if either the identity policy or the bucket policy allows it, so a conditional Allow cannot block requests another policy already allows. Only an explicit Deny on `aws:SecureTransport` = `false` (covering the bucket and its objects) overrides those allows. Changing the operator or principal doesn't change that logic, and default encryption protects data at rest, not in transit.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html"
+  },
+  {
+    "id": "awsx-sec-cloudtrail-org-log-archive",
+    "topic": "aws",
+    "subtopic": "security-best-practices",
+    "difficulty": "Expert",
+    "title": "Audit logs investigators could not trust",
+    "question": "Each account has its own single-Region CloudTrail trail delivering to a bucket in that same account, with log file validation off. After a compromise of an account admin, investigators can't trust the logs. Which design best fixes this?",
+    "options": [
+      "Keep the per-account trails, but extend S3 retention to ten years",
+      "Copy each account's logs nightly onto an EBS volume on a bastion host",
+      "Replace each account's trail with CloudTrail Insights anomaly detection",
+      "A multi-Region organization trail to a log archive account, with validation"
+    ],
+    "correctIndex": 3,
+    "explanation": "An organization trail captures every account and Region, delivering to a separate, locked-down log archive account means a compromised workload admin can't alter or delete the logs, and log file validation produces digest files that prove integrity (S3 Object Lock can add immutability). Longer retention doesn't stop tampering, a bastion volume is in reach of the same people, and Insights detects unusual API activity rather than replacing trails.",
+    "referenceUrl": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/creating-trail-organization.html"
+  },
+  {
+    "id": "awsx-sec-imdsv2-ssrf-defense",
+    "topic": "aws",
+    "subtopic": "security-best-practices",
+    "difficulty": "Expert",
+    "title": "Protecting instance credentials from an SSRF bug",
+    "question": "A web app on EC2 has a server-side request forgery (SSRF) flaw that lets a user make the server fetch arbitrary URLs. While the code fix is pending, the team wants defense in depth for the instance role credentials exposed through the metadata service. Which configuration change is most direct?",
+    "options": [
+      "Move the role's permissions into access keys stored in the app config",
+      "Block outbound port 443 so stolen credentials can't be used anywhere",
+      "Require IMDSv2 (`HttpTokens=required`) and keep a low hop limit",
+      "Enable EBS encryption so the metadata service returns ciphertext"
+    ],
+    "correctIndex": 2,
+    "explanation": "IMDSv2 requires a session token obtained with a PUT request carrying a special header, which a typical SSRF that only controls a GET URL cannot produce, and a hop limit of 1 keeps the token from leaving the instance. Static access keys are worse, blocking 443 breaks the app and doesn't stop credentials being used elsewhere, and EBS encryption has nothing to do with metadata responses.",
+    "referenceUrl": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-metadata-v2-how-it-works.html"
+  },
+  {
+    "id": "awsx-rel-aws-backup-central-plans",
+    "topic": "aws",
+    "subtopic": "reliability-best-practices",
+    "difficulty": "Easy",
+    "title": "Centralizing backups across services",
+    "question": "A company backs up RDS, EBS, DynamoDB and EFS with four different scripts and schedules. Which service centralizes backup schedules, retention and monitoring across these services?",
+    "options": [
+      "AWS DataSync, with scheduled transfer tasks",
+      "Amazon S3 Replication, with replication rules",
+      "AWS Backup, with backup plans and vaults",
+      "AWS Elastic Disaster Recovery, with launch settings"
+    ],
+    "correctIndex": 2,
+    "explanation": "AWS Backup applies policy-based backup plans (schedule, retention, copy rules) to resources across many services and reports job status in one place. DataSync moves files between storage systems, S3 Replication copies objects between buckets, and Elastic Disaster Recovery continuously replicates servers for failover rather than managing backups.",
+    "referenceUrl": "https://docs.aws.amazon.com/aws-backup/latest/devguide/whatisbackup.html"
+  },
+  {
+    "id": "awsx-rel-asg-elb-health-checks",
+    "topic": "aws",
+    "subtopic": "reliability-best-practices",
+    "difficulty": "Medium",
+    "title": "Hung instances the Auto Scaling group never replaces",
+    "question": "An Auto Scaling group behind an ALB keeps instances whose application has hung: the ALB marks them unhealthy and stops routing to them, but the group never replaces them, so serving capacity shrinks. What is the fix?",
+    "options": [
+      "Lengthen the ALB health check interval so instances get more time",
+      "Enable detailed monitoring so the group sees per-minute CPU data",
+      "Add a scheduled action that replaces every instance each night",
+      "Turn on Elastic Load Balancing health checks for the group"
+    ],
+    "correctIndex": 3,
+    "explanation": "By default an Auto Scaling group only uses EC2 status checks, which pass while the OS runs even if the app is hung. Enabling ELB health checks makes the group treat instances that fail the target group's checks as unhealthy and replace them. A longer interval only delays detection, CPU metrics don't mark instances unhealthy, and nightly replacement leaves hours of lost capacity.",
+    "referenceUrl": "https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-health-checks.html"
+  },
+  {
+    "id": "awsx-rel-nat-gateway-per-az",
+    "topic": "aws",
+    "subtopic": "reliability-best-practices",
+    "difficulty": "Medium",
+    "title": "One NAT gateway for three Availability Zones",
+    "question": "Private subnets in three AZs all route `0.0.0.0/0` to a single NAT gateway in AZ a. What happens if AZ a is impaired, and what is the recommended design?",
+    "options": [
+      "The NAT gateway fails over to AZ b on its own, so the design is fine",
+      "Every AZ loses egress; use a NAT gateway per AZ with per-AZ routes",
+      "Only AZ a loses egress; the others fall back to the internet gateway",
+      "Traffic shifts to VPC endpoints, so only AWS API calls keep working"
+    ],
+    "correctIndex": 1,
+    "explanation": "A NAT gateway is a zonal resource, redundant only within its own AZ, so subnets in every AZ that depend on it lose outbound internet access when that AZ fails. AWS recommends a NAT gateway in each AZ with each AZ's private route table pointing at its local gateway, which also avoids cross-AZ data charges. Private subnets have no fallback route to an internet gateway, and endpoints only exist if you created them.",
+    "referenceUrl": "https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateway-basics.html"
+  },
+  {
+    "id": "awsx-rel-retry-amplification",
+    "topic": "aws",
+    "subtopic": "reliability-best-practices",
+    "difficulty": "Hard",
+    "title": "Retries at every layer overwhelm a slow database",
+    "question": "A request passes through five service layers, and each layer immediately retries failed calls three times. When the database slows down, its load jumps by orders of magnitude and it never recovers. Which change best addresses the cause?",
+    "options": [
+      "Retry at one layer only, with capped exponential backoff and jitter",
+      "Increase every layer's retry count so that requests eventually succeed",
+      "Cut every client timeout to 10 ms so failures are detected sooner",
+      "Add servers at each layer so retries can be sent in parallel"
+    ],
+    "correctIndex": 0,
+    "explanation": "Retries multiply across layers: with up to four attempts per layer, one user request can become 4^5 = 1,024 database calls just as the database is struggling. The reliability pillar recommends limiting retries, using exponential backoff with jitter and retrying at a single point in the stack. More retries, tiny timeouts or more callers all add load to the overloaded dependency.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_mitigate_interaction_failure_limit_retries.html"
+  },
+  {
+    "id": "awsx-rel-backup-vault-lock-cross-account",
+    "topic": "aws",
+    "subtopic": "reliability-best-practices",
+    "difficulty": "Hard",
+    "title": "Backups deleted along with the workload",
+    "question": "An attacker with admin credentials in a production account deleted the workload and every AWS Backup recovery point stored in that same account. Which design would have kept backups recoverable?",
+    "options": [
+      "Back up every hour instead of daily, keeping the same vault",
+      "Encrypt the vault with an AWS managed key instead of a CMK",
+      "Copy backups to another account and lock vaults with Vault Lock",
+      "Tag recovery points `do-not-delete` so admins know to skip them"
+    ],
+    "correctIndex": 2,
+    "explanation": "Copying recovery points to a vault in a separate account takes them out of reach of the compromised account, and AWS Backup Vault Lock in compliance mode prevents anyone, even privileged users, from deleting them before retention ends. More frequent backups sit in the same vulnerable vault, the key type does not block deletion, and tags enforce nothing.",
+    "referenceUrl": "https://docs.aws.amazon.com/aws-backup/latest/devguide/vault-lock.html"
+  },
+  {
+    "id": "awsx-rel-graceful-degradation",
+    "topic": "aws",
+    "subtopic": "reliability-best-practices",
+    "difficulty": "Hard",
+    "title": "Optional recommendations breaking the product page",
+    "question": "A product page calls a recommendations service synchronously and returns HTTP 500 whenever that service times out, even though recommendations are optional. What does the reliability pillar recommend?",
+    "options": [
+      "Raise the recommendations timeout to 60 seconds so calls rarely fail",
+      "Retry the recommendations call in a loop until it succeeds, then render",
+      "Merge recommendations into the product service so one deploy remains",
+      "Make it a soft dependency: short timeout, then render without it"
+    ],
+    "correctIndex": 3,
+    "explanation": "Graceful degradation turns hard dependencies into soft ones: call the optional service with a tight timeout and, on failure, render the page without recommendations or with cached defaults. A 60-second timeout ties up threads and frustrates users, retrying until success amplifies the outage, and merging services removes a network hop but not the coupling.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_mitigate_interaction_failure_graceful_degradation.html"
+  },
+  {
+    "id": "awsx-rel-static-stability-az-loss",
+    "topic": "aws",
+    "subtopic": "reliability-best-practices",
+    "difficulty": "Expert",
+    "title": "Relying on Auto Scaling to replace a lost AZ",
+    "question": "A service runs 6 instances across three AZs and needs all 6 to handle peak load. Its plan for an AZ failure is that Auto Scaling will launch replacements in the remaining AZs. What is the weakness, and what does the reliability pillar suggest?",
+    "options": [
+      "Auto Scaling can't launch into other AZs, so put all instances in one",
+      "It relies on launching capacity mid-event; pre-provision for AZ loss",
+      "Six instances is too many to manage; run three so fewer can fail",
+      "Nothing; launching replacements on demand is static stability"
+    ],
+    "correctIndex": 1,
+    "explanation": "Static stability means the system keeps working through a failure without having to make changes: the plan depends on control-plane actions and spare capacity at the worst moment, causing bimodal behavior. Pre-provisioning so two AZs can carry peak (here 9 instances, 3 per AZ) removes that dependency. Auto Scaling can use other AZs, fewer instances worsens the problem, and on-demand replacement is exactly what static stability avoids.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_withstand_component_failures_static_stability.html"
+  },
+  {
+    "id": "awsx-rel-data-plane-failover",
+    "topic": "aws",
+    "subtopic": "reliability-best-practices",
+    "difficulty": "Expert",
+    "title": "A failover runbook built on console changes",
+    "question": "A Regional failover runbook tells the on-call engineer to edit Route 53 records and resize Auto Scaling groups in the console during the incident. Why does the reliability pillar consider this risky, and what is preferred?",
+    "options": [
+      "It relies on control-plane APIs; prefer data-plane failover (health checks, ARC)",
+      "Route 53 changes take up to 48 hours to spread, so clients need hardcoded IPs",
+      "Console sessions expire quickly, so the runbook should switch to root credentials",
+      "Failover should instead update DNS at the domain registrar to bypass Route 53"
+    ],
+    "correctIndex": 0,
+    "explanation": "Control planes (create, update, delete APIs) are more complex and less available than data planes, and may be impaired during the very event you are recovering from. Route 53 health-check-based failover routing and ARC routing controls shift traffic through the data plane, with standby capacity provisioned in advance. Route 53 record changes normally reach its name servers within about a minute, root credentials are not a recovery tool, and registrar changes are slower still.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/framework/rel_withstand_component_failures_avoid_control_plane.html"
+  }
+]

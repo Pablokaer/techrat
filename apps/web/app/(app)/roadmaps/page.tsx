@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRight, BarChart3, Clock, Lock, Map as MapIcon } from "lucide-react";
+import { ArrowRight, BarChart3, CheckCheck, Clock, Lock, Map as MapIcon } from "lucide-react";
 import { Card, ProgressBar, cx } from "@techrat/ui";
 import { useRoadmaps } from "@/lib/queries";
 import { routes } from "@/lib/routes";
@@ -51,6 +51,8 @@ function Grid({ items }: { items: NonNullable<ReturnType<typeof useRoadmaps>["da
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {items.map((r) => {
         const locked = r.progress && !r.progress.isUnlocked;
+        /** Modules of this roadmap already completed in other roadmaps — they count here too. */
+        const owned = r.progress?.alreadyCompletedModules ?? 0;
         return (
           <Card key={r.slug} as="article" className={cx("flex flex-col p-5", locked && "opacity-80")}>
             <div className="flex items-start gap-4">
@@ -66,6 +68,11 @@ function Grid({ items }: { items: NonNullable<ReturnType<typeof useRoadmaps>["da
               <ProgressBar value={r.progress?.percentComplete ?? 0} size="sm" label={t.roadmaps.list.progressLabel(r.name)} />
               <span className="font-mono text-xs text-text-secondary">{Math.round(r.progress?.percentComplete ?? 0)}%</span>
             </div>
+            {owned > 0 && (
+              <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-primary">
+                <CheckCheck className="h-4 w-4" aria-hidden />{t.roadmaps.list.alreadyHave(owned, r.modulesCount)}
+              </p>
+            )}
             <dl className="mt-4 grid grid-cols-3 gap-2 text-xs">
               <div className="flex items-center gap-1.5"><MapIcon className="h-4 w-4 text-text-muted" aria-hidden /><dd>{t.roadmaps.list.steps(r.progress?.completedSteps ?? 0, r.stepsCount)}</dd></div>
               <div className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-text-muted" aria-hidden /><dd>{t.roadmaps.list.hours(r.estimatedHours)}</dd></div>

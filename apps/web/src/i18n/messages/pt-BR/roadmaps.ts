@@ -26,6 +26,7 @@ export const roadmaps: Messages["roadmaps"] = {
     viewPrerequisites: "Ver pré-requisitos",
     continuePath: "Continuar trilha",
     viewPath: "Ver trilha",
+    alreadyHave: (done, total) => `Você já tem ${done} de ${total} módulos`,
   },
   detail: {
     notFound: "Roadmap não encontrado",
@@ -48,5 +49,10 @@ export const roadmaps: Messages["roadmaps"] = {
     stepProgress: "Progresso da etapa",
     stepCriteria: (answered, min, accuracy) => `${answered}/${min} respondidas · ${accuracy}% de precisão`,
     practiceStep: "Praticar etapa",
+    credited: (modules, steps) => {
+      const s = steps === 1 ? "1 etapa" : `${steps} etapas`;
+      if (modules === 0) return `Você já tinha ${s} de outros roadmaps`;
+      return `Você já tinha ${modules === 1 ? "1 módulo" : `${modules} módulos`} (${s}) de outros roadmaps`;
+    },
   },
 };

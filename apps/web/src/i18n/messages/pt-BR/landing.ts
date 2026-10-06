@@ -18,7 +18,7 @@ export const landing: Messages["landing"] = {
   },
   highlights: {
     questions: { title: "1.000+ questões reais", text: "Do Fácil ao Expert, cada uma com explicação e link para a documentação oficial." },
-    roadmaps: { title: "32 roadmaps", text: "De Júnior a Sênior, System Design, Engenharia de IA, Cloud, DevOps e mais." },
+    roadmaps: { title: "Roadmaps de aprendizado", text: "De Júnior a Sênior, System Design, Engenharia de IA, Cloud, DevOps e mais. Conclua um módulo uma vez e ele conta em todos os roadmaps." },
     progress: { title: "XP, níveis e posições", text: "Suba de nível no geral e por tópico. Sequências, emblemas e rankings." },
     adaptive: { title: "Prática adaptativa", text: "A dificuldade acompanha sua precisão para que cada sessão te desafie." },
   },

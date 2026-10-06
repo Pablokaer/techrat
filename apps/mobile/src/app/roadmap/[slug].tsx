@@ -7,6 +7,7 @@ import { useRoadmap, useStartRoadmap } from "@/lib/queries";
 import { useLaunchSession } from "@/lib/use-launch-session";
 import { AppText, Button, Card, Divider, ErrorState, LoadingState, ProgressBar, Screen, XpPill, errorMessage } from "@/components/ui";
 import { IconTile } from "@/components/domain/IconTile";
+import { ModuleHeader } from "@/components/domain/ModuleHeader";
 import { StepRow } from "@/components/domain/StepRow";
 
 export default function RoadmapScreen() {
@@ -68,11 +69,8 @@ export default function RoadmapScreen() {
       </Card>
 
       {modules.map((m) => (
-        <Card key={m.id} style={styles.gapSm}>
-          <View style={styles.row}>
-            <AppText variant="subheading" style={styles.flex} accessibilityRole="header">Module {m.order}: {m.title}</AppText>
-            {m.isCompleted && <Ionicons name="checkmark-done" size={18} color={colors.primary} accessibilityLabel="Module completed" />}
-          </View>
+        <Card key={m.id} style={styles.gapSm} highlighted={m.kind === "Capstone"}>
+          <ModuleHeader module={m} />
           {m.steps.map((s, i) => (
             <View key={s.id}>
               {i > 0 && <Divider />}

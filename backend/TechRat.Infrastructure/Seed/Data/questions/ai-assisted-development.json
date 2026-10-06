@@ -1,0 +1,852 @@
+[
+  {
+    "id": "aad-agents-agentic-loop",
+    "topic": "ai-assisted-development",
+    "subtopic": "coding-agents",
+    "difficulty": "Easy",
+    "title": "What makes a coding agent different from autocomplete",
+    "question": "A teammate asks how a coding agent such as Claude Code differs from inline autocomplete in an editor. Which description is most accurate?",
+    "options": [
+      "It predicts the next few tokens at the cursor while you type in a file",
+      "It fine-tunes a private model on your repository before every request",
+      "It loops through gathering context, acting with tools and checking results",
+      "It answers questions in a chat but never reads or changes files on disk"
+    ],
+    "correctIndex": 2,
+    "explanation": "Coding agents run an agentic loop: they gather context (search and read files), take actions with tools (edit files, run commands) and verify the results (tests, builds), repeating until the task is done. Inline completion only predicts text at the cursor, no fine-tuning happens per request, and a chat that can't touch files is an assistant rather than an agent.",
+    "referenceUrl": "https://code.claude.com/docs/en/how-claude-code-works"
+  },
+  {
+    "id": "aad-agents-stateless-model",
+    "topic": "ai-assisted-development",
+    "subtopic": "coding-agents",
+    "difficulty": "Easy",
+    "title": "How an agent session remembers earlier turns",
+    "question": "In a long Claude Code session, how does the model \"remember\" the files it read and the decisions made earlier in the conversation?",
+    "options": [
+      "Its weights are updated after each turn with what it learned so far",
+      "The client re-sends the conversation and tool results on every request",
+      "The server keeps a private per-session database that the model can query",
+      "Only facts written to CLAUDE.md survive from one request to the next"
+    ],
+    "correctIndex": 1,
+    "explanation": "The model is stateless between API calls: Claude Code re-sends the system prompt, project context and every prior message and tool result with each request, and prompt caching avoids reprocessing the unchanged prefix. Nothing is learned into the weights, there is no hidden per-session database, and CLAUDE.md is just one part of the context that gets re-sent.",
+    "referenceUrl": "https://code.claude.com/docs/en/prompt-caching"
+  },
+  {
+    "id": "aad-agents-when-to-plan",
+    "topic": "ai-assisted-development",
+    "subtopic": "coding-agents",
+    "difficulty": "Medium",
+    "title": "When planning before coding pays off",
+    "question": "Which of these tasks benefits most from having the agent explore and write a plan (for example in plan mode) before it edits any code?",
+    "options": [
+      "Renaming a misspelled local variable inside a single function",
+      "Adding a log line just before the return in a handler you know well",
+      "Fixing a typo in an error message shown on the login page",
+      "Adding OAuth login to an auth module nobody on the team knows"
+    ],
+    "correctIndex": 3,
+    "explanation": "Planning pays off when the approach is uncertain, the change spans several files or the code is unfamiliar, because a wrong direction there is expensive to undo. For changes you could describe as a one-sentence diff, such as a rename, a log line or a typo, planning only adds overhead and the agent should just do it.",
+    "referenceUrl": "https://code.claude.com/docs/en/best-practices"
+  },
+  {
+    "id": "aad-agents-give-a-check",
+    "topic": "ai-assisted-development",
+    "subtopic": "coding-agents",
+    "difficulty": "Medium",
+    "title": "Letting the agent verify its own work",
+    "question": "An agent keeps declaring `validateEmail` finished, but you find bugs every time you test it by hand. Which change to your request most directly fixes this loop?",
+    "options": [
+      "Ask it to state how confident it is in the code before it stops",
+      "Give example inputs with expected results and have it run tests until green",
+      "Switch to the largest available model and repeat the same request",
+      "Ask it to re-read all of its own code twice before declaring the task done"
+    ],
+    "correctIndex": 1,
+    "explanation": "Without a check it can run, \"looks done\" is the only stop signal and you become the verification loop. Concrete test cases plus an instruction to run them give a pass/fail signal the agent can iterate against. Self-reported confidence, a bigger model or re-reading the code aren't evidence that it behaves correctly.",
+    "referenceUrl": "https://code.claude.com/docs/en/best-practices"
+  },
+  {
+    "id": "aad-agents-reset-after-corrections",
+    "topic": "ai-assisted-development",
+    "subtopic": "coding-agents",
+    "difficulty": "Hard",
+    "title": "Agent keeps drifting back to a corrected mistake",
+    "question": "You have corrected the agent three times about the same wrong approach in one session, and each new attempt drifts back toward it. What is usually the most effective next step?",
+    "options": [
+      "Repeat the correction in capital letters and mark it as IMPORTANT",
+      "Run `/compact` so the failed attempts get summarized, then continue",
+      "Run `/clear` and restart with a sharper prompt that includes the lessons",
+      "Switch to a larger model mid-session while keeping all of the current history"
+    ],
+    "correctIndex": 2,
+    "explanation": "After repeated corrections the context is full of failed approaches that keep pulling the model back. A clean session with a better initial prompt that incorporates what you learned almost always beats a long session of accumulated corrections. Compacting still carries a summary of the failed path, emphatic wording doesn't remove that noise, and a model switch keeps the same cluttered history.",
+    "referenceUrl": "https://code.claude.com/docs/en/best-practices"
+  },
+  {
+    "id": "aad-ctx-claude-md-contents",
+    "topic": "ai-assisted-development",
+    "subtopic": "context-instructions",
+    "difficulty": "Easy",
+    "title": "What belongs in a project CLAUDE.md",
+    "question": "Which content is the best fit for a project's shared `CLAUDE.md` file?",
+    "options": [
+      "Build and test commands, conventions and rules needed in every session",
+      "The complete API reference of every library the project depends on",
+      "Each developer's personal API keys so that the agent can deploy on their behalf",
+      "A running log of every past agent session and the files it changed"
+    ],
+    "correctIndex": 0,
+    "explanation": "`CLAUDE.md` is loaded into context at the start of every session, so it should hold short, durable facts: commands, conventions, layout and \"always do X\" rules. Large reference material wastes context on every request and belongs in skills or docs read on demand, secrets must never go in a committed file, and session history is noise.",
+    "referenceUrl": "https://code.claude.com/docs/en/memory"
+  },
+  {
+    "id": "aad-ctx-path-scoped-rules",
+    "topic": "ai-assisted-development",
+    "subtopic": "context-instructions",
+    "difficulty": "Medium",
+    "title": "Shrinking a bloated instruction file",
+    "question": "A monorepo's root `CLAUDE.md` has grown to 600 lines, 400 of which only matter for code under `src/api/`. Which change cuts context cost for sessions that never touch the API, while still giving the agent those rules when it does?",
+    "options": [
+      "Split the API section into its own file pulled in with an `@` import",
+      "Move it to a `.claude/rules/` file whose `paths` frontmatter is `src/api/**`",
+      "Move the API rules into `CLAUDE.local.md` so they load after the root file",
+      "Move the API rules into the `README.md` that sits next to the root file"
+    ],
+    "correctIndex": 1,
+    "explanation": "Rules with a `paths` field load only when the agent reads or edits matching files, so sessions elsewhere don't pay for them. An `@` import helps organisation but the imported file still loads at launch, `CLAUDE.local.md` is a personal file that always loads, and a README isn't loaded automatically, so the rules would simply be lost.",
+    "referenceUrl": "https://code.claude.com/docs/en/memory"
+  },
+  {
+    "id": "aad-ctx-personal-instructions",
+    "topic": "ai-assisted-development",
+    "subtopic": "context-instructions",
+    "difficulty": "Medium",
+    "title": "Where personal project instructions belong",
+    "question": "Ana added her sandbox URL and preferred test account to the team's shared `CLAUDE.md`, and teammates' sessions now try to use her sandbox. Where should her personal, project-specific instructions live?",
+    "options": [
+      "In a new `.claude/rules/ana.md` file committed next to the team rules",
+      "In an `AGENTS.md` file, which only Ana's local tools will read",
+      "In the shared `CLAUDE.md`, under a heading that says \"Ana only\"",
+      "In a `CLAUDE.local.md` at the project root, listed in `.gitignore`"
+    ],
+    "correctIndex": 3,
+    "explanation": "`CLAUDE.local.md` loads alongside `CLAUDE.md` but is meant for personal project preferences and should be gitignored, so it never reaches teammates. Files under `.claude/rules/` and `AGENTS.md` are shared project instructions, and a heading saying \"Ana only\" still puts the text into everyone's context.",
+    "referenceUrl": "https://code.claude.com/docs/en/memory"
+  },
+  {
+    "id": "aad-ctx-midsession-edit",
+    "topic": "ai-assisted-development",
+    "subtopic": "context-instructions",
+    "difficulty": "Hard",
+    "title": "Editing CLAUDE.md in the middle of a session",
+    "question": "Halfway through a session you add a new rule to the project-root `CLAUDE.md`, but the agent keeps ignoring it in the following turns. What is the most likely explanation?",
+    "options": [
+      "The file must be committed to git before Claude Code will read it",
+      "It was loaded at session start; the edit applies after `/clear` or a restart",
+      "Root instruction files are read only by subagents, never by the main session itself",
+      "Rules added below the first 50 lines of the file are always truncated"
+    ],
+    "correctIndex": 1,
+    "explanation": "Project-root and user `CLAUDE.md` files are read once at session start and kept as part of the context prefix; editing them mid-session doesn't change what the model sees until the next `/clear`, `/compact` or restart. Git status is irrelevant, the main session does load the file, and there is no 50-line cut-off.",
+    "referenceUrl": "https://code.claude.com/docs/en/prompt-caching"
+  },
+  {
+    "id": "aad-ctx-conflicting-files",
+    "topic": "ai-assisted-development",
+    "subtopic": "context-instructions",
+    "difficulty": "Expert",
+    "title": "Conflicting rules across instruction files",
+    "question": "The root `CLAUDE.md` says \"use npm\", `packages/web/CLAUDE.md` says \"use pnpm\", and an old file in `.claude/rules/` says \"use yarn\". Working in `packages/web`, the agent switches package managers between turns. What best explains this, and what is the fix?",
+    "options": [
+      "Files are concatenated, not overridden, so contradictions resolve arbitrarily",
+      "The nested file overrides the root one, so this is a caching bug to report",
+      "Files are merged by majority vote, so add a fourth file repeating \"pnpm\"",
+      "Only the alphabetically last file applies, so rename the pnpm file to sort last"
+    ],
+    "correctIndex": 0,
+    "explanation": "Claude Code concatenates every discovered instruction file into context (from the root down to the working directory, plus rules) instead of letting one replace another, so contradictory statements all reach the model and it may follow either. The fix is one consistent source of truth, with stale or conflicting rules removed. There is no override, vote or alphabetical precedence to exploit.",
+    "referenceUrl": "https://code.claude.com/docs/en/memory"
+  },
+  {
+    "id": "aad-prompt-scoped-test-request",
+    "topic": "ai-assisted-development",
+    "subtopic": "prompting-for-code",
+    "difficulty": "Easy",
+    "title": "A well-scoped request for tests",
+    "question": "Which request is most likely to get a useful test on the first try?",
+    "options": [
+      "Add a few more tests anywhere in foo.py so that the overall coverage number goes up",
+      "Test the logged-out case of `get_profile` in foo.py, no mocks, then run it",
+      "Improve the testing situation in foo.py in whatever way seems best to you",
+      "Look at foo.py and tell me whether it might need more tests someday"
+    ],
+    "correctIndex": 1,
+    "explanation": "Good prompts name the file and function, the scenario to cover, constraints such as \"no mocks\" and a verification step. The other requests leave the agent to guess what matters, which leads to broad, shallow or unnecessary changes and more rounds of correction.",
+    "referenceUrl": "https://code.claude.com/docs/en/best-practices"
+  },
+  {
+    "id": "aad-prompt-point-to-pattern",
+    "topic": "ai-assisted-development",
+    "subtopic": "prompting-for-code",
+    "difficulty": "Easy",
+    "title": "Getting new code that matches the codebase",
+    "question": "You want the agent to add a calendar widget that looks and behaves like the existing widgets in your app. What should you add to the request?",
+    "options": [
+      "A note asking it to follow modern best practices for UI widgets",
+      "Permission to pick whichever popular widget library it prefers",
+      "A pointer to one existing widget file to use as the pattern",
+      "The full style guide copied from a different open-source project"
+    ],
+    "correctIndex": 2,
+    "explanation": "Pointing at a concrete in-repo example lets the agent copy your real conventions for structure, naming and dependencies. Generic \"best practices\" or another project's style guide describe someone else's codebase, and letting it pull in a new library tends to produce code that doesn't fit.",
+    "referenceUrl": "https://code.claude.com/docs/en/best-practices"
+  },
+  {
+    "id": "aad-prompt-describe-symptom",
+    "topic": "ai-assisted-development",
+    "subtopic": "prompting-for-code",
+    "difficulty": "Medium",
+    "title": "Turning a bug report into a good prompt",
+    "question": "Users report that login fails after their session times out. Which prompt gives the agent the best chance of a correct fix?",
+    "options": [
+      "Fix the login bug that users keep reporting after their sessions time out",
+      "Rewrite the whole auth module following current security best practices",
+      "Wrap the login call in try/catch so users stop seeing the timeout error",
+      "Check token refresh in src/auth/, add a failing timeout test, then fix it"
+    ],
+    "correctIndex": 3,
+    "explanation": "An effective bug prompt gives the symptom, the likely location and what \"fixed\" means, here a failing test that reproduces the timeout case and then passes. The vague prompt makes the agent hunt, a rewrite expands scope and risk, and swallowing the error hides the symptom without fixing the cause.",
+    "referenceUrl": "https://code.claude.com/docs/en/best-practices"
+  },
+  {
+    "id": "aad-prompt-interview-first",
+    "topic": "ai-assisted-development",
+    "subtopic": "prompting-for-code",
+    "difficulty": "Medium",
+    "title": "Starting a large, fuzzy feature",
+    "question": "You have only a rough idea for a large feature with many open UX and edge-case questions. Which way of starting with the agent tends to work best?",
+    "options": [
+      "Have it interview you, write a spec, then implement in a fresh session",
+      "Ask it to build a first version right away and iterate on the result",
+      "Paste the one-line idea and enable auto-approval so it finishes faster",
+      "Ask it to list every feature competitors have and then build all of them"
+    ],
+    "correctIndex": 0,
+    "explanation": "For big, underspecified work, letting the agent ask about implementation, edge cases and trade-offs produces a written spec, and a new session to execute it gives clean context focused on implementation. Coding right away or with auto-approval bakes in guesses, and copying competitors expands scope instead of clarifying it.",
+    "referenceUrl": "https://code.claude.com/docs/en/best-practices"
+  },
+  {
+    "id": "aad-prompt-success-criteria",
+    "topic": "ai-assisted-development",
+    "subtopic": "prompting-for-code",
+    "difficulty": "Hard",
+    "title": "Agent made CI green the wrong way",
+    "question": "You asked an agent to \"make the CI build pass\". It added `// @ts-ignore` to two lines and marked a failing test as skipped. What was the main flaw in the request?",
+    "options": [
+      "Success meant only a green build, not fixing the cause without suppressions",
+      "It should have been written as a numbered list instead of a single short sentence",
+      "It should have named a larger model, since small ones prefer shortcuts",
+      "It should have told the agent to delete the failing test altogether"
+    ],
+    "correctIndex": 0,
+    "explanation": "Agents optimise for the stated goal, and \"make CI pass\" is satisfied by silencing errors. A better prompt pastes the actual error, asks for the root cause to be fixed, forbids suppressions and skipped tests, and asks for the build to be re-run as proof. Formatting or model size doesn't change the target, and deleting the test is the same problem in a worse form.",
+    "referenceUrl": "https://code.claude.com/docs/en/best-practices"
+  },
+  {
+    "id": "aad-mcp-what-it-is",
+    "topic": "ai-assisted-development",
+    "subtopic": "tools-mcp",
+    "difficulty": "Easy",
+    "title": "What the Model Context Protocol is",
+    "question": "Your team wants a coding agent to look up tickets in the internal issue tracker during a session. Which description of the Model Context Protocol (MCP) explains how that integration works?",
+    "options": [
+      "An open protocol for connecting AI applications to external tools and data",
+      "A file format for fine-tuning language models on private codebases",
+      "A proprietary plugin API that works only inside one vendor's IDE",
+      "A compression scheme that shrinks long prompts before they ever reach the model"
+    ],
+    "correctIndex": 0,
+    "explanation": "MCP is an open standard: an AI application (the host) runs MCP clients that connect to MCP servers, which expose tools, resources and prompts over JSON-RPC. It doesn't train models, isn't tied to a single vendor or editor, and doesn't compress prompts.",
+    "referenceUrl": "https://modelcontextprotocol.io/docs/learn/architecture"
+  },
+  {
+    "id": "aad-mcp-primitives",
+    "topic": "ai-assisted-development",
+    "subtopic": "tools-mcp",
+    "difficulty": "Easy",
+    "title": "The core primitives an MCP server exposes",
+    "question": "Which three core primitives can an MCP server expose to a client?",
+    "options": [
+      "Models, datasets and evaluations",
+      "Tools, resources and prompts",
+      "Hooks, skills and subagents",
+      "Endpoints, webhooks and message queues"
+    ],
+    "correctIndex": 1,
+    "explanation": "Servers offer tools (actions the model can invoke), resources (data that provides context) and prompts (reusable templates). Hooks, skills and subagents are Claude Code features rather than MCP primitives, and the other sets describe ML or messaging concepts.",
+    "referenceUrl": "https://modelcontextprotocol.io/docs/learn/server-concepts"
+  },
+  {
+    "id": "aad-mcp-stdio-stdout",
+    "topic": "ai-assisted-development",
+    "subtopic": "tools-mcp",
+    "difficulty": "Medium",
+    "title": "Debug prints breaking a stdio MCP server",
+    "question": "A team's local stdio MCP server works until someone adds `print(\"loading config...\")` at startup. Now the client reports parse errors and drops the connection. What is wrong?",
+    "options": [
+      "stdio servers must log in XML so the client can tell logs from messages",
+      "The client accepts one message per second and the print went over it",
+      "The server must finish its handshake before Python may call `print`",
+      "stdout must carry only JSON-RPC messages; logs belong on stderr"
+    ],
+    "correctIndex": 3,
+    "explanation": "With the stdio transport the client reads newline-delimited JSON-RPC messages from the server's stdout, and the server must not write anything else there. Diagnostic output belongs on stderr, which the client may capture or ignore. There is no XML logging format, rate limit or Python-specific handshake rule involved.",
+    "referenceUrl": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/stdio"
+  },
+  {
+    "id": "aad-mcp-tools-vs-prompts",
+    "topic": "ai-assisted-development",
+    "subtopic": "tools-mcp",
+    "difficulty": "Hard",
+    "title": "Choosing MCP primitives by who controls them",
+    "question": "Your incident MCP server should offer (a) a \"postmortem template\" that people pick explicitly from a menu and (b) a `create_ticket` action the model may decide to call during a task. Which primitives fit?",
+    "options": [
+      "(a) a tool and (b) a resource, since resources are invoked automatically",
+      "Both as resources, because only resources can be listed by the client",
+      "(a) a prompt, which is user-controlled, and (b) a tool, which is model-controlled",
+      "Both as prompts, because prompts can also perform side effects on demand"
+    ],
+    "correctIndex": 2,
+    "explanation": "MCP prompts are user-controlled templates that require explicit invocation, while tools are model-controlled actions the model can discover and call, ideally with a human able to deny them. Resources are application-driven context data, not actions, and prompts don't execute side effects themselves.",
+    "referenceUrl": "https://modelcontextprotocol.io/docs/learn/server-concepts"
+  },
+  {
+    "id": "aad-mcp-token-passthrough",
+    "topic": "ai-assisted-development",
+    "subtopic": "tools-mcp",
+    "difficulty": "Expert",
+    "title": "MCP server forwarding client tokens downstream",
+    "question": "To save time, a team's remote MCP server accepts whatever bearer token the client sends and forwards it unchanged to an internal API. A security review rejects the design. What is the core problem?",
+    "options": [
+      "Bearer tokens must travel in the JSON-RPC body, never in HTTP headers",
+      "Tokens should be cached on the server so that clients reconnect faster",
+      "It must accept only tokens issued to itself; passthrough breaks audience checks",
+      "Forwarding works only over stdio, so the server has to switch transports"
+    ],
+    "correctIndex": 2,
+    "explanation": "Token passthrough is an anti-pattern the MCP authorization spec forbids: a server that doesn't validate the audience can accept tokens issued for other services, bypass downstream controls such as rate limits, blur the audit trail and act as a confused deputy. The server must reject tokens not issued to it. Header placement, caching and transport choice don't address that.",
+    "referenceUrl": "https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices"
+  },
+  {
+    "id": "aad-sub-own-context",
+    "topic": "ai-assisted-development",
+    "subtopic": "subagents-parallel",
+    "difficulty": "Easy",
+    "title": "Why delegate noisy work to a subagent",
+    "question": "Why would you have a subagent dig through 5,000 lines of logs instead of doing it in the main conversation?",
+    "options": [
+      "It works in its own context window and returns only a summary",
+      "Subagents don't consume tokens, so the analysis becomes free",
+      "Subagents can read files the main conversation is forbidden to open",
+      "It deletes the logs after reading them so they can never leak later"
+    ],
+    "correctIndex": 0,
+    "explanation": "Each subagent runs in a separate context window, so the verbose log contents stay there and only the findings come back, keeping the main conversation focused. Its requests still cost tokens, delegation is no way around your settings' deny rules, which apply to it too, and it doesn't delete anything.",
+    "referenceUrl": "https://code.claude.com/docs/en/sub-agents"
+  },
+  {
+    "id": "aad-sub-description-routing",
+    "topic": "ai-assisted-development",
+    "subtopic": "subagents-parallel",
+    "difficulty": "Medium",
+    "title": "Custom subagent that never gets used",
+    "question": "You created a `test-runner` subagent in `.claude/agents/`, but the agent never delegates to it unless you name it explicitly. What should you change first?",
+    "options": [
+      "Give it access to every tool so it looks more capable to the main agent",
+      "Move its whole definition into the project's root `CLAUDE.md` instead",
+      "Rename the file in upper case so it loads before the built-in agents",
+      "Write a clear `description` of when to use it, e.g. \"use proactively\""
+    ],
+    "correctIndex": 3,
+    "explanation": "Claude decides when to delegate by matching the task against each subagent's `description`, so a vague description means it is rarely chosen; phrases such as \"use proactively after code changes\" encourage delegation. More tools, file-name casing or moving the definition into `CLAUDE.md` don't affect routing.",
+    "referenceUrl": "https://code.claude.com/docs/en/sub-agents"
+  },
+  {
+    "id": "aad-sub-readonly-reviewer",
+    "topic": "ai-assisted-development",
+    "subtopic": "subagents-parallel",
+    "difficulty": "Medium",
+    "title": "Making a review subagent truly read-only",
+    "question": "Your `security-reviewer` subagent must never modify files, even if a reviewed file contains text telling it to \"fix this now\". How should you configure it?",
+    "options": [
+      "Add \"please never edit files\" to the end of its system prompt",
+      "Limit its `tools` to read-only ones such as `Read`, `Grep` and `Glob`",
+      "Run it on the largest model so it resists instructions found in files",
+      "Start it in the background so its edits are discarded when it ends"
+    ],
+    "correctIndex": 1,
+    "explanation": "Restricting the `tools` list (or listing `Write` and `Edit` in `disallowedTools`) removes the capability, so no prompt, including one injected through file content, can make the subagent edit. A sentence in the prompt is only guidance, model size isn't an access control, and running in the background doesn't discard edits.",
+    "referenceUrl": "https://code.claude.com/docs/en/sub-agents"
+  },
+  {
+    "id": "aad-sub-parallel-worktrees",
+    "topic": "ai-assisted-development",
+    "subtopic": "subagents-parallel",
+    "difficulty": "Hard",
+    "title": "Parallel agents trampling each other's edits",
+    "question": "Two agents working in parallel on different features share one checkout. They overwrite each other's changes, and one agent's test run picks up the other's half-finished code. What is the best fix?",
+    "options": [
+      "Have both agents commit every few minutes to the same shared branch",
+      "Run each agent in a different terminal window on the same directory",
+      "Give each agent its own git worktree so they work in isolated checkouts",
+      "Give both agents a larger context window so that they notice the conflicts"
+    ],
+    "correctIndex": 2,
+    "explanation": "Git worktrees give each agent a separate working directory and branch from the same repository, so edits and test runs don't collide and each result can be reviewed and merged independently. Frequent commits on one branch, separate terminals or more context don't isolate the file system.",
+    "referenceUrl": "https://code.claude.com/docs/en/worktrees"
+  },
+  {
+    "id": "aad-sub-fanout-cost",
+    "topic": "ai-assisted-development",
+    "subtopic": "subagents-parallel",
+    "difficulty": "Hard",
+    "title": "Why a subagent fan-out raised the bill",
+    "question": "A team splits a migration across 20 subagents, expecting lower cost because the main conversation stays small. Total usage goes up instead. Which explanation is correct?",
+    "options": [
+      "Subagents always run on the most expensive model, whatever the config",
+      "Every subagent's results are re-sent to all the others after each turn",
+      "Subagents turn off prompt caching for the whole session while they run",
+      "Each one sends its own requests and warms its own cache; only main context shrinks"
+    ],
+    "correctIndex": 3,
+    "explanation": "Subagents save space in the main context, not total tokens: each starts with its own system prompt and tools, sends its own requests and warms its own cache instead of reading the parent's. To control spend, keep delegated tasks small and route simple ones to a cheaper model. Subagents don't force the priciest model, broadcast results to each other or disable caching.",
+    "referenceUrl": "https://code.claude.com/docs/en/costs"
+  },
+  {
+    "id": "aad-hooks-format-after-edit",
+    "topic": "ai-assisted-development",
+    "subtopic": "hooks-automation",
+    "difficulty": "Easy",
+    "title": "Running a formatter after every edit",
+    "question": "You want a code formatter to run after every file the agent writes or edits, without depending on the model remembering to do it. What should you use?",
+    "options": [
+      "A line in `CLAUDE.md` asking the agent to always run the formatter",
+      "A skill describing the formatter that the agent can load when needed",
+      "A `PostToolUse` hook matching `Edit|Write` that runs the formatter",
+      "A subagent dedicated to formatting that is called at the end of the day"
+    ],
+    "correctIndex": 2,
+    "explanation": "Hooks are executed by the harness at fixed lifecycle points, so a `PostToolUse` hook on the edit tools runs every time, deterministically. Instructions in `CLAUDE.md` and skills are context the model may or may not act on, and an end-of-day subagent leaves the code unformatted in between.",
+    "referenceUrl": "https://code.claude.com/docs/en/hooks-guide"
+  },
+  {
+    "id": "aad-hooks-userpromptsubmit",
+    "topic": "ai-assisted-development",
+    "subtopic": "hooks-automation",
+    "difficulty": "Medium",
+    "title": "Stopping secrets before they reach the model",
+    "question": "Developers sometimes paste production passwords into prompts. You want a hook that rejects such prompts before the model ever sees them. Which hook event fits?",
+    "options": [
+      "`PostToolUse`",
+      "`PermissionRequest`",
+      "`UserPromptSubmit`",
+      "`Notification`"
+    ],
+    "correctIndex": 2,
+    "explanation": "`UserPromptSubmit` runs when the user submits a prompt and can block it so it never reaches Claude. `PostToolUse` fires after a tool already ran, `PermissionRequest` deals with permission dialogs for tool calls, and `Notification` hooks can't block anything.",
+    "referenceUrl": "https://code.claude.com/docs/en/hooks"
+  },
+  {
+    "id": "aad-hooks-stop-gate",
+    "topic": "ai-assisted-development",
+    "subtopic": "hooks-automation",
+    "difficulty": "Medium",
+    "title": "Not letting the agent stop with failing tests",
+    "question": "You want the agent to keep working until the test suite passes instead of ending its turn with red tests. Which hook setup enforces this deterministically?",
+    "options": [
+      "A `Stop` hook that runs the tests and blocks stopping, citing the failures",
+      "A `SessionEnd` hook that runs the tests and prints failures for the user",
+      "A `Notification` hook that alerts you whenever the agent needs input",
+      "A `PreToolUse` hook on `Bash` that refuses any command containing \"test\""
+    ],
+    "correctIndex": 0,
+    "explanation": "A `Stop` hook runs when the agent tries to finish its turn; blocking it (exit 2 or `decision: \"block\"` with a reason) keeps the agent working and tells it what failed. `SessionEnd` can't block, `Notification` only signals, and refusing test commands would prevent verification altogether.",
+    "referenceUrl": "https://code.claude.com/docs/en/hooks"
+  },
+  {
+    "id": "aad-hooks-exit-code-1",
+    "topic": "ai-assisted-development",
+    "subtopic": "hooks-automation",
+    "difficulty": "Hard",
+    "title": "Policy hook that never blocks anything",
+    "question": "A `PreToolUse` hook is meant to block `rm -rf`. It prints a warning to stderr and exits with code 1, yet the commands still run. Why?",
+    "options": [
+      "Hooks run only after the tool call, so blocking isn't possible at all",
+      "Blocking requires the hook to exit within 100 milliseconds of starting",
+      "stderr is ignored, so the warning must be written to a log file instead",
+      "Exit code 1 is a non-blocking error; blocking needs exit 2 or a deny"
+    ],
+    "correctIndex": 3,
+    "explanation": "In Claude Code, exit code 2 (or JSON with `permissionDecision: \"deny\"`) blocks a `PreToolUse` call and sends the reason to Claude; any other non-zero code is treated as a non-blocking error and the action proceeds. `PreToolUse` runs before the tool, there is no 100 ms rule, and stderr is exactly what exit 2 reports as the reason.",
+    "referenceUrl": "https://code.claude.com/docs/en/hooks"
+  },
+  {
+    "id": "aad-hooks-fail-open-timeout",
+    "topic": "ai-assisted-development",
+    "subtopic": "hooks-automation",
+    "difficulty": "Expert",
+    "title": "A slow policy hook used as a security gate",
+    "question": "Your `PreToolUse` command hook calls a remote policy service to approve deploy commands. During an outage the service hangs and the hook hits its timeout. What happens to the pending tool call, and what does that imply?",
+    "options": [
+      "It's denied automatically, so outages fail safe by design",
+      "It proceeds through normal permissions; keep deny rules as a backstop",
+      "The session crashes, so the hook should be wrapped in a retry loop",
+      "It waits indefinitely until the policy service comes back online"
+    ],
+    "correctIndex": 1,
+    "explanation": "When a command hook times out, Claude Code discards its output and the tool call continues through the normal permission flow, so a stalled hook does not act as a gate. Critical restrictions should therefore also exist as deny rules or sandbox limits that don't depend on the hook being available. The call isn't auto-denied, the session doesn't crash and it doesn't wait forever.",
+    "referenceUrl": "https://code.claude.com/docs/en/hooks"
+  },
+  {
+    "id": "aad-review-small-changes",
+    "topic": "ai-assisted-development",
+    "subtopic": "reviewing-ai-code",
+    "difficulty": "Easy",
+    "title": "Reviewing a huge agent-generated pull request",
+    "question": "An agent produced a single 3,000-line pull request touching 40 files. What is the best way to make it reviewable?",
+    "options": [
+      "Approve it if CI is green, since the agent has already tested everything",
+      "Ask for it to be split into small, self-contained changes",
+      "Review only the first ten files and assume the rest follow the pattern",
+      "Have a second agent summarize it and approve based on the summary"
+    ],
+    "correctIndex": 1,
+    "explanation": "Small, focused changes are faster to review thoroughly and easier to roll back, and that applies just as much to AI-written code. Green CI only proves what the tests cover, sampling files skips most of the change, and a summary from another model is no substitute for reading the diff.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/developer/small-cls.html"
+  },
+  {
+    "id": "aad-review-hallucinated-package",
+    "topic": "ai-assisted-development",
+    "subtopic": "reviewing-ai-code",
+    "difficulty": "Easy",
+    "title": "An unfamiliar dependency in AI-written code",
+    "question": "AI-generated code imports a package you have never heard of, and the install step succeeds. What should you check before merging?",
+    "options": [
+      "Nothing, because a package that installs successfully is safe to use",
+      "That the package name is short enough to be easy to remember",
+      "That it's the real, maintained package you meant, not a look-alike",
+      "That the package shows up first when you search the registry"
+    ],
+    "correctIndex": 2,
+    "explanation": "Assistants sometimes suggest package names that don't exist, and attackers register commonly hallucinated names with malicious code. A successful install only proves that something with that name exists, so verify the publisher, repository and adoption before adding it. Name length and search rank say nothing about legitimacy.",
+    "referenceUrl": "https://genai.owasp.org/llmrisk/llm092025-misinformation/"
+  },
+  {
+    "id": "aad-review-fresh-reviewer",
+    "topic": "ai-assisted-development",
+    "subtopic": "reviewing-ai-code",
+    "difficulty": "Medium",
+    "title": "Who should review the agent's own changes",
+    "question": "After an agent implements a rate limiter, you want an AI review before opening the PR. Which setup gives the most independent review?",
+    "options": [
+      "A new session or subagent that sees only the diff and the requirements",
+      "The same session that wrote the code, asked to review its own work",
+      "The same session, but told to be twice as critical as it usually would be",
+      "The same session after `/compact`, so the review uses less context"
+    ],
+    "correctIndex": 0,
+    "explanation": "A reviewer in a fresh context isn't biased toward code it just wrote and judges the result on its own terms, seeing the diff and criteria rather than the reasoning that produced it. Asking the author session to be harsher, or compacting it, still reuses the same assumptions.",
+    "referenceUrl": "https://code.claude.com/docs/en/best-practices"
+  },
+  {
+    "id": "aad-review-weakened-test",
+    "topic": "ai-assisted-development",
+    "subtopic": "reviewing-ai-code",
+    "difficulty": "Medium",
+    "title": "Agent fixed a failing test by changing it",
+    "question": "An agent's PR \"fixes\" a failing test by changing its expected status from `200` to `500`. CI is green. What should the reviewer focus on?",
+    "options": [
+      "Nothing, since the test passes now the behavior must be correct",
+      "Whether the test file still follows the project's naming rules",
+      "Whether the PR description says which model wrote the code",
+      "Whether the assertion was weakened to match buggy behavior"
+    ],
+    "correctIndex": 3,
+    "explanation": "Changing expected values can turn a test that caught a real bug into one that endorses it, so test diffs from agents deserve as much scrutiny as code diffs. A green build only shows the code matches the tests, which were just changed, while naming and model attribution don't tell you whether the behavior is right.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/looking-for.html"
+  },
+  {
+    "id": "aad-review-overengineering",
+    "topic": "ai-assisted-development",
+    "subtopic": "reviewing-ai-code",
+    "difficulty": "Hard",
+    "title": "Reviewer agent that always finds something",
+    "question": "A team added an adversarial review subagent to every task. It always reports gaps, the implementer fixes all of them, and the code now has needless abstractions and tests for impossible cases. What is the best adjustment?",
+    "options": [
+      "Drop the review step entirely, since AI reviewers can't find real bugs",
+      "Tell the reviewer to flag only gaps that affect correctness or requirements",
+      "Run the reviewer several times and fix only issues found in every run",
+      "Have the implementer ignore every reviewer finding unless a human agrees with it"
+    ],
+    "correctIndex": 1,
+    "explanation": "A reviewer asked to find gaps usually reports some even when the work is sound, and chasing all of them leads to over-engineering. Scoping its brief to correctness and the stated requirements, treating the rest as optional, keeps the independent check without the noise. Dropping review loses real bugs, while voting or routing everything to humans adds cost without fixing the brief.",
+    "referenceUrl": "https://code.claude.com/docs/en/best-practices"
+  },
+  {
+    "id": "aad-sec-indirect-injection",
+    "topic": "ai-assisted-development",
+    "subtopic": "agent-security",
+    "difficulty": "Easy",
+    "title": "Recognising indirect prompt injection",
+    "question": "Which scenario is an example of indirect prompt injection against a coding agent?",
+    "options": [
+      "A developer types a deliberately confusing request into the chat",
+      "A dependency's README hides text telling the agent to upload `.env`",
+      "The agent misreads a stack trace and ends up editing the wrong file",
+      "An attacker brute-forces the API key the agent uses to call the model"
+    ],
+    "correctIndex": 1,
+    "explanation": "Indirect prompt injection arrives through external content the model processes, such as files, web pages, issues or tool results, rather than from the user typing. A confusing user prompt is direct input, a misread stack trace is an ordinary mistake, and brute-forcing a key is a credential attack, not prompt injection.",
+    "referenceUrl": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/"
+  },
+  {
+    "id": "aad-sec-instructions-not-enforcement",
+    "topic": "ai-assisted-development",
+    "subtopic": "agent-security",
+    "difficulty": "Medium",
+    "title": "Using CLAUDE.md as a security control",
+    "question": "A team's only protection for secrets is a line in `CLAUDE.md`: \"Never read the .env file\". Why does a security review flag this, and what is better?",
+    "options": [
+      "It's context, not enforcement; add a deny rule such as `Read(./.env)`",
+      "The line must be copied into every subdirectory's `CLAUDE.md` to apply",
+      "The model can't read dotfiles at all, so the line is simply redundant",
+      "The line works, but it must also be repeated at the start of each prompt"
+    ],
+    "correctIndex": 0,
+    "explanation": "Claude treats `CLAUDE.md` as guidance, so a confused or injected model may still ignore it. Permission deny rules such as `Read(./.env)` are enforced by the harness, and an OS-level sandbox can add a further boundary for shell commands. Repeating the sentence doesn't change its nature, and agents can read dotfiles.",
+    "referenceUrl": "https://code.claude.com/docs/en/permissions"
+  },
+  {
+    "id": "aad-sec-deny-precedence",
+    "topic": "ai-assisted-development",
+    "subtopic": "agent-security",
+    "difficulty": "Hard",
+    "title": "Allow rules and hooks versus a managed deny",
+    "question": "Managed settings deny `Bash(git push *)`. A project adds an allow rule for `Bash(git push origin feature/*)`, and a `PreToolUse` hook returns `allow` for pushes. The agent runs `git push origin feature/x`. What happens?",
+    "options": [
+      "The push runs, because the more specific allow rule takes precedence",
+      "The push runs, because a hook decision overrides permission rules",
+      "The push is blocked, because deny beats both allow rules and hooks",
+      "The user is prompted, because conflicting rules fall back to ask"
+    ],
+    "correctIndex": 2,
+    "explanation": "Rules are evaluated deny first, then ask, then allow, and specificity doesn't change that order, so an allow can't carve an exception out of a deny. A `PreToolUse` hook's `allow` doesn't bypass deny or ask rules either. There is no \"conflict means ask\" fallback.",
+    "referenceUrl": "https://code.claude.com/docs/en/permissions"
+  },
+  {
+    "id": "aad-sec-bash-deny-not-boundary",
+    "topic": "ai-assisted-development",
+    "subtopic": "agent-security",
+    "difficulty": "Hard",
+    "title": "Blocking exfiltration with a curl deny rule",
+    "question": "To stop data exfiltration, an admin denies `Bash(curl *)` and `Bash(wget *)`. Why is this insufficient on its own, and what adds a real boundary?",
+    "options": [
+      "Deny rules are ignored for Bash, since only allow rules apply to the shell",
+      "curl is always pre-approved as read-only, so the rule never takes effect",
+      "The rules must also list `curl.exe`, and then they fully block the network",
+      "Rules match command text, so `sh -c` can still connect; add a sandbox allowlist"
+    ],
+    "correctIndex": 3,
+    "explanation": "Bash permission rules match the command as written; the same network access through another program, a full path or `sh -c` doesn't match. An OS-enforced sandbox with a network allowlist restricts what any shell command and its child processes can reach, even if a prompt injection steers the model. Deny rules do apply to Bash, curl isn't auto-approved, and listing variants never closes every path.",
+    "referenceUrl": "https://code.claude.com/docs/en/sandboxing"
+  },
+  {
+    "id": "aad-sec-limit-blast-radius",
+    "topic": "ai-assisted-development",
+    "subtopic": "agent-security",
+    "difficulty": "Expert",
+    "title": "Triage agent exposed to untrusted issues",
+    "question": "An agent triages public GitHub issues. It holds a token with write access to private repositories and has unrestricted network access. Which change most reduces the impact of a successful prompt injection in an issue body?",
+    "options": [
+      "A stronger system prompt telling it to ignore instructions in issues",
+      "A larger model that is better at spotting malicious instructions",
+      "Making it confirm before each action that it hasn't been injected",
+      "A least-privilege token plus a sandbox with a network allowlist"
+    ],
+    "correctIndex": 3,
+    "explanation": "Defenses inside the model are probabilistic, so the strongest mitigation limits what a fooled agent can do: a scoped, read-only token removes the ability to damage private repositories, and OS-level network restrictions block exfiltration even if the model is manipulated. Prompt wording, model size and self-checks all rely on the model resisting the very attack it is under.",
+    "referenceUrl": "https://code.claude.com/docs/en/sandboxing"
+  },
+  {
+    "id": "aad-cost-clear-between-tasks",
+    "topic": "ai-assisted-development",
+    "subtopic": "cost-latency",
+    "difficulty": "Easy",
+    "title": "Switching to unrelated work in one session",
+    "question": "You finish a bug fix and want to start an unrelated feature in the same terminal. What keeps cost and confusion lowest?",
+    "options": [
+      "Keep going in the same session so the agent remembers the bug fix",
+      "Run `/clear` first, since stale context is re-sent on every turn",
+      "Paste the whole bug-fix conversation again so nothing gets lost",
+      "Switch to a larger model so the old context doesn't slow it down"
+    ],
+    "correctIndex": 1,
+    "explanation": "Every request carries the whole conversation, so unrelated history costs tokens on each message and can distract the model. `/clear` resets the context for the new task, while continuing, re-pasting history or switching to a bigger model all keep paying for context you no longer need.",
+    "referenceUrl": "https://code.claude.com/docs/en/costs"
+  },
+  {
+    "id": "aad-cost-smaller-model-subagent",
+    "topic": "ai-assisted-development",
+    "subtopic": "cost-latency",
+    "difficulty": "Easy",
+    "title": "Cheaper model for simple delegated work",
+    "question": "A team's file-search subagent runs on the largest, most expensive model even though it only finds and lists files. What is the simplest sensible cost reduction?",
+    "options": [
+      "Configure that subagent to use a smaller, faster model such as Haiku",
+      "Give it more tools so that it finishes the search in fewer turns",
+      "Move its instructions into `CLAUDE.md` so that every session loads them up front",
+      "Turn off prompt caching so its requests are processed more cheaply"
+    ],
+    "correctIndex": 0,
+    "explanation": "Simple, well-scoped tasks such as file search don't need the most capable model; setting the subagent's `model` to a smaller one such as Haiku cuts cost and latency. Extra tools don't lower per-token prices, putting its instructions in `CLAUDE.md` adds context to every session, and disabling caching raises cost.",
+    "referenceUrl": "https://code.claude.com/docs/en/costs"
+  },
+  {
+    "id": "aad-cost-cache-unstable-prefix",
+    "topic": "ai-assisted-development",
+    "subtopic": "cost-latency",
+    "difficulty": "Medium",
+    "title": "Prompt cache that never hits",
+    "question": "A custom agent built on the Claude API puts the current timestamp at the top of its system prompt on every request. Its cache hit rate is near zero. Why, and what fixes it?",
+    "options": [
+      "Timestamps aren't allowed in cached prompts, so remove all dates",
+      "Caching works only on the final user message, so mark that block",
+      "Caches match exact prefixes; put stable content first, the timestamp last",
+      "The cache needs a longer TTL, and a one-hour TTL will restore the hits"
+    ],
+    "correctIndex": 2,
+    "explanation": "Prompt caching reuses an exact prefix in the order tools, system, messages, so a change early in the prompt invalidates everything after it. Putting static content first and volatile values like timestamps at the end keeps the prefix stable. Dates are allowed, caching isn't limited to the last message, and a longer TTL can't help when the prefix differs on every request.",
+    "referenceUrl": "https://platform.claude.com/docs/en/build-with-claude/prompt-caching"
+  },
+  {
+    "id": "aad-cost-filter-verbose-output",
+    "topic": "ai-assisted-development",
+    "subtopic": "cost-latency",
+    "difficulty": "Medium",
+    "title": "Huge test output filling the context",
+    "question": "Each test run prints about 10,000 lines, and the agent reads all of it several times per task. What reduces tokens the most while keeping the useful signal?",
+    "options": [
+      "Ask the agent to skim the output instead of reading every line of it",
+      "Switch to a model with a larger context window to fit the whole log",
+      "Run the tests less often and try to fix several different issues in a single attempt",
+      "Filter the output with a hook or script so only failures reach the agent"
+    ],
+    "correctIndex": 3,
+    "explanation": "Preprocessing output before it reaches the model, for example a hook that keeps only failing tests, cuts tens of thousands of tokens to hundreds while keeping what the agent needs; delegating the run to a subagent is another option. \"Skimming\" still sends every token, a bigger window only raises the ceiling, and running tests less often weakens the feedback loop.",
+    "referenceUrl": "https://code.claude.com/docs/en/costs"
+  },
+  {
+    "id": "aad-cost-model-switching",
+    "topic": "ai-assisted-development",
+    "subtopic": "cost-latency",
+    "difficulty": "Hard",
+    "title": "Frequent model switching made a session pricier",
+    "question": "In a long session, a developer switches between a large model for planning and a small one for edits every few prompts, expecting to save money. Usage ends up higher than staying on the large model. What is the main reason?",
+    "options": [
+      "Each switch makes the smaller model re-plan the whole task again from scratch",
+      "Each model has its own cache, so every switch re-reads the history uncached",
+      "Switching models clears the session, so all files must be read again",
+      "Smaller models always produce more output tokens for the same task"
+    ],
+    "correctIndex": 1,
+    "explanation": "Prompt caches are per model: after a switch, the next request processes the entire conversation without cache hits even though the content is identical. In a long session these repeated uncached reads can outweigh the cheaper per-token price. Switching doesn't clear the conversation or force re-planning, and smaller models don't inherently produce more output.",
+    "referenceUrl": "https://code.claude.com/docs/en/prompt-caching"
+  },
+  {
+    "id": "aad-ci-print-mode",
+    "topic": "ai-assisted-development",
+    "subtopic": "agents-in-ci",
+    "difficulty": "Easy",
+    "title": "Running Claude Code from a script",
+    "question": "Which flag runs Claude Code non-interactively, so a script or CI job can pass a prompt and get the result back?",
+    "options": [
+      "`--daemon`",
+      "`--headless`",
+      "`--ci`",
+      "`-p`"
+    ],
+    "correctIndex": 3,
+    "explanation": "`claude -p \"...\"` (print mode) runs a single non-interactive query and exits, which is how Claude Code is used in scripts and CI; it combines with flags such as `--output-format` and `--allowedTools`. The other flags don't exist in the Claude Code CLI.",
+    "referenceUrl": "https://code.claude.com/docs/en/headless"
+  },
+  {
+    "id": "aad-ci-structured-output",
+    "topic": "ai-assisted-development",
+    "subtopic": "agents-in-ci",
+    "difficulty": "Medium",
+    "title": "Parsing agent results reliably in a pipeline",
+    "question": "A CI step must read a list of affected functions from Claude Code's answer and fail the job if the list is empty. What is the most reliable approach?",
+    "options": [
+      "Ask the agent to reply in JSON and parse whatever text it prints",
+      "Grep the plain-text output for lines that look like function names",
+      "Use `--output-format json` with `--json-schema` and read the structured field",
+      "Add `--verbose` so that each function name is printed on its own line"
+    ],
+    "correctIndex": 2,
+    "explanation": "`--output-format json` returns a machine-readable envelope with the result, session ID and usage, and adding `--json-schema` makes the answer conform to your schema in the `structured_output` field, so the step can parse it deterministically. Asking nicely for JSON or grepping prose is fragile, and `--verbose` adds logging rather than structure.",
+    "referenceUrl": "https://code.claude.com/docs/en/headless"
+  },
+  {
+    "id": "aad-ci-unattended-guardrails",
+    "topic": "ai-assisted-development",
+    "subtopic": "agents-in-ci",
+    "difficulty": "Hard",
+    "title": "Guardrails for a nightly unattended agent job",
+    "question": "A nightly job runs `claude -p` to update dependency pins and run tests on a shared runner. Nobody is around to approve prompts. Which configuration is safest while still letting it finish?",
+    "options": [
+      "Pre-approve needed tools via `--allowedTools`, use `dontAsk`, cap turns and time",
+      "Use `--permission-mode bypassPermissions`, since nobody can answer anyway",
+      "Keep the default permission mode and trust the agent to skip risky steps",
+      "Allow every `Bash` command, but tell it in the prompt to avoid any destructive ones"
+    ],
+    "correctIndex": 0,
+    "explanation": "Pre-approving exactly the tools the task needs and using `dontAsk` to deny everything else keeps the run unattended without widening access, while `--max-turns` and a job timeout bound runaway work. Bypass mode removes the checks and is meant only for isolated containers or VMs, relying on the model's judgment isn't a control, and a blanket `Bash` allow undoes least privilege.",
+    "referenceUrl": "https://code.claude.com/docs/en/headless"
+  },
+  {
+    "id": "aad-ci-github-token-no-trigger",
+    "topic": "ai-assisted-development",
+    "subtopic": "agents-in-ci",
+    "difficulty": "Hard",
+    "title": "CI not running on the agent's commits",
+    "question": "Your workflow passes `github_token: ${{ secrets.GITHUB_TOKEN }}` to the Claude Code GitHub Action. Claude pushes commits to a PR, but your test workflows never run on them. Why?",
+    "options": [
+      "Workflows triggered by AI agents are disabled by default in every GitHub repository",
+      "GitHub doesn't trigger workflows for events made with the default `GITHUB_TOKEN`",
+      "The action's commits are unsigned, and unsigned commits are never tested",
+      "The token lacks `id-token: write`, which every push needs to trigger CI"
+    ],
+    "correctIndex": 1,
+    "explanation": "To prevent recursive runs, GitHub doesn't trigger workflows from events created with the built-in `GITHUB_TOKEN`. Remove that input so the action authenticates as the Claude GitHub App, or pass a custom app token, and check that your CI triggers include the events Claude's pushes create. There is no AI-specific or signing rule, and `id-token: write` is for the app's authentication, not for triggering CI.",
+    "referenceUrl": "https://code.claude.com/docs/en/github-actions"
+  },
+  {
+    "id": "aad-ci-untrusted-pr-config",
+    "topic": "ai-assisted-development",
+    "subtopic": "agents-in-ci",
+    "difficulty": "Expert",
+    "title": "Headless agent running on untrusted pull requests",
+    "question": "A CI job checks out pull requests from external contributors and runs `claude -p` on them with an API key in the environment. A malicious PR adds a hook in `.claude/settings.json` and a server in `.mcp.json`. What is the risk, and what is a sound mitigation?",
+    "options": [
+      "None: `-p` mode shows a trust dialog, so the job would just hang safely",
+      "Only `CLAUDE.md` loads in `-p` mode, so hooks and servers are ignored",
+      "`-p` runs project hooks and `.mcp.json` servers unprompted; use `--bare`, no secrets",
+      "`.mcp.json` servers always need interactive approval, so only the hook is a risk"
+    ],
+    "correctIndex": 2,
+    "explanation": "A `-p` session shows neither the workspace trust dialog nor the per-server approval prompt, so it runs the repository's project hooks and connects its `.mcp.json` servers: code execution chosen by the PR author. `--bare` skips auto-discovery of hooks, MCP servers, skills and `CLAUDE.md`, and such a job should hold no valuable secrets or write tokens. The other options misstate how `-p` handles project configuration.",
+    "referenceUrl": "https://code.claude.com/docs/en/headless"
+  }
+]

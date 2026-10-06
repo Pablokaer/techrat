@@ -90,6 +90,12 @@ Tested by: an integration test that migrates a fresh database to the previous mi
   - Docker is split into `docker-essentials` (containers, images/layers) and `dockerfile-and-compose`; SRE pairs deployment strategies with SLOs (`safe-releases-and-slos`); idempotency moved to `messaging-and-events`.
   - Roadmap growth from shared modules: 394 → 449 roadmap steps; largest: junior-software-engineer +39% (23 → 32), full-stack +36% (14 → 19), backend +32%; 14 roadmaps unchanged. Every roadmap still covers all scopes it had.
   - Roadmap types: 10 Role, 5 Language, 17 SkillTrack (existing roadmaps are marked `"new": false`, so the Context + Capstone rule applies to new roadmaps only).
+- New content (11 new topics, 28 new modules, 11 new roadmaps; catalog = 140 modules, 43 roadmaps):
+  - API security is two BestPractices modules (`api-security-best-practices`: OWASP Top 10, authentication, BOLA/BFLA, input; `api-hardening-best-practices`: rate limits, TLS/CORS/secrets, logging) because a module holds at most 6 steps; roadmaps with API security take both.
+  - Capstones are one-step modules over their own `capstones/<roadmap>` subtopic (15 Hard/Expert scenarios each).
+  - AWS services live in `aws-core-services` (requires `aws-foundations`), the Well-Architected pack in `aws-best-practices`.
+  - C++ modules are Context (only the C++ roadmap uses them); undefined behaviour sits with concurrency (data races are UB).
+  - Additions to existing roadmaps are **optional** (learners' percentages don't drop), except Senior Software Engineer, which gets code review, API security and backend performance packs as **required** modules (as requested); its estimate grows from 28 to 46 hours and current learners' percentage drops — completions are kept.
 - Existing roadmap slugs are all preserved. Some roadmaps gain steps (a shared module may cover a little more than the old module did), so their percentage can drop slightly; completions are never lost. Chosen because it keeps one owner per scope (no double XP) — recorded here as the main trade-off.
 
 ### Result on the development database (2026-10-06)

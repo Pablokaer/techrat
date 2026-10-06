@@ -1,0 +1,41 @@
+import type { Messages } from "../en";
+
+export const modules: Messages["modules"] = {
+  kind: {
+    Core: "Essencial",
+    Context: "Contexto",
+    BestPractices: "Boas práticas",
+    Capstone: "Projeto final",
+  },
+  status: {
+    Completed: "Concluído",
+    Current: "Em andamento",
+    Locked: "Bloqueado",
+  },
+  capstoneHint: "Desafio final",
+  optional: "Opcional",
+  optionalHint: "Módulos opcionais não contam para o progresso do roadmap",
+  shared: "Compartilhado",
+  sharedHint: "O progresso neste módulo conta em todos os roadmaps que o usam",
+  alsoIn: "Também em:",
+  completedElsewhere: "Concluído em outro roadmap",
+  newStep: "Novo",
+  newStepHint: "Adicionada na versão mais recente deste módulo",
+  page: {
+    eyebrow: "Módulo",
+    notFound: "Módulo não encontrado",
+    steps: "Etapas",
+    stepsCount: (n) => (n === 1 ? "1 etapa" : `${n} etapas`),
+    minutes: (m) => `${m} min`,
+    version: (v) => `Versão ${v}`,
+    xp: (xp) => `+${xp} XP`,
+    progress: "Progresso",
+    progressLabel: "Progresso do módulo",
+    stepsOf: (done, total) => `${done} de ${total} etapas`,
+    usedIn: "Usado em",
+    usedInHint: "O progresso aqui conta em todos estes roadmaps.",
+    usedInEmpty: "Este módulo ainda não faz parte de nenhum roadmap.",
+    requires: "Recomendado antes",
+    requiresHint: "Não é obrigatório, mas estes módulos facilitam este.",
+  },
+};

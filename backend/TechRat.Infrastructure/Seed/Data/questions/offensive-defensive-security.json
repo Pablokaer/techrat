@@ -1,0 +1,852 @@
+[
+  {
+    "id": "ods-secops-what-a-siem-does",
+    "topic": "offensive-defensive-security",
+    "subtopic": "security-operations",
+    "difficulty": "Easy",
+    "title": "What a SIEM is for",
+    "question": "A company is setting up its first Security Operations Center (SOC). What is the core job of a SIEM in that SOC?",
+    "options": [
+      "Blocking malicious packets inline at the network perimeter",
+      "Collecting and correlating logs from many sources to raise alerts",
+      "Quarantining suspicious processes directly on each laptop and server",
+      "Scanning hosts on a schedule to list missing operating system patches"
+    ],
+    "correctIndex": 1,
+    "explanation": "A SIEM (Security Information and Event Management) centralises logs from firewalls, endpoints, identity providers and applications, normalises them and runs correlation rules so analysts get alerts and can search across sources. Inline blocking is the job of a firewall or IPS, quarantining processes is EDR, and listing missing patches is a vulnerability scanner.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/92/final"
+  },
+  {
+    "id": "ods-secops-noisy-powershell-rule",
+    "topic": "offensive-defensive-security",
+    "subtopic": "security-operations",
+    "difficulty": "Medium",
+    "title": "A detection rule nobody reads any more",
+    "question": "A rule that alerts on every PowerShell execution fires about 4,000 times a day, almost all from one IT automation server, and analysts have started closing its alerts unread. What is the best fix?",
+    "options": [
+      "Disable the rule, since its volume proves it has no detection value",
+      "Raise it to Critical so that analysts are forced to read every alert",
+      "Add a reviewed exception for the automation host and tune the logic",
+      "Send its alerts to a shared mailbox that the team reviews once a week"
+    ],
+    "correctIndex": 2,
+    "explanation": "Alert fatigue is fixed by tuning: a documented, periodically reviewed exception removes the known-good source, and refining the logic toward suspicious characteristics (encoded commands, unusual parent processes, downloads) keeps the detection useful. Disabling it leaves a real attacker technique unmonitored, inflating severity only makes fatigue worse, and a weekly mailbox turns detection into a week-late report.",
+    "referenceUrl": "https://attack.mitre.org/techniques/T1059/001/"
+  },
+  {
+    "id": "ods-secops-attack-coverage-mapping",
+    "topic": "offensive-defensive-security",
+    "subtopic": "security-operations",
+    "difficulty": "Medium",
+    "title": "Why map detections to MITRE ATT&CK",
+    "question": "A SOC lead asks the team to tag every detection rule with the MITRE ATT&CK techniques it covers. What is the main value of doing this?",
+    "options": [
+      "It reveals which adversary behaviours have no detection, in a shared vocabulary",
+      "It guarantees that any technique with a mapped rule will be blocked",
+      "It assigns each alert a CVSS score so that triage can be automated",
+      "It removes the need to collect logs for the techniques that are already mapped"
+    ],
+    "correctIndex": 0,
+    "explanation": "ATT&CK is a knowledge base of real-world adversary tactics and techniques; mapping rules to it shows coverage and, more importantly, gaps, and lets teams talk about threats and threat intel in the same terms. A mapping says nothing about prevention, CVSS scores vulnerabilities rather than alerts, and detections still depend on the underlying telemetry being collected.",
+    "referenceUrl": "https://attack.mitre.org/"
+  },
+  {
+    "id": "ods-secops-behaviour-over-indicators",
+    "topic": "offensive-defensive-security",
+    "subtopic": "security-operations",
+    "difficulty": "Hard",
+    "title": "The attacker keeps returning with new infrastructure",
+    "question": "A SOC blocks the file hashes and IP addresses from a threat-intel report, but the same actor returns a week later with recompiled tools and new servers. Which investment raises the attacker's cost the most?",
+    "options": [
+      "Subscribing to more hash and IP feeds that are refreshed every hour",
+      "Blocking the IP ranges of every country the campaign was seen in",
+      "Switching the blocklist from IP addresses to the domain names they used",
+      "Detecting the behaviour itself, such as unusual access to LSASS memory"
+    ],
+    "correctIndex": 3,
+    "explanation": "Hashes, IPs and domains are cheap for an attacker to change, so indicator blocking buys little time. Behavioural detections built around techniques (for example, a non-standard process reading LSASS memory to dump credentials) keep firing whatever tools or servers the actor uses, forcing them to change how they operate. Faster feeds and broader blocks still chase disposable indicators, and geo-blocking is trivially bypassed with local infrastructure.",
+    "referenceUrl": "https://attack.mitre.org/techniques/T1003/001/"
+  },
+  {
+    "id": "ods-secops-ingestion-delay-gap",
+    "topic": "offensive-defensive-security",
+    "subtopic": "security-operations",
+    "difficulty": "Expert",
+    "title": "Scheduled rule that never sees late logs",
+    "question": "A scheduled SIEM rule runs every 5 minutes and searches the last 5 minutes by event timestamp. One log source batches its events and they arrive about 20 minutes after they occur. The rule never fires for that source, even during a red-team test. What is the correct fix?",
+    "options": [
+      "Run the rule every minute instead so that it checks the late source more often",
+      "Look back 25 minutes by event time, but only match rows ingested in the last 5",
+      "Rewrite the timestamps at ingestion so that event time equals arrival time",
+      "Raise the rule's severity so the SIEM schedules it with a higher priority"
+    ],
+    "correctIndex": 1,
+    "explanation": "Late events are ingested after the window that covers their event time has already been searched, so they fall into a permanent gap. Extending the look-back to cover the delay while filtering on ingestion time for the last run interval catches late arrivals without producing duplicate alerts. Running more often does not move the window back, overwriting event time corrupts timelines, and severity has no effect on which data a query sees.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/sentinel/ingestion-delay"
+  },
+  {
+    "id": "ods-ir-containment-step",
+    "topic": "offensive-defensive-security",
+    "subtopic": "incident-response",
+    "difficulty": "Easy",
+    "title": "Spotting the containment action",
+    "question": "During an incident, which of these actions is a containment step rather than eradication, recovery or post-incident work?",
+    "options": [
+      "Removing the malware and its persistence mechanisms from every host",
+      "Restoring the affected servers from known-clean backups",
+      "Moving an infected laptop to an isolated network segment",
+      "Holding a lessons-learned review with all teams involved"
+    ],
+    "correctIndex": 2,
+    "explanation": "Containment limits the damage and stops the spread while the investigation continues, for example isolating a host while keeping it available for analysis. Removing malware and persistence is eradication, restoring from clean backups is recovery, and the lessons-learned review is post-incident activity that feeds back into preparation.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/61/r3/final"
+  },
+  {
+    "id": "ods-ir-lessons-learned-purpose",
+    "topic": "offensive-defensive-security",
+    "subtopic": "incident-response",
+    "difficulty": "Easy",
+    "title": "What a post-incident review is for",
+    "question": "After a phishing incident is closed, the team schedules a post-incident review. What should that review mainly produce?",
+    "options": [
+      "A list of the employees who clicked the link, for disciplinary action",
+      "Concrete improvements to controls, detections and the IR process",
+      "A public statement explaining the incident to customers",
+      "A closed ticket, since the review is mainly a formality"
+    ],
+    "correctIndex": 1,
+    "explanation": "The review is a blameless look at what happened, what worked and what did not, and it should end with owned, dated actions such as new detections, control changes and playbook updates. Blaming individuals discourages people from reporting quickly, customer communication is a separate decision driven by legal and contractual duties, and treating the review as a formality wastes the most useful learning opportunity.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/61/r3/final"
+  },
+  {
+    "id": "ods-ir-ransomware-first-move",
+    "topic": "offensive-defensive-security",
+    "subtopic": "incident-response",
+    "difficulty": "Medium",
+    "title": "First move when ransomware is spreading",
+    "question": "At 2 a.m. the on-call engineer sees files on two file servers being renamed with a new extension and a ransom note appearing in each folder. What should happen first?",
+    "options": [
+      "Wipe and reimage both servers immediately to remove the infection",
+      "Run a full antivirus scan on every server while they stay online",
+      "Contact the attackers to learn what decryption would cost",
+      "Isolate the affected systems from the network to stop the spread"
+    ],
+    "correctIndex": 3,
+    "explanation": "CISA's ransomware guidance puts isolating impacted systems first, ideally by disconnecting them from the network, so the encryption cannot reach more shares and hosts while the scope is determined. Reimaging right away destroys evidence and may hit systems before backups are confirmed clean, a scan on live systems lets encryption continue, and negotiating is not a containment step.",
+    "referenceUrl": "https://www.cisa.gov/stopransomware/ransomware-guide"
+  },
+  {
+    "id": "ods-ir-premature-eradication",
+    "topic": "offensive-defensive-security",
+    "subtopic": "incident-response",
+    "difficulty": "Hard",
+    "title": "Resetting one account tipped off the intruder",
+    "question": "Responders found one compromised admin account and reset its password within minutes. The next day the intruder was active through other accounts and a new backdoor. What should the team have done differently?",
+    "options": [
+      "Scope the intrusion first, then remove all access in one coordinated action",
+      "Disable all antivirus alerts so the intruder would not notice the response",
+      "Wait until the intruder left the network on their own before acting",
+      "Reset only the passwords of accounts that had already triggered alerts"
+    ],
+    "correctIndex": 0,
+    "explanation": "Piecemeal remediation tells the adversary they have been found while they still hold other footholds, so they move or dig in deeper. CISA's guidance is to investigate the full scope quietly (accounts, persistence, tools) and then execute eradication across everything at once. Silencing defences, waiting indefinitely or resetting only alerted accounts all leave the undiscovered access in place.",
+    "referenceUrl": "https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-245a"
+  },
+  {
+    "id": "ods-ir-krbtgt-double-reset",
+    "topic": "offensive-defensive-security",
+    "subtopic": "incident-response",
+    "difficulty": "Expert",
+    "title": "Why the krbtgt password is reset twice",
+    "question": "After a full Active Directory compromise, the recovery plan says to reset the krbtgt account password twice, with time for replication in between. Why twice?",
+    "options": [
+      "The first reset only updates the read-only domain controllers in the forest",
+      "Kerberos rejects a new krbtgt password until it has been changed two times",
+      "Domain controllers still accept the previous key, so forged tickets survive one reset",
+      "The second reset is required to clear the Kerberos ticket caches stored on every client machine"
+    ],
+    "correctIndex": 2,
+    "explanation": "The krbtgt key signs Kerberos tickets, and domain controllers keep the current and the previous key valid so normal tickets do not break during a change. An attacker holding the old key could keep forging Golden Tickets after a single reset; the second reset pushes that key out of history. The resets are spaced out (allowing for replication and ticket lifetimes) so that legitimate sessions are not all broken at once.",
+    "referenceUrl": "https://attack.mitre.org/techniques/T1558/001/"
+  },
+  {
+    "id": "ods-forensics-order-of-volatility",
+    "topic": "offensive-defensive-security",
+    "subtopic": "forensics",
+    "difficulty": "Easy",
+    "title": "What to collect first from a live host",
+    "question": "A responder must collect evidence from a compromised server that is still running. Following the order of volatility, which should be captured first?",
+    "options": [
+      "The contents of the system's RAM",
+      "A full forensic image of the system disk",
+      "The nightly backup tapes",
+      "The printed network diagrams"
+    ],
+    "correctIndex": 0,
+    "explanation": "RFC 3227 says to collect evidence from the most volatile to the least volatile, because volatile data disappears first. Memory holds running processes, network connections and decrypted data that are lost at shutdown, while the disk survives a reboot and backups and documentation are effectively permanent.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc3227"
+  },
+  {
+    "id": "ods-forensics-image-hash-integrity",
+    "topic": "offensive-defensive-security",
+    "subtopic": "forensics",
+    "difficulty": "Medium",
+    "title": "Hashing a disk image at acquisition",
+    "question": "An examiner computes a SHA-256 hash of a disk image right after acquisition and records it in the chain-of-custody log. Months later, before testifying, she hashes the image again. What does a matching hash demonstrate?",
+    "options": [
+      "That the image is unchanged since it was acquired",
+      "That the suspect's original disk had no malware on it",
+      "That the image was encrypted while it was stored",
+      "That deleted files on the disk can still be recovered"
+    ],
+    "correctIndex": 0,
+    "explanation": "A cryptographic hash acts as a fingerprint: any change to the image would produce a different digest, so a match shows the evidence has not been altered since acquisition. A hash does not encrypt anything, says nothing about the presence of malware and has no bearing on whether deleted data is recoverable.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/86/final"
+  },
+  {
+    "id": "ods-forensics-timeline-timezones",
+    "topic": "offensive-defensive-security",
+    "subtopic": "forensics",
+    "difficulty": "Medium",
+    "title": "Timeline events that look three hours off",
+    "question": "An analyst merges a Windows server's logs with cloud audit logs into one timeline. The server's sign-in appears three hours after the cloud API calls it supposedly triggered. What is the most likely cause and the right fix?",
+    "options": [
+      "The attacker tampered with the server logs; discard them entirely",
+      "Sources use different time zones; normalise all events to UTC",
+      "The cloud provider batches its logs; ignore events under three hours old",
+      "The SIEM dropped events; re-ingest the server logs from scratch"
+    ],
+    "correctIndex": 1,
+    "explanation": "A constant whole-hour gap is the classic sign of mixed time zones, such as local time (UTC-3) against UTC. Timelines should normalise everything to UTC and record each source's offset and any clock drift. Tampering, delays or dropped events would not produce a clean, constant three-hour shift, and discarding evidence on that guess would be a mistake.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/86/final"
+  },
+  {
+    "id": "ods-forensics-detect-timestomping",
+    "topic": "offensive-defensive-security",
+    "subtopic": "forensics",
+    "difficulty": "Hard",
+    "title": "A malicious file with suspiciously old dates",
+    "question": "On an NTFS volume, a malicious DLL shows creation and modification dates identical to genuine Windows system files from years ago. How can an examiner check whether those timestamps were forged?",
+    "options": [
+      "Trust them, because NTFS timestamps can never be changed by user-mode programs",
+      "Compare $STANDARD_INFORMATION with $FILE_NAME times and the USN journal",
+      "Check the file size, since forged timestamps always change the size",
+      "Look at the file's icon, which Windows regenerates when dates change"
+    ],
+    "correctIndex": 1,
+    "explanation": "Timestomping usually edits the $STANDARD_INFORMATION timestamps, which ordinary APIs can set, while the $FILE_NAME attribute and the USN change journal are harder to alter and often still show the real creation time. A mismatch between them is a strong indicator. Timestamps can be changed from user mode, and neither file size nor icons reveal timestamp edits.",
+    "referenceUrl": "https://attack.mitre.org/techniques/T1070/006/"
+  },
+  {
+    "id": "ods-forensics-compromised-cloud-vm",
+    "topic": "offensive-defensive-security",
+    "subtopic": "forensics",
+    "difficulty": "Hard",
+    "title": "Preserving evidence from a compromised cloud VM",
+    "question": "An EC2 instance is confirmed compromised. The team wants to stop the damage and still be able to investigate. Which approach best preserves evidence?",
+    "options": [
+      "Terminate the instance at once and relaunch it from the golden AMI",
+      "Stop and start the instance so that the malware is cleared from memory",
+      "Isolate it with a restrictive security group, capture memory, snapshot volumes",
+      "Log in as root and delete the suspicious files first, then snapshot the volumes"
+    ],
+    "correctIndex": 2,
+    "explanation": "Isolating the instance with a security group that allows only forensic access cuts the attacker off without destroying state; memory should be captured before any stop, and EBS snapshots preserve the disks for offline analysis. Terminating or stopping the instance loses memory (and instance-store data), and deleting files first contaminates the very evidence the team needs.",
+    "referenceUrl": "https://docs.aws.amazon.com/whitepapers/latest/aws-security-incident-response-guide/welcome.html"
+  },
+  {
+    "id": "ods-vuln-cvss-base-meaning",
+    "topic": "offensive-defensive-security",
+    "subtopic": "vulnerability-management",
+    "difficulty": "Easy",
+    "title": "What a CVSS base score measures",
+    "question": "A scanner reports a vulnerability with a CVSS base score of 9.8. What does that base score represent?",
+    "options": [
+      "The intrinsic technical severity of the vulnerability",
+      "The value of the affected asset to the business",
+      "The probability that the flaw will be exploited in the next month",
+      "The number of days the vendor needed to release a patch"
+    ],
+    "correctIndex": 0,
+    "explanation": "The CVSS base metrics describe characteristics of the vulnerability that are constant across environments, such as attack vector, required privileges and impact on confidentiality, integrity and availability. Exploitation likelihood is what EPSS estimates, business value comes from your own asset context, and CVSS does not measure patch timelines.",
+    "referenceUrl": "https://nvd.nist.gov/vuln-metrics/cvss"
+  },
+  {
+    "id": "ods-vuln-kev-before-higher-cvss",
+    "topic": "offensive-defensive-security",
+    "subtopic": "vulnerability-management",
+    "difficulty": "Medium",
+    "title": "Choosing which vulnerability to patch first",
+    "question": "The team can patch only one system tonight: an isolated internal test server with a CVSS 9.8 flaw and no known exploit, or the internet-facing VPN appliance with a CVSS 7.5 flaw listed in CISA's KEV catalog. Which should come first?",
+    "options": [
+      "The test server, because a higher CVSS score always means it must be patched first",
+      "Neither, because both are below the CVSS 10.0 emergency threshold",
+      "The VPN appliance, because it is exposed and already exploited in the wild",
+      "Whichever is quicker to patch, since both carry equivalent risk"
+    ],
+    "correctIndex": 2,
+    "explanation": "Risk-based prioritisation combines severity with exploitation evidence and exposure. A KEV listing means the flaw is being actively exploited, and an internet-facing VPN is a prime entry point, so it outranks a higher-scoring flaw on an isolated host. CVSS alone is not a priority order, there is no 10.0 emergency threshold, and the two risks are clearly not equivalent.",
+    "referenceUrl": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+  },
+  {
+    "id": "ods-vuln-epss-meaning",
+    "topic": "offensive-defensive-security",
+    "subtopic": "vulnerability-management",
+    "difficulty": "Medium",
+    "title": "What an EPSS score adds to CVSS",
+    "question": "A vulnerability management team adds EPSS scores next to CVSS scores in its dashboard. What extra information does EPSS provide?",
+    "options": [
+      "An estimate of how likely the CVE is to see exploitation activity soon",
+      "A severity score adjusted for the controls in your own environment",
+      "The official deadline by which US federal agencies are required to patch the CVE",
+      "A list of the specific hosts in your network affected by the CVE"
+    ],
+    "correctIndex": 0,
+    "explanation": "EPSS (Exploit Prediction Scoring System, from FIRST) estimates the probability that a CVE will be exploited in the wild in the next 30 days, which complements CVSS's severity view. CVSS environmental metrics, not EPSS, adjust for your controls; remediation deadlines come from CISA's KEV catalog under BOD 22-01, and affected-host lists come from your scanners and asset inventory.",
+    "referenceUrl": "https://www.first.org/epss/"
+  },
+  {
+    "id": "ods-vuln-unpatchable-device",
+    "topic": "offensive-defensive-security",
+    "subtopic": "vulnerability-management",
+    "difficulty": "Hard",
+    "title": "A critical flaw on a device that cannot be patched",
+    "question": "A critical vulnerability affects a legacy lab instrument whose vendor no longer ships updates, so it will miss the 15-day patch SLA. What is the most appropriate handling?",
+    "options": [
+      "Mark the finding as a false positive so the scanner stops reporting it",
+      "Exclude the instrument's subnet from future vulnerability scans",
+      "Treat the SLA as not applicable because the device is vendor-managed",
+      "Record a time-limited risk exception with compensating controls and an owner"
+    ],
+    "correctIndex": 3,
+    "explanation": "When remediation is not possible, mature programs document the risk acceptance with an accountable owner and an expiry date, apply compensating controls such as network isolation, restricted access and extra monitoring, and plan replacement. Calling a real flaw a false positive, hiding it from scans or declaring the SLA irrelevant all leave the risk in place while making it invisible.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/40/r4/final"
+  },
+  {
+    "id": "ods-vuln-backported-fix-finding",
+    "topic": "offensive-defensive-security",
+    "subtopic": "vulnerability-management",
+    "difficulty": "Expert",
+    "title": "Scanner flags a fix that the distro backported",
+    "question": "An unauthenticated scan flags a RHEL server as vulnerable to an OpenSSL CVE because the reported version string predates the upstream fix. The platform team says Red Hat already backported the patch. How should this be resolved?",
+    "options": [
+      "Build the latest upstream OpenSSL from source so the version string changes",
+      "Suppress every OpenSSL finding globally to stop the recurring noise",
+      "Check the package against the vendor advisory and prefer credentialed scans",
+      "Accept the scanner result, since version strings are authoritative evidence"
+    ],
+    "correctIndex": 2,
+    "explanation": "Enterprise distributions often backport security fixes without changing the upstream version number, so banner-based checks produce false positives. The finding should be verified against the vendor advisory or package changelog, documented with that evidence, and future scans should use credentialed, package-level checks. Replacing the vendor package breaks support and updates, a global suppression would hide real future issues, and version strings are not authoritative on these distributions.",
+    "referenceUrl": "https://access.redhat.com/security/updates/backporting"
+  },
+  {
+    "id": "ods-pentest-written-authorisation",
+    "topic": "offensive-defensive-security",
+    "subtopic": "pentest-methodology",
+    "difficulty": "Easy",
+    "title": "What makes a penetration test legitimate",
+    "question": "What most fundamentally separates a penetration test from an attack using the same techniques?",
+    "options": [
+      "Written authorisation from the system owner defining scope and rules",
+      "The tester uses only commercial tools rather than any open-source ones",
+      "The testing happens outside business hours to avoid disruption",
+      "The tester promises to report any findings within a week"
+    ],
+    "correctIndex": 0,
+    "explanation": "Explicit, written permission from someone with authority over the systems, stating what may be tested, how and when, is what makes testing legitimate and legal. The choice of tools, timing windows and reporting promises are details of how an engagement is run; none of them replaces authorisation.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/115/final"
+  },
+  {
+    "id": "ods-pentest-white-box",
+    "topic": "offensive-defensive-security",
+    "subtopic": "pentest-methodology",
+    "difficulty": "Easy",
+    "title": "Naming the test approach",
+    "question": "Testers receive source code, architecture diagrams and accounts for every user role before assessing an application. What kind of test is this?",
+    "options": [
+      "Black-box testing",
+      "Red-team exercise",
+      "White-box testing",
+      "Passive reconnaissance"
+    ],
+    "correctIndex": 2,
+    "explanation": "In white-box (clear-box) testing the testers get full knowledge of the target, which lets them cover more ground efficiently. Black-box testing gives no inside knowledge, a red-team exercise emulates a real adversary to test detection and response, and passive reconnaissance only gathers public information without interacting with the target.",
+    "referenceUrl": "https://owasp.org/www-project-web-security-testing-guide/"
+  },
+  {
+    "id": "ods-pentest-out-of-scope-host",
+    "topic": "offensive-defensive-security",
+    "subtopic": "pentest-methodology",
+    "difficulty": "Medium",
+    "title": "A vulnerable host outside the agreed scope",
+    "question": "During an authorised internal test, a tester notices a host outside the agreed IP ranges that seems to belong to a third-party provider and looks badly outdated. What should the tester do?",
+    "options": [
+      "Test it lightly, since it sits in the same network as in-scope hosts",
+      "Exploit it once to prove the impact, then include it in the report",
+      "Stop, leave it untested and notify the client contact named in the RoE",
+      "Scan it from a personal IP address so it is not tied to the engagement"
+    ],
+    "correctIndex": 2,
+    "explanation": "Authorisation covers only what the scope and rules of engagement list; a third party has not consented at all. The tester should not interact further and should report the observation through the agreed channel so the client can decide what to do. Testing it lightly, proving impact or hiding the source are all unauthorised access.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/115/final"
+  },
+  {
+    "id": "ods-pentest-red-team-goal",
+    "topic": "offensive-defensive-security",
+    "subtopic": "pentest-methodology",
+    "difficulty": "Medium",
+    "title": "Choosing between scan, pentest and red team",
+    "question": "Leadership wants to know whether the SOC would notice and respond to a realistic adversary pursuing a specific objective over several weeks. Which engagement fits best?",
+    "options": [
+      "An automated vulnerability scan of all external hosts",
+      "A one-week application pentest of the public website",
+      "A compliance audit of the SOC's written procedures",
+      "A red-team exercise emulating a known threat actor"
+    ],
+    "correctIndex": 3,
+    "explanation": "Red-team exercises emulate a real adversary's tactics and techniques toward an objective, usually stealthily, so they measure detection and response rather than just listing flaws. Scans enumerate known vulnerabilities, a pentest seeks as many weaknesses as possible in a defined target, and an audit checks documents, not live defences. MITRE publishes adversary emulation plans built on ATT&CK for exactly this purpose.",
+    "referenceUrl": "https://attack.mitre.org/resources/adversary-emulation-plans/"
+  },
+  {
+    "id": "ods-pentest-cloud-provider-policy",
+    "topic": "offensive-defensive-security",
+    "subtopic": "pentest-methodology",
+    "difficulty": "Hard",
+    "title": "Client approval is not enough in the cloud",
+    "question": "A client hosted on AWS signs a scope that includes a DDoS stress test against its production load balancer. What should the testing firm recognise before proceeding?",
+    "options": [
+      "AWS's policy also applies, and DDoS simulation has its own separate rules",
+      "The client's signature covers all infrastructure that serves its app",
+      "Cloud workloads cannot be pentested at all under any provider policy",
+      "DDoS tests are allowed if they last less than one hour in total"
+    ],
+    "correctIndex": 0,
+    "explanation": "A customer can only authorise testing of what it controls; the provider's shared infrastructure is governed by the provider's own policy. AWS allows security testing of many services without prior approval but lists DoS/DDoS as prohibited activities and handles DDoS simulation under a separate policy with specific conditions. Assuming the client's signature covers everything, or inventing a duration exception, would breach that policy.",
+    "referenceUrl": "https://aws.amazon.com/security/penetration-testing/"
+  },
+  {
+    "id": "ods-malware-worm-definition",
+    "topic": "offensive-defensive-security",
+    "subtopic": "malware",
+    "difficulty": "Easy",
+    "title": "Malware that spreads by itself",
+    "question": "Malware spreads from machine to machine across a network by exploiting a service flaw, with no user opening files or clicking links. What type of malware is this?",
+    "options": [
+      "A Trojan horse",
+      "A worm",
+      "A file-infecting virus",
+      "Adware"
+    ],
+    "correctIndex": 1,
+    "explanation": "A worm is self-propagating: it copies itself to other systems, typically through vulnerable network services, without user action. A Trojan relies on tricking the user into running it, a classic virus needs an infected host file to be executed, and adware's goal is showing ads, not spreading.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/83/r1/final"
+  },
+  {
+    "id": "ods-malware-ransomware-backups",
+    "topic": "offensive-defensive-security",
+    "subtopic": "malware",
+    "difficulty": "Easy",
+    "title": "The backup property that defeats ransomware",
+    "question": "Which backup practice most improves an organisation's ability to recover from ransomware without paying?",
+    "options": [
+      "Backups kept on a share mapped on every employee's computer",
+      "Daily backups replicated to a second online file server",
+      "Offline or immutable backups whose restores are tested",
+      "Backups compressed and encrypted with the domain admin password"
+    ],
+    "correctIndex": 2,
+    "explanation": "Ransomware operators actively seek out and encrypt or delete reachable backups, so copies must be offline or immutable, and regular restore tests prove they actually work. A mapped share or online replica is reachable by the same compromised accounts, and protecting backups with a domain admin credential ties them to the identity attackers usually steal.",
+    "referenceUrl": "https://www.cisa.gov/stopransomware/ransomware-guide"
+  },
+  {
+    "id": "ods-malware-returns-after-reboot",
+    "topic": "offensive-defensive-security",
+    "subtopic": "malware",
+    "difficulty": "Medium",
+    "title": "Malware that comes back after every reboot",
+    "question": "An analyst kills a malicious process and deletes its file, but it reappears after each reboot. Where should the investigation focus next?",
+    "options": [
+      "The browser cache, which re-downloads deleted programs at every startup",
+      "The DNS client cache, which keeps resolving the malware's domain",
+      "The pagefile, which restores killed processes when Windows boots",
+      "Autostart locations such as Run keys, services and scheduled tasks"
+    ],
+    "correctIndex": 3,
+    "explanation": "Reappearing after reboot points to a persistence mechanism that launches or re-drops the malware at boot or logon, such as registry Run keys, services, scheduled tasks or startup folders; ATT&CK catalogues these so defenders can hunt for them. The browser cache, DNS cache and pagefile do not relaunch programs on their own.",
+    "referenceUrl": "https://attack.mitre.org/techniques/T1547/"
+  },
+  {
+    "id": "ods-malware-signatures-miss-variants",
+    "topic": "offensive-defensive-security",
+    "subtopic": "malware",
+    "difficulty": "Medium",
+    "title": "Antivirus keeps missing new variants",
+    "question": "Every week a new variant of the same malware family slips past the signature-based antivirus, each with a different hash. Which addition best complements signatures?",
+    "options": [
+      "Behaviour-based detection of actions such as process injection",
+      "Updating the signature database twice a day instead of once",
+      "Blocking all email attachments larger than five megabytes in size",
+      "Running a full disk scan on every machine each night"
+    ],
+    "correctIndex": 0,
+    "explanation": "Packing and polymorphism change a sample's bytes and hash, but the malware still has to do things such as injecting into other processes, creating persistence or encrypting many files quickly. EDR and behavioural detection look for those actions. More frequent updates and nightly scans still depend on signatures that do not exist yet, and a size limit on attachments does not address the detection gap.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/83/r1/final"
+  },
+  {
+    "id": "ods-malware-living-off-the-land",
+    "topic": "offensive-defensive-security",
+    "subtopic": "malware",
+    "difficulty": "Hard",
+    "title": "Attackers using only built-in tools",
+    "question": "An intrusion used only signed, built-in Windows binaries and scripting tools, so the allowlist of trusted Microsoft-signed software never triggered. Which defensive approach addresses this best?",
+    "options": [
+      "Removing every Microsoft-signed binary from the allowlist",
+      "Trusting signed binaries, since signed code cannot be abused at all",
+      "Relying on hash blocklists for the tools that were used",
+      "Baselining normal use, logging command lines, hunting anomalies"
+    ],
+    "correctIndex": 3,
+    "explanation": "Living-off-the-land techniques blend in with administration, so CISA's guidance focuses on detailed logging (process creation and command lines), baselines of normal behaviour, hunting for anomalous use, and restricting tools that are not needed. Removing every signed binary would break the OS, signed tools are abused precisely because they are trusted, and hash blocks would block the legitimate system files themselves.",
+    "referenceUrl": "https://www.cisa.gov/resources-tools/resources/identifying-and-mitigating-living-land-techniques"
+  },
+  {
+    "id": "ods-zt-core-principle",
+    "topic": "offensive-defensive-security",
+    "subtopic": "zero-trust",
+    "difficulty": "Easy",
+    "title": "The core idea of zero trust",
+    "question": "Which statement best captures the core principle of a zero trust architecture?",
+    "options": [
+      "Users inside the corporate network are trusted, but outsiders are not",
+      "No access is trusted by network location; each request is evaluated",
+      "All traffic is blocked, and only administrators can access systems",
+      "A strong perimeter firewall removes the need for internal controls"
+    ],
+    "correctIndex": 1,
+    "explanation": "NIST SP 800-207 describes zero trust as removing implicit trust based on network location or asset ownership: every access request is authenticated and authorised, per session, using identity, device and context. Trusting the internal network is exactly the perimeter model zero trust replaces, blocking everything is not workable, and a perimeter firewall alone is the model zero trust moves away from.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/207/final"
+  },
+  {
+    "id": "ods-zt-flat-vpn-access",
+    "topic": "offensive-defensive-security",
+    "subtopic": "zero-trust",
+    "difficulty": "Medium",
+    "title": "VPN users who can reach everything",
+    "question": "Once connected to the VPN, any employee can reach every internal application and database port. Which change best moves this setup toward zero trust?",
+    "options": [
+      "Requiring a longer VPN password that must change every 30 days",
+      "Adding a second VPN concentrator for redundancy and capacity",
+      "Per-application access decided by identity, device health and context",
+      "Allowing VPN connections only from the company's home country"
+    ],
+    "correctIndex": 2,
+    "explanation": "Zero trust replaces network-level access with per-resource decisions: a policy enforcement point grants access to one application at a time based on who the user is, the state of their device and other signals, which also limits lateral movement. Password rotation, redundancy and geo-restrictions leave the flat access model unchanged once someone is connected.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/207/final"
+  },
+  {
+    "id": "ods-zt-standing-admin-rights",
+    "topic": "offensive-defensive-security",
+    "subtopic": "zero-trust",
+    "difficulty": "Medium",
+    "title": "Admins with permanent privileges",
+    "question": "Twelve engineers hold permanent domain administrator rights, though each needs them only a few times a month. What is the least-privilege improvement?",
+    "options": [
+      "Just-in-time, time-limited elevation with approval and logging",
+      "Rotating the domain admin password among them every quarter",
+      "Sharing a single admin account so that there is less to monitor",
+      "Restricting the admin accounts so they log in only during office hours"
+    ],
+    "correctIndex": 0,
+    "explanation": "Standing privileges are always available to an attacker who steals one of those accounts. Just-in-time elevation grants rights only when needed, for a limited time, with approval and an audit trail, shrinking the window and the number of exposed accounts. Password rotation and time-of-day limits keep the standing access, and a shared account destroys accountability.",
+    "referenceUrl": "https://www.cisa.gov/zero-trust-maturity-model"
+  },
+  {
+    "id": "ods-zt-policy-engine-role",
+    "topic": "offensive-defensive-security",
+    "subtopic": "zero-trust",
+    "difficulty": "Hard",
+    "title": "Which ZTA component makes the decision",
+    "question": "In the NIST SP 800-207 logical model of a zero trust architecture, which component makes the actual decision to grant or deny access to a resource?",
+    "options": [
+      "The policy enforcement point (PEP)",
+      "The policy administrator (PA)",
+      "The policy engine (PE)",
+      "The data access policy store"
+    ],
+    "correctIndex": 2,
+    "explanation": "The policy engine evaluates enterprise policy and inputs such as threat intelligence and device state to decide; the policy administrator acts on that decision by establishing or shutting down the communication path, and the PEP enables, monitors and terminates the connection itself. Access policies are inputs to the engine, not the decision maker.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/207/final"
+  },
+  {
+    "id": "ods-zt-stolen-session-cookie",
+    "topic": "offensive-defensive-security",
+    "subtopic": "zero-trust",
+    "difficulty": "Expert",
+    "title": "Session cookie stolen after MFA",
+    "question": "Policy requires MFA at sign-in. An attacker steals a user's session cookie after a successful sign-in and replays it from their own laptop, gaining access without any MFA prompt. Which zero trust control would most directly have made the replay fail?",
+    "options": [
+      "Prompting for MFA twice in a row at every sign-in",
+      "Forcing every user to change their password every 30 days",
+      "Requiring a managed device on every request, re-checking session context",
+      "Blocking sign-ins that originate from outside the home country"
+    ],
+    "correctIndex": 2,
+    "explanation": "The stolen cookie already represents a completed MFA, so stronger sign-in checks do nothing; what stops replay is continuously evaluating each request against device identity and session context, so a session presented from an unmanaged attacker device is rejected. Password changes do not invalidate an existing session token by themselves, and geo-blocking is easily bypassed with infrastructure in the right country.",
+    "referenceUrl": "https://attack.mitre.org/techniques/T1539/"
+  },
+  {
+    "id": "ods-cloud-shared-responsibility",
+    "topic": "offensive-defensive-security",
+    "subtopic": "cloud-security",
+    "difficulty": "Easy",
+    "title": "Who patches the OS on a cloud VM",
+    "question": "Under the AWS shared responsibility model, who is responsible for patching the guest operating system of an EC2 instance?",
+    "options": [
+      "AWS, since it operates the hardware the instance runs on",
+      "The customer, who manages the guest OS and everything on it",
+      "Nobody, since EC2 instances patch themselves automatically",
+      "Whoever the AWS account's technical contact designates in writing"
+    ],
+    "correctIndex": 1,
+    "explanation": "AWS is responsible for security of the cloud (facilities, hardware, the virtualisation layer), while the customer is responsible for security in the cloud, which for IaaS includes the guest OS, applications, firewall configuration and data. Managed services shift more of that line to AWS, but EC2 guest patching stays with the customer and is not automatic.",
+    "referenceUrl": "https://aws.amazon.com/compliance/shared-responsibility-model/"
+  },
+  {
+    "id": "ods-cloud-block-public-access",
+    "topic": "offensive-defensive-security",
+    "subtopic": "cloud-security",
+    "difficulty": "Medium",
+    "title": "Preventing public S3 buckets account-wide",
+    "question": "After two incidents where a developer made an S3 bucket public by mistake, the security team wants to prevent public bucket access across the whole AWS account, whatever individual bucket policies say. Which control fits best?",
+    "options": [
+      "Enable S3 Block Public Access at the account level",
+      "Turn on default encryption for every bucket in the account",
+      "Enable versioning so a public bucket can be rolled back",
+      "Run a weekly script that emails a list of all buckets"
+    ],
+    "correctIndex": 0,
+    "explanation": "S3 Block Public Access, set at account level, overrides bucket policies and ACLs that would grant public access, which makes it a preventive guardrail. Encryption at rest does not stop a public bucket from serving decrypted objects, versioning protects against overwrites and deletion rather than exposure, and a weekly report only detects the problem after the fact.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+  },
+  {
+    "id": "ods-cloud-who-changed-security-group",
+    "topic": "offensive-defensive-security",
+    "subtopic": "cloud-security",
+    "difficulty": "Medium",
+    "title": "Finding who opened a security group",
+    "question": "A security group was changed overnight to allow SSH from 0.0.0.0/0. Which AWS log source shows which identity made that change and when?",
+    "options": [
+      "VPC Flow Logs for the affected subnet",
+      "S3 server access logs for the account",
+      "CloudWatch metrics for the EC2 instance",
+      "AWS CloudTrail management events"
+    ],
+    "correctIndex": 3,
+    "explanation": "CloudTrail records API calls, including who called AuthorizeSecurityGroupIngress, from where and when, so it is the audit trail for control-plane changes. VPC Flow Logs capture network traffic metadata, not API calls; S3 access logs cover requests to buckets; and CloudWatch metrics are performance numbers with no identity information.",
+    "referenceUrl": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html"
+  },
+  {
+    "id": "ods-cloud-scp-protect-cloudtrail",
+    "topic": "offensive-defensive-security",
+    "subtopic": "cloud-security",
+    "difficulty": "Hard",
+    "title": "Stopping account admins from disabling logging",
+    "question": "In an AWS Organization, the security team wants to make sure that nobody in member accounts, including their administrators, can stop or delete the organisation's CloudTrail trails. Which mechanism enforces this?",
+    "options": [
+      "An IAM policy attached to each member account's admin role",
+      "A service control policy that denies the CloudTrail stop and delete actions",
+      "An S3 bucket policy on the bucket where the trails deliver logs",
+      "A CloudWatch alarm that notifies the team when a trail is stopped"
+    ],
+    "correctIndex": 1,
+    "explanation": "SCPs set the maximum permissions for every principal in the member accounts they apply to, so an explicit deny there cannot be overridden by account administrators. IAM policies inside the account can be edited by those same admins, a bucket policy protects the log files rather than the trail itself, and an alarm detects the change instead of preventing it. Note that SCPs do not apply to the management account, which must be protected separately.",
+    "referenceUrl": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html"
+  },
+  {
+    "id": "ods-cloud-leaked-access-key",
+    "topic": "offensive-defensive-security",
+    "subtopic": "cloud-security",
+    "difficulty": "Hard",
+    "title": "Access key pushed to a public repository",
+    "question": "A developer pushed a long-lived AWS access key to a public GitHub repository two hours ago. What is the right order of response?",
+    "options": [
+      "Rewrite the Git history to remove the key, then rotate it next sprint",
+      "Make the repository private, then ask the developer if it was used",
+      "Delete the developer's IAM user, then wait for a bill spike to confirm abuse",
+      "Deactivate the key now, then review its CloudTrail activity for persistence"
+    ],
+    "correctIndex": 3,
+    "explanation": "Public secrets are harvested by automated scanners within minutes, so the key must be deactivated immediately and replaced. The team should then review CloudTrail for everything that key did, looking especially for new users, keys, roles or resources an attacker might have created for persistence. Cleaning history or hiding the repo does not revoke a key that was already copied, and deleting the user without investigating loses the trail of what happened.",
+    "referenceUrl": "https://docs.aws.amazon.com/whitepapers/latest/aws-security-incident-response-guide/welcome.html"
+  },
+  {
+    "id": "ods-crypto-hash-is-not-encryption",
+    "topic": "offensive-defensive-security",
+    "subtopic": "cryptography",
+    "difficulty": "Easy",
+    "title": "Files encrypted with SHA-256",
+    "question": "A design document says: \"customer files are encrypted with SHA-256 and decrypted when downloaded.\" What is wrong?",
+    "options": [
+      "SHA-256 is too slow to use on large customer files",
+      "SHA-256 is a one-way hash, so nothing could be decrypted",
+      "SHA-256 needs a 512-bit key to be secure for files",
+      "SHA-256 only works on text input, not on binary files like PDFs"
+    ],
+    "correctIndex": 1,
+    "explanation": "A hash function maps input to a fixed-size digest and has no key and no inverse, so it is used for integrity checks and fingerprints, not confidentiality. Reversible protection requires an encryption algorithm such as AES with a managed key. SHA-256 is fast, keyless and works on arbitrary bytes, so the other options misdescribe it.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/fips/180-4/upd1/final"
+  },
+  {
+    "id": "ods-crypto-tls-hybrid-encryption",
+    "topic": "offensive-defensive-security",
+    "subtopic": "cryptography",
+    "difficulty": "Easy",
+    "title": "Why TLS uses both kinds of cryptography",
+    "question": "TLS uses public-key cryptography during the handshake but symmetric ciphers such as AES-GCM for the application data. Why?",
+    "options": [
+      "Symmetric ciphers cannot be broken, while public-key ones can",
+      "Public-key ciphers cannot encrypt data longer than a password",
+      "Browsers forbid public-key encryption of HTTP request bodies for privacy",
+      "Symmetric encryption is far faster for bulk data once keys are shared"
+    ],
+    "correctIndex": 3,
+    "explanation": "Public-key operations are used to authenticate the server and agree on shared keys, but they are much more expensive than symmetric ciphers, so the bulk traffic is protected with fast symmetric AEAD ciphers using the negotiated keys. Neither family is unbreakable by definition, public-key schemes are not limited to password-sized data in that sense, and browsers impose no such rule.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc8446"
+  },
+  {
+    "id": "ods-crypto-hmac-vs-plain-hash",
+    "topic": "offensive-defensive-security",
+    "subtopic": "cryptography",
+    "difficulty": "Medium",
+    "title": "Proving a message came from a trusted service",
+    "question": "Two internal services share a secret. Service A sends messages with a SHA-256 hash of the body attached so Service B can detect tampering. Why is this weak, and what should be used instead?",
+    "options": [
+      "Anyone who alters the body can recompute the hash; use an HMAC with the shared secret",
+      "SHA-256 collides too easily for message integrity checks; switch to MD5 instead",
+      "Hashes must always be encrypted with RSA before sending; add an RSA layer on top",
+      "Integrity needs no checking on an internal network; drop the hash entirely"
+    ],
+    "correctIndex": 0,
+    "explanation": "A plain hash has no secret, so an attacker who can change the message can simply compute the new hash. An HMAC mixes in the shared key, so only holders of the key can produce a valid tag, giving integrity and authenticity. SHA-256 has no practical collisions while MD5 is broken, encrypting a hash is not the standard construction, and internal networks are a common place for attackers to move.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/fips/198-1/final"
+  },
+  {
+    "id": "ods-crypto-crypto-shredding",
+    "topic": "offensive-defensive-security",
+    "subtopic": "cryptography",
+    "difficulty": "Hard",
+    "title": "Deleting data that lives in old backups",
+    "question": "A SaaS company must make one customer's data unrecoverable, but copies sit in years of immutable backups. Each customer's data was encrypted with its own data key held in a KMS. What enables effective deletion?",
+    "options": [
+      "Re-encrypting all backups with a new master key",
+      "Destroying that customer's key so all copies become unreadable",
+      "Hashing every one of the customer's records inside the old backups",
+      "Compressing the backups so the old data is overwritten"
+    ],
+    "correctIndex": 1,
+    "explanation": "Crypto-shredding relies on the fact that well-encrypted data is useless without its key: destroying the per-customer key in the KMS renders every copy, including immutable backups, unreadable. This only works because keys were managed separately from the data and per customer. Immutable backups cannot be re-encrypted or hashed in place, and compressing them does not erase the original data.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/57/pt1/r5/final"
+  },
+  {
+    "id": "ods-crypto-harvest-now-decrypt-later",
+    "topic": "offensive-defensive-security",
+    "subtopic": "cryptography",
+    "difficulty": "Expert",
+    "title": "Prioritising post-quantum migration",
+    "question": "A bank is planning its migration to post-quantum cryptography. Given the \"harvest now, decrypt later\" threat, which change should come first?",
+    "options": [
+      "Replacing AES-256 for data at rest, since quantum computers break all symmetric ciphers",
+      "Re-signing all archived documents, since past signatures become forgeable retroactively",
+      "Waiting for a working quantum computer, since recorded traffic cannot be affected",
+      "Moving key establishment for long-lived secret traffic to ML-KEM, e.g. as a hybrid"
+    ],
+    "correctIndex": 3,
+    "explanation": "Traffic protected by RSA or elliptic-curve key exchange can be recorded today and decrypted once a capable quantum computer exists, so confidential data with a long secrecy lifetime needs quantum-resistant key establishment (ML-KEM, FIPS 203) first, often deployed in hybrid with classical schemes. AES-256 is considered adequate against known quantum attacks, signatures mainly matter for forgeries made after quantum capability arrives, and waiting ignores the recording threat.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/fips/203/final"
+  },
+  {
+    "id": "ods-compliance-iso-27001-scope",
+    "topic": "offensive-defensive-security",
+    "subtopic": "compliance",
+    "difficulty": "Easy",
+    "title": "What ISO/IEC 27001 certifies",
+    "question": "A company announces it is ISO/IEC 27001 certified. What has an accredited auditor actually certified?",
+    "options": [
+      "That its software has no known exploitable vulnerabilities",
+      "That its ISMS meets the standard's requirements",
+      "That it encrypts all personal data according to GDPR requirements",
+      "That its products passed a government penetration test"
+    ],
+    "correctIndex": 1,
+    "explanation": "ISO/IEC 27001 specifies requirements for an information security management system (ISMS): risk assessment and treatment, chosen controls, leadership commitment and continual improvement within a defined scope. It does not certify that software is vulnerability-free, is not a GDPR compliance statement, and does not involve a government pentest of products.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/compliance/regulatory/offering-iso-27001"
+  },
+  {
+    "id": "ods-compliance-csf-govern-function",
+    "topic": "offensive-defensive-security",
+    "subtopic": "compliance",
+    "difficulty": "Easy",
+    "title": "The function added in NIST CSF 2.0",
+    "question": "NIST Cybersecurity Framework 2.0 added a sixth core function to Identify, Protect, Detect, Respond and Recover. Which one?",
+    "options": [
+      "Audit",
+      "Prevent",
+      "Monitor",
+      "Govern"
+    ],
+    "correctIndex": 3,
+    "explanation": "CSF 2.0, published in 2024, added Govern, which covers cybersecurity risk management strategy, roles, policy and supply chain risk management, and informs the other five functions. Audit, Prevent and Monitor are not CSF functions; monitoring activities sit mainly under Detect.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/cswp/29/the-nist-cybersecurity-framework-csf-20/final"
+  },
+  {
+    "id": "ods-compliance-soc2-type-ii",
+    "topic": "offensive-defensive-security",
+    "subtopic": "compliance",
+    "difficulty": "Medium",
+    "title": "SOC 2 Type I versus Type II",
+    "question": "A customer's procurement team will accept only a SOC 2 Type II report from a vendor that already has a Type I report. What does Type II add?",
+    "options": [
+      "It also covers the vendor's financial statements",
+      "It tests that controls operated effectively over a period",
+      "It is issued by a government agency instead of a CPA firm",
+      "It includes a certificate valid for three years"
+    ],
+    "correctIndex": 1,
+    "explanation": "A Type I report assesses whether controls are suitably designed at a point in time; a Type II report also tests their operating effectiveness over a review period, often 6 to 12 months, which is far stronger evidence. Both are attestation reports from independent CPA firms against the Trust Services Criteria, not financial audits or multi-year certificates.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/compliance/regulatory/offering-soc-2"
+  },
+  {
+    "id": "ods-compliance-gdpr-breach-72-hours",
+    "topic": "offensive-defensive-security",
+    "subtopic": "compliance",
+    "difficulty": "Medium",
+    "title": "GDPR deadline for notifying a breach",
+    "question": "A controller subject to GDPR becomes aware of a personal data breach that is likely to put people's rights at risk. By when must it notify the supervisory authority?",
+    "options": [
+      "Within 24 hours of the breach happening",
+      "Within 30 days, together with its final incident report",
+      "Only after the investigation is complete",
+      "Within 72 hours of becoming aware, where feasible"
+    ],
+    "correctIndex": 3,
+    "explanation": "GDPR Article 33 requires notification without undue delay and, where feasible, within 72 hours of becoming aware of the breach, unless it is unlikely to result in a risk to individuals; information may be provided in phases. Waiting for the investigation to finish or for a final report misses the deadline, and the clock starts at awareness, not at the moment of the breach. Brazil's LGPD has a similar duty to notify the ANPD and data subjects, with deadlines set by ANPD regulation.",
+    "referenceUrl": "https://commission.europa.eu/law/law-topic/data-protection_en"
+  },
+  {
+    "id": "ods-compliance-employee-data-legal-basis",
+    "topic": "offensive-defensive-security",
+    "subtopic": "compliance",
+    "difficulty": "Hard",
+    "title": "Legal basis for processing payroll data",
+    "question": "Under LGPD and GDPR, an HR team wants employees to tick a consent box before it stores their bank details for paying salaries. Why is consent a poor choice of legal basis here?",
+    "options": [
+      "The processing is needed for the employment contract and legal duties, and consent can be withdrawn",
+      "Consent only works for data about minors, while adults are covered by legitimate interest instead",
+      "Bank details are sensitive personal data, which neither law allows to be processed at all",
+      "Employees are not data subjects under either law while they are under a work contract"
+    ],
+    "correctIndex": 0,
+    "explanation": "Paying salaries is necessary to perform the employment contract and to meet labour and tax obligations, which are their own legal bases in both laws. Consent must be freely given and revocable, which is doubtful under the employer's power imbalance, and if employees withdrew it, payroll would still have to continue. Bank details are not a special or sensitive category, and employees are fully data subjects.",
+    "referenceUrl": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm"
+  }
+]

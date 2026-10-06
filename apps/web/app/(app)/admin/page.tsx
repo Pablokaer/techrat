@@ -11,8 +11,11 @@ import { useMe, useRoadmaps, useTopics } from "@/lib/queries";
 import { EmptyState, PageHeader, Tabs } from "@/components/widgets";
 import { useToast } from "@/components/providers";
 import { useFormat, useT } from "@/i18n";
+import { CompositionEditor } from "./composition-editor";
+import { ModulesAdmin } from "./modules-admin";
+import { useAdminAction } from "./use-admin-action";
 
-type Tab = "questions" | "topics" | "roadmaps" | "users";
+type Tab = "questions" | "topics" | "modules" | "roadmaps" | "users";
 
 export default function AdminPage() {
   const t = useT();
@@ -27,18 +30,19 @@ export default function AdminPage() {
       <PageHeader eyebrow={t.admin.eyebrow} title={t.admin.title} subtitle={t.admin.subtitle} />
       <p className="-mt-2 mb-6 text-xs text-text-muted">{t.admin.contentLanguageNote}</p>
       {stats && (
-        <dl className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+        <dl className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-9">
           {Object.entries(stats).map(([k, v]) => (
             <Card key={k} as="div" className="p-3"><dt className="text-[11px] uppercase tracking-wider text-text-muted">{t.admin.stats[k] ?? k.replace(/([A-Z])/g, " $1")}</dt><dd className="font-mono text-lg font-bold">{f.number(Number(v))}</dd></Card>
           ))}
         </dl>
       )}
       <Tabs<Tab> label={t.admin.sections} value={tab} onChange={setTab} items={[
-        { value: "questions", label: t.admin.tabs.questions }, { value: "topics", label: t.admin.tabs.topics }, { value: "roadmaps", label: t.admin.tabs.roadmaps }, { value: "users", label: t.admin.tabs.users },
+        { value: "questions", label: t.admin.tabs.questions }, { value: "topics", label: t.admin.tabs.topics }, { value: "modules", label: t.admin.tabs.modules }, { value: "roadmaps", label: t.admin.tabs.roadmaps }, { value: "users", label: t.admin.tabs.users },
       ]} />
       <div className="mt-6">
         {tab === "questions" && <QuestionsAdmin />}
         {tab === "topics" && <TopicsAdmin />}
+        {tab === "modules" && <ModulesAdmin />}
         {tab === "roadmaps" && <RoadmapsAdmin />}
         {tab === "users" && <UsersAdmin />}
       </div>
@@ -174,23 +178,6 @@ function QuestionsAdmin() {
   );
 }
 
-function useAdminAction() {
-  const t = useT();
-  const toast = useToast();
-  const qc = useQueryClient();
-  return async (fn: () => Promise<unknown>, success: string) => {
-    try {
-      await fn();
-      toast({ kind: "success", title: success });
-      qc.invalidateQueries();
-      return true;
-    } catch (e) {
-      toast({ kind: "error", title: isApiError(e) ? (e.errors ? Object.values(e.errors)[0][0] : e.detail ?? e.title) : t.admin.failed });
-      return false;
-    }
-  };
-}
-
 function TopicsAdmin() {
   const tr = useT();
   const m = tr.admin.topics;
@@ -251,6 +238,7 @@ function RoadmapsAdmin() {
           topicSlug: step.topicSlug, subtopicSlug: step.subtopicSlug || null, minimumQuestions: step.minimumQuestions, minimumAccuracy: step.minimumAccuracy, xpReward: step.xpReward, order: null,
         } })), m.stepAdded)}>{m.addStep}</button>
       </Card>
+      <CompositionEditor />
     </div>
   );
 }

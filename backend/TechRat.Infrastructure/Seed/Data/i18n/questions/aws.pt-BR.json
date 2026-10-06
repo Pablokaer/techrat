@@ -1,0 +1,746 @@
+[
+  {
+    "id": "awsx-iam-resource-based-policy-principal",
+    "title": "Tipo de policy que declara um Principal",
+    "question": "Qual tipo de policy do IAM é anexada diretamente a um recurso, como um bucket S3 ou uma fila SQS, e precisa dizer quem recebe acesso em um elemento `Principal`?",
+    "options": [
+      "Uma identity-based policy anexada a um usuário, grupo ou role",
+      "Uma resource-based policy, como a bucket policy do S3",
+      "Um permissions boundary anexado à role do IAM que faz a chamada",
+      "Uma session policy enviada durante uma chamada AssumeRole"
+    ],
+    "explanation": "Resource-based policies ficam no próprio recurso, por isso precisam nomear o principal (conta, role, usuário ou serviço) que recebe acesso. Identity-based policies são anexadas a uma identidade e não têm elemento `Principal`; permissions boundaries e session policies apenas limitam o que uma identidade pode fazer e nunca concedem acesso a outros principals."
+  },
+  {
+    "id": "awsx-iam-permissions-boundary-intersection",
+    "title": "AdministratorAccess sob um permissions boundary",
+    "question": "Uma role do IAM tem a managed policy `AdministratorAccess` anexada e um permissions boundary que permite apenas `s3:*` e `cloudwatch:*`. O que acontece quando a role chama `ec2:RunInstances`?",
+    "options": [
+      "Funciona, porque a policy anexada permite todas as ações",
+      "Funciona apenas se a requisição tiver uma context key de MFA",
+      "É negada, porque a ação está fora do permissions boundary",
+      "É negada, porque o boundary substitui as policies anexadas"
+    ],
+    "explanation": "Um permissions boundary define o máximo de permissões que uma identity-based policy pode conceder: as permissões efetivas são a interseção das duas, então ações de EC2 são negadas. O boundary não substitui nem concede nada sozinho; uma ação de S3 só funciona porque tanto o boundary quanto a `AdministratorAccess` a permitem. MFA não tem relação com boundaries."
+  },
+  {
+    "id": "awsx-iam-cross-account-both-sides",
+    "title": "Leitura cross-account no S3 ainda negada",
+    "question": "Uma role na conta A precisa ler objetos de um bucket na conta B. A bucket policy da conta B concede `s3:GetObject` ao ARN da role, os objetos usam SSE-S3 e pertencem à conta B, mas a role continua recebendo AccessDenied. O que provavelmente está faltando?",
+    "options": [
+      "Um allow para `s3:GetObject` nesse bucket na policy da própria role",
+      "Uma conexão de VPC peering entre as VPCs das duas contas",
+      "Um S3 Access Point, pois bucket policies não citam outras contas",
+      "ACLs habilitadas no bucket para que os objetos sejam compartilhados"
+    ],
+    "explanation": "Acesso cross-account exige que os dois lados concordem: a resource-based policy na conta B precisa confiar no principal, e uma identity-based policy na conta A precisa permitir que a role faça a chamada. Peering é um recurso de rede e não autoriza chamadas de API, bucket policies podem citar principals de outras contas, e ACLs são um mecanismo legado que não é necessário aqui."
+  },
+  {
+    "id": "awsx-iam-passrole-lambda",
+    "title": "Erro de iam:PassRole ao criar uma função Lambda",
+    "question": "Um desenvolvedor com `lambda:CreateFunction` tenta criar uma função cuja execution role é `app-fn-role`. A chamada falha: sem autorização para executar `iam:PassRole` em `app-fn-role`. Qual é a correção com menor privilégio?",
+    "options": [
+      "Anexar `IAMFullAccess` para ele criar e editar qualquer role",
+      "Permitir `iam:PassRole` no ARN da role, limitado por `iam:PassedToService`",
+      "Adicionar o desenvolvedor como principal na trust policy de `app-fn-role`",
+      "Conceder `sts:AssumeRole` em `app-fn-role` e repetir a chamada como a role"
+    ],
+    "explanation": "Entregar uma role a um serviço exige `iam:PassRole` naquela role específica; limitar com `iam:PassedToService` a `lambda.amazonaws.com` impede que o desenvolvedor a repasse para outros serviços. O desenvolvedor nunca assume a role (quem assume é o Lambda, pela trust policy), então mudar a trust policy ou dar `sts:AssumeRole` não resolve, e `IAMFullAccess` abre caminho para escalação de privilégio."
+  },
+  {
+    "id": "awsx-iam-forallvalues-missing-key",
+    "title": "ForAllValues que permite demais",
+    "question": "Uma policy deveria permitir que engenheiros removam apenas duas tags aprovadas:\n`{\"Effect\": \"Allow\", \"Action\": \"ec2:DeleteTags\", \"Resource\": \"*\", \"Condition\": {\"ForAllValues:StringEquals\": {\"aws:TagKeys\": [\"env\", \"team\"]}}}`\nUm revisor diz que ela é permissiva demais. Por quê?",
+    "options": [
+      "`StringEquals` ignora maiúsculas, então `ENV` e `Team` também casam",
+      "`aws:TagKeys` tem valor único, então só a primeira tag é verificada",
+      "Condições em um Allow são ignoradas quando o `Resource` é `*`",
+      "`ForAllValues` também é verdadeiro se a requisição não tiver tags"
+    ],
+    "explanation": "`ForAllValues` retorna verdadeiro quando todos os valores da requisição estão na lista e também quando a context key está ausente, então uma requisição sem `aws:TagKeys` é permitida. A AWS recomenda adicionar uma condição `Null` (`\"aws:TagKeys\": \"false\"`) nesses Allow. `StringEquals` diferencia maiúsculas de minúsculas, `aws:TagKeys` é multivalorada (por isso exige um operador de conjunto) e as condições são avaliadas independentemente do recurso."
+  },
+  {
+    "id": "awsx-vpc-public-subnet-route",
+    "title": "O que torna uma sub-rede pública",
+    "question": "O que torna uma sub-rede uma sub-rede *pública* em uma Amazon VPC?",
+    "options": [
+      "Sua route table envia `0.0.0.0/0` para um internet gateway",
+      "Ela foi criada com a opção pública ativada no console",
+      "Sua network ACL permite tráfego de entrada de `0.0.0.0/0`",
+      "Ela contém um NAT gateway usado por outras instâncias para saída"
+    ],
+    "explanation": "Uma sub-rede é pública quando a route table associada tem uma rota para um internet gateway; as instâncias nela também precisam de um IPv4 público (ou IPv6) para serem alcançáveis. Não existe uma opção pública em sub-redes, uma network ACL permissiva não cria caminho para a internet, e são as sub-redes privadas que roteiam pelo NAT gateway."
+  },
+  {
+    "id": "awsx-vpc-sg-reference-alb",
+    "title": "Permitir tráfego só do load balancer",
+    "question": "Instâncias de uma aplicação ficam atrás de um ALB público. O security group delas permite a porta 8080 a partir dos CIDRs das sub-redes públicas. Qual regra é mais restrita e fácil de manter?",
+    "options": [
+      "Permitir 8080 de `0.0.0.0/0`, já que o ALB filtra as requisições",
+      "Permitir 8080 apenas com o ID do security group do ALB como origem",
+      "Permitir 8080 dos IPs privados atuais do ALB, atualizados por script",
+      "Trocar a regra por uma network ACL que bloqueie tudo exceto 8080"
+    ],
+    "explanation": "Referenciar um security group como origem admite tráfego apenas de interfaces de rede associadas a esse grupo, então a regra acompanha o ALB mesmo quando seus nós e IPs mudam. CIDRs de sub-rede também admitem qualquer outro recurso nelas, um script que rastreia IPs é frágil, e network ACLs são stateless, valem para a sub-rede inteira e não conseguem expressar \"somente do ALB\"."
+  },
+  {
+    "id": "awsx-vpc-peering-not-transitive",
+    "title": "Alcançar uma terceira VPC via uma VPC pareada",
+    "question": "A VPC A tem peering com a VPC B, e a VPC B tem peering com a VPC C. A route table de A envia o CIDR de C para o peering A-B. O tráfego de A para C falha. Qual é a causa e a correção?",
+    "options": [
+      "Security groups não referenciam VPCs pareadas; libere os CIDRs",
+      "A network ACL de B descarta pacotes repassados; libere o CIDR de A",
+      "Peering não é transitivo; crie peering direto A-C ou use transit gateway",
+      "VPCs pareadas precisam de uma única route table; junte as tabelas de A, B e C"
+    ],
+    "explanation": "VPC peering é uma relação um-para-um e a AWS não suporta roteamento transitivo: B não repassa tráfego entre seus pares. Crie um peering direto A-C ou conecte as VPCs a um transit gateway, que funciona como hub de roteamento. Mudanças em NACL ou security group não transformam B em roteador, e route tables sempre pertencem a uma única VPC."
+  },
+  {
+    "id": "awsx-vpc-gateway-endpoint-onprem",
+    "title": "Tráfego on-premises e um gateway endpoint de S3",
+    "question": "Uma VPC tem um gateway endpoint de S3 e suas instâncias EC2 acessam o S3 de forma privada. Servidores on-premises, conectados por Site-to-Site VPN, enviam o tráfego de S3 para a VPC, mas ele nunca usa o endpoint. O que a equipe deve fazer?",
+    "options": [
+      "Adicionar o CIDR on-premises em `aws:SourceIp` na endpoint policy",
+      "Associar o gateway endpoint ao virtual private gateway",
+      "Habilitar private DNS no gateway endpoint para os clientes locais",
+      "Criar um interface endpoint de S3 e resolver o S3 para seus IPs"
+    ],
+    "explanation": "Gateway endpoints são alvos de route table que só funcionam para tráfego originado dentro da VPC; recursos atrás de VPN, Direct Connect, peering ou transit gateway não conseguem usá-los. Um interface endpoint (PrivateLink) tem ENIs com IPs privados que os hosts on-premises alcançam, normalmente resolvidos por um inbound endpoint do Route 53 Resolver. Gateway endpoints não têm opção de private DNS, e condições de policy não ampliam seu alcance."
+  },
+  {
+    "id": "awsx-vpc-longest-prefix-route",
+    "title": "Qual rota vence com destinos sobrepostos",
+    "question": "A route table de uma sub-rede contém:\n`10.20.0.0/16 -> pcx-peering`\n`10.20.8.0/24 -> tgw-attachment`\n`0.0.0.0/0 -> nat-gateway`\nPara onde vai um pacote destinado a `10.20.8.15`?",
+    "options": [
+      "Para o peering, porque foi a primeira rota adicionada",
+      "Para o transit gateway, porque a rota mais específica vence",
+      "Para o NAT gateway, porque a rota padrão captura tudo",
+      "Para lugar nenhum; destinos sobrepostos tornam a tabela inválida"
+    ],
+    "explanation": "Route tables de VPC usam longest prefix match: `10.20.8.0/24` é mais específica que `10.20.0.0/16`, então o attachment do transit gateway vence. A ordem em que as rotas foram criadas não importa, a rota padrão só é usada quando nada mais específico casa, e destinos sobrepostos com prefixos de tamanhos diferentes são permitidos."
+  },
+  {
+    "id": "awsx-compute-fargate-no-instances",
+    "title": "Rodar tasks do ECS sem gerenciar instâncias",
+    "question": "Uma equipe quer rodar containers no Amazon ECS sem provisionar, aplicar patches ou escalar instâncias EC2. Qual opção atende?",
+    "options": [
+      "O launch type EC2 com um Auto Scaling group gerenciado de instâncias",
+      "O launch type external com ECS Anywhere em servidores",
+      "AWS Fargate, que roda cada task em compute gerenciado pela AWS",
+      "Um capacity provider de EC2 Spot com lifecycle hooks"
+    ],
+    "explanation": "No Fargate você declara CPU e memória por task e a AWS a executa em infraestrutura gerenciada, então não há instâncias para atualizar ou escalar. O launch type EC2 (Spot ou não, com Auto Scaling ou não) ainda deixa as instâncias sob sua responsabilidade, e o ECS Anywhere roda tasks em servidores que você mesmo gerencia."
+  },
+  {
+    "id": "awsx-compute-instance-store-ephemeral",
+    "title": "Arquivos perdidos após parar uma instância",
+    "question": "Uma aplicação grava arquivos enviados em um volume instance store de uma EC2. Depois que a instância é parada e iniciada para manutenção, os arquivos sumiram. Por quê?",
+    "options": [
+      "Dados de instance store não persistem quando a instância para",
+      "A AWS apaga volumes instance store diariamente sem snapshot",
+      "A instância mudou de AZ e seus volumes ficaram para trás",
+      "O instance store só guarda dados criptografados com chave KMS"
+    ],
+    "explanation": "Instance store é armazenamento em bloco temporário, em discos fisicamente ligados ao host; parar, hibernar ou encerrar a instância o libera, enquanto um reboot o preserva. Dados duráveis devem ficar em EBS, EFS ou S3. Os volumes não são apagados por agenda, um stop/start nunca muda a AZ da instância e a criptografia não afeta a persistência."
+  },
+  {
+    "id": "awsx-compute-lambda-init-reuse",
+    "title": "Setup caro dentro do handler do Lambda",
+    "question": "Uma função Lambda cria um novo client de banco e processa um arquivo de configuração de 30 MB dentro do handler a cada invocação. Com tráfego constante, a duração é muito maior que a própria query. Qual mudança é recomendada?",
+    "options": [
+      "Aumentar o timeout para que o setup sempre tenha tempo de terminar",
+      "Definir reserved concurrency para cada ambiente atender uma requisição",
+      "Dividir o trabalho em duas funções que se chamam diretamente",
+      "Fazer o setup fora do handler para que invocações warm o reutilizem"
+    ],
+    "explanation": "Código fora do handler roda uma vez por execution environment, na fase de init, e invocações warm reutilizam esses objetos; por isso a AWS recomenda inicializar clients do SDK e conexões ali. Um timeout maior não acelera nada, reserved concurrency só limita a escala, e encadear funções de forma síncrona adiciona latência e custo."
+  },
+  {
+    "id": "awsx-compute-ecs-task-role-vs-execution",
+    "title": "App no ECS negada mesmo com S3 na execution role",
+    "question": "Uma task do ECS baixa a imagem do ECR e envia logs ao CloudWatch sem problemas, mas o código da aplicação recebe AccessDenied em `s3:PutObject`. A permissão de S3 foi adicionada à task *execution* role. O que está errado?",
+    "options": [
+      "Tasks do ECS não chamam o S3 direto e precisam gravar via SQS",
+      "As chamadas da própria aplicação usam a task role, não a execution role",
+      "A permissão precisa estar na role da container instance",
+      "Mudanças no IAM só valem depois que o cluster é recriado"
+    ],
+    "explanation": "A task execution role é usada pelo agente do ECS ou pelo Fargate para baixar imagens, buscar secrets e gravar logs; a task role é aquela cujas credenciais chegam aos containers para as chamadas da aplicação. Depender da role da container instance compartilharia permissões entre todas as tasks (e ela não existe no Fargate), e mudanças no IAM valem sem recriar nada."
+  },
+  {
+    "id": "awsx-compute-eks-pod-identity",
+    "title": "Todos os pods do EKS usando a role do nó",
+    "question": "Em um cluster EKS com nós EC2, todos os pods chamam a AWS com a instance role do nó, que acumulou permissões de S3, DynamoDB e SQS para aplicações diferentes. Uma revisão de segurança aponta o problema. Qual é a correção recomendada?",
+    "options": [
+      "Dar a cada workload sua própria role via EKS Pod Identity ou IRSA",
+      "Guardar access keys de cada app em Kubernetes Secrets e montá-las",
+      "Rodar cada aplicação em um cluster próprio para separar as roles",
+      "Usar Roles do RBAC do Kubernetes para limitar as APIs AWS de cada pod"
+    ],
+    "explanation": "Com a role do nó, qualquer pod nele recebe a união das permissões de todas as aplicações. EKS Pod Identity ou IAM roles for service accounts (IRSA) mapeiam uma service account do Kubernetes para uma role do IAM com credenciais temporárias, permitindo enxugar a role do nó (e restringir o acesso dos pods ao IMDS). Chaves de longa duração são piores, um cluster por app é um exagero caro e o RBAC do Kubernetes controla a API do Kubernetes, não as APIs da AWS."
+  },
+  {
+    "id": "awsx-s3-intelligent-tiering-unknown-access",
+    "title": "Storage class para padrões de acesso imprevisíveis",
+    "question": "Um bucket de data lake guarda objetos cujo padrão de acesso é desconhecido e muda com o tempo. A equipe quer economia automática, sem taxas de recuperação nem regras de lifecycle ajustadas à mão. Qual storage class atende?",
+    "options": [
+      "S3 One Zone-Infrequent Access",
+      "S3 Glacier Flexible Retrieval",
+      "S3 Intelligent-Tiering",
+      "S3 Express One Zone"
+    ],
+    "explanation": "O S3 Intelligent-Tiering monitora o acesso e move cada objeto entre camadas automaticamente, sem cobrança de recuperação (apenas uma pequena taxa de monitoramento por objeto). One Zone-IA cobra recuperação e guarda dados em uma única AZ, Glacier Flexible Retrieval exige restore antes da leitura, e Express One Zone é uma classe de alto desempenho que custa mais, não menos."
+  },
+  {
+    "id": "awsx-s3-presigned-upload",
+    "title": "Uploads diretos de um app mobile",
+    "question": "Um app mobile precisa permitir que usuários enviem fotos direto para um bucket S3 privado, sem que o app tenha credenciais da AWS. Qual abordagem é a padrão?",
+    "options": [
+      "Tornar o prefixo de upload público para escrita e validar depois",
+      "Embutir a access key de um usuário IAM limitada a `s3:PutObject`",
+      "Passar todo upload por uma API que guarda o arquivo em memória",
+      "O backend emitir uma presigned URL de curta duração por upload"
+    ],
+    "explanation": "Uma presigned URL leva uma assinatura feita com as credenciais do backend, vale apenas para um objeto e por tempo limitado, e permite que o cliente envie direto ao S3. Escrita pública convida abuso, chaves embutidas em apps podem ser extraídas, e o proxy funciona, mas adiciona latência, pressão de memória e custo sem ganho de segurança."
+  },
+  {
+    "id": "awsx-s3-object-ownership-enforced",
+    "title": "Objetos enviados por parceiros que você não consegue ler",
+    "question": "Contas de parceiros enviam arquivos para o seu bucket. Alguns objetos não podem ser lidos pela sua conta, mesmo com permissão total no bucket, porque pertencem às contas que os enviaram. Qual configuração resolve isso daqui em diante?",
+    "options": [
+      "Definir o S3 Object Ownership como Bucket owner enforced, sem ACLs",
+      "Ativar o S3 Versioning para que cada versão pertença ao dono do bucket",
+      "Ativar criptografia padrão com SSE-S3 para todos os objetos",
+      "Exigir que parceiros enviem `x-amz-acl: public-read` em cada upload"
+    ],
+    "explanation": "Com ACLs habilitadas e a opção Object writer, a conta que envia é dona do objeto. Bucket owner enforced faz o dono do bucket ser dono de todos os objetos e desabilita ACLs, de modo que o acesso passa a ser controlado só por policies, que é o padrão recomendado pela AWS. Versioning e criptografia não mudam a propriedade, e uma ACL public-read vazaria os dados."
+  },
+  {
+    "id": "awsx-s3-batch-replication-existing",
+    "title": "Regra de replicação que ignorou objetos existentes",
+    "question": "Uma equipe adiciona uma regra de Cross-Region Replication a um bucket que já tem 200 milhões de objetos. Uma semana depois, só os objetos gravados após a criação da regra existem no destino. O que ela deve fazer?",
+    "options": [
+      "Esperar; a replicação preenche os objetos antigos em algumas semanas",
+      "Rodar o S3 Batch Replication para copiar os objetos já existentes",
+      "Recriar a regra com prioridade maior para forçar uma sincronização",
+      "Ativar o Transfer Acceleration na origem para acelerar a replicação"
+    ],
+    "explanation": "A replicação ao vivo só vale para objetos gravados depois que a configuração existe. Objetos existentes, objetos que falharam antes e objetos já replicados para outro destino são tratados com o S3 Batch Replication. A prioridade só resolve conflitos entre regras, e o Transfer Acceleration acelera uploads de clientes via edge locations, não a replicação."
+  },
+  {
+    "id": "awsx-s3-bucket-key-kms-throttling",
+    "title": "Throttling no KMS em um bucket SSE-KMS de alto volume",
+    "question": "Um serviço de ingestão grava cerca de 20.000 objetos pequenos por segundo em um bucket com SSE-KMS e uma customer managed key. Ele recebe erros de throttling do KMS e a fatura do KMS está alta. Qual mudança resolve as duas coisas com o menor redesenho?",
+    "options": [
+      "Migrar o bucket para criptografia client-side feita no SDK",
+      "Criar uma chave KMS por prefixo para dividir as requisições",
+      "Ativar S3 Bucket Keys para o S3 reutilizar uma chave do bucket",
+      "Usar uma chave KMS de outra região com quota maior"
+    ],
+    "explanation": "Com S3 Bucket Keys, o S3 obtém do KMS uma chave de curta duração no nível do bucket e deriva dela as data keys, reduzindo o tráfego (e o custo) de requisições ao KMS em até 99% sem mudar os clientes. As quotas de requisição do KMS são compartilhadas por todas as chaves da conta e região, então mais chaves não ajudam; o SSE-KMS exige chave na região do bucket, e criptografia client-side é um redesenho bem maior."
+  },
+  {
+    "id": "awsx-db-dynamodb-on-demand-spiky",
+    "title": "Modo de capacidade do DynamoDB para tráfego instável",
+    "question": "Uma nova aplicação com DynamoDB tem tráfego imprevisível, que fica ocioso por horas e depois tem picos fortes. A equipe não quer prever capacidade. Qual modo de capacidade atende?",
+    "options": [
+      "Modo provisioned com número fixo de unidades de leitura e escrita",
+      "Modo provisioned com reserved capacity comprada por um ano",
+      "Global tables em duas regiões para dividir os picos ao meio",
+      "Modo on-demand, cobrado por requisição e sem planejar capacidade"
+    ],
+    "explanation": "O modo on-demand escala com o tráfego e cobra por requisição de leitura e escrita, o que combina com cargas novas ou imprevisíveis. Capacidade provisioned fixa sofre throttling nos picos ou desperdiça dinheiro ociosa, reserved capacity é um compromisso para uso provisioned estável, e global tables servem para disponibilidade multi-região, não para planejamento de capacidade."
+  },
+  {
+    "id": "awsx-db-rds-pitr-creates-new-instance",
+    "title": "O que um point-in-time restore do RDS gera",
+    "question": "Alguém executou um `UPDATE` errado em um banco RDS for PostgreSQL de produção às 14:05. Os backups automáticos estão ativos com retenção de 7 dias. O que faz um point-in-time restore para 14:04?",
+    "options": [
+      "Volta a instância existente no lugar e mantém o endpoint",
+      "Cria uma nova instância de banco com os dados de 14:04",
+      "Restaura apenas as linhas alteradas pelo comando errado",
+      "Aplica o snapshot da noite anterior em uma read replica"
+    ],
+    "explanation": "O point-in-time restore usa snapshots automáticos e logs de transação para criar uma nova instância de banco, com novo endpoint, no horário escolhido; a instância de origem não é alterada. Depois você aponta a aplicação para ela ou copia de volta os dados necessários. O RDS não tem rollback no lugar nem restore por linha, e snapshots nunca são aplicados sobre réplicas."
+  },
+  {
+    "id": "awsx-db-gsi-eventual-consistency",
+    "title": "Item ausente logo após a escrita ao consultar um GSI",
+    "question": "Uma aplicação grava um item de usuário no DynamoDB e consulta imediatamente um global secondary index em `email` para encontrá-lo, às vezes sem resultado. Usar `ConsistentRead=true` na query retorna um erro de validação. Por quê?",
+    "options": [
+      "GSIs são atualizados de forma assíncrona e só aceitam leitura eventual",
+      "O GSI precisa de mais capacidade de escrita que a tabela base",
+      "Leituras fortemente consistentes em um GSI só estão disponíveis passando pelo DAX",
+      "É preciso uma condição na sort key antes de leituras fortes"
+    ],
+    "explanation": "O DynamoDB propaga escritas para global secondary indexes de forma assíncrona, e GSIs só suportam leituras eventualmente consistentes. Quando read-after-write importa, leia a tabela base pela chave primária com um `GetItem` fortemente consistente. O DAX é um cache eventualmente consistente, e nem capacidade nem condições de sort key habilitam leitura forte em um GSI."
+  },
+  {
+    "id": "awsx-db-rds-proxy-lambda-connections",
+    "title": "Pico de Lambda esgotando conexões do banco",
+    "question": "Uma função Lambda que usa RDS for MySQL escala para 800 execuções simultâneas durante uma promoção, e o banco começa a recusar conexões com \"Too many connections\". Qual mudança resolve melhor sem limitar o tráfego de forma rígida?",
+    "options": [
+      "Aumentar o timeout do Lambda para cada conexão durar menos",
+      "Abrir e fechar uma conexão nova em cada invocação",
+      "Colocar o Amazon RDS Proxy na frente para agrupar as conexões",
+      "Adicionar uma read replica e mandar as escritas para ela no pico"
+    ],
+    "explanation": "Cada execution environment do Lambda mantém sua própria conexão, então concorrência vira diretamente conexões no banco. O RDS Proxy mantém um pool e multiplexa muitas conexões de clientes em menos conexões com o banco. Um timeout maior mantém conexões por mais tempo, conectar a cada invocação aumenta a rotatividade e ainda chega ao mesmo pico, e read replicas não aceitam escritas."
+  },
+  {
+    "id": "awsx-db-dynamodb-optimistic-locking",
+    "title": "Atualização perdida entre dois writers no DynamoDB",
+    "question": "Dois workers leem o mesmo item do DynamoDB (`balance = 100`), cada um subtrai um valor diferente em memória e cada um chama `PutItem` com o resultado. Uma das atualizações se perde. Qual correção preserva as duas sem um lock global?",
+    "options": [
+      "Usar leituras fortemente consistentes (`ConsistentRead=true`) antes",
+      "Ativar DynamoDB Streams para reaplicar depois o valor sobrescrito",
+      "Mudar para capacidade provisioned para serializar escritas no item",
+      "Condicionar cada put a uma `version` inalterada e repetir se falhar"
+    ],
+    "explanation": "É uma corrida de read-modify-write. Optimistic locking adiciona uma `ConditionExpression` sobre um atributo de versão, então o writer desatualizado recebe `ConditionalCheckFailedException`, relê e tenta de novo (um `UpdateItem` com `SET` aritmético e uma condição também funciona). Leituras fortes não fecham a janela entre leitura e escrita, Streams apenas registram mudanças, e o modo de capacidade não serializa escritas."
+  },
+  {
+    "id": "awsx-cw-memory-needs-agent",
+    "title": "Sem métrica de memória para uma instância EC2",
+    "question": "Um dashboard de EC2 mostra CPUUtilization, rede e disco, mas não mostra uso de memória. Como levar métricas de memória para o CloudWatch?",
+    "options": [
+      "Ativar o detailed monitoring, que inclui memória a cada minuto",
+      "Instalar o CloudWatch agent na instância para publicar a memória",
+      "Ativar VPC Flow Logs e deduzir o uso de memória pelo padrão de tráfego",
+      "Mudar para um tipo Nitro, que reporta memória automaticamente"
+    ],
+    "explanation": "O uso de memória só é visível dentro do sistema operacional, então as métricas de hypervisor que o EC2 publica por padrão não o incluem; o CloudWatch agent coleta esse dado no SO. O detailed monitoring apenas aumenta a frequência das métricas existentes para um minuto, e nem Flow Logs nem o tipo de instância adicionam métricas de memória."
+  },
+  {
+    "id": "awsx-cw-metric-filter-error-alarm",
+    "title": "Alarme para linhas ERROR sem mudar código",
+    "question": "Uma aplicação grava logs JSON no CloudWatch Logs. A equipe quer um alarme quando surgirem mais de 20 eventos com `\"level\": \"ERROR\"` em 5 minutos, sem mudar o código. O que configurar?",
+    "options": [
+      "Um subscription filter que envia cada evento a um tópico SNS",
+      "Uma query salva do Logs Insights em um dashboard a cada 5 minutos",
+      "Um metric filter que conta eventos ERROR e um alarme nessa métrica",
+      "Uma retenção de 5 minutos para que erros expirados gerem um evento"
+    ],
+    "explanation": "Metric filters transformam eventos de log que casam com o padrão em uma métrica do CloudWatch, e um alarme comum pode usar o limite de 20 em um período de 5 minutos. Subscription filters enviam eventos para destinos como Lambda, Kinesis ou Firehose e não avaliam limites, uma query em dashboard não avisa ninguém, e retenção não tem relação com alarmes."
+  },
+  {
+    "id": "awsx-cw-treat-missing-data",
+    "title": "Alarme indo para INSUFFICIENT_DATA à noite",
+    "question": "Um alarme na métrica `Errors` de uma função Lambda (Sum em 5 minutos) vai para INSUFFICIENT_DATA durante a noite, quando a função não é invocada, e o plantão trata isso como incidente. Qual é a correção certa?",
+    "options": [
+      "Configurar o alarme para tratar dados ausentes como `notBreaching`",
+      "Reduzir o período para 10 segundos para sempre haver dados",
+      "Trocar a estatística de Sum para Average para preencher as lacunas de dados",
+      "Apagar e recriar o alarme toda manhã com um script"
+    ],
+    "explanation": "Sem invocações, o Lambda não publica pontos de dados, então o alarme não tem o que avaliar. Cada alarme pode definir como tratar dados ausentes, e `notBreaching` o mantém em OK quando o silêncio significa apenas ausência de tráfego. Um período menor ou outra estatística não criam dados que nunca foram publicados, e recriar alarmes só esconde o comportamento."
+  },
+  {
+    "id": "awsx-cw-metric-filter-not-retroactive",
+    "title": "Novo metric filter sem histórico",
+    "question": "Depois de um incidente, um engenheiro cria um metric filter para `PaymentDeclined` em um log group com 30 dias de logs e faz o gráfico da métrica na última semana. O gráfico está vazio, embora os logs tenham ocorrências. Por quê?",
+    "options": [
+      "Metric filters só casam texto puro, não eventos de log em JSON",
+      "O gráfico precisa do modo de alta resolução para mostrar filtros",
+      "Filtros rodam uma vez por dia, e os dados surgem após meia-noite UTC",
+      "Filtros só publicam dados para eventos posteriores à sua criação"
+    ],
+    "explanation": "Metric filters não são retroativos: publicam pontos de dados apenas para eventos ingeridos depois que o filtro existe. Para análise histórica, consulte os logs existentes com o CloudWatch Logs Insights. Metric filters suportam padrões JSON, configurações de resolução não preenchem o passado, e os filtros são avaliados continuamente conforme os eventos chegam."
+  },
+  {
+    "id": "awsx-cw-embedded-metric-format",
+    "title": "Chamadas PutMetricData deixando um Lambda lento",
+    "question": "Uma função Lambda com muito tráfego chama `PutMetricData` de forma síncrona em toda invocação para registrar métricas de negócio por requisição, o que adiciona latência e alguns erros de throttling. Qual abordagem o CloudWatch oferece para isso?",
+    "options": [
+      "Gravar métricas em Embedded Metric Format para o CloudWatch extrair",
+      "Passar a chamada `PutMetricData` para uma segunda função a cada requisição",
+      "Gravar as métricas em uma tabela DynamoDB e apontar um dashboard para ela",
+      "Aumentar a memória da função para cada `PutMetricData` responder antes"
+    ],
+    "explanation": "O Embedded Metric Format (EMF) permite que o código escreva linhas de log JSON estruturadas que o CloudWatch Logs transforma em métricas de forma assíncrona, sem chamadas de API de métricas na função. Uma segunda função síncrona continua pagando a latência, dashboards não exibem itens do DynamoDB como métricas do CloudWatch, e mais memória não elimina o throttling da API."
+  },
+  {
+    "id": "awsx-wa-six-pillars",
+    "title": "Os seis pilares do Well-Architected",
+    "question": "Qual lista corresponde aos seis pilares do AWS Well-Architected Framework?",
+    "options": [
+      "Excelência operacional, segurança, disponibilidade, escalabilidade, otimização de custos, sustentabilidade",
+      "Segurança, confiabilidade, eficiência de desempenho, otimização de custos, governança, observabilidade",
+      "Excelência operacional, segurança, confiabilidade, eficiência de desempenho, otimização de custos, sustentabilidade",
+      "Excelência operacional, conformidade, confiabilidade, eficiência de desempenho, otimização de custos, portabilidade"
+    ],
+    "explanation": "Os seis pilares são excelência operacional, segurança, confiabilidade, eficiência de desempenho, otimização de custos e sustentabilidade (este adicionado em 2021). Disponibilidade e escalabilidade são tratadas dentro de confiabilidade e eficiência de desempenho, enquanto governança, observabilidade, conformidade e portabilidade são preocupações cobertas pelos pilares, não pilares próprios."
+  },
+  {
+    "id": "awsx-wa-small-reversible-changes",
+    "title": "Releases trimestrais do tipo big bang",
+    "question": "Uma equipe publica um grande release por trimestre. Cada release leva um fim de semana e um runbook manual de 40 etapas, e o rollback significa restaurar o banco a partir de backup. Qual princípio de design de excelência operacional do Well-Architected isso viola mais diretamente?",
+    "options": [
+      "Fazer mudanças frequentes, pequenas e reversíveis",
+      "Parar de adivinhar a necessidade de capacidade",
+      "Escalar horizontalmente para aumentar a disponibilidade agregada do workload",
+      "Medir a eficiência geral"
+    ],
+    "explanation": "Excelência operacional pede mudanças frequentes, pequenas e reversíveis, entregues por automação, o que reduz o raio de impacto e torna o rollback rápido. Um release raro, enorme e manual, com rollback via restore de backup, é o oposto. As outras opções são princípios reais, mas dos pilares de confiabilidade e otimização de custos, e não tratam da prática de release."
+  },
+  {
+    "id": "awsx-wa-review-improvement-plan",
+    "title": "O que fazer com os riscos altos de uma revisão",
+    "question": "Uma revisão Well-Architected de um workload no AWS Well-Architected Tool termina com 14 high-risk issues (HRIs). Qual é o próximo passo esperado?",
+    "options": [
+      "Tratar a revisão como auditoria reprovada e congelar releases até zerar os HRIs",
+      "Priorizar os HRIs em um improvement plan e acompanhar o progresso com milestones",
+      "Responder de novo às perguntas até a ferramenta não mostrar HRIs e arquivar",
+      "Abrir um caso no AWS Support para que a AWS corrija os HRIs na conta"
+    ],
+    "explanation": "Uma revisão Well-Architected é um mecanismo de aprendizado e priorização, não uma auditoria de aprovado/reprovado: a ferramenta monta um improvement plan a partir dos riscos identificados, e milestones registram o estado do workload ao longo do tempo para tornar o progresso visível. Manipular respostas esconde o risco real, um congelamento geral de releases não é o que o framework prescreve, e a AWS não corrige o seu workload por você."
+  },
+  {
+    "id": "awsx-wa-overengineered-dr",
+    "title": "DR active-active para uma ferramenta com RTO de 24 horas",
+    "question": "Uma ferramenta interna de relatórios tem RTO de 24 horas e RPO de 12 horas acordados com o negócio. Ela roda active-active em duas regiões, com frotas completas e um banco cross-region nas duas. O que uma revisão Well-Architected provavelmente apontaria?",
+    "options": [
+      "Nada; active-active é sempre a opção mais bem arquitetada",
+      "O RPO é rigoroso demais para um banco relacional entre regiões",
+      "Active-active precisa de uma terceira região para quórum nesse RTO",
+      "O desenho de DR excede muito os objetivos e desperdiça custo"
+    ],
+    "explanation": "O framework pede que você escolha a estratégia de DR que atende aos objetivos de recuperação do workload; com RTO e RPO na casa das horas, backup and restore (ou pilot light) basta, por uma fração do custo. Pagar por active-active aqui é um achado de otimização de custos. Active-active não é sempre o melhor, um RPO de 12 horas é fácil de atingir, e quórum não é requisito desse padrão."
+  },
+  {
+    "id": "awsx-wa-keep-people-away-from-data",
+    "title": "Correções manuais com SQL em produção",
+    "question": "Para corrigir registros errados, engenheiros de suporte abrem com frequência uma sessão no bastion até o banco de produção e executam comandos `UPDATE` escritos à mão sobre dados de clientes. Qual mudança reflete melhor os princípios de design do pilar de segurança?",
+    "options": [
+      "Trocar o SQL avulso por runbooks automatizados, revisados e auditados",
+      "Dar a cada engenheiro um superusuário próprio no banco para rastrear as ações",
+      "Trocar a chave SSH do bastion todo mês e manter o processo atual",
+      "Mover o banco para uma sub-rede pública para dispensar o bastion"
+    ],
+    "explanation": "\"Manter as pessoas longe dos dados\" pede mecanismos que reduzam ou eliminem o acesso direto e o processamento manual de dados; automação revisada diminui o risco de erro e deixa trilha de auditoria. Superusuários individuais melhoram a rastreabilidade, mas mantêm o acesso direto arriscado, trocar a chave não muda o processo e uma sub-rede pública aumenta a exposição."
+  },
+  {
+    "id": "awsx-wa-sustainability-demand",
+    "title": "Relatórios horários que ninguém lê",
+    "question": "Um pipeline regera todos os relatórios a cada hora em uma frota fixa dimensionada para o pico, enquanto os usuários abrem os relatórios cerca de uma vez por semana, e todos os dados intermediários ficam para sempre no S3 Standard. Qual mudança se alinha melhor ao pilar de sustentabilidade?",
+    "options": [
+      "Usar instâncias maiores para cada execução horária terminar antes",
+      "Gerar sob demanda, escalar a zero quando ocioso e expirar dados antigos",
+      "Rodar uma cópia do pipeline em outra região para dividir o consumo",
+      "Manter o agendamento horário e mover todos os dados para S3 Standard-IA"
+    ],
+    "explanation": "O pilar de sustentabilidade pede alinhar o trabalho à demanda real, maximizar a utilização e remover dados desnecessários, o que reduz os recursos consumidos pelo workload. Instâncias maiores continuam fazendo trabalho inútil a cada hora, uma segunda região dobra a pegada, e uma storage class mais barata reduz custo, mas mantém o processamento desperdiçado e os dados sem uso."
+  },
+  {
+    "id": "awsx-wa-s3-prefix-throughput",
+    "title": "503 Slow Down em um único prefixo quente do S3",
+    "question": "Um serviço de telemetria grava cerca de 9.000 objetos por segundo, todos sob o prefixo `ingest/current/`, e recebe respostas HTTP 503 Slow Down intermitentes do S3. Qual mudança segue melhor a orientação de desempenho da AWS?",
+    "options": [
+      "Ativar o Transfer Acceleration para o bucket aceitar mais requisições",
+      "Pedir ao AWS Support para aumentar a quota de PUT por bucket da conta",
+      "Distribuir as chaves em mais prefixos e repetir 503 com backoff exponencial",
+      "Usar SSE-KMS para que as escritas sigam um caminho escalado à parte"
+    ],
+    "explanation": "O S3 suporta pelo menos 3.500 requisições PUT/COPY/POST/DELETE por segundo por prefixo particionado, sem limite de quantidade de prefixos, e retorna 503 Slow Down enquanto escala; distribuir as chaves em prefixos e repetir com backoff é o padrão documentado. O Transfer Acceleration acelera transferências de longa distância, não existe quota por bucket para aumentar, e o SSE-KMS adiciona chamadas ao KMS em vez de capacidade."
+  },
+  {
+    "id": "awsx-wa-safe-deployment-waves",
+    "title": "Uma mudança de configuração ruim e todas as regiões fora",
+    "question": "Um pipeline enviou uma mudança de configuração para as 12 regiões de uma vez, sem alarmes ligados ao deploy. Um bug nela derrubou o serviço em todo lugar em minutos. Qual prática do Well-Architected teria limitado o impacto mais diretamente?",
+    "options": [
+      "Exigir aprovação de dois engenheiros sênior em cada pull request",
+      "Agendar todo deploy fora do horário de pico para afetar menos usuários",
+      "Agrupar mudanças em releases mensais para o pipeline rodar menos",
+      "Implantar de forma progressiva, com bake time e rollback por alarme"
+    ],
+    "explanation": "Estratégias de deploy seguro (primeiro one-box ou canary, depois ondas de AZs ou regiões, com bake time e rollback automático por alarme) limitam o raio de impacto de uma mudança ruim a uma pequena fatia. Mais aprovadores podem deixar passar o mesmo bug, o horário fora de pico ainda quebra todas as regiões, e releases maiores e mais raros tornam cada falha pior, não menor."
+  },
+  {
+    "id": "awsx-cost-activate-allocation-tags",
+    "title": "Tag ausente no Cost Explorer",
+    "question": "Todos os recursos têm a tag `CostCenter`, mas ela não aparece como opção de agrupamento no Cost Explorer. Qual etapa está faltando?",
+    "options": [
+      "Ativar `CostCenter` como cost allocation tag no Billing",
+      "Recriar os recursos, pois tags adicionadas depois não são cobradas",
+      "Ativar o AWS Config para copiar as tags para os dados de cobrança",
+      "Renomear a tag para `aws:CostCenter`, o prefixo exigido no billing"
+    ],
+    "explanation": "Tags definidas pelo usuário só aparecem no Cost Explorer e nos relatórios de custo depois de ativadas como cost allocation tags, e a ativação pode levar até 24 horas e não é retroativa. Tags adicionadas após a criação funcionam normalmente depois de ativadas, o AWS Config não participa disso, e o prefixo `aws:` é reservado para tags geradas pela AWS."
+  },
+  {
+    "id": "awsx-cost-compute-savings-plan",
+    "title": "Compromisso que resiste a mudanças de família e serviço",
+    "question": "Uma empresa vai migrar cargas estáveis de instâncias EC2 m5 para instâncias Graviton e parte para Fargate no próximo ano, e pode mudar de região. Qual compromisso mantém os descontos em todas essas mudanças?",
+    "options": [
+      "Um EC2 Instance Savings Plan da família m5 nesta região",
+      "Standard Reserved Instances de m5 com prazo de três anos",
+      "Um Compute Savings Plan com compromisso de gasto por hora",
+      "Spot Instances garantidas por uma capacity reservation de um ano"
+    ],
+    "explanation": "Compute Savings Plans se aplicam automaticamente entre famílias, tamanhos, regiões e sistemas operacionais, e também cobrem Fargate e Lambda. EC2 Instance Savings Plans e Standard RIs ficam presos a uma família (e região), então migrar para Graviton ou Fargate os deixa sem uso, e capacidade Spot não pode ser comprada como reserva de um ano."
+  },
+  {
+    "id": "awsx-cost-budgets-forecast-alert",
+    "title": "Alerta antes de o gasto mensal passar do limite",
+    "question": "O financeiro quer um e-mail assim que a AWS previr que o gasto do time de dados neste mês vai passar de US$ 20.000, antes de isso acontecer. O que você deve configurar?",
+    "options": [
+      "Um alarme de billing do CloudWatch em `EstimatedCharges` a US$ 20.000",
+      "Um cost budget do AWS Budgets para o time com alerta de gasto previsto",
+      "Um relatório do Cost Explorer enviado no primeiro dia de cada mês",
+      "Uma verificação do Trusted Advisor que avisa se o gasto superar o mês anterior"
+    ],
+    "explanation": "O AWS Budgets pode alertar sobre gasto previsto e também real, e pode ser filtrado para um time por tag, conta ou cost category. O alarme de billing em `EstimatedCharges` dispara sobre cobranças já acumuladas da conta inteira, relatórios do Cost Explorer olham para trás e o Trusted Advisor não oferece limites de orçamento."
+  },
+  {
+    "id": "awsx-cost-rightsize-before-commit",
+    "title": "Comprar compromissos antes de fazer right-sizing",
+    "question": "Uma equipe compra EC2 Instance Savings Plans de três anos cobrindo toda a frota atual e só depois revisa o Compute Optimizer, que mostra a maioria das instâncias abaixo de 15% de CPU. O que está errado nessa ordem?",
+    "options": [
+      "Nada; Savings Plans diminuem sozinhos quando as instâncias encolhem",
+      "O Compute Optimizer ignora instâncias já cobertas por Savings Plans",
+      "Savings Plans impedem trocar o tipo de instância até o fim do prazo",
+      "O compromisso cobre desperdício, e o downsizing o deixa ocioso"
+    ],
+    "explanation": "Primeiro ajuste o tamanho, depois assuma o compromisso: um Savings Plan é um compromisso fixo de gasto por hora, então após o downsizing a equipe continua pagando pela parte sem uso. Savings Plans nunca diminuem sozinhos, o Compute Optimizer analisa instâncias cobertas como qualquer outra, e Savings Plans não impedem mudanças de instância; apenas deixam de casar com um uso que não existe mais."
+  },
+  {
+    "id": "awsx-cost-lambda-memory-tuning",
+    "title": "Mais memória no Lambda pode baixar a conta",
+    "question": "Uma função Lambda limitada por CPU roda com 128 MB e leva 8 segundos por invocação. Um engenheiro argumenta que aumentar a memória só pode aumentar a conta. Por que isso não é necessariamente verdade?",
+    "options": [
+      "O Lambda cobra só por invocação, então a memória não altera o preço",
+      "A CPU cresce com a memória, e execuções mais curtas compensam a taxa",
+      "Memória acima de 1.769 MB tem preço menor por GB-segundo",
+      "Funções com mais memória ficam isentas da cobrança por requisição"
+    ],
+    "explanation": "O Lambda aloca CPU proporcionalmente à memória e cobra pela duração vezes a memória configurada, então uma função limitada por CPU que fica proporcionalmente mais rápida pode custar o mesmo ou menos e ainda reduzir a latência; meça com um teste de power tuning. Duração e memória contam, o preço por GB-segundo não cai em tamanhos maiores, e a cobrança por requisição sempre se aplica."
+  },
+  {
+    "id": "awsx-cost-cloudwatch-logs-retention",
+    "title": "CloudWatch Logs entre os maiores custos",
+    "question": "O CloudWatch Logs virou um dos três maiores itens da fatura. A maioria dos log groups usa a retenção padrão \"Never expire\", os serviços logam em DEBUG em produção e os logs são lidos principalmente para análise forense de incidentes. Qual conjunto de mudanças reduz melhor o custo?",
+    "options": [
+      "Definir retenção, logar em INFO e usar Infrequent Access nos logs forenses",
+      "Apagar todos os log groups toda semana e depender só de métricas para investigar",
+      "Enviar todos os logs para outra região onde a ingestão é mais barata",
+      "Desligar a criptografia KMS dos log groups, o maior custo da ingestão"
+    ],
+    "explanation": "A retenção limita o crescimento do armazenamento, reduzir a verbosidade corta a ingestão (o custo dominante), e a classe de log Infrequent Access, escolhida na criação do log group, reduz o preço de ingestão para logs usados sobretudo em consultas pontuais e forense. Apagar tudo semanalmente perde evidências, enviar para outra região adiciona custo de transferência, e a criptografia não é o que gera a cobrança de ingestão."
+  },
+  {
+    "id": "awsx-cost-glacier-small-objects",
+    "title": "Arquivar milhões de objetos minúsculos aumentou a conta",
+    "question": "Um bucket tem 500 milhões de objetos de log com média de 4 KB. Uma regra de lifecycle com filtro de tamanho que sobrepõe o mínimo padrão move todos para o S3 Glacier Deep Archive, e a fatura seguinte sobe muito. O que explica isso?",
+    "options": [
+      "O Deep Archive cobra no mínimo 1 TB por bucket, independentemente do uso",
+      "As transições copiam cada objeto e as duas cópias são cobradas por 180 dias",
+      "Requisições de transição e metadados por objeto superam a economia",
+      "O Deep Archive exige versioning, que mantém todas as cópias antigas cobradas"
+    ],
+    "explanation": "Transições de lifecycle são cobradas por objeto, e cada objeto arquivado no Glacier Flexible Retrieval ou Deep Archive leva um overhead fixo de metadados (8 KB cobrados como S3 Standard mais 32 KB na tarifa de arquivo), muito maior que um conteúdo de 4 KB. Por isso o S3, por padrão, não move mais objetos menores que 128 KB; agregue objetos pequenos em arquivos maiores antes. Não há mínimo por bucket, cobrança dupla por transição nem exigência de versioning."
+  },
+  {
+    "id": "awsx-cost-spot-diversification",
+    "title": "Frota Spot presa a um único tipo de instância",
+    "question": "Uma camada web stateless roda em Spot por um Auto Scaling group que só permite `c5.xlarge` em uma AZ, com a estratégia de alocação `lowest-price`. Interrupções frequentemente derrubam a capacidade abaixo do mínimo. Qual mudança melhora a disponibilidade mantendo a economia do Spot?",
+    "options": [
+      "Definir um preço máximo de Spot bem maior para sofrer menos interrupções",
+      "Usar um tipo maior, como `c5.24xlarge`, para menos nós serem afetados",
+      "Mover o grupo para uma AZ de outra região com mais capacidade livre",
+      "Permitir vários tipos de instância em várias AZs com `price-capacity-optimized`"
+    ],
+    "explanation": "Interrupções de Spot dependem da capacidade de cada pool, então usar muitos tipos de instância e AZs com a estratégia `price-capacity-optimized` (o padrão recomendado pela AWS) escolhe pools profundos, com baixa interrupção e preço baixo. Um preço máximo maior não protege contra retomada de capacidade, um único tipo grande concentra o risco em um pool, e uma única AZ, em qualquer região, mantém a mesma fraqueza."
+  },
+  {
+    "id": "awsx-sec-root-user-practices",
+    "title": "Como lidar com o usuário root da conta AWS",
+    "question": "Qual prática a AWS recomenda para o usuário root de uma conta AWS?",
+    "options": [
+      "Usá-lo na administração diária, mas apenas a partir da rede do escritório",
+      "Protegê-lo com MFA, sem access keys, e usá-lo só em tarefas exclusivas de root",
+      "Compartilhar a senha com toda a escala de plantão para que esteja disponível em emergências",
+      "Criar access keys de root e guardá-las no Secrets Manager para automação"
+    ],
+    "explanation": "O usuário root tem acesso irrestrito e não pode ser limitado por policies do IAM, então a AWS recomenda MFA forte, nenhuma access key de root e uso apenas nas poucas tarefas que o exigem, com o trabalho diário feito via roles ou IAM Identity Center. A localização de rede não reduz seu poder, compartilhar a senha destrói a rastreabilidade, e access keys de root são exatamente o que atacantes procuram."
+  },
+  {
+    "id": "awsx-sec-guardduty-crypto-mining",
+    "title": "Detectar uma instância falando com um pool de mineração",
+    "question": "Uma instância EC2 começa a se comunicar com um pool conhecido de mineração de criptomoedas. Qual serviço foi feito para detectar isso automaticamente analisando fontes como VPC Flow Logs, logs de consultas DNS e eventos do CloudTrail?",
+    "options": [
+      "AWS Config",
+      "Amazon Inspector",
+      "AWS Trusted Advisor",
+      "Amazon GuardDuty"
+    ],
+    "explanation": "O GuardDuty é o serviço gerenciado de detecção de ameaças: analisa CloudTrail, VPC Flow Logs e logs de DNS (além de fontes opcionais) com inteligência de ameaças e detecção de anomalias, e gera findings como atividade de mineração. O AWS Config registra e avalia a configuração de recursos, o Inspector procura vulnerabilidades de software nos workloads, e o Trusted Advisor compara a conta com boas práticas."
+  },
+  {
+    "id": "awsx-sec-session-manager-close-ssh",
+    "title": "SSH aberto para o mundo para acesso remoto",
+    "question": "Um security group permite SSH (porta 22) de `0.0.0.0/0` para que engenheiros acessem as instâncias de casa. Qual mudança elimina melhor a exposição e mantém o acesso ao shell auditável?",
+    "options": [
+      "Usar o Session Manager, fechar a porta 22 e registrar cada sessão",
+      "Mudar o SSH para a porta 2222 para os scanners não o acharem",
+      "Manter a porta 22 aberta, mas exigir chaves RSA mais longas",
+      "Dar a cada instância um Elastic IP em uma sub-rede pública"
+    ],
+    "explanation": "O Session Manager dá acesso ao shell pelo agente do SSM sem portas de entrada, autoriza via IAM e pode registrar as sessões no S3 ou no CloudWatch Logs. Outra porta é só obscuridade, chaves mais fortes ainda deixam o serviço exposto à internet, e Elastic IPs públicos aumentam a exposição em vez de reduzi-la."
+  },
+  {
+    "id": "awsx-sec-github-oidc-broad-sub",
+    "title": "Trust policy do OIDC do GitHub ampla demais",
+    "question": "Uma role de deploy de produção confia no provedor OIDC do GitHub com estas condições:\n`\"StringEquals\": {\"token.actions.githubusercontent.com:aud\": \"sts.amazonaws.com\"}, \"StringLike\": {\"token.actions.githubusercontent.com:sub\": \"repo:acme/*\"}`\nQual é o problema?",
+    "options": [
+      "Roles OIDC devem ser assumidas com `sts:AssumeRole`, não via web identity",
+      "O valor de `aud` precisa ser o ARN da role, senão o STS rejeita tokens",
+      "Qualquer workflow de qualquer repo `acme`, em qualquer branch, faz deploy",
+      "`StringLike` não é suportado em claims OIDC, então a role fica inutilizável"
+    ],
+    "explanation": "A claim `sub` identifica o repositório e a ref ou o environment, então `repo:acme/*` permite que todo repositório da organização, a partir de qualquer branch ou workflow de pull request, assuma a role de produção. Restrinja ao repositório de deploy e a uma branch ou environment protegido (por exemplo `repo:acme/deploy:environment:prod`). O valor `sts.amazonaws.com` em `aud` está correto, `AssumeRoleWithWebIdentity` é a chamada certa e `StringLike` é suportado."
+  },
+  {
+    "id": "awsx-sec-scp-management-account",
+    "title": "SCP que não impediu um admin de desligar o CloudTrail",
+    "question": "Uma SCP que nega `cloudtrail:StopLogging` e `cloudtrail:DeleteTrail` está anexada ao root da organização. Em uma auditoria, uma role de admin na management account para a trail da organização com sucesso. Por quê?",
+    "options": [
+      "SCPs anexadas ao root só valem para contas criadas depois dela",
+      "SCPs não afetam usuários nem roles da management account",
+      "Uma policy `AdministratorAccess` sobrepõe denies explícitos de SCP",
+      "Ações do CloudTrail não podem ser restringidas por policies da organização"
+    ],
+    "explanation": "SCPs restringem apenas member accounts; nada na management account é limitado por elas, por isso a AWS recomenda manter workloads e acessos amplos fora dessa conta. SCPs no root valem para todas as member accounts existentes, um deny explícito de SCP vence qualquer allow do IAM nessas contas, e ações do CloudTrail podem ser negadas por SCPs."
+  },
+  {
+    "id": "awsx-sec-s3-securetransport-deny",
+    "title": "Bucket policy que não força HTTPS",
+    "question": "Para forçar HTTPS, uma bucket policy contém apenas:\n`{\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"arn:aws:iam::111122223333:root\"}, \"Action\": \"s3:GetObject\", \"Resource\": \"arn:aws:s3:::reports/*\", \"Condition\": {\"Bool\": {\"aws:SecureTransport\": \"true\"}}}`\nRoles dessa conta cujas identity policies permitem `s3:GetObject` continuam lendo objetos por HTTP puro. O que resolve?",
+    "options": [
+      "Adicionar um `Deny` explícito quando `aws:SecureTransport` for `false`",
+      "Trocar o operador de condição de `Bool` para `StringEquals`",
+      "Ativar a criptografia padrão para o bucket recusar HTTP puro",
+      "Trocar `:root` pelo ARN de cada role para que a condição passe a ser avaliada"
+    ],
+    "explanation": "Na mesma conta, o acesso é concedido se a identity policy ou a bucket policy o permitir, então um Allow condicional não bloqueia requisições que outra policy já permite. Só um Deny explícito com `aws:SecureTransport` = `false` (cobrindo o bucket e seus objetos) se sobrepõe a esses allows. Mudar o operador ou o principal não altera essa lógica, e a criptografia padrão protege dados em repouso, não em trânsito."
+  },
+  {
+    "id": "awsx-sec-cloudtrail-org-log-archive",
+    "title": "Logs de auditoria em que os investigadores não confiavam",
+    "question": "Cada conta tem sua própria trail do CloudTrail em uma única região, entregando para um bucket na mesma conta, sem validação de arquivos de log. Depois do comprometimento de um admin, os investigadores não confiam nos logs. Qual desenho resolve melhor?",
+    "options": [
+      "Manter as trails por conta, mas estender a retenção no S3 para dez anos",
+      "Copiar os logs de cada conta toda noite para um volume EBS em um bastion",
+      "Substituir a trail de cada conta pela detecção de anomalias do CloudTrail Insights",
+      "Uma organization trail multi-região para uma conta de log archive, com validação"
+    ],
+    "explanation": "Uma organization trail captura todas as contas e regiões, entregar para uma conta separada e restrita de log archive impede que um admin comprometido de workload altere ou apague os logs, e a validação de arquivos de log gera digests que provam a integridade (o S3 Object Lock pode adicionar imutabilidade). Retenção maior não impede adulteração, um volume no bastion fica ao alcance das mesmas pessoas, e o Insights detecta atividade incomum de API, sem substituir as trails."
+  },
+  {
+    "id": "awsx-sec-imdsv2-ssrf-defense",
+    "title": "Proteger credenciais da instância contra uma falha de SSRF",
+    "question": "Uma aplicação web em EC2 tem uma falha de server-side request forgery (SSRF) que permite a um usuário fazer o servidor buscar URLs arbitrárias. Enquanto a correção no código não sai, a equipe quer defesa em profundidade para as credenciais da instance role expostas pelo serviço de metadados. Qual mudança de configuração é mais direta?",
+    "options": [
+      "Passar as permissões da role para access keys no config da aplicação",
+      "Bloquear a porta 443 de saída para as credenciais não serem usadas",
+      "Exigir IMDSv2 (`HttpTokens=required`) e manter um hop limit baixo",
+      "Ativar criptografia no EBS para o serviço de metadados devolver cifrado"
+    ],
+    "explanation": "O IMDSv2 exige um token de sessão obtido com uma requisição PUT com um header especial, algo que um SSRF típico, que só controla a URL de um GET, não consegue produzir, e um hop limit de 1 impede que o token saia da instância. Access keys estáticas são piores, bloquear a 443 quebra a aplicação e não impede o uso das credenciais em outro lugar, e criptografia de EBS não tem relação com respostas de metadados."
+  },
+  {
+    "id": "awsx-rel-aws-backup-central-plans",
+    "title": "Centralizar backups entre serviços",
+    "question": "Uma empresa faz backup de RDS, EBS, DynamoDB e EFS com quatro scripts e agendamentos diferentes. Qual serviço centraliza agendamento, retenção e monitoramento de backups entre esses serviços?",
+    "options": [
+      "AWS DataSync, com tarefas de transferência agendadas",
+      "Amazon S3 Replication, com regras de replicação",
+      "AWS Backup, com backup plans e vaults",
+      "AWS Elastic Disaster Recovery, com configurações de launch"
+    ],
+    "explanation": "O AWS Backup aplica backup plans baseados em políticas (agendamento, retenção, regras de cópia) a recursos de vários serviços e mostra o status dos jobs em um só lugar. O DataSync move arquivos entre sistemas de armazenamento, o S3 Replication copia objetos entre buckets e o Elastic Disaster Recovery replica servidores continuamente para failover, sem gerenciar backups."
+  },
+  {
+    "id": "awsx-rel-asg-elb-health-checks",
+    "title": "Instâncias travadas que o Auto Scaling nunca substitui",
+    "question": "Um Auto Scaling group atrás de um ALB mantém instâncias cuja aplicação travou: o ALB as marca como unhealthy e para de enviar tráfego, mas o grupo nunca as substitui, e a capacidade útil diminui. Qual é a correção?",
+    "options": [
+      "Aumentar o intervalo do health check do ALB para dar mais tempo",
+      "Ativar o detailed monitoring para o grupo ver CPU a cada minuto",
+      "Criar uma ação agendada que substitua todas as instâncias à noite",
+      "Ativar os health checks do Elastic Load Balancing no grupo"
+    ],
+    "explanation": "Por padrão, um Auto Scaling group usa apenas os status checks do EC2, que passam enquanto o SO roda, mesmo com a aplicação travada. Ativar os health checks do ELB faz o grupo tratar como unhealthy as instâncias que falham nos checks do target group e substituí-las. Um intervalo maior só atrasa a detecção, métricas de CPU não marcam instâncias como unhealthy, e a troca noturna deixa horas de capacidade perdida."
+  },
+  {
+    "id": "awsx-rel-nat-gateway-per-az",
+    "title": "Um NAT gateway para três Availability Zones",
+    "question": "Sub-redes privadas em três AZs roteiam `0.0.0.0/0` para um único NAT gateway na AZ a. O que acontece se a AZ a sofrer uma falha, e qual é o desenho recomendado?",
+    "options": [
+      "O NAT gateway faz failover sozinho para a AZ b, então o desenho está correto",
+      "A saída falha em todas as AZs; use um NAT gateway por AZ com rotas por AZ",
+      "Só a AZ a perde a saída; as outras usam o internet gateway como reserva",
+      "O tráfego vai para VPC endpoints, e só as chamadas de API da AWS seguem"
+    ],
+    "explanation": "Um NAT gateway é um recurso zonal, redundante apenas dentro da própria AZ, então as sub-redes de todas as AZs que dependem dele perdem a saída para a internet quando essa AZ falha. A AWS recomenda um NAT gateway em cada AZ, com a route table privada de cada AZ apontando para o gateway local, o que também evita cobrança de tráfego entre AZs. Sub-redes privadas não têm rota de reserva para um internet gateway, e endpoints só existem se você os criou."
+  },
+  {
+    "id": "awsx-rel-retry-amplification",
+    "title": "Retries em todas as camadas sufocam um banco lento",
+    "question": "Uma requisição passa por cinco camadas de serviço, e cada camada repete imediatamente chamadas com falha três vezes. Quando o banco fica lento, sua carga cresce em ordens de grandeza e ele nunca se recupera. Qual mudança ataca melhor a causa?",
+    "options": [
+      "Repetir em uma única camada, com backoff exponencial limitado e jitter",
+      "Aumentar o número de retries de cada camada para as requisições darem certo",
+      "Reduzir todos os timeouts para 10 ms para detectar falhas antes",
+      "Adicionar servidores em cada camada para enviar retries em paralelo"
+    ],
+    "explanation": "Retries se multiplicam entre camadas: com até quatro tentativas por camada, uma requisição de usuário pode virar 4^5 = 1.024 chamadas ao banco justamente quando ele está sofrendo. O pilar de confiabilidade recomenda limitar retries, usar backoff exponencial com jitter e repetir em um único ponto da pilha. Mais retries, timeouts minúsculos ou mais chamadores só adicionam carga à dependência sobrecarregada."
+  },
+  {
+    "id": "awsx-rel-backup-vault-lock-cross-account",
+    "title": "Backups apagados junto com o workload",
+    "question": "Um atacante com credenciais de admin em uma conta de produção apagou o workload e todos os recovery points do AWS Backup guardados nessa mesma conta. Qual desenho teria mantido os backups recuperáveis?",
+    "options": [
+      "Fazer backup a cada hora em vez de diariamente, no mesmo vault",
+      "Criptografar o vault com uma AWS managed key em vez de uma CMK",
+      "Copiar backups para outra conta e travar os vaults com Vault Lock",
+      "Marcar os recovery points com a tag `do-not-delete` para os admins"
+    ],
+    "explanation": "Copiar recovery points para um vault em outra conta os tira do alcance da conta comprometida, e o AWS Backup Vault Lock em compliance mode impede que qualquer pessoa, mesmo usuários privilegiados, os apague antes do fim da retenção. Backups mais frequentes ficam no mesmo vault vulnerável, o tipo de chave não impede a exclusão, e tags não impõem nada."
+  },
+  {
+    "id": "awsx-rel-graceful-degradation",
+    "title": "Recomendações opcionais quebrando a página de produto",
+    "question": "Uma página de produto chama um serviço de recomendações de forma síncrona e retorna HTTP 500 sempre que esse serviço estoura o timeout, embora as recomendações sejam opcionais. O que o pilar de confiabilidade recomenda?",
+    "options": [
+      "Aumentar o timeout das recomendações para 60 segundos",
+      "Repetir a chamada de recomendações em loop até dar certo e então renderizar",
+      "Juntar as recomendações ao serviço de produto para restar um só deploy",
+      "Torná-la uma dependência soft: timeout curto e renderizar sem ela"
+    ],
+    "explanation": "Graceful degradation transforma dependências hard em soft: chame o serviço opcional com timeout curto e, se falhar, renderize a página sem recomendações ou com valores padrão em cache. Um timeout de 60 segundos prende threads e frustra usuários, repetir até dar certo amplia a falha, e juntar serviços tira um salto de rede, mas não o acoplamento."
+  },
+  {
+    "id": "awsx-rel-static-stability-az-loss",
+    "title": "Depender do Auto Scaling para repor uma AZ perdida",
+    "question": "Um serviço roda 6 instâncias em três AZs e precisa das 6 para aguentar o pico. O plano para falha de AZ é o Auto Scaling lançar substitutas nas AZs restantes. Qual é a fraqueza e o que o pilar de confiabilidade sugere?",
+    "options": [
+      "O Auto Scaling não lança em outras AZs, então use uma só AZ",
+      "Depende de lançar capacidade durante o evento; pré-provisione para a perda de AZ",
+      "Seis instâncias é demais para gerenciar; use três para menos falharem",
+      "Nada; lançar substitutas sob demanda é estabilidade estática"
+    ],
+    "explanation": "Estabilidade estática significa que o sistema continua funcionando durante uma falha sem precisar fazer mudanças: o plano depende de ações de control plane e de capacidade livre no pior momento, causando comportamento bimodal. Pré-provisionar para que duas AZs aguentem o pico (aqui 9 instâncias, 3 por AZ) remove essa dependência. O Auto Scaling pode usar outras AZs, menos instâncias pioram o problema, e a reposição sob demanda é exatamente o que a estabilidade estática evita."
+  },
+  {
+    "id": "awsx-rel-data-plane-failover",
+    "title": "Runbook de failover baseado em mudanças no console",
+    "question": "Um runbook de failover regional manda o engenheiro de plantão editar registros do Route 53 e redimensionar Auto Scaling groups no console durante o incidente. Por que o pilar de confiabilidade considera isso arriscado, e o que é preferível?",
+    "options": [
+      "Depende de APIs de control plane; prefira failover no data plane (health checks, ARC)",
+      "Mudanças no Route 53 levam até 48 horas para propagar, então use IPs fixos nos clientes",
+      "Sessões do console expiram rápido, então o runbook deve usar credenciais de root",
+      "O failover deveria atualizar o DNS no registrador do domínio, sem passar pelo Route 53"
+    ],
+    "explanation": "Control planes (APIs de criar, atualizar, excluir) são mais complexos e menos disponíveis que data planes, e podem estar degradados justamente no evento do qual você está se recuperando. Failover routing do Route 53 com health checks e routing controls do ARC deslocam tráfego pelo data plane, com capacidade de reserva provisionada antes. Mudanças de registros no Route 53 normalmente chegam aos seus name servers em cerca de um minuto, credenciais de root não são ferramenta de recuperação, e mudanças no registrador são ainda mais lentas."
+  }
+]

@@ -1,0 +1,597 @@
+[
+  {
+    "id": "apisec-auth-bearer-token-header",
+    "topic": "api-security",
+    "subtopic": "api-authentication",
+    "difficulty": "Easy",
+    "title": "Sending an OAuth access token to an API",
+    "question": "A client has obtained an OAuth 2.0 access token and now calls a protected REST API. According to RFC 6750, what is the recommended way to send the token?",
+    "options": [
+      "As an `access_token` query parameter on every request URL",
+      "In a `Set-Cookie` header that the client adds to each request",
+      "In the `Authorization` header using the `Bearer` scheme",
+      "Inside a `token` field added to every JSON request body"
+    ],
+    "correctIndex": 2,
+    "explanation": "RFC 6750 says clients SHOULD send bearer tokens in the `Authorization` request header with the `Bearer` scheme, and resource servers MUST support it. The query-parameter method is discouraged because URLs end up in logs and history, a form-encoded body is only allowed under narrow conditions (and never as an arbitrary JSON field), and `Set-Cookie` is a response header, not something a client sends.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc6750"
+  },
+  {
+    "id": "apisec-auth-api-key-in-query-string",
+    "topic": "api-security",
+    "subtopic": "api-authentication",
+    "difficulty": "Medium",
+    "title": "API key passed in the query string",
+    "question": "A partner integration calls `GET https://api.example.com/v1/reports?api_key=sk_live_8f2...` over HTTPS. What is the main security problem with this design?",
+    "options": [
+      "The full URL, key included, is written to access logs, proxies and APM tools",
+      "TLS does not encrypt the query string, so the key travels across the network in cleartext",
+      "Query strings have a length limit, so long keys get silently truncated",
+      "CDNs cache GET responses even when the request carries credentials"
+    ],
+    "correctIndex": 0,
+    "explanation": "With HTTPS the path and query string are encrypted on the wire, so the cleartext option is a common misconception. The real problem is at the endpoints: full URLs are routinely recorded by web servers, load balancers, APM tools and browser history, so the key leaks to anyone with log access. The OWASP REST Security Cheat Sheet says API keys and tokens must not appear in URLs; send them in a header instead. Length limits and CDN caching are not the core issue.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-auth-shared-app-key-user-header",
+    "topic": "api-security",
+    "subtopic": "api-authentication",
+    "difficulty": "Hard",
+    "title": "Mobile app key plus a user ID header",
+    "question": "A mobile banking backend authenticates calls like this:\n\nGET /v1/accounts\nX-App-Key: 3f9c...   (same key compiled into every install)\nX-User-Id: 18842\n\nThe API returns the accounts of the user in X-User-Id whenever the app key is valid. What is the core flaw?",
+    "options": [
+      "The app key should be rotated monthly and obfuscated inside the binary",
+      "The user ID should be a random UUID so attackers cannot guess other users",
+      "The headers should move into the JSON body so that proxies cannot log them",
+      "The key proves which app is calling, not who the user is; any user ID is trusted"
+    ],
+    "correctIndex": 3,
+    "explanation": "A secret shipped in every client is effectively public, since it can be extracted from the binary, and it only says 'some install of our app', never which user is calling. User identity must come from per-user authentication (for example OAuth authorization code with PKCE) and be derived on the server from a validated token, never from a header the client chooses. Rotation, obfuscation and UUIDs only slow an attacker down; moving headers into the body changes nothing.",
+    "referenceUrl": "https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/"
+  },
+  {
+    "id": "apisec-auth-webhook-replay-window",
+    "topic": "api-security",
+    "subtopic": "api-authentication",
+    "difficulty": "Hard",
+    "title": "Replaying a correctly signed webhook",
+    "question": "Your API receives payment webhooks. The receiver computes an HMAC over the raw body with a shared secret and compares it in constant time. A captured, genuine 'payment succeeded' delivery could be resent hours later and still be accepted. Which fix addresses this?",
+    "options": [
+      "Move the HMAC from SHA-256 to SHA-512 so captured signatures can't be reused",
+      "Sign a timestamp and event ID with the body; reject stale or already-seen ones",
+      "Require the sender to use TLS 1.3 instead of TLS 1.2 for every delivery",
+      "Rotate the secret after each delivery and send the next one in the payload"
+    ],
+    "correctIndex": 1,
+    "explanation": "A valid signature over the same bytes stays valid forever, so integrity checking alone does not stop replay. Including a timestamp and a unique ID or nonce in the signed content lets the receiver reject messages outside a short tolerance window and deduplicate IDs it already processed, the same idea RFC 9421 describes with its `created` and `nonce` signature parameters. A longer hash or a newer TLS version does not change replayability, and shipping the next secret inside the payload defeats the purpose of a secret.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9421"
+  },
+  {
+    "id": "apisec-auth-dpop-sender-constrained",
+    "topic": "api-security",
+    "subtopic": "api-authentication",
+    "difficulty": "Expert",
+    "title": "Making stolen access tokens useless",
+    "question": "Access tokens for your API leaked from a partner's verbose debug logs and were replayed from attacker infrastructure before they expired. Which change makes a stolen access token unusable on its own?",
+    "options": [
+      "Encrypt the access tokens as JWE so that their claims can't be read in logs",
+      "Rotate refresh tokens on every use and revoke the whole family on reuse",
+      "Bind tokens to a client key with DPoP or mutual-TLS certificate binding",
+      "Shorten the access token lifetime from 60 minutes down to 15 minutes"
+    ],
+    "correctIndex": 2,
+    "explanation": "Bearer tokens work for whoever holds them. Sender-constrained tokens (DPoP in RFC 9449, or certificate-bound tokens with mutual TLS in RFC 8705) carry a key confirmation, so the resource server also requires proof of possession of the client's private key on every request, and a token copied from logs is useless without that key. JWE hides the claims but the token is still a bearer token, refresh-token rotation protects refresh tokens rather than access tokens, and a shorter lifetime only narrows the window.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9449"
+  },
+  {
+    "id": "apisec-authz-bfla-hidden-admin-export",
+    "topic": "api-security",
+    "subtopic": "object-function-authz",
+    "difficulty": "Medium",
+    "title": "Admin export hidden only in the UI",
+    "question": "The web console shows an 'Export all users' button only to admins. The endpoint behind it, `GET /api/v2/users/export`, only checks that the bearer token is valid. A tester with a normal account calls it and receives the full CSV. What is the issue and the fix?",
+    "options": [
+      "Broken function level authorization; check the role for that operation server-side",
+      "Broken authentication; require MFA before issuing any tokens to normal user accounts",
+      "Security misconfiguration; move the endpoint to an unpredictable URL path",
+      "Excessive data exposure; remove the sensitive columns from the CSV export"
+    ],
+    "correctIndex": 0,
+    "explanation": "Hiding a button is not access control: the API accepts any authenticated caller for an admin-only function, which is API5:2023 Broken Function Level Authorization. The fix is a deny-by-default, server-side role or permission check on every privileged operation. Authentication worked as designed, obscure URLs are easily discovered from the frontend code, and trimming columns still lets normal users export everyone.",
+    "referenceUrl": "https://owasp.org/API-Security/editions/2023/en/0xa5-broken-function-level-authorization/"
+  },
+  {
+    "id": "apisec-authz-uuid-not-a-bola-fix",
+    "topic": "api-security",
+    "subtopic": "object-function-authz",
+    "difficulty": "Hard",
+    "title": "Random UUIDs as a BOLA fix",
+    "question": "After a BOLA report on `GET /api/invoices/{id}`, a team switches invoice IDs from sequential integers to random UUIDv4 values and closes the ticket with no other code change. Why is this not a complete fix?",
+    "options": [
+      "UUIDv4 values are derived from timestamps, so they can still be predicted",
+      "UUIDs are too long for URL paths and get truncated by some reverse proxies",
+      "Lookups by UUID are slower, which opens the door to timing-based enumeration",
+      "IDs still leak via links, logs and other responses, and access isn't checked"
+    ],
+    "correctIndex": 3,
+    "explanation": "Unpredictable IDs make guessing harder, and OWASP lists them only as an extra measure. Object IDs routinely leak through shared URLs, emails, logs and other API responses, and the handler still never verifies that the caller may access that invoice, so any leaked ID works. The real fix is an authorization check on every object access. UUIDv4 is random rather than time-based (that is v1 or v7), and length or lookup timing are not the issue.",
+    "referenceUrl": "https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/"
+  },
+  {
+    "id": "apisec-authz-nested-route-parent-only",
+    "topic": "api-security",
+    "subtopic": "object-function-authz",
+    "difficulty": "Hard",
+    "title": "Nested route that checks only the parent",
+    "question": "Handler for GET /api/shops/{shopId}/orders/{orderId}:\n\nshop = db.shops.get(shopId)\nif shop.ownerId != currentUser.id: return 403\norder = db.orders.get(orderId)\nreturn order\n\nWhat is wrong?",
+    "options": [
+      "Nothing; the ownership check on the shop also covers every order beneath it",
+      "The order is never tied to that shop, so any order ID in the system is readable",
+      "It returns 403 instead of 404, which tells attackers which shop IDs exist in the system",
+      "The shop should be loaded after the order to avoid a race between queries"
+    ],
+    "correctIndex": 1,
+    "explanation": "The owner check proves access to the shop in the path, but the order is loaded by its ID alone, so a user can pair their own shopId with any orderId: a BOLA. Scope the lookup by the parent (for example WHERE id = ? AND shop_id = ?) or check the order's own ownership. Returning 403 versus 404 is a minor information-disclosure choice, and the order of the queries does not matter.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-authz-owner-check-on-body-field",
+    "topic": "api-security",
+    "subtopic": "object-function-authz",
+    "difficulty": "Hard",
+    "title": "Ownership check against a body field",
+    "question": "Handler for PUT /api/notes/{noteId} (the caller has a valid session):\n\nnote = db.notes.get(noteId)\nif note.ownerId != request.body.userId: return 403\nnote.text = request.body.text\nnote.save()\n\nWhat is the vulnerability?",
+    "options": [
+      "The text field isn't length-checked, so huge notes can exhaust storage",
+      "PUT is not idempotent here, so client retries can overwrite other edits",
+      "The check trusts a caller-supplied user ID instead of the session's",
+      "The note ID in the path should be signed so it cannot be tampered with"
+    ],
+    "correctIndex": 2,
+    "explanation": "The authorization decision compares the owner with `userId` taken from the request body, which the attacker controls: sending the victim's user ID (often visible in other responses) passes the check. The identity used for authorization must come from the authenticated session or token. Length limits and concurrency are separate concerns, and signing the note ID does not help when the check uses the wrong principal.",
+    "referenceUrl": "https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/"
+  },
+  {
+    "id": "apisec-authz-graphql-node-field",
+    "topic": "api-security",
+    "subtopic": "object-function-authz",
+    "difficulty": "Expert",
+    "title": "GraphQL node lookup skips authorization",
+    "question": "A GraphQL API checks ownership inside the `invoice(id:)` resolver. It also implements the Relay `node(id: ID!)` field, which decodes the global ID and loads any object type straight from the repository. Reviewers find that `node` returns other customers' invoices. What is the most robust fix?",
+    "options": [
+      "Enforce authorization in the shared data layer that every resolver uses",
+      "Disable introspection in production so clients cannot discover the field",
+      "Add a query depth limit so the node field can no longer be nested",
+      "Encrypt the global IDs so clients cannot build IDs for other objects"
+    ],
+    "correctIndex": 0,
+    "explanation": "GraphQL exposes many paths to the same object (fields, edges, `node` and `nodes`), so a check in one resolver is bypassed through another. The OWASP GraphQL Cheat Sheet calls for authorization on both edges and nodes; putting it in the layer that loads objects covers every path at once. Hiding introspection is obscurity, depth limits target denial of service, and encrypted IDs still leak through legitimate responses.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/GraphQL_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-input-reject-unsupported-media-type",
+    "topic": "api-security",
+    "subtopic": "input-validation",
+    "difficulty": "Easy",
+    "title": "Request body with an unsupported media type",
+    "question": "A JSON-only endpoint, `POST /api/orders`, receives a request whose body is declared as `Content-Type: application/xml`. Following the OWASP REST Security Cheat Sheet, how should the API respond?",
+    "options": [
+      "Try to parse it as JSON anyway and return 200 if parsing succeeds",
+      "Convert the XML body to JSON on the server and then process the order",
+      "Return 406 Not Acceptable, because the server cannot produce XML",
+      "Reject it with 415 Unsupported Media Type without parsing the body"
+    ],
+    "correctIndex": 3,
+    "explanation": "The cheat sheet says to require a supported Content-Type for requests with a body and reject anything else with 415 Unsupported Media Type. Guessing or converting formats widens the attack surface, for example by exposing XML parser features such as external entities. 406 Not Acceptable is for response content negotiation driven by the Accept header, not for the request body.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-input-allowlist-dto-binding",
+    "topic": "api-security",
+    "subtopic": "input-validation",
+    "difficulty": "Medium",
+    "title": "Deny-list binding fails open",
+    "question": "To stop mass assignment, `PATCH /api/me` binds the JSON body to the `User` entity after stripping `isAdmin` and `role`. Later a `creditLimit` column is added to `User`, and customers start raising their own limits. Which design prevents this class of bug?",
+    "options": [
+      "Add `creditLimit` to the stripped list and write a test for each new column",
+      "Bind to an input DTO that declares only the fields clients may change",
+      "Validate that every numeric field in the body falls within a sane range",
+      "Switch the endpoint to PUT so the whole object must always be replaced"
+    ],
+    "correctIndex": 1,
+    "explanation": "A deny-list fails open: every new sensitive property is writable until someone remembers to block it. Binding to a dedicated input DTO or an explicit allow-list means new entity fields are not bindable by default, which is the primary recommendation of the OWASP Mass Assignment Cheat Sheet. Range checks do not stop someone setting privileged fields to valid values, and a full-replace PUT makes the exposure worse.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Mass_Assignment_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-input-json-schema-extra-fields",
+    "topic": "api-security",
+    "subtopic": "input-validation",
+    "difficulty": "Hard",
+    "title": "Schema validation lets extra fields through",
+    "question": "An API validates request bodies against this JSON Schema and then saves the parsed object directly:\n\n{\"type\": \"object\",\n \"properties\": {\"name\": {\"type\": \"string\"}, \"email\": {\"type\": \"string\"}},\n \"required\": [\"name\", \"email\"]}\n\nA body that also contains \"role\": \"admin\" passes validation and the role is stored. Why?",
+    "options": [
+      "`required` lists the mandatory fields and also rejects any other field",
+      "The `type` keyword is enforced for arrays only, not for object members",
+      "Undeclared properties are allowed unless `additionalProperties` is false",
+      "Validators skip string values that look like enum members of the model"
+    ],
+    "correctIndex": 2,
+    "explanation": "In JSON Schema, `properties` only constrains the keys it lists; by default any other key is allowed. Set `additionalProperties` to false (or use `unevaluatedProperties` with composed schemas) and, as defence in depth, persist only the declared fields. `required` only enforces presence, `type` does apply to object members, and there is no enum heuristic in validators.",
+    "referenceUrl": "https://json-schema.org/understanding-json-schema/reference/object"
+  },
+  {
+    "id": "apisec-input-regex-full-match",
+    "topic": "api-security",
+    "subtopic": "input-validation",
+    "difficulty": "Hard",
+    "title": "Unanchored regex validating an account code",
+    "question": "A Python API validates an account code with `re.search(r\"[A-Z]{3}[0-9]{6}\", code)` and then passes `code` to downstream services. Testers find that values with extra characters around a valid code are accepted. What is the correct fix?",
+    "options": [
+      "Require the whole value to match, e.g. with `re.fullmatch`, and cap the length",
+      "Use `re.match` instead, which already requires the entire string to match the pattern",
+      "Add the `re.IGNORECASE` flag so that lowercase variants are covered too",
+      "Strip whitespace from the value before applying the existing pattern"
+    ],
+    "correctIndex": 0,
+    "explanation": "`re.search` succeeds if the pattern appears anywhere, so arbitrary prefixes and suffixes pass. `re.match` anchors only at the start, so trailing content still gets through. `re.fullmatch` validates the entire value, as the OWASP Input Validation Cheat Sheet recommends, and also avoids the trap that `$` matches before a trailing newline. Ignoring case widens the pattern, and stripping whitespace misses every other extra character.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-input-duplicate-json-keys",
+    "topic": "api-security",
+    "subtopic": "input-validation",
+    "difficulty": "Expert",
+    "title": "Duplicate JSON keys and parser differentials",
+    "question": "An API gateway checks that `role` equals \"viewer\" in signup requests and then forwards the raw body to a backend service. A request contains the `role` member twice with different values; the gateway's parser keeps the first occurrence and the backend's parser keeps the last. What is the best defence?",
+    "options": [
+      "Sort the JSON keys alphabetically at the gateway before validating them",
+      "Compress request bodies so intermediaries can't see the duplicate keys",
+      "Rely on RFC 8259, which forbids duplicate member names inside any JSON object",
+      "Reject duplicate keys and forward the validated object, not the raw bytes"
+    ],
+    "correctIndex": 3,
+    "explanation": "RFC 8259 only says names SHOULD be unique and warns that behaviour with duplicates is unpredictable, so parsers legitimately differ and nothing forbids such input. When two components interpret the same bytes differently, validation in one does not protect the other. Rejecting duplicate keys strictly and forwarding the re-serialized, validated object (or validating in the service that acts on the data) removes the differential; sorting or compressing does not.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc8259"
+  },
+  {
+    "id": "apisec-rate-429-retry-after",
+    "topic": "api-security",
+    "subtopic": "rate-limiting-abuse",
+    "difficulty": "Easy",
+    "title": "Telling a client it is being rate limited",
+    "question": "A client exceeds its per-minute request quota on your API. Which response best follows the HTTP standards?",
+    "options": [
+      "403 Forbidden with a message asking the client to slow down",
+      "429 Too Many Requests with a `Retry-After` header",
+      "503 Service Unavailable, so the client assumes the server is down",
+      "200 OK with an empty body, so the client cannot detect the limit"
+    ],
+    "correctIndex": 1,
+    "explanation": "RFC 6585 defines 429 Too Many Requests for rate limiting and allows a `Retry-After` header telling the client how long to wait. 403 signals a permission problem rather than a temporary limit, 503 describes server-wide unavailability and pollutes availability monitoring, and a silent 200 breaks clients and hides the real cause.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc6585"
+  },
+  {
+    "id": "apisec-rate-client-controlled-page-size",
+    "topic": "api-security",
+    "subtopic": "rate-limiting-abuse",
+    "difficulty": "Medium",
+    "title": "Client-controlled page size",
+    "question": "The frontend sends `GET /api/products?page=1&size=50`, and the API passes `size` straight into the SQL LIMIT clause. Someone repeatedly requests `size=5000000` and database CPU spikes. What is the most appropriate fix?",
+    "options": [
+      "Add a response cache so identical large requests are served from memory",
+      "Stream the results compressed instead of returning a single JSON array",
+      "Validate `size` on the server and enforce a maximum, such as 100",
+      "Remove the `size` parameter from the public OpenAPI documentation"
+    ],
+    "correctIndex": 2,
+    "explanation": "API4:2023 explicitly recommends server-side validation of parameters that control how many records are returned, with an enforced maximum. A cache only helps identical requests and is trivially bypassed by varying parameters, compression does not reduce the database work, and hiding the parameter from the docs is obscurity, not a limit.",
+    "referenceUrl": "https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/"
+  },
+  {
+    "id": "apisec-rate-limit-keyed-on-xff",
+    "topic": "api-security",
+    "subtopic": "rate-limiting-abuse",
+    "difficulty": "Hard",
+    "title": "Rate limiter keyed on X-Forwarded-For",
+    "question": "A login API sits behind one load balancer. Its rate limiter keys counters on the left-most address in the `X-Forwarded-For` request header. Attackers make thousands of login attempts without ever being throttled. What is the most likely cause?",
+    "options": [
+      "The load balancer strips `X-Forwarded-For`, so all clients share one key",
+      "Counters reset whenever the balancer opens a new backend connection",
+      "HTTP/2 multiplexing hides the individual requests from the limiter",
+      "Clients write that value themselves, so each request can claim a new IP"
+    ],
+    "correctIndex": 3,
+    "explanation": "Proxies append to `X-Forwarded-For`, so the left-most entry is whatever the client sent; attackers put a fresh value in every request and get a new bucket each time. Security uses of the header must rely only on addresses added by your trusted proxies (counted from the right), or key limits on the account being attacked. If all clients shared one key they would be throttled more, not less, and connections or multiplexing do not reset application counters.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For"
+  },
+  {
+    "id": "apisec-rate-graphql-alias-otp",
+    "topic": "api-security",
+    "subtopic": "rate-limiting-abuse",
+    "difficulty": "Hard",
+    "title": "One request carrying many OTP attempts",
+    "question": "Your gateway allows 10 requests per minute to the GraphQL endpoint used for two-factor login. Logs show single requests that each contain hundreds of aliased `verifyOtp` mutations, each with a different code. What best closes this gap?",
+    "options": [
+      "Limit attempts per OTP in business logic and cap operations per request",
+      "Lower the gateway limit to 2 requests per minute for the GraphQL endpoint",
+      "Disable introspection so the mutation name can no longer be discovered",
+      "Require GraphQL requests to use GET so the gateway can cache them"
+    ],
+    "correctIndex": 0,
+    "explanation": "The gateway counts HTTP requests, but aliasing and batching pack many operations into one request. Counting attempts per OTP or account in the business logic, plus caps on aliases and batch size, closes the gap, as the OWASP GraphQL Cheat Sheet recommends. A lower gateway limit still lets hundreds of guesses through per request, hiding introspection is obscurity, and GET does nothing for rate limiting.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/GraphQL_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-rate-per-instance-counters",
+    "topic": "api-security",
+    "subtopic": "rate-limiting-abuse",
+    "difficulty": "Expert",
+    "title": "Rate limits that grow with the replica count",
+    "question": "Each API instance enforces '100 requests per minute per API key' with an in-memory counter. The service autoscaled from 3 to 20 replicas behind a round-robin load balancer, and a single customer now sustains about 2,000 requests per minute. What is the right fix?",
+    "options": [
+      "Enable sticky sessions so each API key always reaches the same replica",
+      "Keep counters in a shared store such as Redis, with atomic increments",
+      "Divide the limit by the current replica count whenever autoscaling runs",
+      "Replace fixed one-minute windows with a sliding-window algorithm"
+    ],
+    "correctIndex": 1,
+    "explanation": "Independent in-memory counters mean the effective limit is replicas × 100, so it grows with every scale-out. A shared counter with atomic operations (or a limiter at the gateway) enforces one global limit. Sticky sessions break on rescaling and failover and skew load, dividing by replica count is approximate and racy when traffic is uneven, and the window algorithm changes smoothness but not the scope of the counter.",
+    "referenceUrl": "https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/"
+  },
+  {
+    "id": "apisec-tls-api-http-redirect",
+    "topic": "api-security",
+    "subtopic": "transport-cors-secrets",
+    "difficulty": "Medium",
+    "title": "Redirecting API calls from HTTP to HTTPS",
+    "question": "A public REST API listens on port 80 and answers every request with a 301 to the HTTPS URL, just like the marketing website. Why is this weaker for an API than for a website?",
+    "options": [
+      "API clients cannot follow redirects, so every HTTP call simply fails",
+      "A 301 is cached forever and blocks future certificate rotations",
+      "A misconfigured client already sent its credentials in cleartext",
+      "HTTP/2 cannot be negotiated after a redirect, so latency suffers"
+    ],
+    "correctIndex": 2,
+    "explanation": "By the time the redirect is returned, the request, with its Authorization header, API key and body, has already crossed the network unencrypted, and many HTTP libraries follow the redirect silently so nobody notices. The OWASP REST Security Cheat Sheet says secure REST services must only provide HTTPS endpoints; refusing plain HTTP makes misconfigured clients fail loudly. Most clients do follow redirects, and caching or HTTP/2 negotiation are not the concern.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-secrets-key-in-spa-bundle",
+    "topic": "api-security",
+    "subtopic": "transport-cors-secrets",
+    "difficulty": "Medium",
+    "title": "Vendor secret key inside a SPA bundle",
+    "question": "A React SPA calls a payment provider's API directly from the browser. To make it work, the build injects the provider's secret key through an environment variable named `VITE_PAYMENT_SECRET`. What should the team do?",
+    "options": [
+      "Minify and obfuscate the bundle so that the key is hard to locate",
+      "Store the key in `localStorage` after login instead of in the bundle",
+      "Protect the key with a CORS policy that allows only the SPA's origin",
+      "Move secret-key calls to a backend and revoke the key that shipped"
+    ],
+    "correctIndex": 3,
+    "explanation": "Everything delivered to the browser is public: build-time variables exposed to the client are inlined into the JavaScript. Calls that need the secret key must happen server-side, for example in a backend-for-frontend, and the exposed key must be revoked and replaced. Obfuscation is reversible, `localStorage` still delivers the key to every client, and CORS is enforced by browsers only, so it does nothing against scripts calling the provider directly.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-cors-suffix-origin-check",
+    "topic": "api-security",
+    "subtopic": "transport-cors-secrets",
+    "difficulty": "Hard",
+    "title": "CORS origin check using endsWith",
+    "question": "An API that uses cookie sessions sets CORS headers like this:\n\nif (origin.endsWith(\"example.com\")) {\n  res.set(\"Access-Control-Allow-Origin\", origin);\n  res.set(\"Access-Control-Allow-Credentials\", \"true\");\n}\n\nWhat is the flaw?",
+    "options": [
+      "Attacker-registered domains such as `notexample.com` also pass the check",
+      "`Access-Control-Allow-Origin` must be `*` whenever credentials are allowed",
+      "The check must use the `Referer` header, since page scripts can forge `Origin`",
+      "Browsers reject reflected origins, so legitimate subdomains will break"
+    ],
+    "correctIndex": 0,
+    "explanation": "A suffix match without a dot boundary accepts any domain that merely ends in the string, so a page on an attacker's domain can make credentialed cross-origin requests and read the responses. Compare the full origin (scheme, host and port) against an exact allow-list. The wildcard is actually forbidden together with credentials, page scripts cannot set the `Origin` header, and echoing back one specific allowed origin is valid.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS"
+  },
+  {
+    "id": "apisec-tls-certificate-verification-off",
+    "topic": "api-security",
+    "subtopic": "transport-cors-secrets",
+    "difficulty": "Hard",
+    "title": "TLS certificate verification turned off",
+    "question": "An order service calls a partner API with Python `requests` using `verify=False`, added months ago to silence an error about the partner's internal CA. Traffic is still HTTPS. What is the risk and the right fix?",
+    "options": [
+      "Only a performance cost; it is fine, because the traffic stays encrypted",
+      "On-path attackers can impersonate the API; pass the CA bundle via `verify`",
+      "Expired certificates are accepted; ask the partner to renew theirs early",
+      "TLS falls back to version 1.0; pin the minimum protocol version to restore safety"
+    ],
+    "correctIndex": 1,
+    "explanation": "With verification disabled the client accepts any certificate, so anyone on the network path can terminate TLS with their own certificate, read the credentials and alter responses: encryption without authentication. Keep verification on and point `verify` at the partner's or internal CA bundle. The setting does not change the protocol version, and the exposure is far broader than expired certificates.",
+    "referenceUrl": "https://requests.readthedocs.io/en/latest/user/advanced/"
+  },
+  {
+    "id": "apisec-secrets-leaked-key-public-repo",
+    "topic": "api-security",
+    "subtopic": "transport-cors-secrets",
+    "difficulty": "Hard",
+    "title": "Production API key pushed to a public repo",
+    "question": "A developer pushed a commit containing a production key for your payments API to a public GitHub repository. Someone noticed 40 minutes later. What should happen first?",
+    "options": [
+      "Rewrite the Git history with a force push so that the key disappears",
+      "Make the repository private, then check how many clones and forks it has",
+      "Revoke and replace the key, then review its usage logs for abuse",
+      "Add the file to `.gitignore` so the key cannot be committed again"
+    ],
+    "correctIndex": 2,
+    "explanation": "Once public, assume the key is compromised: automated scanners harvest secrets from public pushes within minutes, and history rewrites do not reach existing clones, forks or caches. Revoke and rotate first, then review usage since the exposure, and only then clean history and add prevention such as secret scanning. Making the repository private or editing `.gitignore` leaves the leaked key valid.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-log-security-events-to-record",
+    "topic": "api-security",
+    "subtopic": "logging-monitoring",
+    "difficulty": "Easy",
+    "title": "Security events an API should log",
+    "question": "Which set of API events is most important to record in security logs?",
+    "options": [
+      "Every successful GET, including the full request and response bodies",
+      "Only HTTP 5xx errors, since those show that the API is under attack",
+      "JavaScript errors reported from end users' browsers by the frontend",
+      "Authentication, authorization and input validation failures"
+    ],
+    "correctIndex": 3,
+    "explanation": "The OWASP Logging Cheat Sheet lists authentication successes and failures, authorization (access control) failures and input validation failures among the core events to record. Logging full bodies over-collects personal data and secrets, attacks usually produce 4xx responses such as 401, 403 or 400 rather than 5xx, and browser JavaScript errors are not server-side security events.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-log-injection-crlf",
+    "topic": "api-security",
+    "subtopic": "logging-monitoring",
+    "difficulty": "Medium",
+    "title": "Forged entries in a plain-text API log",
+    "question": "An API writes lines like `login failed for user=<username>` to a plain-text log. During an incident, analysts find 'login succeeded for user=admin' lines that no code path ever writes. What most likely happened, and what prevents it?",
+    "options": [
+      "CR/LF in the username was logged raw; encode it or use structured logs",
+      "The file was rotated mid-write; switch to synchronous log flushing",
+      "Two threads wrote at once; wrap every logger call in a global lock",
+      "Clocks drifted between hosts; synchronise every server with NTP"
+    ],
+    "correctIndex": 0,
+    "explanation": "This is log injection: carriage-return and line-feed characters in user-controlled input let an attacker start a new, forged line. The OWASP Logging Cheat Sheet says to sanitize CR, LF and delimiter characters, and structured logging such as JSON with proper encoding keeps the value inside a single field. Rotation, concurrency and clock drift can garble lines but cannot produce coherent entries with attacker-chosen content.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-log-detect-object-id-enumeration",
+    "topic": "api-security",
+    "subtopic": "logging-monitoring",
+    "difficulty": "Hard",
+    "title": "Spotting object ID enumeration in logs",
+    "question": "Within 10 minutes, one valid access token calls `GET /api/invoices/{id}` for 3,000 distinct IDs; 97% return 403 or 404. The per-token rate limit of 600 per minute was never exceeded. Which detection rule best catches this pattern?",
+    "options": [
+      "Alert when any single token exceeds the configured per-minute rate limit",
+      "Alert when the API's overall 5xx error rate rises above its 1% baseline",
+      "Alert on many authz failures across distinct object IDs per identity",
+      "Alert when one token is used from more than one IP address in a day"
+    ],
+    "correctIndex": 2,
+    "explanation": "BOLA probing shows up as one principal touching many distinct object IDs with a high denial ratio. Logging authorization failures with the user and the resource (the Logging Vocabulary's `authz_fail` event) is what makes such a rule possible. The rate limit was never exceeded, 403 and 404 are not 5xx errors, and IP changes are normal for mobile users while a single-IP attacker would never trigger that rule.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Vocabulary_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-log-tamper-resistant-shipping",
+    "topic": "api-security",
+    "subtopic": "logging-monitoring",
+    "difficulty": "Hard",
+    "title": "Logs the attacker could erase",
+    "question": "In a breach review you learn that the attacker got a shell in an API container and deleted the application's local log files, which were only shipped to the central system nightly. Which design change addresses this most directly?",
+    "options": [
+      "Encrypt the local log files with a key kept alongside them in the container",
+      "Stream logs at once to a separate store the app can append to but not alter",
+      "Raise the log level to DEBUG so more evidence is written before deletion",
+      "Compress and rotate the log files hourly so each one stays small"
+    ],
+    "correctIndex": 1,
+    "explanation": "The OWASP Logging Cheat Sheet asks for logs to be protected from tampering and deletion: send events off the host promptly (for example stdout to a collector) to a separate system where the application has append-only rights, and add tamper detection. Encryption with a co-located key does not prevent deletion, and more verbosity or faster rotation leave the same local files at the attacker's mercy.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-log-credential-stuffing-signal",
+    "topic": "api-security",
+    "subtopic": "logging-monitoring",
+    "difficulty": "Expert",
+    "title": "Credential stuffing under per-IP thresholds",
+    "question": "Your login API alerts when one IP has more than 20 failed logins in 5 minutes. No alert fired, yet 3,000 accounts were taken over in a day. Traffic came from about 40,000 residential IPs, each making 1–2 attempts against different usernames. Which signal would have detected it?",
+    "options": [
+      "Per-username lockout counters crossing their usual five-attempt threshold",
+      "A rising share of 5xx responses returned by the authentication service",
+      "The per-IP failure threshold lowered from 20 to 3 in the same window",
+      "A global jump in failure ratio and unknown usernames, across all IPs"
+    ],
+    "correctIndex": 3,
+    "explanation": "Distributed credential stuffing keeps per-IP and per-account counts low on purpose, so it only shows up in aggregate: a spike in the overall login failure ratio, many usernames that do not exist on your service (they come from other sites' breaches), and new devices. Per-username counters see one attempt each, a per-IP threshold of 3 still never fires at 1–2 attempts, and the attack produces failed logins, not server errors.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "apisec-top10-api3-merged-categories",
+    "topic": "api-security",
+    "subtopic": "owasp-api-top10",
+    "difficulty": "Easy",
+    "title": "Where mass assignment went in the 2023 list",
+    "question": "The 2019 OWASP API Security Top 10 had separate entries for Excessive Data Exposure and Mass Assignment. Which 2023 category covers both?",
+    "options": [
+      "API3:2023 Broken Object Property Level Authorization",
+      "API1:2023 Broken Object Level Authorization",
+      "API8:2023 Security Misconfiguration",
+      "API6:2023 Unrestricted Access to Sensitive Business Flows"
+    ],
+    "correctIndex": 0,
+    "explanation": "The 2023 edition merged both into API3 Broken Object Property Level Authorization, because both are failures to authorize access to individual properties: reading them (exposure) or writing them (mass assignment). API1 is about access to whole objects, API8 covers configuration problems, and API6 covers abuse of legitimate business flows.",
+    "referenceUrl": "https://owasp.org/API-Security/editions/2023/en/0xa3-broken-object-property-level-authorization/"
+  },
+  {
+    "id": "apisec-top10-api8-verbose-errors",
+    "topic": "api-security",
+    "subtopic": "owasp-api-top10",
+    "difficulty": "Medium",
+    "title": "Stack traces in API error responses",
+    "question": "A malformed request to your API returns 500 with a JSON body containing the full exception stack trace, ORM class names, the SQL statement and the framework version. Which OWASP API Security 2023 category is this, and what is the fix?",
+    "options": [
+      "API4 Unrestricted Resource Consumption; rate-limit the error paths",
+      "API9 Improper Inventory Management; document each error in OpenAPI",
+      "API8 Security Misconfiguration; return generic errors, log the details",
+      "API10 Unsafe Consumption of APIs; validate the ORM's responses first"
+    ],
+    "correctIndex": 2,
+    "explanation": "API8:2023 covers exposing exception traces and recommends defining and enforcing response schemas, including error responses. Return a generic error body (for example RFC 9457 problem details with a correlation ID) and keep the detail in server-side logs. Rate limiting, documentation and third-party validation do not stop the internals from leaking.",
+    "referenceUrl": "https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/"
+  },
+  {
+    "id": "apisec-top10-api9-forgotten-version",
+    "topic": "api-security",
+    "subtopic": "owasp-api-top10",
+    "difficulty": "Hard",
+    "title": "Old API version without the new protections",
+    "question": "`/v3/login` has strict rate limiting and bot protection. `/v1/login` was 'deprecated' two years ago but is still routed, uses the same user database, and has neither protection. Attackers brute-force accounts through v1. Which category is this, and what is the primary remedy?",
+    "options": [
+      "API2 Broken Authentication; add MFA to v3 so that stolen passwords become useless",
+      "API9 Improper Inventory Management; track every version, retire or guard v1",
+      "API5 Broken Function Level Authorization; require an admin role on v1",
+      "API7 Server Side Request Forgery; block v1 from making outbound calls"
+    ],
+    "correctIndex": 1,
+    "explanation": "Forgotten versions running with weaker controls are the core of API9:2023 Improper Inventory Management. The remedy is an inventory of hosts and versions, retiring deprecated ones, and applying the same protections to every exposed version until then. MFA on v3 alone leaves v1 open, an admin role makes no sense for a login route, and SSRF is unrelated.",
+    "referenceUrl": "https://owasp.org/API-Security/editions/2023/en/0xa9-improper-inventory-management/"
+  },
+  {
+    "id": "apisec-top10-api10-partner-data",
+    "topic": "api-security",
+    "subtopic": "owasp-api-top10",
+    "difficulty": "Hard",
+    "title": "Trusting data returned by a partner API",
+    "question": "Your API enriches addresses by calling a third-party geocoding service. It concatenates the returned `formattedAddress` into a SQL string and follows any redirect the service sends back. Which statement best describes the risk and the fix?",
+    "options": [
+      "API7 SSRF; block user-supplied URLs, since data returned by the partner can be trusted",
+      "API8 Security Misconfiguration; turn on verbose partner error logging",
+      "API4 Resource Consumption; cache every partner response for a full day",
+      "API10 Unsafe Consumption; validate partner data and allow-list redirects"
+    ],
+    "correctIndex": 3,
+    "explanation": "API10:2023 says to treat data from integrated APIs as untrusted: validate and sanitize it (here, use parameterized queries), use TLS, and never follow redirects blindly but check them against an allow-list. If the partner is compromised or spoofed, its responses become an injection vector. The other options misdiagnose the problem or assume the partner is trustworthy.",
+    "referenceUrl": "https://owasp.org/API-Security/editions/2023/en/0xaa-unsafe-consumption-of-apis/"
+  },
+  {
+    "id": "apisec-top10-api6-limited-drop-bots",
+    "topic": "api-security",
+    "subtopic": "owasp-api-top10",
+    "difficulty": "Expert",
+    "title": "Bots buying out a limited product drop",
+    "question": "During a limited sneaker release, bots buy the entire stock in seconds through your checkout API. Each bot account makes only a few requests from a different residential IP, and every call is authenticated and well formed. Which approach best matches OWASP's guidance for this risk?",
+    "options": [
+      "Guard the purchase flow with device fingerprinting, human checks and timing analysis",
+      "Lower the per-IP rate limit on the checkout endpoint to a single request per minute per address",
+      "Add stricter JSON Schema validation to the checkout request body",
+      "Require TLS 1.3 and HSTS for every request to the checkout API"
+    ],
+    "correctIndex": 0,
+    "explanation": "This is API6:2023 Unrestricted Access to Sensitive Business Flows: each request is individually legitimate, so protection belongs at the business-flow level. OWASP suggests device fingerprinting, human detection such as captchas or biometrics, spotting non-human patterns like add-to-cart to purchase in under a second, and blocking known proxies. Per-IP limits fail against residential proxy pools, and validation or TLS do nothing about automation.",
+    "referenceUrl": "https://owasp.org/API-Security/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/"
+  }
+]

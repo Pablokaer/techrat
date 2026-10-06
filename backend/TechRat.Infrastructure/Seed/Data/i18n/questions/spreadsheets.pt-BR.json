@@ -1,0 +1,362 @@
+[
+  {
+    "id": "sheet-formula-absolute-reference",
+    "title": "Copiando uma fórmula com referência absoluta",
+    "question": "A célula C2 contém `=B2*$F$1`, em que F1 guarda uma alíquota de imposto. Você copia C2 para C3. Qual fórmula C3 passa a conter?",
+    "options": [
+      "`=B3*$F$2`",
+      "`=B3*$F$1`",
+      "`=B2*$F$1`",
+      "`=C3*$G$1`"
+    ],
+    "explanation": "Referências relativas se deslocam com a cópia, então B2 vira B3, enquanto os cifrões em `$F$1` travam a coluna e a linha, mantendo todas as linhas apontadas para a única célula da alíquota. Sem os `$` a referência iria para F2, F3 e assim por diante, que estão vazias, e nada na fórmula se move para o lado ao copiar para baixo. A sintaxe de referências é igual no Excel em português."
+  },
+  {
+    "id": "sheet-formula-mixed-reference",
+    "title": "Uma fórmula para toda a tabuada",
+    "question": "A coluna A (A2:A11) tem os números de 1 a 10 e a linha 1 (B1:K1) tem de 1 a 10. Qual fórmula em B2 pode ser arrastada para a direita e para baixo para montar a tabuada completa?",
+    "options": [
+      "`=A2*B1`, totalmente relativa",
+      "`=$A$2*$B$1`, totalmente absoluta",
+      "`=$A2*B$1`, coluna A e linha 1 travadas",
+      "`=A$2*$B1`, linha 2 e coluna B travadas"
+    ],
+    "explanation": "`$A2` trava a coluna, então toda célula continua lendo o cabeçalho de linha da coluna A, e `B$1` trava a linha, então toda célula continua lendo o cabeçalho de coluna da linha 1. Referências totalmente relativas se afastam dos dois cabeçalhos, as totalmente absolutas repetem 1 × 1 em todo lugar, e `=A$2*$B1` trava exatamente as partes erradas."
+  },
+  {
+    "id": "sheet-formula-sumifs-date-criteria",
+    "title": "SUMIFS com critério de data",
+    "question": "Os valores estão em D2:D500, as regiões em B2:B500 e datas reais em C2:C500. Qual fórmula soma os valores da região \"South\" com data a partir de 1º de janeiro de 2026?",
+    "options": [
+      "`=SUMIFS(B2:B500,\"South\",D2:D500,\">=\"&DATE(2026,1,1))`",
+      "`=SUMIFS(D2:D500,\"South\",B2:B500,\">=\"&DATE(2026,1,1),C2:C500)`",
+      "`=SUMIFS(D2:D500,B2:B500,\"South\",C2:C500,\">=\"&DATE(2026,1,1))`",
+      "`=SUMIF(B2:B500,\"South\",D2:D500)+SUMIF(C2:C500,\">=\"&DATE(2026,1,1),D2:D500)`"
+    ],
+    "explanation": "SUMIFS recebe primeiro o intervalo de soma e depois pares de intervalo de critério seguido do critério, e um critério de comparação precisa ser montado como texto, juntando o operador a um valor: `\">=\"&DATE(2026,1,1)`. Começar pelo intervalo de regiões ou escrever cada critério antes do seu intervalo faz o Excel ler os argumentos como os intervalos errados, e escrever a data dentro das aspas compararia com um texto literal. Somar dois SUMIF conta linhas que atendem a qualquer uma das condições (e conta duas vezes as que atendem às duas) em vez de exigir ambas. No Excel em português as funções se chamam SOMASES, SOMASE e DATA, e o separador de argumentos é o ponto e vírgula, mas a lógica é a mesma."
+  },
+  {
+    "id": "sheet-formula-spill-blocked",
+    "title": "#SPILL! em uma fórmula UNIQUE",
+    "question": "No Excel para Microsoft 365, `=UNIQUE(A2:A500)` digitada em D2 retorna #SPILL! em vez de uma lista. Qual é a causa mais provável?",
+    "options": [
+      "UNIQUE só funciona com dados ordenados, e a coluna A não está ordenada",
+      "Algumas células abaixo de D2, onde os resultados devem ir, não estão vazias",
+      "A fórmula precisa ser confirmada com Ctrl+Shift+Enter no Excel 365",
+      "A coluna A tem células em branco, que UNIQUE não consegue processar"
+    ],
+    "explanation": "Fórmulas de matriz dinâmica despejam (spill) os resultados nas células vizinhas; se algo ocupa esse intervalo, o Excel retorna #SPILL! e mostra uma borda tracejada em volta da área de que precisa. UNIQUE (ÚNICO no Excel em português) não exige dados ordenados, Ctrl+Shift+Enter é a entrada de matriz legada que as matrizes dinâmicas tornaram desnecessária, e células em branco na origem viram um valor em vez de causar erro."
+  },
+  {
+    "id": "sheet-formula-let-repeated-lookup",
+    "title": "Uma fórmula que repete a mesma busca três vezes",
+    "question": "Uma fórmula chama o mesmo XLOOKUP três vezes: uma para testar erro, outra para comparar o resultado com um limite e outra para retorná-lo. Qual mudança melhora mais a legibilidade e o custo de cálculo?",
+    "options": [
+      "Envolver a fórmula toda em IFERROR para as buscas rodarem uma vez",
+      "Deixar a pasta de trabalho em cálculo manual permanentemente",
+      "Trocar XLOOKUP por VLOOKUP, que guarda em cache o último resultado",
+      "Usar LET para calcular a busca uma vez e reutilizá-la pelo nome"
+    ],
+    "explanation": "LET dá nomes a resultados intermediários, então `=LET(price, XLOOKUP(...), IF(price>100, ...))` avalia a busca uma vez e deixa a fórmula legível. IFERROR (SEERRO) não elimina as buscas repetidas, VLOOKUP (PROCV) não tem cache de resultado, e o cálculo manual só arrisca valores desatualizados em vez de baratear a fórmula. LET tem o mesmo nome no Excel em português."
+  },
+  {
+    "id": "sheet-lookup-xlookup-not-found",
+    "title": "Mensagem própria quando o XLOOKUP não acha nada",
+    "question": "Você quer que `=XLOOKUP(A2, Ids, Names)` mostre \"Not found\" em vez de #N/A quando o ID não existe. Qual fórmula faz isso usando os próprios argumentos do XLOOKUP?",
+    "options": [
+      "`=XLOOKUP(A2, Ids, Names, \"Not found\")`",
+      "`=XLOOKUP(A2, Ids, Names, 0, \"Not found\")`",
+      "`=XLOOKUP(\"Not found\", A2, Ids, Names)`",
+      "`=XLOOKUP(A2, Ids, Names, 0, -1, \"Not found\")`"
+    ],
+    "explanation": "O quarto argumento do XLOOKUP, if_not_found, é retornado quando não há correspondência; sem ele o XLOOKUP retorna #N/A. O quinto argumento é match_mode e o sexto é search_mode, então texto ali é inválido, e lookup_value sempre vem primeiro. No Excel em português a função se chama PROCX (e o erro aparece como #N/D), mas os argumentos são os mesmos."
+  },
+  {
+    "id": "sheet-lookup-vlookup-approximate-default",
+    "title": "VLOOKUP retornando o preço errado",
+    "question": "`=VLOOKUP(A2, Products!A:C, 3)` às vezes retorna o preço de outro produto, e a lista de produtos não está ordenada. Qual é a causa?",
+    "options": [
+      "Referências de coluna inteira como A:C fazem o VLOOKUP ler valores em cache",
+      "O índice de coluna 3 é contado a partir da coluna A da planilha atual",
+      "O VLOOKUP não lê outra planilha a menos que esteja dentro de INDIRECT",
+      "range_lookup foi omitido, então o VLOOKUP usa correspondência aproximada"
+    ],
+    "explanation": "Quando range_lookup é omitido, o VLOOKUP (PROCV no Excel em português) usa TRUE (correspondência aproximada), que pressupõe a primeira coluna em ordem crescente e, caso contrário, pode retornar uma linha próxima e errada em vez de #N/A. Passar FALSE (`=VLOOKUP(A2, Products!A:C, 3, FALSE)`) ou usar XLOOKUP, cujo padrão é correspondência exata, resolve. O índice de coluna conta a partir da primeira coluna da tabela de busca, e referências a outras planilhas funcionam diretamente."
+  },
+  {
+    "id": "sheet-lookup-inserted-column",
+    "title": "Buscas quebram depois que uma coluna é inserida",
+    "question": "Várias fórmulas `VLOOKUP(..., 4, FALSE)` passaram a retornar o campo errado depois que alguém inseriu uma coluna dentro da tabela de busca. Qual abordagem evita esse tipo de quebra?",
+    "options": [
+      "Proteger a planilha para que ninguém insira colunas de novo",
+      "Usar XLOOKUP ou INDEX/MATCH apontando para a coluna de retorno",
+      "Somar um a todos os índices de coluna sempre que uma coluna for inserida",
+      "Mover a tabela de busca para outra pasta de trabalho e vinculá-la"
+    ],
+    "explanation": "O índice de coluna do VLOOKUP é um número fixo, então inserir uma coluna muda o campo que ele retorna. XLOOKUP e INDEX/MATCH (PROCX e ÍNDICE/CORRESP no Excel em português) referenciam o próprio intervalo de retorno, e o Excel ajusta essa referência automaticamente quando as colunas se movem, então a fórmula continua retornando o campo certo. Proteger a planilha ou renumerar à mão trata o sintoma, e um vínculo externo adiciona fragilidade."
+  },
+  {
+    "id": "sheet-lookup-two-criteria",
+    "title": "Busca por produto e região ao mesmo tempo",
+    "question": "Uma tabela de preços tem Product em A2:A100, Region em B2:B100 e Price em C2:C100. No Excel para Microsoft 365, qual fórmula retorna o preço em que Product = G1 e Region = G2?",
+    "options": [
+      "`=XLOOKUP(G1&G2, A2:A100, C2:C100)`",
+      "`=XLOOKUP(G1, A2:A100, XLOOKUP(G2, B2:B100, C2:C100))`",
+      "`=VLOOKUP(G1, A2:C100, 3, FALSE)*VLOOKUP(G2, B2:C100, 2, FALSE)`",
+      "`=XLOOKUP(1, (A2:A100=G1)*(B2:B100=G2), C2:C100)`"
+    ],
+    "explanation": "Multiplicar as duas matrizes booleanas dá 1 só nas linhas em que as duas condições são verdadeiras, então o XLOOKUP encontra o primeiro 1 e retorna o preço dessa linha. Buscar G1&G2 compara o texto concatenado só com os nomes de produto, o XLOOKUP aninhado retorna um único preço em vez de um intervalo filtrado, e multiplicar dois resultados de VLOOKUP multiplica dois preços sem relação."
+  },
+  {
+    "id": "sheet-lookup-binary-search-unsorted",
+    "title": "XLOOKUP com busca binária e erros esporádicos",
+    "question": "Para acelerar buscas em 500.000 linhas, alguém definiu o search_mode do XLOOKUP como 2. A maioria dos resultados parece certa, mas alguns IDs retornam dados de outro cliente ou #N/A. A coluna de IDs está na ordem de carga. O que está acontecendo?",
+    "options": [
+      "search_mode 2 é uma busca binária que exige dados em ordem crescente",
+      "search_mode 2 busca do último para o primeiro, então duplicatas mudam",
+      "search_mode 2 ativa curingas, então IDs batem com padrões parciais",
+      "search_mode 2 é limitado a 65.536 linhas e recomeça depois disso"
+    ],
+    "explanation": "search_mode 2 faz uma busca binária que depende de lookup_array estar em ordem crescente; com dados desordenados, retorna resultados inválidos sem nenhum aviso. Ordene a coluna de IDs (e mantenha-a ordenada) ou use a busca linear padrão. Buscar do último para o primeiro é search_mode -1, curingas são match_mode 2, e não existe limite de 65.536 linhas no Excel moderno."
+  },
+  {
+    "id": "sheet-pivot-source-layout",
+    "title": "Preparando dados para uma tabela dinâmica",
+    "question": "Qual layout de origem funciona melhor para criar uma tabela dinâmica (PivotTable)?",
+    "options": [
+      "Uma linha de cabeçalho, um registro por linha e sem linhas ou colunas vazias",
+      "Uma tabela cruzada com meses nas colunas e linhas de subtotal entre grupos",
+      "Cabeçalhos mesclados agrupando colunas relacionadas sob um título comum",
+      "Várias tabelas pequenas na mesma planilha separadas por linhas vazias"
+    ],
+    "explanation": "Tabelas dinâmicas esperam dados tabulares: uma única linha de cabeçalho com nomes únicos, um registro por linha e um tipo de dado consistente em cada coluna. Tabelas cruzadas com subtotais, cabeçalhos mesclados e blocos separados por linhas vazias precisam ser despivotados ou limpos antes que uma tabela dinâmica consiga resumi-los corretamente."
+  },
+  {
+    "id": "sheet-pivot-percent-of-parent",
+    "title": "Participação de cada subcategoria na sua categoria",
+    "question": "Uma tabela dinâmica tem Category e Subcategory em Linhas e Soma de Sales em Valores. Você quer mostrar cada subcategoria como percentual da própria categoria, não do total geral. Qual opção de Mostrar Valores Como serve?",
+    "options": [
+      "% of Grand Total (% do Total Geral)",
+      "% of Parent Row Total (% do Total da Linha Pai)",
+      "% of Parent Column Total (% do Total da Coluna Pai)",
+      "% Difference From (% Diferença de)"
+    ],
+    "explanation": "% of Parent Row Total divide cada item pelo total do seu pai na hierarquia de linhas, então as subcategorias de uma categoria somam 100%. % of Grand Total divide pelo total geral, % of Parent Column Total trabalha na hierarquia de colunas, e % Difference From compara cada valor com um item base escolhido."
+  },
+  {
+    "id": "sheet-pivot-new-rows-missing",
+    "title": "Linhas novas ausentes de uma tabela dinâmica atualizada",
+    "question": "A origem de uma tabela dinâmica é `Sheet1!$A$1:$F$500`. Novas linhas são coladas abaixo da linha 500 e a tabela dinâmica é atualizada, mas os dados novos não aparecem. Qual é a correção duradoura?",
+    "options": [
+      "Excluir a tabela dinâmica e recriá-la sempre que entrarem dados novos",
+      "Atualizar duas vezes, pois a primeira só recarrega o cache da dinâmica",
+      "Ordenar a origem por data para as linhas novas entrarem no intervalo original",
+      "Formatar a origem como Tabela do Excel e basear a dinâmica nela"
+    ],
+    "explanation": "Um endereço de intervalo fixo não cresce, então a atualização relê as mesmas 500 linhas. Uma Tabela do Excel se expande automaticamente quando linhas são adicionadas, então uma tabela dinâmica baseada nela as inclui na próxima atualização. Atualizar duas vezes não muda nada, ordenar empurraria outras linhas para fora do intervalo, e recriar a dinâmica toda vez é trabalhoso e perde o layout."
+  },
+  {
+    "id": "sheet-pivot-distinct-count",
+    "title": "Contando clientes únicos em uma tabela dinâmica",
+    "question": "Uma tabela de pedidos tem uma linha por pedido. Numa tabela dinâmica, Contagem de CustomerID por mês retorna o número de pedidos, mas você precisa do número de clientes únicos. Qual é a forma nativa no Excel?",
+    "options": [
+      "Mudar a função de resumo de Contagem para Contar Números",
+      "Adicionar os dados ao Modelo de Dados e usar Contagem Distinta",
+      "Arrastar CustomerID também para Linhas para cada cliente aparecer uma vez",
+      "Usar Mostrar Valores Como > Índice para remover IDs repetidos"
+    ],
+    "explanation": "Contagem conta linhas (como COUNTA), então clientes recorrentes são contados uma vez por pedido. A função de resumo Contagem Distinta (Distinct Count) conta valores únicos, mas só fica disponível quando a tabela dinâmica usa o Modelo de Dados (marque 'Adicionar estes dados ao Modelo de Dados' ao criá-la). Contar Números ainda conta linhas, colocar CustomerID em Linhas muda o layout e não a medida, e Índice é um cálculo de importância relativa."
+  },
+  {
+    "id": "sheet-pivot-calculated-field-sums",
+    "title": "Um campo calculado que infla a receita",
+    "question": "A origem tem uma linha por venda com Price e Quantity. Um campo calculado da tabela dinâmica `Revenue = Price * Quantity` mostra totais por região muito acima da receita real. Por quê?",
+    "options": [
+      "Campos calculados ignoram filtros, então toda região vê todas as linhas",
+      "O cache da dinâmica guarda Price como texto e o converte na hora",
+      "Campos calculados multiplicam as somas: SUM(Price) × SUM(Quantity)",
+      "Campos calculados sempre tiram a média dos campos que referenciam"
+    ],
+    "explanation": "Campos calculados operam sobre a soma dos dados de origem, não sobre registros individuais: cada célula calcula (soma de Price) × (soma de Quantity), que não é a soma de preço × quantidade de cada linha. Adicione uma coluna Revenue na origem (ou use uma medida do Modelo de Dados como `SUMX(Sales, Sales[Price] * Sales[Quantity])`) e some essa coluna. Campos calculados respeitam filtros e não tiram média antes."
+  },
+  {
+    "id": "sheet-dv-dropdown-list",
+    "title": "Restringindo uma coluna Status a valores fixos",
+    "question": "Você quer que os usuários escolham um Status entre Open, In progress e Closed em uma lista suspensa, em vez de digitar. Qual recurso do Excel deve usar?",
+    "options": [
+      "Formatação condicional com uma regra por valor de status",
+      "Proteção de planilha com apenas a coluna Status desbloqueada",
+      "Um formato de número personalizado que exibe só as três palavras",
+      "Validação de dados com a opção Lista e os valores permitidos"
+    ],
+    "explanation": "A validação de dados do tipo Lista mostra uma lista suspensa na célula e, com o alerta de erro ativo, rejeita valores fora da lista. Formatação condicional só muda a aparência, um formato de número não restringe a entrada de texto, e a proteção de planilha controla se as células podem ser editadas, não quais valores são permitidos."
+  },
+  {
+    "id": "sheet-dv-google-show-warning",
+    "title": "Permitindo valores fora da lista num dropdown do Sheets",
+    "question": "No Google Sheets, um dropdown rejeita qualquer valor que não esteja na lista. O time quer permitir outros valores de vez em quando, mas ainda sinalizá-los. Qual configuração faz isso?",
+    "options": [
+      "Mudar o estilo de exibição para texto simples para aceitar qualquer valor",
+      "Adicionar um item vazio à lista para que qualquer outro valor seja válido",
+      "Em Opções avançadas, definir 'Se os dados forem inválidos' como Mostrar um aviso",
+      "Proteger o intervalo para que só o dono digite valores fora da lista"
+    ],
+    "explanation": "Por padrão, entradas que não correspondem a um item do dropdown são rejeitadas; mudar a opção avançada 'Se os dados forem inválidos' para Mostrar um aviso aceita o valor e marca a célula como inválida. O estilo de exibição só muda a aparência do dropdown, um item vazio não valida outro texto, e a proteção de intervalo restringe quem edita, não quais valores são aceitos."
+  },
+  {
+    "id": "sheet-dv-circle-invalid",
+    "title": "Validação adicionada a uma coluna com dados antigos",
+    "question": "Você adiciona uma regra de número inteiro (entre 1 e 100) a uma coluna que já tem 2.000 valores. Nenhum erro aparece, mas você suspeita que entradas antigas violam a regra. Como encontrá-las no Excel?",
+    "options": [
+      "Redigitar todos os valores, porque a regra vai rejeitar os inválidos",
+      "Usar Validação de Dados > Circular Dados Inválidos para marcá-los",
+      "Nada a fazer: o Excel rejeitou os valores inválidos ao salvar a regra",
+      "Aplicar a regra de novo com 'Aplicar a todas as outras células' para gerar alertas"
+    ],
+    "explanation": "A validação de dados verifica os valores no momento da digitação; o Excel não avisa que células existentes violam uma regra recém-aplicada. Circular Dados Inválidos desenha círculos vermelhos em volta dessas células, e cada círculo some quando o valor é corrigido. Redigitar 2.000 valores é inviável, o Excel não rejeitou nada retroativamente, e reaplicar a regra continua afetando só entradas futuras."
+  },
+  {
+    "id": "sheet-dv-unique-ids-countif",
+    "title": "Impedindo IDs duplicados na digitação",
+    "question": "Você quer que o Excel rejeite um novo valor em A2:A1000 se o mesmo ID já existir nesse intervalo. Qual fórmula de validação personalizada, escrita para A2 e aplicada ao intervalo todo, faz isso?",
+    "options": [
+      "`=COUNTIF(A2,$A$2:$A$1000)=1`",
+      "`=COUNTIF($A$2:$A$1000,A2)=0`",
+      "`=COUNTIF($A$2:$A$1000,A2)=1`",
+      "`=MATCH(A2,$A$2:$A$1000,0)>0`"
+    ],
+    "explanation": "COUNTIF recebe primeiro o intervalo e depois o critério; com intervalo absoluto e critério relativo, cada célula conta quantas vezes o próprio valor aparece na coluna inteira, e a regra só passa quando essa contagem é exatamente 1. Testar 0 rejeita toda entrada, porque o valor sendo validado também é contado; inverter os argumentos conta a coisa errada; e MATCH sempre encontra o próprio valor, então essa regra nunca falha. No Excel em português, COUNTIF é CONT.SE e MATCH é CORRESP."
+  },
+  {
+    "id": "sheet-dv-dependent-dropdown-names",
+    "title": "Lista suspensa dependente que falha em uma categoria",
+    "question": "Uma lista suspensa dependente usa validação do tipo Lista com origem `=INDIRECT($A2)`, em que cada categoria em A2 tem um intervalo nomeado de subcategorias. Funciona para 'Hardware', mas fica vazia para 'Office Supplies'. Qual é a causa mais provável?",
+    "options": [
+      "INDIRECT só aceita texto de uma palavra com até oito caracteres",
+      "Nomes definidos não podem ter espaços, então nenhum nome bate com o texto",
+      "Validação de lista não aceita fórmulas, só itens digitados com vírgula",
+      "Intervalos nomeados diferenciam maiúsculas, e as letras grandes quebram"
+    ],
+    "explanation": "Nomes definidos não podem conter espaços (usam-se sublinhados ou pontos), então 'Office Supplies' não corresponde a nenhum nome e o INDIRECT falha, deixando a lista vazia. Uma correção comum é nomear o intervalo Office_Supplies e usar `=INDIRECT(SUBSTITUTE($A2,\" \",\"_\"))` (INDIRETO e SUBSTITUIR no Excel em português, com ponto e vírgula como separador). A validação de lista aceita fórmulas, nomes não diferenciam maiúsculas de minúsculas, e o INDIRECT não tem limite de oito caracteres."
+  },
+  {
+    "id": "sheet-clean-trim-spaces",
+    "title": "Removendo espaços extras de nomes",
+    "question": "Nomes importados aparecem como '  Ana   Souza ', com espaços no início, no fim e repetidos. O que `=TRIM(A2)` retorna?",
+    "options": [
+      "'AnaSouza', sem nenhum espaço",
+      "' Ana Souza ', reduzindo só os espaços internos",
+      "'Ana   Souza', removendo só os espaços das pontas",
+      "'Ana Souza', com um único espaço entre as palavras"
+    ],
+    "explanation": "TRIM remove espaços no início e no fim e reduz sequências de espaços entre palavras a um único espaço, que é exatamente o que texto importado costuma precisar. Ele nunca remove o espaço simples que separa palavras, e limpa as pontas além do meio. No Excel em português a função se chama ARRUMAR."
+  },
+  {
+    "id": "sheet-clean-remove-duplicates",
+    "title": "O que Remover Duplicatas mantém",
+    "question": "No Excel, você seleciona uma lista de clientes e executa Dados > Remover Duplicatas com apenas a coluna Email marcada. O que acontece?",
+    "options": [
+      "Linhas que repetem um email anterior são excluídas; a primeira fica",
+      "Toda linha com email repetido é excluída, inclusive a primeira",
+      "As linhas duplicadas são ocultadas por um filtro e podem voltar depois",
+      "Só as células de email duplicadas são limpas; as linhas continuam"
+    ],
+    "explanation": "Remover Duplicatas compara as colunas marcadas, mantém a primeira ocorrência e exclui permanentemente as linhas repetidas seguintes, por isso a Microsoft recomenda copiar os dados antes. Filtrar valores exclusivos é o recurso que oculta duplicatas temporariamente, e o comando remove linhas inteiras do intervalo em vez de limpar só as células marcadas."
+  },
+  {
+    "id": "sheet-clean-numbers-as-text",
+    "title": "SUM retorna 0 em uma coluna importada",
+    "question": "Depois de importar um CSV, `=SUM(C2:C900)` retorna 0. Os valores estão alinhados à esquerda e mostram pequenos triângulos verdes. Qual é o problema e uma correção rápida?",
+    "options": [
+      "São números armazenados como texto; converta-os em números reais",
+      "A coluna tem um filtro, e o SUM ignora os valores filtrados",
+      "O cálculo está em modo manual; pressione F9 para recalcular",
+      "As células usam formato personalizado; limpe a formatação"
+    ],
+    "explanation": "Alinhamento à esquerda com o indicador verde de erro significa que o Excel vê texto que só parece número, e o SUM (SOMA) ignora texto em intervalos. Convertê-los (Converter em Número no menu do erro, Texto para Colunas, multiplicar por 1 ou `VALUE`) os transforma em números reais. O SUM inclui linhas filtradas, o cálculo manual mostraria um resultado desatualizado e não zero, e a formatação não muda o tipo armazenado."
+  },
+  {
+    "id": "sheet-clean-nonbreaking-space",
+    "title": "TRIM deixa espaços em texto copiado da web",
+    "question": "Códigos de produto colados de uma página web continuam falhando nas buscas depois de `=TRIM(A2)`, e as células terminam visivelmente com um espaço. Qual é a causa provável e a correção?",
+    "options": [
+      "O espaço é uma quebra de linha; envolva o valor em UPPER antes do TRIM",
+      "TRIM só limpa o lado esquerdo; combine-o com RIGHT para limpar o fim",
+      "É um espaço não separável, CHAR(160); troque-o com SUBSTITUTE antes",
+      "Buscas diferenciam maiúsculas; aplique LOWER aos códigos e às chaves"
+    ],
+    "explanation": "Páginas web costumam usar o espaço não separável (caractere 160, da entidade HTML `&nbsp;`), que o TRIM não foi feito para remover. `=TRIM(SUBSTITUTE(A2,CHAR(160),\" \"))` o transforma em espaço normal e depois o remove. O TRIM trata as duas pontas, UPPER não mexe em espaços nem quebras de linha (CLEAN cuida destas), e buscas no Excel não diferenciam maiúsculas de minúsculas. No Excel em português: ARRUMAR, SUBSTITUIR e CARACT, com ponto e vírgula como separador."
+  },
+  {
+    "id": "sheet-clean-date-locale-import",
+    "title": "Datas brasileiras abertas em um Excel com localidade dos EUA",
+    "question": "Um CSV de um sistema brasileiro tem datas como 03/04/2026 (3 de abril) e 25/04/2026. Aberto direto no Excel com configurações regionais dos EUA, algumas viram 4 de março e outras ficam como texto. Qual é a correção confiável?",
+    "options": [
+      "Formatar a coluna como Data Abreviada depois de abrir para o Excel reinterpretar",
+      "Aplicar DATEVALUE em cada célula, que sempre lê as datas como dia/mês/ano",
+      "Importar com a coluna tipada como Data usando a localidade de origem (DMA)",
+      "Ordenar a coluna para corrigir juntas as datas em texto e as datas reais"
+    ],
+    "explanation": "Ao abrir, o Excel interpreta o texto na ordem mês/dia do sistema: textos válidos nessa ordem viram datas erradas (3 de abril vira 4 de março) e os impossíveis (dia 25) ficam como texto, corrompendo os dados em silêncio. Importar pelo Power Query com Alterar tipo > Usando localidade (Português (Brasil)) interpreta todos os valores corretamente. Formatar não reinterpreta valores armazenados, o DATEVALUE (DATA.VALOR) também depende das configurações de data do sistema, e ordenar não corrige nada."
+  },
+  {
+    "id": "sheet-chart-secondary-axis",
+    "title": "Plotando receita e margem % juntas",
+    "question": "Um gráfico de colunas mostra a receita mensal em milhões. Quando você adiciona a margem % (por volta de 0,25) como segunda série, ela fica achatada no fundo. Qual é a correção padrão?",
+    "options": [
+      "Usar escala logarítmica para as duas séries caberem no eixo principal",
+      "Multiplicar a margem % por um milhão para as séries usarem a mesma escala",
+      "Trocar o gráfico inteiro por um de rosca com dois anéis separados",
+      "Usar um gráfico de combinação com a margem % em linha num eixo secundário"
+    ],
+    "explanation": "Quando as séries diferem muito em magnitude ou unidade, um gráfico de combinação permite plotar uma série (aqui a margem %) como linha em um eixo vertical secundário, mantendo as duas legíveis. Reescalar os dados falsifica os valores, gráficos de rosca não mostram tendência ao longo dos meses, e um eixo logarítmico distorce as colunas de receita sem resolver as unidades diferentes. Rotule bem os dois eixos, porque eixos duplos são fáceis de interpretar errado."
+  },
+  {
+    "id": "sheet-chart-google-sparkline",
+    "title": "Minilinhas de tendência na célula no Google Sheets",
+    "question": "Cada linha de uma planilha do Google Sheets tem 12 meses de vendas em B2:M2. Você quer uma pequena linha de tendência dentro da célula N2 para cada produto. O que N2 deve conter?",
+    "options": [
+      "`=SPARKLINE(B2:M2)`",
+      "`=TREND(B2:M2, B1:M1)`",
+      "`=GROWTH(B2:M2, B1:M1)`",
+      "`=LINEST(B2:M2, B1:M1)`"
+    ],
+    "explanation": "SPARKLINE desenha um gráfico em miniatura (uma linha, por padrão) dentro de uma única célula a partir de um intervalo de valores, ideal para tendências por linha. TREND e GROWTH retornam valores ajustados por regressão linear ou exponencial, e LINEST retorna estatísticas de regressão; nenhuma delas desenha nada. O Excel oferece a mesma ideia em Inserir > Minigráficos (Sparklines)."
+  },
+  {
+    "id": "sheet-chart-scatter-vs-line",
+    "title": "Valores de x irregulares plotados como linha",
+    "question": "Você plota investimento em anúncios (x: 500, 800, 5.000, 20.000) contra cadastros em um gráfico de linhas do Excel, e os pontos aparecem igualmente espaçados, escondendo a relação real. O que deve usar no lugar?",
+    "options": [
+      "Um gráfico de colunas 100% empilhadas, que normaliza cada categoria",
+      "Um gráfico de linhas empilhadas, que acumula as séries ao longo de x",
+      "Um gráfico de dispersão, que põe os valores de x num eixo numérico",
+      "Um gráfico de radar, que mostra cada valor de x em seu próprio raio"
+    ],
+    "explanation": "Um gráfico de linhas trata o eixo horizontal como categorias e as espaça igualmente, sejam quais forem os valores numéricos. Um gráfico de dispersão (XY) tem dois eixos de valores, então 20.000 fica bem à direita de 5.000 e a relação entre investimento e cadastros aparece fielmente. Gráficos empilhados e de radar continuam usando eixos de categorias e respondem a outras perguntas."
+  },
+  {
+    "id": "sheet-chart-pareto",
+    "title": "Encontrando as poucas causas vitais de defeitos",
+    "question": "Um time de qualidade registrou 1.200 defeitos em 15 causas e quer ver quais poucas causas respondem pela maioria. Qual gráfico do Excel foi feito para isso?",
+    "options": [
+      "Um gráfico de pizza com uma fatia por causa, em sentido horário",
+      "Um gráfico de linhas das contagens na ordem em que as causas foram registradas",
+      "Um gráfico de área empilhada de cada causa ao longo das datas",
+      "Um gráfico de Pareto: colunas ordenadas e uma linha de % acumulado"
+    ],
+    "explanation": "Um gráfico de Pareto ordena as categorias de forma decrescente e sobrepõe uma linha de percentual acumulado, então dá para ler quantas causas chegam, por exemplo, a 80% dos defeitos. Quinze fatias de pizza são difíceis de comparar, a ordem de registro não tem significado para ranking, e uma área empilhada no tempo responde a uma pergunta de tendência em vez de ranquear causas."
+  },
+  {
+    "id": "sheet-chart-histogram-bins",
+    "title": "Um histograma cuja forma depende dos bins",
+    "question": "Um histograma do Excel com tempos de entrega usa bins automáticos e parece uma única corcova suave, mas um colega diz que há dois picos (entregas no mesmo dia e em 3 dias). O que você deve fazer?",
+    "options": [
+      "Definir bins mais estreitos ou em maior número e comparar a forma",
+      "Trocar por um gráfico de pizza dos tempos para os dois grupos aparecerem",
+      "Ordenar os dados antes, porque histogramas agrupam na ordem da planilha",
+      "Adicionar uma linha de tendência de média móvel, que revela picos ocultos"
+    ],
+    "explanation": "A largura automática dos bins no Excel é calculada pela regra de referência normal de Scott, que pressupõe dados aproximadamente normais e pode ser larga demais para uma distribuição bimodal, juntando os dois picos. Definir explicitamente a largura ou o número de bins e testar alguns valores revela a forma real. Pizzas não mostram distribuição, histogramas não dependem da ordem da planilha, e uma linha de tendência suaviza as características em vez de revelá-las."
+  }
+]

@@ -93,7 +93,10 @@ public sealed partial class DatabaseSeeder(
             }
             foreach (var sj in tj.Subtopics.Where(sj => topic.Subtopics.All(s => s.Slug != sj.Slug)))
             {
-                topic.Subtopics.Add(new Subtopic { Slug = sj.Slug, Name = sj.Name, DisplayOrder = sj.Order, TopicId = topic.Id });
+                // Add through the DbSet: a client-generated key reached only via navigation is treated as an existing row (UPDATE).
+                var subtopic = new Subtopic { Slug = sj.Slug, Name = sj.Name, DisplayOrder = sj.Order, TopicId = topic.Id };
+                db.Subtopics.Add(subtopic);
+                topic.Subtopics.Add(subtopic);
                 subsAdded++;
             }
         }

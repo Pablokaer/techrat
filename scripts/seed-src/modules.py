@@ -4,9 +4,9 @@ Run `python3 scripts/seed-src/modules.py` to regenerate
 backend/TechRat.Infrastructure/Seed/Data/modules.json and the "modules" section of Seed/Data/i18n/pt-BR.json.
 Then run roadmaps.py (it reads MODULES from this file) and validate_catalog.py.
 
-A module is a small, reusable unit (2-6 steps, one or two sittings). A step is a topic/subtopic scope proven by answering
-questions; every scope belongs to exactly one module, so a learner completes it once and it counts in every roadmap that
-contains the module.
+A module is a small, reusable unit (2-6 steps, one or two sittings; a Capstone may have a single step). A step is a
+topic/subtopic scope proven by answering questions; every scope belongs to exactly one module, so a learner completes it
+once and it counts in every roadmap that contains the module.
 
 Step syntax: "topic/subtopic" (title = subtopic name) or "topic/subtopic|Custom title".
 Kind: "Core" when the module is reused by 2+ roadmaps, "Context" otherwise (roadmaps.py checks this); "BestPractices"
@@ -155,6 +155,7 @@ module("advanced-graph-algorithms", "Advanced Graph Algorithms", CS, "Advanced",
 module("network-models", "Network Models & Transport", CS, "Intermediate", "network",
        "The OSI and TCP/IP models, IP addressing and subnetting, and TCP versus UDP.",
        ["networking/models", "networking/ip-subnetting", "networking/tcp-udp"],
+       kind="Core",
        pt=("Modelos de Rede e Transporte", "Os modelos OSI e TCP/IP, endereçamento IP e sub-redes, e TCP versus UDP."))
 
 module("dns-and-http", "DNS & HTTP", CS, "Beginner", "network",
@@ -166,6 +167,7 @@ module("dns-and-http", "DNS & HTTP", CS, "Beginner", "network",
 module("tls-nat-and-firewalls", "TLS, NAT & Firewalls", CS, "Intermediate", "network",
        "Encrypt traffic with TLS and certificates, and control it with NAT and firewalls.",
        ["networking/tls", "networking/nat-firewall"],
+       kind="Core",
        pt=("TLS, NAT e Firewalls", "Criptografe o tráfego com TLS e certificados e controle-o com NAT e firewalls."))
 
 module("network-infrastructure", "Proxies, CDNs & WebSockets", CS, "Intermediate", "network",
@@ -189,7 +191,7 @@ module("beyond-rest", "Webhooks, Real-Time & gRPC", WEB, "Intermediate", "server
 module("caching-and-queues", "Caching & Queues", WEB, "Intermediate", "database-zap",
        "Speed up services with caching and idempotent APIs, and move slow work to background jobs and queues.",
        ["backend-engineering/backend-caching", "backend-engineering/background-jobs"],
-       requires=["http-and-apis"],
+       kind="Core", requires=["http-and-apis"],
        pt=("Cache e Filas", "Acelere serviços com cache e APIs idempotentes, e mova trabalho lento para jobs em background e filas."))
 
 module("security-foundations", "Security Foundations", SEC, "Beginner", "shield",
@@ -344,6 +346,7 @@ module("python-core", "Python Core", LANG, "Beginner", "terminal",
        "Pythonic syntax and collections, functions and decorators, iterators and generators, classes and exceptions.",
        ["python/syntax-collections", "python/functions-decorators", "python/iterators-generators", "python/classes",
         "python/exceptions-context"],
+       kind="Core",
        pt=("Python Essencial", "Sintaxe e coleções pythônicas, funções e decoradores, iteradores e geradores, classes e exceções."))
 
 module("python-tooling-and-testing", "Python Tooling & Testing", LANG, "Intermediate", "terminal",
@@ -610,25 +613,26 @@ module("ml-foundations", "ML Foundations", AI, "Intermediate", "chart-scatter",
 module("supervised-models", "Supervised Models", AI, "Advanced", "chart-scatter",
        "Regression and classification, the bias-variance trade-off and regularization, and tree ensembles.",
        ["machine-learning/regression-classification", "machine-learning/bias-variance", "machine-learning/trees-ensembles"],
-       requires=["ml-foundations"],
+       kind="Core", requires=["ml-foundations"],
        pt=("Modelos Supervisionados", "Regressão e classificação, o trade-off entre viés e variância e regularização, e ensembles de árvores."))
 
 module("advanced-ml", "Features, Clustering & Neural Networks", AI, "Advanced", "chart-scatter",
        "Engineer better features, find structure with clustering and PCA, and train neural networks.",
        ["machine-learning/feature-engineering", "machine-learning/clustering-pca", "machine-learning/neural-networks"],
-       requires=["ml-foundations"],
+       kind="Core", requires=["ml-foundations"],
        pt=("Features, Clusterização e Redes Neurais", "Crie features melhores, encontre estrutura com clusterização e PCA, e treine redes neurais."))
 
 module("llm-application-basics", "LLM Application Basics", AI, "Intermediate", "brain-circuit",
        "How neural networks, transformers and LLMs work, tokens and context windows, and prompting for structured outputs.",
        ["ai-engineering/ai-fundamentals", "ai-engineering/llm-fundamentals", "ai-engineering/prompt-engineering"],
+       kind="Core",
        pt=("Fundamentos de Aplicações com LLMs",
            "Como funcionam redes neurais, transformers e LLMs, tokens e janelas de contexto, e prompts com saídas estruturadas."))
 
 module("rag-and-retrieval", "RAG & Retrieval", AI, "Advanced", "brain-circuit",
        "Embeddings and vector search, and retrieval-augmented generation with chunking and reranking.",
        ["ai-engineering/embeddings-vector-search", "ai-engineering/rag"],
-       requires=["llm-application-basics"],
+       kind="Core", requires=["llm-application-basics"],
        pt=("RAG e Recuperação de Informação", "Embeddings e busca vetorial, e geração aumentada por recuperação com chunking e reranking."))
 
 module("ai-agents", "Tool Calling & Agents", AI, "Advanced", "brain-circuit",
@@ -720,6 +724,231 @@ module("incident-response", "Incidents & Reliability", CAREER, "Intermediate", "
        pt=("Incidentes e Confiabilidade", "Lide com incidentes com calma, aprenda com eles e incorpore práticas de confiabilidade à equipe."))
 
 
+# ---------------------------------------------------------------- statistics & data analysis
+module("statistics-foundations", "Statistics Foundations", AI, "Beginner", "chart-scatter",
+       "Summarize data with descriptive statistics, reason with probability and distributions, and spot sampling bias.",
+       ["statistics/descriptive-statistics", "statistics/probability", "statistics/distributions", "statistics/sampling"],
+       kind="Core",
+       pt=("Fundamentos de Estatística",
+           "Resuma dados com estatística descritiva, raciocine com probabilidade e distribuições e identifique viés de amostragem."))
+
+module("statistics-inference", "Statistical Inference & Experiments", AI, "Intermediate", "chart-scatter",
+       "Draw conclusions from samples with hypothesis tests and confidence intervals, tell correlation from causation, "
+       "run A/B tests and fit simple regressions.",
+       ["statistics/hypothesis-testing", "statistics/confidence-intervals", "statistics/correlation-causation",
+        "statistics/ab-testing", "statistics/regression-basics"],
+       kind="Core", requires=["statistics-foundations"],
+       pt=("Inferência Estatística e Experimentos",
+           "Tire conclusões de amostras com testes de hipótese e intervalos de confiança, diferencie correlação de causalidade, "
+           "conduza testes A/B e ajuste regressões simples."))
+
+module("spreadsheets-for-analysis", "Spreadsheets for Analysis", AI, "Beginner", "layout",
+       "Formulas and references, lookups, data validation and cleaning, pivot tables and charts in Excel and Google Sheets.",
+       ["spreadsheets/formulas", "spreadsheets/lookups", "spreadsheets/data-validation", "spreadsheets/sheet-cleaning",
+        "spreadsheets/pivot-tables", "spreadsheets/sheet-charts"],
+       pt=("Planilhas para Análise",
+           "Fórmulas e referências, funções de busca, validação e limpeza de dados, tabelas dinâmicas e gráficos no Excel e no Google Sheets."))
+
+module("python-data-analysis", "Data Analysis with NumPy & pandas", AI, "Intermediate", "terminal",
+       "Load, clean, join and aggregate tabular data with NumPy and pandas.",
+       ["data-analysis-python/numpy", "data-analysis-python/pandas-fundamentals", "data-analysis-python/data-cleaning",
+        "data-analysis-python/merge-join", "data-analysis-python/groupby-aggregation"],
+       kind="Core", requires=["python-core"],
+       pt=("Análise de Dados com NumPy e pandas", "Carregue, limpe, combine e agregue dados tabulares com NumPy e pandas."))
+
+module("time-series-and-notebooks", "Time Series & Reproducible Notebooks", AI, "Intermediate", "terminal",
+       "Resample and window time-indexed data with pandas, and keep notebook analyses reproducible.",
+       ["data-analysis-python/time-series", "data-analysis-python/notebooks"],
+       requires=["python-data-analysis"],
+       pt=("Séries Temporais e Notebooks Reprodutíveis",
+           "Reamostre e aplique janelas a dados indexados por tempo com pandas, e mantenha análises em notebooks reprodutíveis."))
+
+module("data-visualization", "Data Visualization", AI, "Intermediate", "chart-scatter",
+       "Pick the right chart for the question, plot it with Matplotlib and Seaborn, and combine charts into clear dashboards.",
+       ["data-visualization-bi/chart-selection", "data-analysis-python/visualization", "data-visualization-bi/dashboards"],
+       kind="Core",
+       pt=("Visualização de Dados",
+           "Escolha o gráfico certo para cada pergunta, plote-o com Matplotlib e Seaborn e combine gráficos em dashboards claros."))
+
+module("bi-modeling-and-tools", "BI Modeling & Tools", AI, "Intermediate", "database",
+       "Model data for BI and learn the core concepts shared by Power BI, Tableau and Looker.",
+       ["data-visualization-bi/bi-data-modeling", "data-visualization-bi/bi-tools"],
+       kind="Core",
+       pt=("Modelagem e Ferramentas de BI", "Modele dados para BI e aprenda os conceitos centrais comuns a Power BI, Tableau e Looker."))
+
+module("business-questions-and-storytelling", "Business Questions & Storytelling", AI, "Intermediate", "target",
+       "Turn business questions into KPIs and metrics, and present findings as a story that drives decisions.",
+       ["data-visualization-bi/kpis", "data-visualization-bi/storytelling"],
+       requires=["data-visualization"],
+       pt=("Perguntas de Negócio e Storytelling",
+           "Transforme perguntas de negócio em KPIs e métricas, e apresente as descobertas como uma história que leva a decisões."))
+
+# ---------------------------------------------------------------- AI-assisted development
+module("ai-assisted-development", "AI-Assisted Development", AI, "Intermediate", "sparkles",
+       "Work effectively with coding agents: give them context and instruction files, prompt for code, connect tools with MCP "
+       "and review what they produce.",
+       ["ai-assisted-development/coding-agents", "ai-assisted-development/context-instructions",
+        "ai-assisted-development/prompting-for-code", "ai-assisted-development/tools-mcp",
+        "ai-assisted-development/reviewing-ai-code"],
+       kind="Core",
+       pt=("Desenvolvimento Assistido por IA",
+           "Trabalhe bem com agentes de código: forneça contexto e arquivos de instruções, escreva prompts para código, "
+           "conecte ferramentas com MCP e revise o que eles produzem."))
+
+module("claude-code-workflows", "Claude Code Workflows", AI, "Advanced", "sparkles",
+       "Scale agent work with subagents and hooks, keep it safe with permissions, control cost and latency, and run agents in CI.",
+       ["ai-assisted-development/subagents-parallel", "ai-assisted-development/hooks-automation",
+        "ai-assisted-development/agent-security", "ai-assisted-development/cost-latency", "ai-assisted-development/agents-in-ci"],
+       requires=["ai-assisted-development"],
+       pt=("Fluxos de Trabalho com Claude Code",
+           "Escale o trabalho de agentes com subagentes e hooks, mantenha-o seguro com permissões, controle custo e latência "
+           "e rode agentes no CI."))
+
+# ---------------------------------------------------------------- AWS
+module("aws-core-services", "AWS Core Services in Depth", OPS, "Intermediate", "cloud",
+       "IAM and least privilege, VPC networking, EC2, containers and Lambda, S3, RDS and DynamoDB, and CloudWatch.",
+       ["aws/iam", "aws/vpc", "aws/compute", "aws/s3", "aws/databases", "aws/cloudwatch"],
+       kind="Core", requires=["aws-foundations"],
+       pt=("Serviços Essenciais da AWS em Profundidade",
+           "IAM e menor privilégio, redes com VPC, EC2, containers e Lambda, S3, RDS e DynamoDB, e CloudWatch."))
+
+# ---------------------------------------------------------------- C++
+module("cpp-foundations", "C++ Foundations", LANG, "Beginner", "cpu",
+       "C++ syntax and types, pointers and references, and classes with object-oriented design.",
+       ["cpp/syntax-types", "cpp/pointers-references", "cpp/classes-oop"],
+       pt=("Fundamentos de C++", "Sintaxe e tipos do C++, ponteiros e referências, e classes com design orientado a objetos."))
+
+module("cpp-memory-and-raii", "Memory, RAII & Move Semantics", LANG, "Intermediate", "cpu",
+       "Manage object lifetimes with RAII and smart pointers, and avoid needless copies with move semantics.",
+       ["cpp/memory-raii", "cpp/smart-pointers", "cpp/move-semantics"],
+       requires=["cpp-foundations"],
+       pt=("Memória, RAII e Move Semantics",
+           "Gerencie o tempo de vida de objetos com RAII e smart pointers, e evite cópias desnecessárias com move semantics."))
+
+module("cpp-modern-and-stl", "Templates, STL & Modern C++", LANG, "Intermediate", "cpu",
+       "Write generic code with templates, use STL containers and algorithms, adopt C++17/20/23 features and build projects with CMake.",
+       ["cpp/templates", "cpp/stl", "cpp/modern-cpp", "cpp/build-cmake"],
+       requires=["cpp-foundations"],
+       pt=("Templates, STL e C++ Moderno",
+           "Escreva código genérico com templates, use containers e algoritmos da STL, adote recursos do C++17/20/23 e compile projetos com CMake."))
+
+module("cpp-concurrency", "Concurrency & Undefined Behavior", LANG, "Advanced", "cpu",
+       "Threads, atomics and the memory model, and how to recognize and avoid undefined behavior such as data races.",
+       ["cpp/concurrency-cpp", "cpp/undefined-behavior"],
+       requires=["cpp-memory-and-raii"],
+       pt=("Concorrência e Comportamento Indefinido",
+           "Threads, atomics e o modelo de memória, e como reconhecer e evitar comportamento indefinido, como data races."))
+
+# ---------------------------------------------------------------- defensive security
+module("security-operations", "Security Operations & Incident Response", SEC, "Intermediate", "shield",
+       "How a SOC detects threats, how teams respond to incidents, and the forensics basics that preserve evidence.",
+       ["offensive-defensive-security/security-operations", "offensive-defensive-security/incident-response",
+        "offensive-defensive-security/forensics"],
+       pt=("Operações de Segurança e Resposta a Incidentes",
+           "Como um SOC detecta ameaças, como equipes respondem a incidentes e os fundamentos de forense que preservam evidências."))
+
+module("threats-and-vulnerabilities", "Threats, Vulnerabilities & Pentesting", SEC, "Advanced", "shield",
+       "Know the malware families, run a vulnerability management program and follow an ethical penetration testing methodology.",
+       ["offensive-defensive-security/malware", "offensive-defensive-security/vulnerability-management",
+        "offensive-defensive-security/pentest-methodology"],
+       pt=("Ameaças, Vulnerabilidades e Pentest",
+           "Conheça os tipos de malware, conduza um programa de gestão de vulnerabilidades e siga uma metodologia ética de testes de invasão."))
+
+module("cloud-security", "Cryptography, Zero Trust & Cloud Security", SEC, "Advanced", "shield",
+       "Cryptography basics, identity-centric zero trust, securing cloud workloads and the compliance frameworks that audit them.",
+       ["offensive-defensive-security/cryptography", "offensive-defensive-security/zero-trust",
+        "offensive-defensive-security/cloud-security", "offensive-defensive-security/compliance"],
+       kind="Core",
+       pt=("Criptografia, Zero Trust e Segurança em Cloud",
+           "Fundamentos de criptografia, zero trust centrado em identidade, proteção de workloads em cloud e os frameworks "
+           "de compliance que os auditam."))
+
+# ---------------------------------------------------------------- best practices (own subtopics, kind BestPractices)
+module("api-security-best-practices", "API Security Best Practices", SEC, "Advanced", "shield",
+       "Use the OWASP API Security Top 10 to secure authentication and tokens, enforce object- and function-level "
+       "authorization, and validate input against mass assignment.",
+       ["api-security/owasp-api-top10", "api-security/api-authentication", "api-security/object-function-authz",
+        "api-security/input-validation"],
+       kind="BestPractices",
+       pt=("Boas Práticas de Segurança de APIs",
+           "Use o OWASP API Security Top 10 para proteger autenticação e tokens, aplicar autorização em nível de objeto e "
+           "de função e validar entradas contra mass assignment."))
+
+module("api-hardening-best-practices", "API Hardening & Monitoring", SEC, "Advanced", "shield",
+       "Limit abuse with rate limits, lock down transport, CORS and secrets, and log and monitor APIs to detect attacks.",
+       ["api-security/rate-limiting-abuse", "api-security/transport-cors-secrets", "api-security/logging-monitoring"],
+       kind="BestPractices", requires=["api-security-best-practices"],
+       pt=("Hardening e Monitoramento de APIs",
+           "Limite abusos com rate limiting, proteja transporte, CORS e secrets, e registre e monitore APIs para detectar ataques."))
+
+module("backend-performance-best-practices", "Backend Performance Best Practices", ENG, "Advanced", "gauge",
+       "Budget latency on hot paths, access data efficiently at scale, cache with a clear invalidation strategy, apply "
+       "backpressure and trim payloads and round trips.",
+       ["performance/bp-api-latency", "performance/bp-data-access", "performance/bp-caching-strategy",
+        "performance/bp-async-concurrency", "performance/bp-payloads-network"],
+       kind="BestPractices",
+       pt=("Boas Práticas de Performance no Backend",
+           "Defina orçamentos de latência para hot paths, acesse dados com eficiência em escala, use cache com uma estratégia "
+           "clara de invalidação, aplique backpressure e reduza payloads e round trips."))
+
+module("code-review-best-practices", "Code Review Best Practices", ENG, "Advanced", "git-merge",
+       "Review with clear goals, keep pull requests small, check correctness, design, tests and security, give useful "
+       "feedback and automate the rest.",
+       ["code-review/review-goals", "code-review/pr-size", "code-review/review-correctness-design",
+        "code-review/review-tests-security", "code-review/review-feedback", "code-review/review-automation"],
+       kind="BestPractices",
+       pt=("Boas Práticas de Code Review",
+           "Revise com objetivos claros, mantenha pull requests pequenos, verifique corretude, design, testes e segurança, "
+           "dê feedback útil e automatize o resto."))
+
+module("aws-best-practices", "AWS Best Practices", OPS, "Advanced", "cloud",
+       "Apply the Well-Architected Framework: optimize cost, secure accounts and workloads, and design for reliability, "
+       "backup and disaster recovery.",
+       ["aws/well-architected", "aws/cost-optimization", "aws/security-best-practices", "aws/reliability-best-practices"],
+       kind="BestPractices", requires=["aws-core-services"],
+       pt=("Boas Práticas na AWS",
+           "Aplique o Well-Architected Framework: otimize custos, proteja contas e workloads, e projete para confiabilidade, "
+           "backup e recuperação de desastres."))
+
+# ---------------------------------------------------------------- capstones (own subtopics, kind Capstone, one step)
+module("data-analyst-capstone", "Data Analyst Capstone", AI, "Expert", "trophy",
+       "A scenario-based final challenge mixing spreadsheets, statistics, SQL, pandas, visualization and business storytelling.",
+       ["capstones/data-analyst"],
+       kind="Capstone",
+       pt=("Desafio Final: Analista de Dados",
+           "Um desafio final baseado em cenários que mistura planilhas, estatística, SQL, pandas, visualização e storytelling de negócio."))
+
+module("ai-data-scientist-capstone", "AI & Data Scientist Capstone", AI, "Expert", "trophy",
+       "A scenario-based final challenge mixing statistics, data wrangling, machine learning, model evaluation and LLMs.",
+       ["capstones/ai-data-scientist"],
+       kind="Capstone",
+       pt=("Desafio Final: Cientista de Dados e IA",
+           "Um desafio final baseado em cenários que mistura estatística, preparação de dados, machine learning, avaliação de modelos e LLMs."))
+
+module("ai-assisted-development-capstone", "AI-Assisted Development Capstone", AI, "Expert", "trophy",
+       "A scenario-based final challenge on planning, steering, securing and reviewing work done with coding agents.",
+       ["capstones/ai-assisted-development"],
+       kind="Capstone",
+       pt=("Desafio Final: Desenvolvimento Assistido por IA",
+           "Um desafio final baseado em cenários sobre planejar, conduzir, proteger e revisar o trabalho feito com agentes de código."))
+
+module("cyber-security-capstone", "Cyber Security Capstone", SEC, "Expert", "trophy",
+       "A scenario-based final challenge mixing detection, incident response, vulnerability management, and cloud and API security.",
+       ["capstones/cyber-security"],
+       kind="Capstone",
+       pt=("Desafio Final: Cibersegurança",
+           "Um desafio final baseado em cenários que mistura detecção, resposta a incidentes, gestão de vulnerabilidades, "
+           "e segurança em cloud e de APIs."))
+
+module("cpp-capstone", "C++ Capstone", LANG, "Expert", "trophy",
+       "A scenario-based final challenge mixing memory management, RAII, templates, the STL, concurrency and undefined behavior.",
+       ["capstones/cpp"],
+       kind="Capstone",
+       pt=("Desafio Final: C++",
+           "Um desafio final baseado em cenários que mistura gerenciamento de memória, RAII, templates, a STL, concorrência "
+           "e comportamento indefinido."))
+
+
 # ---------------------------------------------------------------- emit
 def _load(path):
     with open(path, encoding="utf-8") as f:
@@ -739,7 +968,8 @@ def build(topics):
     for m in MODULES:
         assert m["slug"] not in seen, f"duplicate module {m['slug']}"
         seen.add(m["slug"])
-        assert 2 <= len(m["steps"]) <= 6, f"{m['slug']}: modules have 2-6 steps"
+        low = 1 if m["kind"] == "Capstone" else 2
+        assert low <= len(m["steps"]) <= 6, f"{m['slug']}: modules have {low}-6 steps"
         steps = []
         for s in m["steps"]:
             ref, _, title = s.partition("|")

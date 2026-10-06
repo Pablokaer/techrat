@@ -24,7 +24,7 @@ export const dashboard: Messages["dashboard"] = {
     progress: (completed, total, percent) => `${completed} de ${total} etapas · ${percent}%`,
     progressLabel: "Progresso do roadmap",
     emptyTitle: "Escolha um caminho e comece a subir de nível",
-    emptyText: "32 roadmaps estruturados, de Engenheiro de Software Júnior a System Design e Engenharia de IA.",
+    emptyText: "Roadmaps estruturados, de Engenheiro de Software Júnior a System Design e Engenharia de IA, montados com módulos compartilhados.",
     browse: "Ver roadmaps",
   },
   recommended: {

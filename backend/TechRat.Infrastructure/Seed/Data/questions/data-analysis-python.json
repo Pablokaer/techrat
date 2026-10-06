@@ -1,0 +1,818 @@
+[
+  {
+    "id": "dap-numpy-broadcast-column-row-shape",
+    "topic": "data-analysis-python",
+    "subtopic": "numpy",
+    "difficulty": "Easy",
+    "title": "Shape after broadcasting a column and a row",
+    "question": "What is the shape of `c`?\n\n    import numpy as np\n    a = np.ones((3, 1))\n    b = np.arange(4)\n    c = a + b",
+    "options": [
+      "(3, 1)",
+      "(1, 4)",
+      "(3, 4)",
+      "(4, 3)"
+    ],
+    "correctIndex": 2,
+    "explanation": "Broadcasting aligns shapes from the trailing dimension: (4,) is treated as (1, 4), and every size-1 dimension is stretched to match, giving (3, 4). The operation is valid because each dimension pair is either equal or 1, so no error is raised. (4, 3) would require the operands the other way round, and neither input shape survives unchanged.",
+    "referenceUrl": "https://numpy.org/doc/stable/user/basics.broadcasting.html"
+  },
+  {
+    "id": "dap-numpy-sum-axis-zero",
+    "topic": "data-analysis-python",
+    "subtopic": "numpy",
+    "difficulty": "Easy",
+    "title": "Summing along axis 0",
+    "question": "What does this print?\n\n    import numpy as np\n    a = np.arange(6).reshape(2, 3)\n    print(a.sum(axis=0))",
+    "options": [
+      "[3 5 7]",
+      "[ 3 12]",
+      "15",
+      "[1.5 2.5 3.5]"
+    ],
+    "correctIndex": 0,
+    "explanation": "`a` is [[0, 1, 2], [3, 4, 5]]. `axis=0` collapses the rows, summing down each column, so you get one value per column: [3 5 7]. `axis=1` would give one value per row ([ 3 12]), no axis sums everything (15), and [1.5 2.5 3.5] is what `mean(axis=0)` would return.",
+    "referenceUrl": "https://numpy.org/doc/stable/reference/generated/numpy.sum.html"
+  },
+  {
+    "id": "dap-numpy-slice-view-vs-fancy-copy",
+    "topic": "data-analysis-python",
+    "subtopic": "numpy",
+    "difficulty": "Medium",
+    "title": "Views from slicing vs copies from fancy indexing",
+    "question": "Which values does `a` hold after this code runs?\n\n    a = np.arange(5)\n    b = a[1:4]\n    b[0] = 99\n    c = a[[2, 3]]\n    c[0] = -1",
+    "options": [
+      "[0, 1, 2, 3, 4]",
+      "[0, 99, 2, 3, 4]",
+      "[0, 99, -1, 3, 4]",
+      "[0, 1, -1, 3, 4]"
+    ],
+    "correctIndex": 1,
+    "explanation": "Basic slicing (`a[1:4]`) returns a view that shares memory with `a`, so writing `b[0]` changes `a[1]` to 99. Indexing with an integer list (fancy indexing) always returns a copy, so the write to `c` never reaches `a`. Call `.copy()` on a slice when you need it to be independent.",
+    "referenceUrl": "https://numpy.org/doc/stable/user/basics.copies.html"
+  },
+  {
+    "id": "dap-numpy-float-into-int-array-truncates",
+    "topic": "data-analysis-python",
+    "subtopic": "numpy",
+    "difficulty": "Medium",
+    "title": "Assigning floats into an integer array",
+    "question": "What happens when this runs?\n\n    a = np.zeros(3, dtype=int)\n    a[0] = 2.7\n    a[1] = -1.9\n    print(a)",
+    "options": [
+      "It prints [ 3 -2  0]: values are rounded to the nearest integer",
+      "TypeError: a float cannot be stored in an int array",
+      "`a` becomes float64 and keeps both 2.7 and -1.9",
+      "It prints [ 2 -1  0]: values are truncated toward zero"
+    ],
+    "correctIndex": 3,
+    "explanation": "An existing array never changes its dtype on assignment: values are cast to the array's dtype. Casting float to int truncates toward zero, exactly like `int()`, and does so silently, so 2.7 becomes 2 and -1.9 becomes -1. Create the array as float or round explicitly with `np.round` before storing.",
+    "referenceUrl": "https://numpy.org/doc/stable/user/basics.types.html"
+  },
+  {
+    "id": "dap-numpy-uint8-wraparound-vs-sum",
+    "topic": "data-analysis-python",
+    "subtopic": "numpy",
+    "difficulty": "Hard",
+    "title": "uint8 arithmetic vs sum accumulation",
+    "question": "What does this print?\n\n    a = np.array([200, 100], dtype=np.uint8)\n    print(a + a)\n    print(a.sum())",
+    "options": [
+      "[144 200], then 300",
+      "[400 200], then 300",
+      "[144 200], then 44",
+      "OverflowError on the first print"
+    ],
+    "correctIndex": 0,
+    "explanation": "Element-wise arithmetic stays in uint8, so 200 + 200 = 400 silently wraps modulo 256 to 144. `np.sum`, however, accumulates small integer types in the platform's default integer, so the total is the correct 300. Cast with `astype` before arithmetic that may exceed the type's range; NumPy does not raise on array overflow.",
+    "referenceUrl": "https://numpy.org/doc/stable/reference/generated/numpy.sum.html"
+  },
+  {
+    "id": "dap-numpy-nep50-python-int-out-of-bounds",
+    "topic": "data-analysis-python",
+    "subtopic": "numpy",
+    "difficulty": "Expert",
+    "title": "NumPy 2 promotion with Python integers",
+    "question": "Under NumPy 2's promotion rules (NEP 50), what happens here?\n\n    a = np.array([100], dtype=np.int8)\n    b = a + 100\n    c = a + 200",
+    "options": [
+      "`b` is [200] and `c` is [300]: both upcast to int16",
+      "`b` is [-56]; `c` is [300] because 200 forces int16",
+      "`b` wraps to [-56]; `c` raises OverflowError",
+      "Both additions raise OverflowError"
+    ],
+    "correctIndex": 2,
+    "explanation": "NEP 50 makes Python scalars \"weak\": they take the array's dtype instead of upcasting it based on their value. So `a + 100` stays int8 and silently wraps to -56, while 200 cannot be represented as int8 at all, so `a + 200` raises OverflowError. NumPy 1.x's value-based casting would have upcast to int16 for 200, which is why old code can break after upgrading.",
+    "referenceUrl": "https://numpy.org/neps/nep-0050-scalar-promotion.html"
+  },
+  {
+    "id": "dap-pandas-loc-vs-iloc-slice-end",
+    "topic": "data-analysis-python",
+    "subtopic": "pandas-fundamentals",
+    "difficulty": "Easy",
+    "title": "Slice endpoints with loc and iloc",
+    "question": "What does this print?\n\n    s = pd.Series([10, 20, 30, 40], index=[1, 2, 3, 4])\n    print(s.loc[1:3].tolist())\n    print(s.iloc[1:3].tolist())",
+    "options": [
+      "[10, 20] and [20, 30]",
+      "[10, 20, 30] and [20, 30]",
+      "[20, 30] and [20, 30]",
+      "[10, 20, 30] and [20, 30, 40]"
+    ],
+    "correctIndex": 1,
+    "explanation": "`.loc` slices by label and includes both endpoints, so labels 1, 2 and 3 are returned. `.iloc` slices by position with Python's half-open convention, so positions 1 and 2 (values 20 and 30) are returned. Mixing the two up is a classic off-by-one source.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/indexing.html"
+  },
+  {
+    "id": "dap-pandas-single-vs-double-brackets",
+    "topic": "data-analysis-python",
+    "subtopic": "pandas-fundamentals",
+    "difficulty": "Easy",
+    "title": "Selecting a column with [] vs [[]]",
+    "question": "`df` has columns `a` and `b`. What do `df['a']` and `df[['a']]` return?",
+    "options": [
+      "Both return a one-column DataFrame",
+      "Both return a Series named `a`",
+      "A DataFrame and a Series, respectively",
+      "A Series and a DataFrame, respectively"
+    ],
+    "correctIndex": 3,
+    "explanation": "A single label selects one column as a Series. A list of labels always selects a DataFrame, even when the list has one element. The difference matters for shape, for methods available on each type and for code that later expects columns.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/indexing.html"
+  },
+  {
+    "id": "dap-pandas-index-alignment-nan",
+    "topic": "data-analysis-python",
+    "subtopic": "pandas-fundamentals",
+    "difficulty": "Medium",
+    "title": "Arithmetic between Series with different indexes",
+    "question": "What values does `s1 + s2` contain?\n\n    s1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])\n    s2 = pd.Series([10, 20, 30], index=['b', 'c', 'd'])\n    print(s1 + s2)",
+    "options": [
+      "a: NaN, b: 12, c: 23, d: NaN",
+      "a: 11, b: 22, c: 33 (matched by position)",
+      "b: 12, c: 23 only; unmatched labels are dropped",
+      "a: 1, b: 12, c: 23, d: 30"
+    ],
+    "correctIndex": 0,
+    "explanation": "pandas aligns operands on their index labels and returns the union of labels; a label present in only one operand produces NaN (and the result becomes float64). Values are never matched by position. To treat a missing side as 0 you must ask for it with `s1.add(s2, fill_value=0)`, which would give the last option.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/dsintro.html"
+  },
+  {
+    "id": "dap-pandas-chained-assignment-no-effect",
+    "topic": "data-analysis-python",
+    "subtopic": "pandas-fundamentals",
+    "difficulty": "Medium",
+    "title": "Chained assignment on a filtered frame",
+    "question": "What is printed, and how should the second line be written?\n\n    df = pd.DataFrame({'qty': [3, 8, 10], 'flag': [False, False, False]})\n    df[df['qty'] > 5]['flag'] = True\n    print(df['flag'].tolist())",
+    "options": [
+      "[False, True, True]; the code already works as written",
+      "[True, True, True]; the mask is ignored, so use `where`",
+      "[False, False, False]; use `df.loc[df['qty'] > 5, 'flag'] = True`",
+      "KeyError; the column must be created with `assign` first"
+    ],
+    "correctIndex": 2,
+    "explanation": "The boolean filter returns a new object, and the second `[]` sets the value on that temporary object, so `df` is unchanged. pandas 2.x warns with SettingWithCopyWarning; with Copy-on-Write (the default in pandas 3.0) chained assignment never works and emits ChainedAssignmentError. A single `.loc` call with the row mask and the column label modifies `df` itself.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/copy_on_write.html"
+  },
+  {
+    "id": "dap-pandas-iterrows-upcasts-ints",
+    "topic": "data-analysis-python",
+    "subtopic": "pandas-fundamentals",
+    "difficulty": "Hard",
+    "title": "Why iterrows turns integer ids into floats",
+    "question": "What does this loop print for each row?\n\n    df = pd.DataFrame({'id': [1, 2], 'price': [1.5, 2.5]})\n    for _, row in df.iterrows():\n        print(type(row['id']).__name__)",
+    "options": [
+      "int64, because iterrows keeps each column's dtype",
+      "float64, because each row is one Series with a single dtype",
+      "int, because iterrows converts values to Python scalars",
+      "object, because mixed rows fall back to object dtype"
+    ],
+    "correctIndex": 1,
+    "explanation": "`iterrows` yields each row as a Series, and a Series has one dtype, so the int and float columns are combined into float64 and the id 1 becomes 1.0. Object dtype only appears when, for example, strings are mixed in. `itertuples` preserves per-column types and is faster, and vectorised operations are better still.",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.iterrows.html"
+  },
+  {
+    "id": "dap-pandas-copy-on-write-derived-series",
+    "topic": "data-analysis-python",
+    "subtopic": "pandas-fundamentals",
+    "difficulty": "Expert",
+    "title": "Modifying a column Series under Copy-on-Write",
+    "question": "With Copy-on-Write enabled (the default since pandas 3.0), what is printed and why?\n\n    df = pd.DataFrame({'a': [1, 2, 3]})\n    s = df['a']\n    s.iloc[0] = 100\n    print(df['a'].tolist())",
+    "options": [
+      "[100, 2, 3]; `s` is a view, so its writes reach `df`",
+      "[100, 2, 3]; CoW only protects against chained assignment",
+      "Nothing: ChainedAssignmentError is raised on the `iloc` line",
+      "[1, 2, 3]; `s` is copied lazily at the moment it is modified"
+    ],
+    "correctIndex": 3,
+    "explanation": "Under Copy-on-Write every object derived from another behaves as a copy: `s` shares memory with `df` at first, but the first write to `s` triggers a real copy, so `df` stays [1, 2, 3] and no warning is emitted. This is not chained assignment, because the selection and the write are separate statements. Without CoW (pandas 2.x default) `s` was a view and `df` would show 100; to change `df`, write through it, e.g. `df.loc[0, 'a'] = 100`.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/copy_on_write.html"
+  },
+  {
+    "id": "dap-clean-count-missing-per-column",
+    "topic": "data-analysis-python",
+    "subtopic": "data-cleaning",
+    "difficulty": "Easy",
+    "title": "Counting missing values per column",
+    "question": "Which expression returns the number of missing values in each column of `df`?",
+    "options": [
+      "`df.count()`",
+      "`df.isna().sum()`",
+      "`df.isna().any()`",
+      "`df.dropna().sum()`"
+    ],
+    "correctIndex": 1,
+    "explanation": "`isna()` returns a boolean frame and `sum()` counts the True values per column. `count()` returns the opposite, the number of non-missing values; `isna().any()` only says whether a column has at least one missing value; and `dropna().sum()` adds up the values of the complete rows.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/missing_data.html"
+  },
+  {
+    "id": "dap-clean-dropna-default-any-row",
+    "topic": "data-analysis-python",
+    "subtopic": "data-cleaning",
+    "difficulty": "Easy",
+    "title": "What dropna removes by default",
+    "question": "What does this print?\n\n    df = pd.DataFrame({'a': [1, None, 3, 4], 'b': ['x', 'y', None, 'z']})\n    print(len(df.dropna()))",
+    "options": [
+      "2, since rows with any missing value are removed",
+      "3, since only rows missing column `a` are removed",
+      "4, since a row goes only if all its values are missing",
+      "0, since `dropna` removes columns that contain NaN"
+    ],
+    "correctIndex": 0,
+    "explanation": "By default `dropna` uses `axis=0` and `how='any'`: a row is dropped if any of its values is missing, so rows 1 and 2 go and 2 rows remain. `how='all'` would keep all 4 rows here, and dropping columns requires `axis=1`.",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.dropna.html"
+  },
+  {
+    "id": "dap-clean-int-with-missing-becomes-float",
+    "topic": "data-analysis-python",
+    "subtopic": "data-cleaning",
+    "difficulty": "Medium",
+    "title": "Integer column with a missing value",
+    "question": "An id column with one blank cell loads as 1.0, NaN, 3.0. This snippet reproduces it. What is printed, and how do you keep integers while allowing missing values?\n\n    s = pd.Series([1, None, 3])\n    print(s.dtype)",
+    "options": [
+      "int64; nothing to fix, the decimals are only display",
+      "object; cast it with `s.astype(int)` after loading",
+      "float64; cast it with `s.astype('Int64')`",
+      "float64; replace missing ids with 0 and keep floats"
+    ],
+    "correctIndex": 2,
+    "explanation": "NumPy's int64 cannot store NaN, so pandas upcasts the column to float64 to represent the missing value. The nullable extension dtype `Int64` (capital I) stores integers plus `pd.NA`. `astype(int)` raises on NaN, and filling with 0 invents an id that may collide with real data.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/integer_na.html"
+  },
+  {
+    "id": "dap-clean-to-numeric-coerce",
+    "topic": "data-analysis-python",
+    "subtopic": "data-cleaning",
+    "difficulty": "Medium",
+    "title": "Converting messy strings to numbers",
+    "question": "`s.astype(float)` fails with ValueError on 'n/a'. Which call converts the valid values and turns 'n/a' into NaN?\n\n    s = pd.Series(['1', '2.5', 'n/a'])",
+    "options": [
+      "`s.astype(float, errors='ignore')`",
+      "`pd.to_numeric(s, downcast='float')`",
+      "`s.replace('n/a', 0).astype(float)`",
+      "`pd.to_numeric(s, errors='coerce')`"
+    ],
+    "correctIndex": 3,
+    "explanation": "`pd.to_numeric` with `errors='coerce'` replaces anything it cannot parse with NaN, giving [1.0, 2.5, NaN]. `astype(..., errors='ignore')` just returns the original strings when conversion fails, and `downcast` only shrinks the result type, so it still raises. Replacing 'n/a' with 0 converts, but it invents a value that skews sums and means.",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.to_numeric.html"
+  },
+  {
+    "id": "dap-clean-nan-comparisons-false",
+    "topic": "data-analysis-python",
+    "subtopic": "data-cleaning",
+    "difficulty": "Hard",
+    "title": "Complementary filters that miss a row",
+    "question": "This prints `2 3`. Why don't the two filters cover all rows?\n\n    s = pd.Series([1, np.nan, 3])\n    print((s > 2).sum() + (s <= 2).sum(), len(s))",
+    "options": [
+      "Comparisons with NaN return False, so the row is in neither group",
+      "The comparison yields NaN for that row, and `sum()` skips it",
+      "NaN is treated as 0, so the row lands in `s <= 2` twice",
+      "Float rounding makes 3 fall outside `s > 2`"
+    ],
+    "correctIndex": 0,
+    "explanation": "With NumPy-backed floats, any comparison involving NaN evaluates to False, so the missing row is False in both `s > 2` and `s <= 2`; the masks are plain booleans, not NaN. That is why complementary filters silently lose missing rows, and why `s == np.nan` matches nothing. Count or route missing values explicitly with `isna()`.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/missing_data.html"
+  },
+  {
+    "id": "dap-clean-boolean-na-kleene-logic",
+    "topic": "data-analysis-python",
+    "subtopic": "data-cleaning",
+    "difficulty": "Expert",
+    "title": "Three-valued logic with the nullable boolean dtype",
+    "question": "What does this print?\n\n    s = pd.Series([True, pd.NA, False], dtype='boolean')\n    print((s | True).tolist())\n    print((s & True).tolist())",
+    "options": [
+      "[True, <NA>, True] and [True, <NA>, False]",
+      "[True, True, True] and [True, <NA>, False]",
+      "[True, True, True] and [True, False, False]",
+      "TypeError: boolean value of NA is ambiguous"
+    ],
+    "correctIndex": 1,
+    "explanation": "The nullable `boolean` dtype follows Kleene (three-valued) logic: `NA | True` is True whatever the unknown value is, but `NA & True` depends on it, so it stays NA. Treating NA as False is what happens when such a mask is used for indexing, not in logical operations. The ambiguity TypeError only appears when Python needs `bool(pd.NA)`, for example in an `if` statement.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/boolean.html"
+  },
+  {
+    "id": "dap-merge-default-how-inner",
+    "topic": "data-analysis-python",
+    "subtopic": "merge-join",
+    "difficulty": "Easy",
+    "title": "Default join type of pd.merge",
+    "question": "What does this print?\n\n    a = pd.DataFrame({'k': [1, 2, 3]})\n    b = pd.DataFrame({'k': [2, 3, 4]})\n    print(len(pd.merge(a, b)))",
+    "options": [
+      "3, because it is a left join keeping all of `a`",
+      "4, because it is an outer join of all keys",
+      "2, because it is an inner join on column `k`",
+      "9, because it pairs every row with every row"
+    ],
+    "correctIndex": 2,
+    "explanation": "`pd.merge` defaults to `how='inner'` and, without `on`, joins on the columns both frames share (here `k`), so only keys 2 and 3 survive. A left join (3 rows), outer join (4 rows) or cross join (9 rows) must be requested explicitly with `how`.",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.merge.html"
+  },
+  {
+    "id": "dap-merge-concat-keeps-duplicate-index",
+    "topic": "data-analysis-python",
+    "subtopic": "merge-join",
+    "difficulty": "Easy",
+    "title": "Index labels after concatenating rows",
+    "question": "What does this print?\n\n    a = pd.DataFrame({'x': [1, 2]})\n    b = pd.DataFrame({'x': [3, 4]})\n    c = pd.concat([a, b])\n    print(c.index.tolist())",
+    "options": [
+      "[0, 1, 2, 3]",
+      "[0, 1]",
+      "[1, 2, 3, 4]",
+      "[0, 1, 0, 1]"
+    ],
+    "correctIndex": 3,
+    "explanation": "`pd.concat` keeps each input's index labels, so the result has duplicates and `c.loc[0]` returns two rows. Pass `ignore_index=True` to get a fresh 0..3 index. It stacks rows rather than aligning them, so nothing is dropped.",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.concat.html"
+  },
+  {
+    "id": "dap-merge-one-to-many-row-count",
+    "topic": "data-analysis-python",
+    "subtopic": "merge-join",
+    "difficulty": "Medium",
+    "title": "Row count of a one-to-many left join",
+    "question": "What does this print?\n\n    customers = pd.DataFrame({'cid': [1, 2, 3]})\n    orders = pd.DataFrame({'cid': [1, 1, 2, 2, 2], 'amt': [5, 7, 1, 2, 3]})\n    r = customers.merge(orders, on='cid', how='left')\n    print(len(r))",
+    "options": [
+      "6",
+      "3",
+      "5",
+      "8"
+    ],
+    "correctIndex": 0,
+    "explanation": "A left join emits one row per matching pair: customer 1 matches 2 orders, customer 2 matches 3, and customer 3 has no match, so it appears once with NaN in `amt`, for 6 rows. A left join guarantees every left row appears at least once, not exactly once, which is why row counts grow on one-to-many keys.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/merging.html"
+  },
+  {
+    "id": "dap-merge-validate-many-to-one",
+    "topic": "data-analysis-python",
+    "subtopic": "merge-join",
+    "difficulty": "Hard",
+    "title": "Guarding a lookup merge against duplicate keys",
+    "question": "After merging a `prices` table onto `sales` by `sku`, total revenue is higher than in the source system: `prices` has two rows for some SKUs. Which change makes the pipeline fail fast if this happens again?",
+    "options": [
+      "Pass `how='inner'` so rows with duplicate keys are discarded",
+      "Pass `validate='many_to_one'` to `sales.merge(...)`",
+      "Call `drop_duplicates()` on the merged result",
+      "Pass `indicator=True` and drop rows marked 'both'"
+    ],
+    "correctIndex": 1,
+    "explanation": "`validate='many_to_one'` checks that the merge keys are unique on the right side and raises MergeError otherwise, so a bad lookup table stops the job instead of silently inflating revenue. An inner join still multiplies rows on duplicate keys, `drop_duplicates()` after the merge can also delete legitimate identical sales and never alerts anyone, and `indicator` only labels row origin ('both' marks the matched rows).",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.merge.html"
+  },
+  {
+    "id": "dap-merge-key-dtype-mismatch",
+    "topic": "data-analysis-python",
+    "subtopic": "merge-join",
+    "difficulty": "Hard",
+    "title": "Merging on integer vs string keys",
+    "question": "`a` comes from a database and `b` from a CSV read with `dtype=str`. What happens on the last line?\n\n    a = pd.DataFrame({'id': [1, 2]})\n    b = pd.DataFrame({'id': ['1', '2'], 'v': [10, 20]})\n    r = a.merge(b, on='id')",
+    "options": [
+      "The rows match, because '1' and 1 are treated as equal",
+      "It returns an empty DataFrame without any error",
+      "It raises ValueError about merging int64 with string keys",
+      "pandas casts `b['id']` to int64 and then merges"
+    ],
+    "correctIndex": 2,
+    "explanation": "pandas refuses to merge a numeric key with a string key and raises ValueError (\"You are trying to merge on int64 and object columns\"; pandas 3.0 reports `str`). There is no silent coercion, and since 1 != '1' a coerced-free join would not match anyway. Convert the key explicitly, e.g. `b['id'] = b['id'].astype('int64')`, ideally when loading the data.",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.merge.html"
+  },
+  {
+    "id": "dap-merge-nan-keys-match-each-other",
+    "topic": "data-analysis-python",
+    "subtopic": "merge-join",
+    "difficulty": "Hard",
+    "title": "NaN join keys in pandas vs SQL",
+    "question": "An engineer used to SQL expects this inner merge to return 1 row. What does it print, and why?\n\n    a = pd.DataFrame({'k': [1, np.nan], 'x': [1, 2]})\n    b = pd.DataFrame({'k': [np.nan, 1], 'y': [3, 4]})\n    print(len(a.merge(b, on='k')))",
+    "options": [
+      "2, because pandas matches null keys with each other",
+      "1, because NaN never equals NaN, just like SQL NULL",
+      "1, because rows with NaN keys are dropped before joining",
+      "Nothing: it raises ValueError since keys contain NaN"
+    ],
+    "correctIndex": 0,
+    "explanation": "Unlike SQL, where NULL never equals NULL in a join, pandas matches rows whose key is null on both sides, so the NaN rows pair up and 2 rows are returned. The `merge` documentation warns about this explicitly. If null keys should not match, drop them (or fill them with distinct sentinels) before merging.",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.merge.html"
+  },
+  {
+    "id": "dap-groupby-sum-result-shape",
+    "topic": "data-analysis-python",
+    "subtopic": "groupby-aggregation",
+    "difficulty": "Easy",
+    "title": "What a single-column groupby sum returns",
+    "question": "What is `r`?\n\n    df = pd.DataFrame({'city': ['A', 'B', 'A'], 'sales': [1, 2, 3]})\n    r = df.groupby('city')['sales'].sum()",
+    "options": [
+      "A DataFrame with the columns `city` and `sales`",
+      "A Series of length 3, aligned with `df`'s index",
+      "A list of tuples: [('A', 4), ('B', 2)]",
+      "A Series indexed by city: A is 4 and B is 2"
+    ],
+    "correctIndex": 3,
+    "explanation": "The group keys become the index of the result, and selecting one column before aggregating yields a Series, here A → 4 and B → 2. Use `as_index=False` or `reset_index()` to get `city` back as a column. A result aligned with the original rows is what `transform` produces, not `sum`.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/groupby.html"
+  },
+  {
+    "id": "dap-groupby-named-aggregation",
+    "topic": "data-analysis-python",
+    "subtopic": "groupby-aggregation",
+    "difficulty": "Easy",
+    "title": "Named aggregation with custom column names",
+    "question": "Which call returns one row per `k` with columns named `total` and `n` (the sum and the non-null count of `v`)?",
+    "options": [
+      "`df.groupby('k').agg(total=('v', 'sum'), n=('v', 'count'))`",
+      "`df.groupby('k')['v'].agg({'total': 'sum', 'n': 'count'})`",
+      "`df.groupby('k').agg(['total', 'n'])`",
+      "`df.groupby('k').sum().rename(columns={'v': 'total'})`"
+    ],
+    "correctIndex": 0,
+    "explanation": "Named aggregation takes keyword arguments of the form `output_name=(column, function)`, which gives exactly the `total` and `n` columns. Passing a renaming dict to a SeriesGroupBy's `agg` was removed and raises SpecificationError, a list of strings is read as function names, and `sum().rename(...)` never computes the count.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/groupby.html"
+  },
+  {
+    "id": "dap-groupby-transform-share-of-total",
+    "topic": "data-analysis-python",
+    "subtopic": "groupby-aggregation",
+    "difficulty": "Medium",
+    "title": "Share of group total as a new column",
+    "question": "You need each row's share of its city's total sales as a new column aligned with `df` (default RangeIndex). Which expression is correct?",
+    "options": [
+      "`df['sales'] / df.groupby('city')['sales'].sum()`",
+      "`df['sales'] / df.groupby('city')['sales'].transform('sum')`",
+      "`df.groupby('city')['sales'].agg(lambda s: s / s.sum()).to_numpy()`",
+      "`df['sales'] / df['sales'].sum()`"
+    ],
+    "correctIndex": 1,
+    "explanation": "`transform('sum')` broadcasts each group's total back to the original rows, so the division lines up row by row. Dividing by `.sum()` aligns the row index (0, 1, 2...) with city labels and returns all NaN. `agg` must return one scalar per group, so the lambda raises \"Must produce aggregated value\", and dividing by the grand total gives the share of the overall sales instead.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/groupby.html"
+  },
+  {
+    "id": "dap-groupby-dropna-missing-keys",
+    "topic": "data-analysis-python",
+    "subtopic": "groupby-aggregation",
+    "difficulty": "Medium",
+    "title": "Group totals that don't add up",
+    "question": "`df.groupby('region')['v'].sum()` adds up to less than `df['v'].sum()`, and no values in `v` are missing. What is the most likely cause?",
+    "options": [
+      "Groups that have only one row are left out of the result",
+      "Regions whose labels differ only in case are merged together",
+      "Rows whose `region` is NaN are excluded by default",
+      "Floating-point rounding loses part of each group's total"
+    ],
+    "correctIndex": 2,
+    "explanation": "`groupby` uses `dropna=True` by default, so rows whose group key is NaN are silently excluded from every group. Pass `dropna=False` to keep them as a NaN group, or fill the key first (e.g. 'Unknown'). Single-row groups are kept, labels are compared exactly, and rounding cannot explain a large gap.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/groupby.html"
+  },
+  {
+    "id": "dap-groupby-first-skips-nulls",
+    "topic": "data-analysis-python",
+    "subtopic": "groupby-aggregation",
+    "difficulty": "Hard",
+    "title": "GroupBy.first with missing values",
+    "question": "What values does the single result row contain?\n\n    df = pd.DataFrame({'g': ['a', 'a'], 'x': [np.nan, 2.0], 'y': [5.0, np.nan]})\n    print(df.groupby('g').first())",
+    "options": [
+      "x = NaN and y = 5.0, the group's first row",
+      "x = 2.0 and y = NaN, the group's last row",
+      "No row, since no row is fully non-null",
+      "x = 2.0 and y = 5.0, mixing two rows"
+    ],
+    "correctIndex": 3,
+    "explanation": "`GroupBy.first()` returns the first non-null value of each column independently (`skipna=True`), so the result can stitch together values from different rows: x comes from row 1 and y from row 0. To get the actual first row of each group, use `nth(0)` or `head(1)`. This matters when columns must stay consistent, such as a status and its timestamp.",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.api.typing.DataFrameGroupBy.first.html"
+  },
+  {
+    "id": "dap-groupby-lambda-vs-builtin-agg",
+    "topic": "data-analysis-python",
+    "subtopic": "groupby-aggregation",
+    "difficulty": "Hard",
+    "title": "Slow groupby with a lambda aggregation",
+    "question": "On 50 million rows with 2 million users, `df.groupby('user')['amount'].agg(lambda s: s.sum())` takes minutes, while `.agg('sum')` takes about a second. Why?",
+    "options": [
+      "The lambda forces pandas to sort all the groups first",
+      "A lambda disables the cached group index for each call",
+      "'sum' runs an optimised kernel; the lambda calls Python per group",
+      "'sum' is computed lazily, only when the result is displayed"
+    ],
+    "correctIndex": 2,
+    "explanation": "Built-in aggregation names like 'sum' map to optimised (Cython) implementations that process all groups in one pass. A user-defined function makes pandas build a Series for every group and call Python 2 million times, which dominates the run time. Sorting is controlled by `sort=` in both cases, and pandas evaluates eagerly, not lazily.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/groupby.html"
+  },
+  {
+    "id": "dap-ts-dt-accessor-month",
+    "topic": "data-analysis-python",
+    "subtopic": "time-series",
+    "difficulty": "Easy",
+    "title": "Extracting the month from a datetime column",
+    "question": "`df['ts']` has dtype `datetime64[ns]`. Which expression returns the month number of each timestamp?",
+    "options": [
+      "`df['ts'].dt.month`",
+      "`df['ts'].month`",
+      "`df['ts'].str.month`",
+      "`pd.month(df['ts'])`"
+    ],
+    "correctIndex": 0,
+    "explanation": "Datetime properties of a Series are exposed through the `.dt` accessor, so `df['ts'].dt.month` returns an integer Series. A Series has no `.month` attribute itself (a DatetimeIndex and a single Timestamp do), `.str` is for string methods, and there is no `pd.month` function.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/basics.html"
+  },
+  {
+    "id": "dap-ts-to-datetime-ambiguous-dayfirst",
+    "topic": "data-analysis-python",
+    "subtopic": "time-series",
+    "difficulty": "Medium",
+    "title": "Parsing day-first dates",
+    "question": "A Brazilian CSV has dates like '03/04/2025' meaning 3 April. What does `pd.to_datetime('03/04/2025')` return, and how do you parse the column reliably?",
+    "options": [
+      "2025-04-03; pandas detects the locale from the operating system",
+      "2025-03-04; pass `format='%d/%m/%Y'` (or `dayfirst=True`)",
+      "It raises ValueError, because the date is ambiguous",
+      "2025-03-04; that is fine, because `.dt.day` swaps it back"
+    ],
+    "correctIndex": 1,
+    "explanation": "Without hints, an ambiguous date is parsed month-first (US style), giving 4 March 2025. An explicit `format='%d/%m/%Y'` is strict and fast; `dayfirst=True` is only a parsing hint. pandas does not read the OS locale, does not raise for ambiguous dates, and `.dt.day` simply reads the already wrong value.",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.to_datetime.html"
+  },
+  {
+    "id": "dap-ts-resample-sum-empty-bins",
+    "topic": "data-analysis-python",
+    "subtopic": "time-series",
+    "difficulty": "Medium",
+    "title": "Empty bins when resampling daily",
+    "question": "What does this print?\n\n    idx = pd.to_datetime(['2025-01-01', '2025-01-03'])\n    s = pd.Series([5, 7], index=idx)\n    print(s.resample('D').sum().tolist())\n    print(s.resample('D').mean().tolist())",
+    "options": [
+      "[5, 7] and [5.0, 7.0]; days without rows are skipped",
+      "[5, nan, 7] and [5.0, nan, 7.0]",
+      "[5, 0, 7] and [5.0, nan, 7.0]",
+      "[5, 0, 7] and [5.0, 0.0, 7.0]"
+    ],
+    "correctIndex": 2,
+    "explanation": "`resample('D')` creates a bin for every day in the range, including 2 January, which has no rows. The sum of an empty bin is 0 (`min_count=0` by default), while the mean of an empty bin is NaN. If \"no data\" must stay distinguishable from \"zero sales\", use `sum(min_count=1)`.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/timeseries.html"
+  },
+  {
+    "id": "dap-ts-rolling-window-leading-nan",
+    "topic": "data-analysis-python",
+    "subtopic": "time-series",
+    "difficulty": "Medium",
+    "title": "Rolling mean at the start of a series",
+    "question": "What does this print?\n\n    s = pd.Series([1, 2, 3, 4])\n    print(s.rolling(3).mean().tolist())",
+    "options": [
+      "[1.0, 1.5, 2.0, 3.0]",
+      "[2.0, 3.0]",
+      "[2.0, 3.0, 3.5, 4.0]",
+      "[nan, nan, 2.0, 3.0]"
+    ],
+    "correctIndex": 3,
+    "explanation": "A rolling window is trailing (it ends at the current row), and for an integer window `min_periods` defaults to the window size, so the first two positions lack 3 observations and are NaN. The output keeps the input length. `min_periods=1` would give [1.0, 1.5, 2.0, 3.0], and [2.0, 3.0, 3.5, 4.0] looks like a forward-looking window.",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.rolling.html"
+  },
+  {
+    "id": "dap-ts-tz-localize-vs-convert",
+    "topic": "data-analysis-python",
+    "subtopic": "time-series",
+    "difficulty": "Hard",
+    "title": "Converting naive UTC timestamps to local time",
+    "question": "Column `ts` holds naive timestamps that are really UTC (e.g. 12:00). You need them in São Paulo time (UTC−3, so 09:00). Which expression is correct?",
+    "options": [
+      "`df['ts'].dt.tz_localize('America/Sao_Paulo')`",
+      "`df['ts'].dt.tz_convert('America/Sao_Paulo')`",
+      "`df['ts'].dt.tz_localize('UTC').dt.tz_localize('America/Sao_Paulo')`",
+      "`df['ts'].dt.tz_localize('UTC').dt.tz_convert('America/Sao_Paulo')`"
+    ],
+    "correctIndex": 3,
+    "explanation": "`tz_localize` attaches a time zone to naive values without changing the wall-clock time, while `tz_convert` moves aware values to another zone. So you first declare the values as UTC, then convert, getting 09:00-03:00. Localizing straight to São Paulo labels 12:00 as local time (the wrong instant), `tz_convert` on naive values raises TypeError, and localizing already-aware values also raises.",
+    "referenceUrl": "https://pandas.pydata.org/docs/user_guide/timeseries.html"
+  },
+  {
+    "id": "dap-ts-merge-asof-tolerance",
+    "topic": "data-analysis-python",
+    "subtopic": "time-series",
+    "difficulty": "Expert",
+    "title": "merge_asof with a tolerance",
+    "question": "Both frames are sorted by `time`. Which `bid` does the 10:00:05 trade get in `r`?\n\n    trades = pd.DataFrame({'time': pd.to_datetime(['2025-01-02 10:00:05'])})\n    quotes = pd.DataFrame({'time': pd.to_datetime(['2025-01-02 10:00:01', '2025-01-02 10:00:06']), 'bid': [1.0, 2.0]})\n    r = pd.merge_asof(trades, quotes, on='time', tolerance=pd.Timedelta('2s'))",
+    "options": [
+      "NaN, since the latest earlier quote is 4 s old",
+      "1.0, the latest quote at or before the trade",
+      "2.0, the quote nearest in time to the trade",
+      "2.0, since quotes up to 2 s later also match"
+    ],
+    "correctIndex": 0,
+    "explanation": "`merge_asof` defaults to `direction='backward'`: it takes the last right row whose key is at or before the left key, which is the 10:00:01 quote. The 2-second tolerance then rejects that match because it is 4 seconds old, so `bid` is NaN. Matching the 10:00:06 quote would need `direction='nearest'` or `'forward'`; both inputs must also be sorted by the key.",
+    "referenceUrl": "https://pandas.pydata.org/docs/reference/api/pandas.merge_asof.html"
+  },
+  {
+    "id": "dap-viz-subplots-returns-axes-array",
+    "topic": "data-analysis-python",
+    "subtopic": "visualization",
+    "difficulty": "Easy",
+    "title": "What plt.subplots returns for a grid",
+    "question": "After `fig, axes = plt.subplots(2, 2)`, what is `axes`?",
+    "options": [
+      "A single Axes that spans a 2×2 grid",
+      "A 2×2 NumPy array of Axes objects",
+      "A flat Python list of four Figures",
+      "A tuple holding the row and column counts"
+    ],
+    "correctIndex": 1,
+    "explanation": "`plt.subplots` returns the Figure plus, for a multi-row and multi-column grid, a 2-D NumPy array of Axes (with `squeeze=True`, a 1×1 grid returns a single Axes). Index it as `axes[0, 1]` or iterate over `axes.flat`. There is only one Figure, which holds all four Axes.",
+    "referenceUrl": "https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.subplots.html"
+  },
+  {
+    "id": "dap-viz-histogram-for-distribution",
+    "topic": "data-analysis-python",
+    "subtopic": "visualization",
+    "difficulty": "Easy",
+    "title": "Plotting the distribution of one numeric column",
+    "question": "You want to see the distribution of a numeric column `price` (skew, modes, a long tail). Which seaborn call fits best?",
+    "options": [
+      "`sns.lineplot(data=df, y='price')`",
+      "`sns.barplot(data=df, y='price')`",
+      "`sns.histplot(data=df, x='price')`",
+      "`sns.heatmap(df[['price']])`"
+    ],
+    "correctIndex": 2,
+    "explanation": "A histogram bins the values and shows how many fall in each bin, which reveals skew, multiple modes and tails. `barplot` summarises the column as a mean with an error bar and hides the shape, `lineplot` implies an ordered sequence, and `heatmap` is meant for matrices.",
+    "referenceUrl": "https://seaborn.pydata.org/generated/seaborn.histplot.html"
+  },
+  {
+    "id": "dap-viz-savefig-after-show-blank",
+    "topic": "data-analysis-python",
+    "subtopic": "visualization",
+    "difficulty": "Medium",
+    "title": "Blank PNG saved after plt.show()",
+    "question": "A script ends like this. The window looks right, but chart.png is blank. Why?\n\n    plt.plot(x, y)\n    plt.show()\n    plt.savefig('chart.png')",
+    "options": [
+      "A blocking `show()` closes the figure, so `savefig` saves a new empty one",
+      "`savefig` needs an explicit `dpi=`, or it writes a 0×0 pixel image",
+      "PNG output requires calling `plt.draw()` right before saving the file",
+      "`show()` releases the `x` and `y` data once the window has rendered"
+    ],
+    "correctIndex": 0,
+    "explanation": "At the end of a blocking `show()`, pyplot closes the figure and unregisters it, so a later `plt.savefig` creates and saves a new, empty figure. Call `savefig` before `show`, or keep a reference and use `fig.savefig(...)`. The default dpi is fine, `savefig` draws the figure itself, and the plotted data is unaffected.",
+    "referenceUrl": "https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.show.html"
+  },
+  {
+    "id": "dap-viz-seaborn-lineplot-ci-band",
+    "topic": "data-analysis-python",
+    "subtopic": "visualization",
+    "difficulty": "Medium",
+    "title": "The shaded band in a seaborn line plot",
+    "question": "`sns.lineplot(data=df, x='month', y='sales')` draws a line with a shaded band. `df` has several rows per month (one per store). What do the line and band show by default?",
+    "options": [
+      "Each store's raw values joined, with a min–max band",
+      "The mean per month, with a 95% confidence interval band",
+      "The median per month, with an interquartile range band",
+      "The sum per month, with a ±1 standard deviation band"
+    ],
+    "correctIndex": 1,
+    "explanation": "When several rows share an x value, `lineplot` aggregates them with `estimator='mean'` and draws `errorbar=('ci', 95)`, a bootstrapped confidence interval. Use `hue='store'` (or `units=`) to draw each store, `errorbar='sd'` for a standard deviation band, or `errorbar=None` to remove it.",
+    "referenceUrl": "https://seaborn.pydata.org/generated/seaborn.lineplot.html"
+  },
+  {
+    "id": "dap-viz-too-many-open-figures",
+    "topic": "data-analysis-python",
+    "subtopic": "visualization",
+    "difficulty": "Hard",
+    "title": "Memory growth when saving many charts",
+    "question": "A loop builds one chart per product with `fig, ax = plt.subplots()` and `fig.savefig(...)`. Memory keeps growing and matplotlib warns 'More than 20 figures have been opened'. What is the fix?",
+    "options": [
+      "Call `plt.clf()` at the start of every iteration",
+      "Raise `figure.max_open_warning` to silence the warning",
+      "Call `plt.close(fig)` after saving each chart",
+      "Save every chart under the same file name"
+    ],
+    "correctIndex": 2,
+    "explanation": "pyplot keeps a reference to every figure it creates until the figure is explicitly closed, so none of them can be garbage-collected. `plt.close(fig)` after saving releases it. `plt.clf()` only clears the current figure's contents while new figures keep piling up, and raising the warning threshold hides the leak instead of fixing it.",
+    "referenceUrl": "https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.close.html"
+  },
+  {
+    "id": "dap-viz-pyplot-title-current-axes",
+    "topic": "data-analysis-python",
+    "subtopic": "visualization",
+    "difficulty": "Hard",
+    "title": "Mixing pyplot calls with explicit Axes",
+    "question": "Which titles end up on the chart?\n\n    fig, axes = plt.subplots(1, 3)\n    for ax, col in zip(axes, ['a', 'b', 'c']):\n        ax.hist(df[col])\n        plt.title(col)",
+    "options": [
+      "'a', 'b' and 'c' on the three subplots, in order",
+      "'c' as one title centred above the whole figure",
+      "'a' on the first subplot; the other two have none",
+      "Only the third subplot has a title, and it is 'c'"
+    ],
+    "correctIndex": 3,
+    "explanation": "`plt.title` acts on the current Axes (`plt.gca()`), which after `plt.subplots` is the last one created; calling `ax.hist` does not change the current Axes. Each iteration therefore overwrites the third subplot's title, ending with 'c'. Use the explicit interface, `ax.set_title(col)`, or `fig.suptitle(...)` for a figure-level title.",
+    "referenceUrl": "https://matplotlib.org/stable/users/explain/figure/api_interfaces.html"
+  },
+  {
+    "id": "dap-nb-line-vs-cell-time-magic",
+    "topic": "data-analysis-python",
+    "subtopic": "notebooks",
+    "difficulty": "Easy",
+    "title": "%time vs %%time in Jupyter",
+    "question": "In a Jupyter notebook (IPython kernel), what is the difference between `%time` and `%%time`?",
+    "options": [
+      "`%%time` runs the code many times and reports the mean",
+      "`%time` reports CPU time only; `%%time` reports wall time",
+      "`%time` times one statement; `%%time` times the whole cell",
+      "They are aliases; the doubled form exists for compatibility"
+    ],
+    "correctIndex": 2,
+    "explanation": "A single `%` marks a line magic that applies to the rest of its line, while `%%` marks a cell magic that applies to the entire cell. Both report CPU and wall time for a single run; repeated runs with statistics are what `%timeit` and `%%timeit` provide.",
+    "referenceUrl": "https://ipython.readthedocs.io/en/stable/interactive/magics.html"
+  },
+  {
+    "id": "dap-nb-last-expression-displayed",
+    "topic": "data-analysis-python",
+    "subtopic": "notebooks",
+    "difficulty": "Easy",
+    "title": "Which result a notebook cell displays",
+    "question": "A notebook cell contains the two lines below and nothing else. What appears as the cell's output?\n\n    df.head()\n    df.describe()",
+    "options": [
+      "Both tables, one below the other",
+      "Only `df.head()`, the first expression",
+      "Nothing, since neither result is assigned",
+      "Only `df.describe()`, the last expression"
+    ],
+    "correctIndex": 3,
+    "explanation": "By default IPython automatically displays the value of the last expression in a cell; earlier expressions are evaluated but their results are discarded. To show several results from one cell, call `display(...)` on each (or split them into separate cells). Assignment is not needed for display; in fact, an assignment as the last line shows nothing.",
+    "referenceUrl": "https://ipython.readthedocs.io/en/stable/interactive/reference.html"
+  },
+  {
+    "id": "dap-nb-hidden-state-restart-run-all",
+    "topic": "data-analysis-python",
+    "subtopic": "notebooks",
+    "difficulty": "Medium",
+    "title": "A notebook that only works on the author's kernel",
+    "question": "A notebook gives the right numbers for its author, but 'Restart Kernel and Run All Cells' fails with NameError on `clean_df`. The cell that defined `clean_df` was deleted last week. What does this reveal?",
+    "options": [
+      "The kernel still held state from a cell that no longer exists",
+      "Run All executes the cells in a random order each time",
+      "Restarting the kernel corrupts variables saved in memory",
+      "A package was upgraded and renamed `clean_df` silently"
+    ],
+    "correctIndex": 0,
+    "explanation": "Kernel state lives independently of the notebook document: variables created by cells that were later edited, deleted or run out of order stay in memory until a restart. The saved notebook therefore did not reproduce the author's results. Run All executes cells top to bottom, and regularly restarting and running everything is the basic reproducibility check.",
+    "referenceUrl": "https://docs.jupyter.org/en/latest/"
+  },
+  {
+    "id": "dap-nb-pip-magic-kernel-env",
+    "topic": "data-analysis-python",
+    "subtopic": "notebooks",
+    "difficulty": "Medium",
+    "title": "Package installed but import still fails",
+    "question": "`!pip install pyarrow` succeeds in a notebook cell, yet `import pyarrow` still raises ModuleNotFoundError. What is the most reliable fix?",
+    "options": [
+      "Run `!pip install --user pyarrow` and then reload the browser tab",
+      "Use `%pip install pyarrow`, then restart the kernel if needed",
+      "Run `!conda init` in a cell and reopen the notebook file",
+      "Add the site-packages folder to the notebook's JSON metadata"
+    ],
+    "correctIndex": 1,
+    "explanation": "`!pip` runs whichever pip comes first on the shell's PATH, which may belong to a different Python environment than the kernel. The `%pip` magic runs pip for the kernel's own interpreter, so the package lands where the import looks for it (a restart is needed if an older version was already imported). Reloading the browser or editing notebook metadata does not change the kernel's environment.",
+    "referenceUrl": "https://ipython.readthedocs.io/en/stable/interactive/magics.html"
+  },
+  {
+    "id": "dap-nb-autoreload-module-edits",
+    "topic": "data-analysis-python",
+    "subtopic": "notebooks",
+    "difficulty": "Hard",
+    "title": "Edited module code not picked up by the notebook",
+    "question": "You edit a function in `utils.py` while a notebook is open, then re-run the cell with `import utils`, but the old behaviour remains. Why, and what helps?",
+    "options": [
+      "Jupyter caches cell outputs; use 'Clear All Outputs' to refresh",
+      "Editors save lazily, so the change has not reached the disk yet",
+      "`import` reuses the module in `sys.modules`; use `%autoreload 2`",
+      "Python recompiles `__pycache__` only once per day by default"
+    ],
+    "correctIndex": 2,
+    "explanation": "Python executes a module only on its first import in a process; later `import` statements return the cached module from `sys.modules`. The autoreload extension (`%load_ext autoreload` then `%autoreload 2`) reloads changed modules before each cell runs; `importlib.reload` or a kernel restart also work. Cell outputs are just stored display data, and `.pyc` files are invalidated when the source changes.",
+    "referenceUrl": "https://ipython.readthedocs.io/en/stable/config/extensions/autoreload.html"
+  },
+  {
+    "id": "dap-nb-legacy-seed-vs-generator",
+    "topic": "data-analysis-python",
+    "subtopic": "notebooks",
+    "difficulty": "Expert",
+    "title": "Seeded notebook that still samples differently",
+    "question": "A notebook starts with the code below, yet every 'Restart and Run All' draws a different sample. Why?\n\n    np.random.seed(42)\n    rng = np.random.default_rng()\n    sample = rng.choice(df.index, size=100, replace=False)",
+    "options": [
+      "`seed(42)` only affects the first random call made after it",
+      "`replace=False` makes `choice` ignore the seed for speed",
+      "Each kernel restart resets NumPy's global seed from the clock",
+      "`default_rng()` makes a Generator seeded from OS entropy"
+    ],
+    "correctIndex": 3,
+    "explanation": "`np.random.seed` only seeds the legacy global RandomState used by functions like `np.random.rand`. `default_rng()` without an argument creates an independent Generator seeded with fresh OS entropy, so it ignores the global seed. Pass the seed explicitly, `np.random.default_rng(42)`, and hand that `rng` to the code that needs randomness.",
+    "referenceUrl": "https://numpy.org/doc/stable/reference/random/generator.html"
+  }
+]

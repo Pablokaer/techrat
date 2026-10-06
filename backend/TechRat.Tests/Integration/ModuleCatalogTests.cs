@@ -115,6 +115,63 @@ public class ModuleCatalogTests(TechRatFactory api)
     }
 
     [Fact]
+    public async Task Completing_sql_foundations_in_Backend_credits_it_in_Data_Analyst_without_paying_xp_twice()
+    {
+        var (client, username) = await api.CreateUserAsync();
+        await StartAsync(client, "backend-developer");
+
+        // Prove every step of the shared module while enrolled in Backend (steps unlock in order).
+        var module = await client.GetFromJsonAsync<ModuleDetailDto>("/api/v1/modules/sql-foundations", TechRatFactory.Json);
+        foreach (var step in module!.Steps)
+        {
+            var s = await Practice.StartAsync(client, new { mode = "Roadmap", roadmapStepId = step.Id, count = step.MinimumQuestions });
+            foreach (var q in s.Questions.Take(step.MinimumQuestions)) await Practice.AnswerAsync(api, client, s, q, true);
+        }
+        var done = await client.GetFromJsonAsync<ModuleDetailDto>("/api/v1/modules/sql-foundations", TechRatFactory.Json);
+        Assert.True(done!.Summary.Progress!.IsCompleted);
+
+        // Data Analyst shares the module: it is credited immediately when the learner starts the new roadmap.
+        var analyst = await StartAsync(client, "data-analyst");
+        Assert.True(analyst.Summary.Progress!.AlreadyCompletedModules >= 1);
+        Assert.True(analyst.Summary.Progress.AlreadyCompletedSteps >= module.Steps.Count);
+        var shared = analyst.Modules.Single(m => m.ModuleSlug == "sql-foundations");
+        Assert.True(shared.IsCompleted);
+        Assert.True(shared.CompletedElsewhere);
+        Assert.Contains(shared.UsedInRoadmaps, r => r.Slug == "backend-developer");
+
+        // Each step and the module paid XP exactly once.
+        foreach (var step in module.Steps)
+            Assert.Equal(1, await XpCountAsync(username, XpSourceType.RoadmapStep, step.Id));
+        Assert.Equal(1, await XpCountAsync(username, XpSourceType.RoadmapModule, module.Summary.Id));
+    }
+
+    [Fact]
+    public async Task Seed_appends_missing_steps_to_existing_modules_and_bumps_the_version()
+    {
+        // An existing database whose module lacks a step the seed file now has (e.g. content added in a later release).
+        var (moduleId, stepId, version) = await api.WithDbAsync(async db =>
+        {
+            var step = await db.ModuleSteps.Where(s => db.LearningModules.Any(m => m.Id == s.ModuleId && m.Slug == "git-collaboration"))
+                .OrderByDescending(s => s.Order).FirstAsync();
+            var v = await db.LearningModules.Where(m => m.Id == step.ModuleId).Select(m => m.Version).SingleAsync();
+            await db.ModuleSteps.Where(s => s.Id == step.Id).ExecuteDeleteAsync();
+            return (step.ModuleId, step.Id, v);
+        });
+
+        using var scope = api.Services.CreateScope();
+        var report = await scope.ServiceProvider.GetRequiredService<TechRat.Infrastructure.Seed.DatabaseSeeder>().SeedAsync();
+
+        Assert.Equal(1, report.StepsAdded);
+        var (steps, newVersion, added) = await api.WithDbAsync(async db => (
+            await db.ModuleSteps.CountAsync(s => s.ModuleId == moduleId && s.IsActive),
+            await db.LearningModules.Where(m => m.Id == moduleId).Select(m => m.Version).SingleAsync(),
+            await db.ModuleSteps.Where(s => s.ModuleId == moduleId).MaxAsync(s => s.AddedInVersion)));
+        Assert.Equal(version + 1, newVersion);
+        Assert.Equal(newVersion, added);
+        Assert.True(steps >= 2);
+    }
+
+    [Fact]
     public async Task Optional_modules_never_block_completion()
     {
         var f = await CreateSharedRoadmapsAsync(contextOptional: true);

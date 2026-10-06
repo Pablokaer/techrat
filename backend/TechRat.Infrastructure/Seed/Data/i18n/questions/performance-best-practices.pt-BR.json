@@ -1,0 +1,422 @@
+[
+  {
+    "id": "perfbp-latency-server-timing",
+    "title": "Expondo o tempo de servidor por etapa em cada requisição",
+    "question": "Engenheiros de front-end dizem que `/checkout` está lento, mas no navegador só veem o tempo total até o primeiro byte. Você quer que cada resposta exponha um detalhamento, como tempo de banco, cache e cálculo de preço, no devtools do cliente. Qual mecanismo foi feito para isso?",
+    "options": [
+      "Um header Server-Timing com métricas como db;dur=53",
+      "Os tempos adicionados ao header Retry-After de cada resposta",
+      "Um header X-Response-Time com um único valor de duração total",
+      "Cache-Control: no-store, para o devtools registrar cada etapa do servidor"
+    ],
+    "explanation": "O header de resposta Server-Timing carrega métricas nomeadas com duração e descrição opcionais (por exemplo db;dur=53, cache;desc=\"Cache Read\";dur=23.2), que os navegadores mostram no devtools e expõem pela interface PerformanceServerTiming. Um total único esconde o detalhamento, Retry-After serve para throttling e indisponibilidade, e Cache-Control não gera dados de tempo."
+  },
+  {
+    "id": "perfbp-latency-jsonoptions-per-call",
+    "title": "Novas opções de serialização a cada chamada",
+    "question": "Um profiler mostra um endpoint muito acessado gastando CPU visível na montagem de metadados do System.Text.Json. O código faz:\n\nvar json = JsonSerializer.Serialize(dto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });\n\nQual é a melhor correção?",
+    "options": [
+      "Trocar para Newtonsoft.Json, que não precisa de metadados de tipo",
+      "Criar uma instância estática de JsonSerializerOptions e reutilizá-la",
+      "Serializar primeiro para byte[] e depois converter para string à mão",
+      "Marcar as propriedades do DTO com [JsonInclude] para pular a reflection"
+    ],
+    "explanation": "Instâncias de JsonSerializerOptions guardam em cache os metadados de tipo, então criar uma instância nova por chamada refaz esse trabalho toda vez; a orientação da Microsoft é reutilizar a mesma instância (por exemplo um campo static readonly), o que é seguro entre threads. Mudar o serializador, o tipo de saída ou os atributos não elimina a montagem repetida de metadados."
+  },
+  {
+    "id": "perfbp-latency-exceptions-control-flow",
+    "title": "Exceções como fluxo de controle normal",
+    "question": "Um endpoint de consulta de produto lança `ProductNotFoundException` e a captura num middleware para retornar 404. Bots testam IDs aleatórios, então 40% das requisições são 404, e o CPU por requisição praticamente dobrou. Qual é a melhor mudança?",
+    "options": [
+      "Retornar not-found direto em vez de lançar exceção num caso esperado",
+      "Capturar a exceção mais perto de onde é lançada para a pilha desenrolar menos",
+      "Registrar a exceção em Debug em vez de Error para reduzir o custo de log",
+      "Reutilizar uma instância de exceção em cache para não alocar novas"
+    ],
+    "explanation": "Lançar e capturar exceções é lento comparado ao fluxo de controle comum, e a orientação de desempenho do ASP.NET Core diz para não usar exceções no fluxo normal do programa, principalmente em caminhos críticos. Produto inexistente é um resultado esperado, então retorne NotFound (ou um tipo de resultado) diretamente. Mover o catch, mudar o nível de log ou reutilizar objetos de exceção só corta parte do custo e mantém o anti-pattern."
+  },
+  {
+    "id": "perfbp-latency-regex-per-request",
+    "title": "Compilando uma regex a cada requisição",
+    "question": "Um filtro de validação roda em toda requisição:\n\nvar ok = new Regex(pattern, RegexOptions.Compiled).IsMatch(input);\n\n`pattern` é uma constante. Depois que isso entrou, o p99 subiu e o CPU aumentou. Qual é a causa mais provável?",
+    "options": [
+      "IsMatch faz backtracking exponencial em qualquer entrada, seja qual for o padrão",
+      "RegexOptions.Compiled deixa o match mais lento que o engine interpretado",
+      "Cada requisição paga a compilação cara; crie a Regex uma vez só",
+      "Instâncias de Regex não são thread-safe, então as requisições serializam num lock"
+    ],
+    "explanation": "Construir uma Regex liga o engine ao padrão, o que é caro, e RegexOptions.Compiled adiciona ainda mais custo inicial em troca de matches mais rápidos; pagar isso em toda requisição joga o benefício fora. Crie a Regex uma vez (um campo static readonly ou o source generator [GeneratedRegex]) e reutilize; instâncias de Regex podem ser compartilhadas com segurança para fazer match."
+  },
+  {
+    "id": "perfbp-latency-lock-contention",
+    "title": "Vazão travada, CPU baixo, latência subindo",
+    "question": "Toda requisição de uma API chama um helper que faz `lock (_sync) { RebuildSnapshot(); }`, e RebuildSnapshot leva cerca de 50 ms. Sob carga, o CPU fica em 25%, a vazão para de crescer em cerca de 20 req/s e a latência sobe com a concorrência. Qual é o gargalo?",
+    "options": [
+      "Starvation do thread pool por I/O assíncrono completando em poucas threads",
+      "Pausas de garbage collection causadas pela alocação de cada snapshot",
+      "O limite de conexões do Kestrel, que restringe conexões HTTP simultâneas",
+      "Contenção de lock: as requisições serializam num lock de ~50 ms cada"
+    ],
+    "explanation": "Uma seção crítica de 50 ms permite no máximo cerca de 20 entradas por segundo, então a vazão estaciona aí enquanto o CPU fica baixo e a espera cresce com a concorrência, a assinatura de contenção de lock. A orientação do ASP.NET Core é não adquirir locks em caminhos de código comuns; reconstrua o snapshot em segundo plano ou publique uma cópia imutável em cache. Pausas de GC ou limites de conexão não gerariam um teto tão exato."
+  },
+  {
+    "id": "perfbp-latency-retry-amplification",
+    "title": "Retries empilhados em todas as camadas",
+    "question": "Uma requisição passa por um API gateway, um BFF e um serviço de pedidos antes de chegar ao banco. Cada uma das três camadas faz 3 retries em chamadas com falha (4 tentativas no total). O banco fica sobrecarregado. No pior caso, quantas tentativas no banco uma requisição de usuário pode causar?",
+    "options": [
+      "12 tentativas, já que os retries simplesmente se somam nas três camadas",
+      "4 tentativas, porque só a camada mais interna fala com o banco",
+      "64 tentativas, porque as tentativas se multiplicam nas três camadas",
+      "10 tentativas: três retries por camada somados, mais a chamada original"
+    ],
+    "explanation": "Retries em várias camadas se multiplicam: cada tentativa de uma camada externa pode disparar até quatro tentativas na seguinte, então 4 x 4 x 4 = 64 tentativas no banco por requisição de usuário no pior caso, justamente quando o banco menos aguenta. A orientação de SRE do Google recomenda evitar retries em vários níveis e usar orçamentos de retry com backoff."
+  },
+  {
+    "id": "perfbp-latency-redis-big-del",
+    "title": "Pico de latência noturno em todos os endpoints",
+    "question": "Toda noite às 02:00, o p99 de todos os endpoints que usam Redis salta para segundos por um instante. Nesse momento um job de limpeza roda `DEL` num set com 8 milhões de membros. Qual é a correção mais adequada?",
+    "options": [
+      "Usar UNLINK, que libera a memória da chave grande em outra thread",
+      "Aumentar o timeout do cliente para as requisições esperarem a limpeza sem erro",
+      "Rodar o DEL dentro de MULTI/EXEC para a remoção virar um bloco atômico",
+      "Aumentar o maxmemory para o Redis não precisar remover chaves durante o job"
+    ],
+    "explanation": "O Redis executa comandos numa única thread principal, e um DEL numa coleção enorme libera todas as suas alocações de forma síncrona, bloqueando todos os outros clientes enquanto isso. UNLINK remove a chave em O(1) e libera a memória em outra thread. Timeouts maiores só escondem a parada, MULTI/EXEC executa o mesmo trabalho bloqueante, e eviction não tem relação."
+  },
+  {
+    "id": "perfbp-data-date-cast-predicate",
+    "title": "Cast de timestamp na cláusula WHERE",
+    "question": "`orders.created_at` (timestamptz) tem um índice B-tree, mas esta consulta faz sequential scan em 80 milhões de linhas:\n\nSELECT * FROM orders WHERE created_at::date = '2026-03-15';\n\nQual é a melhor reescrita?",
+    "options": [
+      "WHERE date_trunc('day', created_at) = '2026-03-15'::timestamptz",
+      "WHERE to_char(created_at, 'YYYY-MM-DD') = '2026-03-15'",
+      "WHERE created_at BETWEEN '2026-03-15' AND '2026-03-15'",
+      "WHERE created_at >= '2026-03-15' AND created_at < '2026-03-16'"
+    ],
+    "explanation": "Envolver a coluna indexada num cast ou função faz com que o índice simples em created_at não atenda à comparação. Um intervalo semiaberto na coluna crua usa o índice e cobre exatamente o dia inteiro. date_trunc e to_char ainda aplicam uma função à coluna (precisariam de um índice de expressão correspondente), e BETWEEN com limites iguais só pega a meia-noite."
+  },
+  {
+    "id": "perfbp-data-bulk-insert-copy",
+    "title": "Carregando 2 milhões de linhas um INSERT por vez",
+    "question": "Uma importação noturna insere 2 milhões de linhas no PostgreSQL com um `INSERT` por linha em modo autocommit e leva 3 horas. Qual mudança dá o maior ganho de velocidade?",
+    "options": [
+      "Adicionar mais índices na tabela para cada insert achar seu lugar mais rápido",
+      "Carregar com COPY, ou transações grandes em lote, em vez de linha a linha",
+      "Rodar os INSERTs em 50 conexões paralelas, cada uma ainda em autocommit",
+      "Usar isolamento SERIALIZABLE para os inserts concorrentes não conflitarem"
+    ],
+    "explanation": "O guia 'Populating a Database' do PostgreSQL recomenda desativar o autocommit e fazer um commit por lote grande, além de usar COPY, que carrega muitas linhas num único comando com bem menos custo por linha do que INSERTs separados. Índices extras deixam os inserts mais lentos, níveis de isolamento não reduzem o custo por comando, e inserts paralelos em autocommit continuam pagando um commit por linha."
+  },
+  {
+    "id": "perfbp-data-n-plus-one-batch-job",
+    "title": "Um job em lote rápido em dev e lento em produção",
+    "question": "Um job de faturamento roda:\n\nforeach (var inv in invoices)\n  inv.Customer = await db.Customers.FindAsync(inv.CustomerId);\n\nCom 50 faturas em dev leva 0,2 s; com 400.000 em produção leva 2 horas, enquanto o banco fica quase ocioso. Qual é a melhor correção?",
+    "options": [
+      "Criar um índice em Customers.Id para cada FindAsync ficar mais rápido",
+      "Carregar os clientes necessários com poucas consultas por lotes de ids",
+      "Envolver o loop numa transação para todas as consultas dividirem um commit",
+      "Aumentar o pool de conexões para mais consultas rodarem em paralelo"
+    ],
+    "explanation": "O loop faz uma ida e volta ao banco por fatura, um padrão N+1 cujo custo cresce com linhas vezes latência de rede enquanto o servidor fica ocioso. Busque os clientes em lotes (por exemplo WHERE id = ANY(...) ou Contains sobre um bloco de ids) e associe em memória. Id já é a chave primária, uma transação não elimina idas e voltas, e um pool maior continua com uma consulta por linha."
+  },
+  {
+    "id": "perfbp-data-busy-database",
+    "title": "CPU do banco gasto formatando saída",
+    "question": "Um endpoint de relatório chama uma stored procedure que faz join de pedidos e depois monta o documento XML final, formatando moedas e datas, dentro do banco. O CPU do banco fica em 90% enquanto os servidores de aplicação ficam em 15%. Qual anti-pattern é esse, e qual a correção?",
+    "options": [
+      "Busy Database: manter o acesso a dados no SQL e levar a formatação para o app",
+      "Chatty I/O: juntar as consultas da procedure num único SQL maior",
+      "No Caching: colocar um cache na frente da procedure e deixá-la como está",
+      "Extraneous Fetching: retornar menos colunas, mas manter a formatação no banco"
+    ],
+    "explanation": "O anti-pattern Busy Database é transferir processamento como formatação, manipulação de strings ou regras de negócio para o banco, um recurso compartilhado e difícil de escalar horizontalmente. Deixe o banco fazer a recuperação de dados baseada em conjuntos e mova o trabalho de apresentação para a camada de aplicação, que escala horizontalmente. Cache ou menos colunas podem ajudar um pouco, mas a formatação pesada continua no banco."
+  },
+  {
+    "id": "perfbp-data-lock-during-http-call",
+    "title": "Lock de linha mantido durante uma chamada remota",
+    "question": "Para reservar estoque, um PR faz: BEGIN; `SELECT ... FROM stock WHERE sku = $1 FOR UPDATE`; chama o provedor de pagamento via HTTP (de 300 ms a 5 s); UPDATE stock; COMMIT. Numa promoção relâmpago, a latência dos SKUs populares explode. Por quê?",
+    "options": [
+      "FOR UPDATE vira lock de tabela quando mais de uma linha é selecionada",
+      "A chamada HTTP cancela a transação se demorar mais de um segundo",
+      "O PostgreSQL entra em deadlock sempre que duas transações leem o mesmo SKU",
+      "Cada comprador segura o lock da linha durante o HTTP, e os outros fazem fila"
+    ],
+    "explanation": "Uma linha travada com FOR UPDATE fica travada até a transação terminar, então todo comprador concorrente do mesmo SKU espera a chamada externa lenta do anterior; a vazão em linhas quentes cai para um pagamento por vez. Mantenha transações curtas: reserve de forma atômica (por exemplo um UPDATE condicional), chame o provedor fora da transação e depois confirme ou libere. O PostgreSQL não escala locks de linha para lock de tabela."
+  },
+  {
+    "id": "perfbp-data-generic-plan-skew",
+    "title": "Prepared statement lento para um tenant grande",
+    "question": "Uma aplicação usa prepared statements para `SELECT ... FROM events WHERE tenant_id = $1 AND ...`. Um tenant tem 60% das linhas. Depois de algumas execuções em cada conexão, as consultas desse tenant ficam bem mais lentas, enquanto EXPLAIN com valores literais mostra um bom plano. Qual é a causa provável?",
+    "options": [
+      "O cache de planos encheu, então o PostgreSQL replaneja toda chamada",
+      "Prepared statements desativam index scans depois da quinta execução",
+      "O PostgreSQL passou a um plano genérico que ignora o valor enviesado",
+      "O autovacuum trava a tabela events sempre que um tenant grande a consulta"
+    ],
+    "explanation": "Com plan_cache_mode = auto, o PostgreSQL usa planos customizados nas cinco primeiras execuções e pode então trocar para um plano genérico se o custo estimado parecer comparável; um plano genérico não consegue aproveitar o conhecimento de um valor de parâmetro muito enviesado. Verifique com EXPLAIN EXECUTE e, para essas consultas, considere plan_cache_mode = force_custom_plan. O autovacuum não bloqueia leituras comuns."
+  },
+  {
+    "id": "perfbp-data-hot-counter-row",
+    "title": "Uma linha de contador para cada visualização",
+    "question": "Cada visualização de artigo roda `UPDATE articles SET views = views + 1 WHERE id = $1` dentro da requisição. Um artigo viral recebe 3.000 visualizações/s, e essas requisições dão timeout enquanto os outros artigos continuam rápidos. Qual é a melhor correção?",
+    "options": [
+      "Usar isolamento SERIALIZABLE para que os incrementos não interfiram",
+      "Criar um índice em articles.views para o UPDATE achar a linha mais rápido",
+      "Contar em memória ou no Redis e gravar na linha em lotes periódicos",
+      "Ler o contador primeiro e gravar views + 1 de volta pela aplicação"
+    ],
+    "explanation": "UPDATEs concorrentes na mesma linha serializam no lock dela (e cada um cria uma nova versão da linha), então uma linha quente limita a vazão não importa quantas conexões você adicione. Contar em memória ou no Redis (INCR) e gravar periodicamente os deltas agregados elimina a contenção. SERIALIZABLE adiciona falhas, um índice em views só aumenta o custo de escrita, e ler e depois gravar perde atualizações."
+  },
+  {
+    "id": "perfbp-cache-key-normalization",
+    "title": "Taxa de acerto do cache presa em 5%",
+    "question": "Uma API de busca guarda respostas em cache usando a query string crua como chave. Os clientes mandam a mesma busca como `?q=tv&sort=price` e `?sort=price&q=tv`, às vezes com `&_ts=<timestamp>` para depuração. A taxa de acerto está em cerca de 5%. O que deve ser corrigido primeiro?",
+    "options": [
+      "Aumentar o TTL de 5 para 60 minutos para as entradas durarem mais",
+      "Trocar o Redis por um cache em memória em cada instância",
+      "Normalizar a chave: remover parâmetros irrelevantes e ordenar o resto",
+      "Aumentar o maxmemory para menos chaves serem removidas por falta de memória"
+    ],
+    "explanation": "Requisições equivalentes geram chaves diferentes (ordem dos parâmetros, timestamps anti-cache), então nunca aproveitam as entradas umas das outras; montar uma chave canônica só com os parâmetros que afetam a resposta corrige a causa raiz. TTLs maiores, mais memória ou um cache local continuam fragmentando os mesmos dados em várias chaves."
+  },
+  {
+    "id": "perfbp-cache-key-missing-dimension",
+    "title": "Preços errados servidos pelo cache",
+    "question": "Os preços dependem do nível de contrato do cliente. Um PR guarda em cache o resultado de `GetProductView(id, customer)` com a chave `product:{id}` por 10 minutos. O que está errado?",
+    "options": [
+      "A chave ignora o nível, então clientes podem ver preços de outro nível",
+      "Dez minutos é um TTL curto demais para uma taxa de acerto significativa",
+      "Os ids de produto deveriam passar por hash antes de entrar na chave",
+      "Guardar um view model em cache é mais lento do que guardar as linhas do banco"
+    ],
+    "explanation": "Uma chave de cache precisa incluir toda entrada que muda o valor guardado; aqui o nível do primeiro cliente vai para o cache e é servido a todos os outros por dez minutos, um bug de corretude e possivelmente de confidencialidade. Use uma chave como product:{id}:tier:{tier}, ou guarde só as partes independentes do nível e aplique o preço por requisição."
+  },
+  {
+    "id": "perfbp-cache-negative-caching",
+    "title": "Consultas por IDs que não existem",
+    "question": "Uma consulta cache-aside só guarda produtos encontrados. Um scraper pede milhões de IDs de produto aleatórios e inexistentes; toda requisição erra o cache e vai ao banco, que satura. Qual mudança ataca isso diretamente?",
+    "options": [
+      "Aumentar o TTL dos produtos encontrados para o cache absorver mais carga",
+      "Guardar também 'não encontrado' por pouco tempo e limitar clientes abusivos",
+      "Adicionar uma réplica de leitura para espalhar os misses em dois servidores",
+      "Pré-carregar no cache todos os produtos existentes quando o app sobe"
+    ],
+    "explanation": "Cache-aside não faz nada por chaves que nunca têm valor, então toda consulta por um id inexistente chega ao banco. Guardar resultados negativos com TTL curto (mais rate limiting ou validação de entrada para tráfego abusivo) torna os misses repetidos baratos. Pré-carregar produtos válidos e TTLs maiores não ajudam com ids inexistentes, e uma réplica só espalha o desperdício."
+  },
+  {
+    "id": "perfbp-cache-local-invalidation",
+    "title": "Dados desatualizados só em algumas instâncias",
+    "question": "Uma API roda em 6 instâncias, cada uma guardando dados de produto em `IMemoryCache`. Numa atualização, a instância que a recebe chama `_cache.Remove(key)`. Os usuários continuam vendo preços antigos por minutos, dependendo de qual instância os atende. Qual é a correção certa?",
+    "options": [
+      "Chamar Remove duas vezes, antes e depois da atualização no banco",
+      "Reduzir o nível de isolamento do banco para as atualizações aparecerem antes",
+      "Prender cada usuário a uma instância com sticky sessions para ver um só cache",
+      "Usar um cache compartilhado ou propagar a invalidação a todas as instâncias"
+    ],
+    "explanation": "Cada instância tem seu próprio cache em processo, então Remove só limpa a cópia da instância que tratou a atualização; as outras cinco continuam servindo o valor antigo até expirar. Use um cache distribuído (opcionalmente em dois níveis, como HybridCache com expiração local curta) ou publique mensagens de invalidação para todas as instâncias. Sticky sessions escondem o problema para alguns usuários sem resolvê-lo."
+  },
+  {
+    "id": "perfbp-cache-keys-command-invalidation",
+    "title": "Invalidando com KEYS em produção",
+    "question": "Para invalidar os dados em cache de um usuário, um PR roda `KEYS user:42:*` no Redis de produção (30 milhões de chaves) e apaga os resultados. Durante cada chamada a latência dispara para todos os clientes. O que deve substituir isso?",
+    "options": [
+      "Rodar KEYS numa réplica e apagar no primário as chaves que ela devolver",
+      "Manter KEYS, mas com um timeout curto no cliente para falhar rápido",
+      "Usar o padrão user:42* sem os dois-pontos, que o KEYS casa mais rápido",
+      "Registrar as chaves de cada usuário num set (ou usar SCAN) e apagá-las"
+    ],
+    "explanation": "KEYS percorre todo o keyspace numa única chamada bloqueante, e a documentação do Redis desaconselha usá-lo no código normal da aplicação. Mantenha um índice das chaves relacionadas num set (ou use prefixos de chave versionados) para a invalidação tocar só nelas, ou itere de forma incremental com SCAN em tarefas de manutenção. Mudar o padrão ou o timeout mantém a varredura bloqueante completa."
+  },
+  {
+    "id": "perfbp-cache-output-cache-authenticated",
+    "title": "Output cache nunca acerta para usuários logados",
+    "question": "Depois de adicionar `.CacheOutput()` com a política padrão em `GET /dashboard`, as respostas ficam em cache para visitantes anônimos, mas nunca para usuários logados. Um colega propõe sobrescrever a política para guardar respostas autenticadas pela URL. Qual é a melhor avaliação?",
+    "options": [
+      "É um bug do output caching; sobrescrever a política é a correção padrão",
+      "Requisições autenticadas são puladas de propósito; cache por URL vaza dados",
+      "Output caching só funciona com Razor Pages, então o endpoint precisa mudar",
+      "Requisições GET ficam fora do output caching a menos que sejam habilitadas"
+    ],
+    "explanation": "Por padrão o output caching do ASP.NET Core só guarda respostas 200 de GET ou HEAD, e pula requisições autenticadas e respostas que definem cookies. Guardar páginas por usuário com a URL como única chave serviria o dashboard de um usuário para outro; se precisar de cache, varie por usuário ou guarde fragmentos compartilhados em vez da resposta inteira."
+  },
+  {
+    "id": "perfbp-cache-concurrent-set-race",
+    "title": "Atualizando o cache a cada escrita",
+    "question": "Duas requisições atualizam o mesmo produto quase ao mesmo tempo. Cada uma roda `UPDATE products ...; COMMIT;` e depois `SET product:7 <new value>`. De vez em quando o cache fica com o valor mais antigo indefinidamente (a chave não tem TTL). Qual é o problema e a correção usual?",
+    "options": [
+      "SET não é atômico no Redis; envolva cada SET numa transação MULTI/EXEC",
+      "O segundo COMMIT se perde, então o próprio banco fica com o valor antigo",
+      "Commits e SETs podem se intercalar fora de ordem; apague a chave em vez disso",
+      "O Redis descarta escritas na mesma chave em 1 ms; espere um pouco antes do SET"
+    ],
+    "explanation": "A requisição A pode fazer commit primeiro e o SET por último, sobrescrevendo o valor mais novo de B; sem TTL o valor velho vive para sempre. Invalidar (DEL) na escrita e deixar a próxima leitura repopular a partir do banco evita bugs de ordenação entre escritores, e um TTL limita o estrago de qualquer corrida restante. Comandos individuais do Redis são atômicos, e o banco tem o valor certo."
+  },
+  {
+    "id": "perfbp-async-thread-sleep-retry",
+    "title": "Thread.Sleep dentro de um retry assíncrono",
+    "question": "Um helper HTTP assíncrono faz retry assim:\n\ncatch (HttpRequestException) { Thread.Sleep(2000); }\n\nDurante uma indisponibilidade do parceiro, a API para de atender até endpoints saudáveis. O que deve substituir o sleep?",
+    "options": [
+      "`await Task.Delay(2000)`, que espera sem bloquear uma thread",
+      "`Thread.Yield()` num loop, que mantém a thread responsiva",
+      "`SpinWait.SpinUntil` por 2 s, que evita uma troca de contexto",
+      "`Task.Run(() => Thread.Sleep(2000))` sem aguardar o resultado"
+    ],
+    "explanation": "Thread.Sleep bloqueia uma thread do pool durante toda a espera; numa indisponibilidade muitas requisições dormem ao mesmo tempo e esgotam o pool, então até endpoints saudáveis esperam por uma thread. Task.Delay agenda um timer e libera a thread até ele disparar. Spin queima CPU, e um Task.Run sem await nem atrasa o retry."
+  },
+  {
+    "id": "perfbp-async-channel-fullmode",
+    "title": "Eventos sumindo de um channel limitado",
+    "question": "Um PR limita um channel de eventos de pedido para conter o crescimento de memória:\n\nChannel.CreateBounded<OrderEvent>(new BoundedChannelOptions(1000) { FullMode = BoundedChannelFullMode.DropOldest });\n\nO que o revisor deve apontar?",
+    "options": [
+      "Channels limitados não podem ser usados com vários leitores concorrentes",
+      "Uma capacidade de 1000 é pequena demais; deveria estar perto de 1.000.000",
+      "Quando cheio, eventos de pedido mais antigos são descartados em silêncio",
+      "DropOldest bloqueia o escritor até um leitor liberar espaço no channel"
+    ],
+    "explanation": "Com DropOldest o channel descarta o item mais antigo da fila para abrir espaço, então picos perdem eventos de pedido em silêncio. Para dados que não podem se perder, use FullMode = Wait (o padrão), para que WriteAsync espere e o backpressure chegue ao produtor; modos de descarte servem para dados como amostras de telemetria. Channels limitados aceitam vários leitores, e uma capacidade enorme traz de volta o problema de memória."
+  },
+  {
+    "id": "perfbp-async-task-run-await",
+    "title": "Envolvendo o trabalho do controller em Task.Run",
+    "question": "Para 'deixar assíncrono', um PR muda uma action de controller para `return await Task.Run(() => _report.Build(id));`, sendo que Build faz chamadas síncronas ao banco. Qual é o efeito no ASP.NET Core?",
+    "options": [
+      "Libera a thread da requisição, então o servidor atende mais requisições",
+      "Adiciona um salto no thread pool e ainda bloqueia uma thread dentro de Build",
+      "Move o trabalho para uma thread dedicada em segundo plano, fora do pool",
+      "Torna as chamadas de Build ao banco não bloqueantes via task scheduler"
+    ],
+    "explanation": "O ASP.NET Core já roda o código da requisição em threads do pool, então Task.Run seguido de await só agenda o mesmo trabalho síncrono em outra thread do pool, adicionando custo enquanto essa thread continua bloqueada em I/O. A orientação da Microsoft é não chamar Task.Run e aguardar logo em seguida; a correção real é tornar Build e suas chamadas ao banco assíncronas de ponta a ponta."
+  },
+  {
+    "id": "perfbp-async-unbounded-fanout",
+    "title": "Disparando 50.000 requisições de uma vez",
+    "question": "Um job de sincronização faz:\n\nawait Task.WhenAll(ids.Select(id => _http.GetAsync($\"/items/{id}\")));\n\nCom 50.000 ids, a API do parceiro começa a devolver 429/503, a memória do job dispara e muitas chamadas dão timeout. Qual é a melhor correção?",
+    "options": [
+      "Trocar WhenAll por WhenAny para o job seguir assim que uma terminar",
+      "Aumentar o HttpClient.Timeout para as chamadas lentas terem tempo de terminar",
+      "Limitar a concorrência, por exemplo com Parallel.ForEachAsync e um máximo",
+      "Chamar a API estritamente um id por vez com um foreach simples"
+    ],
+    "explanation": "WhenAll sobre a sequência projetada inicia as 50.000 requisições na hora, sobrecarregando o parceiro e o próprio processo. Limitar o trabalho em andamento (Parallel.ForEachAsync com MaxDegreeOfParallelism, um SemaphoreSlim ou lotes) adiciona backpressure mantendo um paralelismo útil. Um timeout maior piora a situação, WhenAny abandona trabalho, e chamadas totalmente sequenciais desperdiçam a concorrência disponível."
+  },
+  {
+    "id": "perfbp-async-httpcontext-fire-and-forget",
+    "title": "Usando HttpContext em trabalho de segundo plano",
+    "question": "Para responder mais rápido, um controller faz:\n\n_ = Task.Run(async () => { await Task.Delay(500); await _audit.LogAsync(HttpContext.User.Identity.Name); });\nreturn Accepted();\n\nEm produção, registros de auditoria às vezes saem errados ou a task lança exceção. Por quê?",
+    "options": [
+      "HttpContext só vale durante a requisição e é reciclado depois dela",
+      "Task.Run não executa lambdas async, então a auditoria nunca é aguardada",
+      "Accepted() aborta todas as tasks em segundo plano iniciadas pela requisição",
+      "Task.Delay dentro de Task.Run entra em deadlock com o contexto do ASP.NET Core"
+    ],
+    "explanation": "O HttpContext só é válido enquanto a requisição está ativa; depois que a resposta termina ele é reciclado, então uma task em segundo plano que o lê pode ver dados de outra requisição ou um objeto descartado. Copie os valores necessários (por exemplo o nome do usuário) durante a requisição, ou entregue o trabalho a um serviço em segundo plano com fila. Task.Run aceita lambdas async, e o ASP.NET Core não tem synchronization context para causar deadlock."
+  },
+  {
+    "id": "perfbp-async-setminthreads-bandaid",
+    "title": "Aumentar o mínimo do thread pool como correção",
+    "question": "Uma API sofre starvation do thread pool causada por chamadas bloqueantes. Um PR define `ThreadPool.SetMinThreads(1000, 1000)` na inicialização, e a latência melhora num teste de carga. Qual é a melhor resposta na review?",
+    "options": [
+      "Aprovar; um mínimo maior é a solução permanente recomendada",
+      "Pedir SetMaxThreads(1000, 1000) no lugar, que tem o mesmo efeito",
+      "Aprovar, mas dobrar os valores para sobrar folga para o crescimento",
+      "Tratar como paliativo e remover as chamadas bloqueantes que ele esconde"
+    ],
+    "explanation": "Aumentar o mínimo só permite que o pool crie muitas threads de imediato; o código continua bloqueando essas threads, então uso de memória e trocas de contexto crescem e o problema volta com carga maior. A Microsoft alerta que aumentar o mínimo sem necessidade pode causar problemas de desempenho e que o algoritmo do próprio pool costuma funcionar melhor. A correção duradoura é tornar o I/O bloqueante assíncrono."
+  },
+  {
+    "id": "perfbp-async-parallel-foreach-async-lambda",
+    "title": "Parallel.ForEach com uma lambda async",
+    "question": "Um job faz:\n\nParallel.ForEach(files, async f => await _blob.UploadAsync(f));\nConsole.WriteLine(\"Done\");\n\n'Done' aparece em milissegundos enquanto os uploads ainda rodam, e uma falha num upload derrubou o processo. Por quê?",
+    "options": [
+      "Parallel.ForEach roda lambdas async numa única thread, uma de cada vez",
+      "A lambda vira async void, então o ForEach não consegue esperar os uploads",
+      "UploadAsync precisa ser chamado com ConfigureAwait(false) dentro do loop",
+      "Parallel.ForEach engole exceções lançadas por delegates assíncronos"
+    ],
+    "explanation": "Parallel.ForEach recebe um Action<T>, então a lambda async compila como async void: cada chamada retorna no primeiro await, o ForEach termina quase na hora, e as exceções são lançadas no thread pool, onde podem derrubar o processo. Use Parallel.ForEachAsync (ou um Task.WhenAll com limite) para que o trabalho seja aguardado e os erros sejam observados."
+  },
+  {
+    "id": "perfbp-net-automatic-decompression",
+    "title": "JSON entre serviços trafegando sem compressão",
+    "question": "O serviço A baixa respostas JSON de 8 MB do serviço B, que suporta gzip e Brotli. Capturas de pacotes mostram as respostas chegando sem compressão. A cria seu cliente com `new HttpClient(new SocketsHttpHandler())`. Qual é a causa provável?",
+    "options": [
+      "Compressão só funciona em HTTP/1.1, e o handler negociou HTTP/2",
+      "AutomaticDecompression vem desligado, então nenhum Accept-Encoding é enviado",
+      "O serviço B só comprime respostas menores que 1 MB por padrão",
+      "O TLS já comprime o payload, então B pula a compressão no nível HTTP"
+    ],
+    "explanation": "SocketsHttpHandler.AutomaticDecompression tem None como padrão, então o cliente não anuncia gzip nem Brotli no Accept-Encoding e o servidor envia os bytes sem compressão. Defini-lo como DecompressionMethods.All (ou GZip | Brotli) adiciona o header em toda requisição e descomprime de forma transparente. Compressão HTTP funciona em HTTP/2, e compressão no nível do TLS não é usada."
+  },
+  {
+    "id": "perfbp-net-unbounded-list-response",
+    "title": "Um endpoint que devolve tudo",
+    "question": "`GET /api/orders` devolve todos os pedidos de um cliente com todos os campos. Grandes clientes B2B têm 120.000 pedidos, então as respostas chegam a 90 MB e levam 20 s, enquanto a interface mostra 25 linhas por vez. Qual é a melhor correção?",
+    "options": [
+      "Ativar compressão Brotli e continuar devolvendo a lista completa",
+      "Aumentar os timeouts do servidor e do cliente para as respostas terminarem",
+      "Paginar com tamanho máximo e devolver só os campos que a interface usa",
+      "Mover o endpoint para HTTP/2 para o payload grande trafegar mais rápido"
+    ],
+    "explanation": "Esse é o anti-pattern Extraneous Fetching: a API envia muito mais linhas e campos do que o cliente usa. Exigir paginação com tamanho máximo de página e devolver um DTO enxuto reduz ao mesmo tempo o payload, o tempo de serialização e o trabalho do banco. Compressão, HTTP/2 ou timeouts maiores só tornam uma resposta exagerada um pouco mais suportável."
+  },
+  {
+    "id": "perfbp-net-breach-compression",
+    "title": "Comprimindo páginas HTTPS que carregam segredos",
+    "question": "Um time ativa a compressão de respostas do ASP.NET Core com `EnableForHttps = true` em todas as páginas HTML dinâmicas. Essas páginas incluem um token antiforgery e também refletem um parâmetro `q` da query string. Por que essa opção vem desligada por padrão?",
+    "options": [
+      "Respostas HTTPS comprimidas não podem ser cacheadas por navegador ou proxy",
+      "O TLS já comprime o corpo, então ele seria comprimido duas vezes",
+      "Brotli e gzip não são permitidos no HTTP/2, usado na maior parte do HTTPS",
+      "Segredos junto com entrada do atacante podem vazar via CRIME/BREACH"
+    ],
+    "explanation": "Quando uma resposta comprimida e criptografada contém um segredo e um texto controlado pelo atacante, ele pode deduzir o segredo pelas variações no tamanho da resposta (CRIME/BREACH), por isso o ASP.NET Core deixa a compressão sobre HTTPS desligada por padrão. Se você ativar, evite comprimir respostas que misturam segredos com entrada refletida, ou aplique mitigações como mascarar tokens por resposta. HTTP/2 suporta gzip e Brotli, e o cache continua funcionando."
+  },
+  {
+    "id": "perfbp-net-dns-pooled-connection-lifetime",
+    "title": "Um HttpClient de vida longa após um failover de DNS",
+    "question": "Seguindo a orientação de reutilizar o HttpClient, um serviço mantém uma única instância estática. Num failover regional, o nome DNS do parceiro passa a apontar para novos IPs, mas o serviço continua chamando o endpoint antigo por horas. O que deve ser configurado?",
+    "options": [
+      "PooledConnectionLifetime, para as conexões do pool serem recicladas",
+      "Um HttpClient novo por requisição, para cada chamada resolver o DNS de novo",
+      "Um TTL de cache DNS menor no sistema operacional de cada host do serviço",
+      "HttpClient.Timeout de 30 segundos para chamadas travadas serem abandonadas"
+    ],
+    "explanation": "O HttpClient só resolve DNS ao abrir uma conexão e não acompanha os TTLs do DNS, então conexões de vida longa no pool continuam usando os endereços antigos. Definir SocketsHttpHandler.PooledConnectionLifetime (ou usar IHttpClientFactory) recicla as conexões, e as novas pegam as mudanças de DNS. Um cliente por requisição arrisca esgotar sockets, e configurações de DNS do sistema ou timeouts não fecham conexões saudáveis do pool."
+  },
+  {
+    "id": "perfbp-net-stream-large-export",
+    "title": "Montando uma exportação de 300 MB em memória",
+    "question": "Um endpoint de exportação carrega todas as linhas numa lista, serializa num `MemoryStream` e depois copia para a resposta. Com várias exportações simultâneas, vêm GCs de gen2 e processos mortos por OOM. Qual é a melhor mudança?",
+    "options": [
+      "Pré-dimensionar o MemoryStream com a capacidade esperada para evitar realocações",
+      "Enviar as linhas à resposta conforme são lidas, por exemplo com IAsyncEnumerable",
+      "Chamar GC.Collect após cada exportação para liberar os buffers grandes",
+      "Comprimir o MemoryStream antes de copiá-lo para o corpo da resposta"
+    ],
+    "explanation": "Bufferizar uma resposta inteira num único array de bytes ou string enorme vai para o large object heap, dispara GCs completos e multiplica a memória pelo número de exportações simultâneas. Escrever as linhas de forma progressiva (por exemplo retornando IAsyncEnumerable ou escrevendo no stream do corpo da resposta) mantém a memória estável. Pré-dimensionar, forçar GC ou comprimir o buffer mantêm o payload inteiro em memória."
+  },
+  {
+    "id": "perfbp-net-cross-region-round-trips",
+    "title": "App numa região, banco em outra",
+    "question": "Depois de uma migração, uma API roda em us-east enquanto o primário do PostgreSQL ficou em eu-west, a cerca de 80 ms por ida e volta. Uma requisição típica faz 18 consultas sequenciais, todas rápidas no servidor. O p50 foi de 40 ms para 1,5 s. Qual é a correção mais eficaz?",
+    "options": [
+      "Criar índices para as 18 consultas e reduzir ainda mais o tempo de execução",
+      "Ativar compressão de respostas para cada ida e volta levar menos bytes",
+      "Aumentar o pool de conexões para as consultas usarem mais conexões",
+      "Colocar app e banco juntos e agrupar consultas para reduzir idas e voltas"
+    ],
+    "explanation": "A latência é dominada pelas idas e voltas: 18 consultas sequenciais x 80 ms dá cerca de 1,4 s, não importa a velocidade de cada consulta. Colocar o app na região do banco (ou mover o banco) e reduzir idas e voltas com joins ou consultas em lote ataca o custo real. Índices, compressão e um pool maior não reduzem o número de idas e voltas sequenciais pela rede."
+  },
+  {
+    "id": "perfbp-net-grpc-stream-limit",
+    "title": "Chamadas gRPC enfileiradas numa única conexão",
+    "question": "Um serviço .NET faz muitas chamadas gRPC de streaming de longa duração para um backend usando um SocketsHttpHandler configurado por ele mesmo. Acima de cerca de 100 chamadas simultâneas, as novas esperam no cliente, embora o backend esteja ocioso. Qual é a causa mais provável e a correção?",
+    "options": [
+      "Limite de streams por conexão do HTTP/2; ativar EnableMultipleHttp2Connections",
+      "O Kestrel só aceita 100 requisições por processo; adicionar réplicas do backend",
+      "A serialização Protobuf é single-thread; trocar o payload para JSON",
+      "Streaming gRPC exige HTTP/3; ativar QUIC no cliente e no servidor"
+    ],
+    "explanation": "Um canal gRPC multiplexa as chamadas numa única conexão HTTP/2, e servidores costumam limitar cada conexão a 100 streams simultâneos, então as chamadas extras ficam na fila do cliente. Definir SocketsHttpHandler.EnableMultipleHttp2Connections = true permite ao canal abrir conexões adicionais quando o limite é atingido (o GrpcChannel faz isso no handler padrão). Um backend ocioso descarta capacidade do servidor ou serialização como causa."
+  }
+]

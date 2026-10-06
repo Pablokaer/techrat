@@ -1,6 +1,6 @@
 import type { AnswerFeedback, Topic } from "@techrat/types";
 import { resolveApiUrl } from "./config";
-import { greeting, groupTopicsByCategory, initials, mmss, percent, sessionStats, stepState, withAlpha } from "./format";
+import { alreadyHaveModulesText, alsoInText, greeting, groupTopicsByCategory, initials, mmss, moduleKindLabel, percent, sessionStats, stepState, withAlpha } from "./format";
 import { splitBlocks, splitInlineCode } from "./rich-text";
 
 describe("format helpers", () => {
@@ -53,6 +53,29 @@ describe("format helpers", () => {
       ["Frontend", ["css", "react"]],
       ["Data", ["sql"]],
     ]);
+  });
+});
+
+describe("module catalog helpers", () => {
+  it("labels the module kinds worth calling out", () => {
+    expect(moduleKindLabel("Capstone")).toBe("Capstone");
+    expect(moduleKindLabel("BestPractices")).toBe("Best practices");
+    expect(moduleKindLabel("Core")).toBeNull();
+    expect(moduleKindLabel("Context")).toBeNull();
+    expect(moduleKindLabel("SomethingNew")).toBeNull();
+  });
+
+  it("lists the other roadmaps that reuse a module", () => {
+    expect(alsoInText(["Frontend"])).toBe("Also in: Frontend");
+    expect(alsoInText(["A", "B", "C"])).toBe("Also in: A, B, C");
+    expect(alsoInText(["A", "B", "C", "D", "E"])).toBe("Also in: A, B, C +2 more");
+    expect(alsoInText([])).toBeNull();
+  });
+
+  it("describes modules already completed in other roadmaps", () => {
+    expect(alreadyHaveModulesText(2, 5)).toBe("You already have 2 of 5 modules");
+    expect(alreadyHaveModulesText(1, 1)).toBe("You already have 1 of 1 module");
+    expect(alreadyHaveModulesText(0, 5)).toBeNull();
   });
 });
 

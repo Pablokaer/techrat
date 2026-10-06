@@ -1,6 +1,6 @@
 export { AppText } from "./AppText";
 export { Avatar } from "./Avatar";
-export { DifficultyBadge, TierDot, XpPill } from "./Badges";
+export { DifficultyBadge, LabelBadge, TierDot, XpPill } from "./Badges";
 export { Button } from "./Button";
 export { Card } from "./Card";
 export { Chip } from "./Chip";

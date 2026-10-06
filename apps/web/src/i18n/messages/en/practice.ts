@@ -73,7 +73,8 @@ export const practice = {
       levelUp: (n: number) => `Level up! You reached level ${n}`,
       topicLevel: (n: number) => `Topic level ${n} unlocked`,
       stepCompleted: (title: string) => `Roadmap step completed: ${title}`,
-      stepCompletedBody: (xp: number, roadmap: string) => `+${xp} XP · ${roadmap}`,
+      /** `module` is omitted for steps without a module name. */
+      stepCompletedBody: (xp: number, roadmap: string, module?: string) => (module ? `+${xp} XP · ${module} module · ${roadmap}` : `+${xp} XP · ${roadmap}`),
       dailyComplete: "Daily challenge complete!",
       dailyBonus: (xp: number) => `+${xp} bonus XP`,
       submitError: "Could not submit your answer",

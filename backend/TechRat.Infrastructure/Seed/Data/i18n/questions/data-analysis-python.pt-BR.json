@@ -1,0 +1,578 @@
+[
+  {
+    "id": "dap-numpy-broadcast-column-row-shape",
+    "title": "Shape após broadcasting de uma coluna e uma linha",
+    "question": "Qual é o shape de `c`?\n\n    import numpy as np\n    a = np.ones((3, 1))\n    b = np.arange(4)\n    c = a + b",
+    "options": [
+      "(3, 1)",
+      "(1, 4)",
+      "(3, 4)",
+      "(4, 3)"
+    ],
+    "explanation": "O broadcasting alinha os shapes a partir da última dimensão: (4,) é tratado como (1, 4), e toda dimensão de tamanho 1 é esticada para casar com a outra, resultando em (3, 4). A operação é válida porque cada par de dimensões é igual ou vale 1, então nenhum erro é lançado. (4, 3) exigiria os operandos na ordem inversa, e nenhum dos shapes de entrada sobrevive inalterado."
+  },
+  {
+    "id": "dap-numpy-sum-axis-zero",
+    "title": "Soma ao longo do eixo 0",
+    "question": "O que este código imprime?\n\n    import numpy as np\n    a = np.arange(6).reshape(2, 3)\n    print(a.sum(axis=0))",
+    "options": [
+      "[3 5 7]",
+      "[ 3 12]",
+      "15",
+      "[1.5 2.5 3.5]"
+    ],
+    "explanation": "`a` é [[0, 1, 2], [3, 4, 5]]. `axis=0` colapsa as linhas, somando cada coluna de cima para baixo, então há um valor por coluna: [3 5 7]. `axis=1` daria um valor por linha ([ 3 12]), sem eixo tudo é somado (15), e [1.5 2.5 3.5] é o que `mean(axis=0)` retornaria."
+  },
+  {
+    "id": "dap-numpy-slice-view-vs-fancy-copy",
+    "title": "Views por slicing vs cópias por fancy indexing",
+    "question": "Quais valores `a` contém depois que este código roda?\n\n    a = np.arange(5)\n    b = a[1:4]\n    b[0] = 99\n    c = a[[2, 3]]\n    c[0] = -1",
+    "options": [
+      "[0, 1, 2, 3, 4]",
+      "[0, 99, 2, 3, 4]",
+      "[0, 99, -1, 3, 4]",
+      "[0, 1, -1, 3, 4]"
+    ],
+    "explanation": "O slicing básico (`a[1:4]`) retorna uma view que compartilha memória com `a`, então escrever em `b[0]` muda `a[1]` para 99. Indexar com uma lista de inteiros (fancy indexing) sempre retorna uma cópia, então a escrita em `c` nunca chega a `a`. Use `.copy()` no slice quando precisar que ele seja independente."
+  },
+  {
+    "id": "dap-numpy-float-into-int-array-truncates",
+    "title": "Atribuindo floats a um array de inteiros",
+    "question": "O que acontece quando isto roda?\n\n    a = np.zeros(3, dtype=int)\n    a[0] = 2.7\n    a[1] = -1.9\n    print(a)",
+    "options": [
+      "Imprime [ 3 -2  0]: os valores são arredondados para o inteiro mais próximo",
+      "TypeError: um float não pode ser guardado num array int",
+      "`a` vira float64 e mantém tanto 2.7 quanto -1.9",
+      "Imprime [ 2 -1  0]: os valores são truncados em direção a zero"
+    ],
+    "explanation": "Um array existente nunca muda de dtype numa atribuição: os valores são convertidos para o dtype do array. Converter float para int trunca em direção a zero, exatamente como `int()`, e faz isso em silêncio, então 2.7 vira 2 e -1.9 vira -1. Crie o array como float ou arredonde explicitamente com `np.round` antes de guardar."
+  },
+  {
+    "id": "dap-numpy-uint8-wraparound-vs-sum",
+    "title": "Aritmética uint8 vs acumulação do sum",
+    "question": "O que este código imprime?\n\n    a = np.array([200, 100], dtype=np.uint8)\n    print(a + a)\n    print(a.sum())",
+    "options": [
+      "[144 200], depois 300",
+      "[400 200], depois 300",
+      "[144 200], depois 44",
+      "OverflowError no primeiro print"
+    ],
+    "explanation": "A aritmética elemento a elemento continua em uint8, então 200 + 200 = 400 dá a volta em silêncio, módulo 256, virando 144. Já o `np.sum` acumula tipos inteiros pequenos no inteiro padrão da plataforma, então o total é o correto, 300. Converta com `astype` antes de operações que possam estourar o tipo; o NumPy não lança erro em overflow de arrays."
+  },
+  {
+    "id": "dap-numpy-nep50-python-int-out-of-bounds",
+    "title": "Promoção do NumPy 2 com inteiros Python",
+    "question": "Com as regras de promoção do NumPy 2 (NEP 50), o que acontece aqui?\n\n    a = np.array([100], dtype=np.int8)\n    b = a + 100\n    c = a + 200",
+    "options": [
+      "`b` é [200] e `c` é [300]: ambos sobem para int16",
+      "`b` é [-56]; `c` é [300] porque 200 força int16",
+      "`b` dá a volta para [-56]; `c` lança OverflowError",
+      "As duas somas lançam OverflowError"
+    ],
+    "explanation": "A NEP 50 torna os escalares Python \"fracos\": eles assumem o dtype do array em vez de promovê-lo com base no valor. Assim, `a + 100` continua int8 e dá a volta em silêncio para -56, enquanto 200 nem pode ser representado em int8, então `a + 200` lança OverflowError. O casting por valor do NumPy 1.x promoveria para int16 no caso de 200, e por isso código antigo pode quebrar após a atualização."
+  },
+  {
+    "id": "dap-pandas-loc-vs-iloc-slice-end",
+    "title": "Limites de slice com loc e iloc",
+    "question": "O que este código imprime?\n\n    s = pd.Series([10, 20, 30, 40], index=[1, 2, 3, 4])\n    print(s.loc[1:3].tolist())\n    print(s.iloc[1:3].tolist())",
+    "options": [
+      "[10, 20] e [20, 30]",
+      "[10, 20, 30] e [20, 30]",
+      "[20, 30] e [20, 30]",
+      "[10, 20, 30] e [20, 30, 40]"
+    ],
+    "explanation": "`.loc` fatia por rótulo e inclui as duas pontas, então retorna os rótulos 1, 2 e 3. `.iloc` fatia por posição com a convenção semiaberta do Python, então retorna as posições 1 e 2 (valores 20 e 30). Confundir os dois é uma fonte clássica de erro off-by-one."
+  },
+  {
+    "id": "dap-pandas-single-vs-double-brackets",
+    "title": "Selecionando uma coluna com [] vs [[]]",
+    "question": "`df` tem as colunas `a` e `b`. O que `df['a']` e `df[['a']]` retornam?",
+    "options": [
+      "Ambos retornam um DataFrame de uma coluna",
+      "Ambos retornam uma Series chamada `a`",
+      "Um DataFrame e uma Series, respectivamente",
+      "Uma Series e um DataFrame, respectivamente"
+    ],
+    "explanation": "Um único rótulo seleciona uma coluna como Series. Uma lista de rótulos sempre seleciona um DataFrame, mesmo com um só elemento. A diferença importa para o shape, para os métodos disponíveis em cada tipo e para código que depois espera colunas."
+  },
+  {
+    "id": "dap-pandas-index-alignment-nan",
+    "title": "Aritmética entre Series com índices diferentes",
+    "question": "Quais valores `s1 + s2` contém?\n\n    s1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])\n    s2 = pd.Series([10, 20, 30], index=['b', 'c', 'd'])\n    print(s1 + s2)",
+    "options": [
+      "a: NaN, b: 12, c: 23, d: NaN",
+      "a: 11, b: 22, c: 33 (casados por posição)",
+      "Só b: 12, c: 23; rótulos sem par são descartados",
+      "a: 1, b: 12, c: 23, d: 30"
+    ],
+    "explanation": "O pandas alinha os operandos pelos rótulos do índice e retorna a união dos rótulos; um rótulo presente em só um operando gera NaN (e o resultado vira float64). Os valores nunca são casados por posição. Para tratar o lado ausente como 0 é preciso pedir com `s1.add(s2, fill_value=0)`, o que daria a última opção."
+  },
+  {
+    "id": "dap-pandas-chained-assignment-no-effect",
+    "title": "Atribuição encadeada num DataFrame filtrado",
+    "question": "O que é impresso, e como a segunda linha deveria ser escrita?\n\n    df = pd.DataFrame({'qty': [3, 8, 10], 'flag': [False, False, False]})\n    df[df['qty'] > 5]['flag'] = True\n    print(df['flag'].tolist())",
+    "options": [
+      "[False, True, True]; o código já funciona como está",
+      "[True, True, True]; a máscara é ignorada, então use `where`",
+      "[False, False, False]; use `df.loc[df['qty'] > 5, 'flag'] = True`",
+      "KeyError; a coluna precisa ser criada antes com `assign`"
+    ],
+    "explanation": "O filtro booleano retorna um objeto novo, e o segundo `[]` grava o valor nesse objeto temporário, então `df` não muda. O pandas 2.x avisa com SettingWithCopyWarning; com Copy-on-Write (o padrão no pandas 3.0) a atribuição encadeada nunca funciona e emite ChainedAssignmentError. Uma única chamada `.loc` com a máscara de linhas e o rótulo da coluna altera o próprio `df`."
+  },
+  {
+    "id": "dap-pandas-iterrows-upcasts-ints",
+    "title": "Por que o iterrows transforma ids inteiros em floats",
+    "question": "O que este loop imprime para cada linha?\n\n    df = pd.DataFrame({'id': [1, 2], 'price': [1.5, 2.5]})\n    for _, row in df.iterrows():\n        print(type(row['id']).__name__)",
+    "options": [
+      "int64, porque o iterrows mantém o dtype de cada coluna",
+      "float64, porque cada linha vira uma Series com um único dtype",
+      "int, porque o iterrows converte valores em escalares Python",
+      "object, porque linhas mistas caem para o dtype object"
+    ],
+    "explanation": "O `iterrows` entrega cada linha como uma Series, e uma Series tem um só dtype, então as colunas int e float são combinadas em float64 e o id 1 vira 1.0. O dtype object só aparece quando, por exemplo, há strings misturadas. O `itertuples` preserva os tipos por coluna e é mais rápido, e operações vetorizadas são melhores ainda."
+  },
+  {
+    "id": "dap-pandas-copy-on-write-derived-series",
+    "title": "Alterando uma Series de coluna com Copy-on-Write",
+    "question": "Com Copy-on-Write habilitado (o padrão desde o pandas 3.0), o que é impresso e por quê?\n\n    df = pd.DataFrame({'a': [1, 2, 3]})\n    s = df['a']\n    s.iloc[0] = 100\n    print(df['a'].tolist())",
+    "options": [
+      "[100, 2, 3]; `s` é uma view, então suas escritas chegam a `df`",
+      "[100, 2, 3]; o CoW só protege contra atribuição encadeada",
+      "Nada: ChainedAssignmentError é lançado na linha do `iloc`",
+      "[1, 2, 3]; `s` é copiada de forma lazy no momento em que é alterada"
+    ],
+    "explanation": "Com Copy-on-Write, todo objeto derivado de outro se comporta como uma cópia: `s` compartilha memória com `df` no início, mas a primeira escrita em `s` dispara uma cópia real, então `df` continua [1, 2, 3] e nenhum aviso é emitido. Isso não é atribuição encadeada, pois a seleção e a escrita são comandos separados. Sem CoW (padrão do pandas 2.x), `s` era uma view e `df` mostraria 100; para mudar `df`, escreva nele, por exemplo `df.loc[0, 'a'] = 100`."
+  },
+  {
+    "id": "dap-clean-count-missing-per-column",
+    "title": "Contando valores ausentes por coluna",
+    "question": "Qual expressão retorna a quantidade de valores ausentes em cada coluna de `df`?",
+    "options": [
+      "`df.count()`",
+      "`df.isna().sum()`",
+      "`df.isna().any()`",
+      "`df.dropna().sum()`"
+    ],
+    "explanation": "`isna()` retorna um DataFrame booleano e `sum()` conta os True por coluna. `count()` retorna o oposto, a quantidade de valores não ausentes; `isna().any()` só diz se a coluna tem pelo menos um ausente; e `dropna().sum()` soma os valores das linhas completas."
+  },
+  {
+    "id": "dap-clean-dropna-default-any-row",
+    "title": "O que o dropna remove por padrão",
+    "question": "O que este código imprime?\n\n    df = pd.DataFrame({'a': [1, None, 3, 4], 'b': ['x', 'y', None, 'z']})\n    print(len(df.dropna()))",
+    "options": [
+      "2, pois linhas com qualquer valor ausente são removidas",
+      "3, pois só linhas sem valor na coluna `a` são removidas",
+      "4, pois uma linha só sai se todos os valores faltarem",
+      "0, pois o `dropna` remove colunas que contêm NaN"
+    ],
+    "explanation": "Por padrão o `dropna` usa `axis=0` e `how='any'`: uma linha é descartada se qualquer valor dela estiver ausente, então as linhas 1 e 2 saem e restam 2. `how='all'` manteria as 4 linhas aqui, e remover colunas exige `axis=1`."
+  },
+  {
+    "id": "dap-clean-int-with-missing-becomes-float",
+    "title": "Coluna inteira com um valor ausente",
+    "question": "Uma coluna de ids com uma célula vazia é carregada como 1.0, NaN, 3.0. Este trecho reproduz o caso. O que é impresso, e como manter inteiros permitindo valores ausentes?\n\n    s = pd.Series([1, None, 3])\n    print(s.dtype)",
+    "options": [
+      "int64; nada a corrigir, as casas decimais são só exibição",
+      "object; converta com `s.astype(int)` depois de carregar",
+      "float64; converta com `s.astype('Int64')`",
+      "float64; troque ids ausentes por 0 e mantenha floats"
+    ],
+    "explanation": "O int64 do NumPy não consegue guardar NaN, então o pandas promove a coluna para float64 para representar o ausente. O dtype de extensão anulável `Int64` (com I maiúsculo) guarda inteiros mais `pd.NA`. `astype(int)` lança erro com NaN, e preencher com 0 inventa um id que pode colidir com dados reais."
+  },
+  {
+    "id": "dap-clean-to-numeric-coerce",
+    "title": "Convertendo strings bagunçadas em números",
+    "question": "`s.astype(float)` falha com ValueError em 'n/a'. Qual chamada converte os valores válidos e transforma 'n/a' em NaN?\n\n    s = pd.Series(['1', '2.5', 'n/a'])",
+    "options": [
+      "`s.astype(float, errors='ignore')`",
+      "`pd.to_numeric(s, downcast='float')`",
+      "`s.replace('n/a', 0).astype(float)`",
+      "`pd.to_numeric(s, errors='coerce')`"
+    ],
+    "explanation": "`pd.to_numeric` com `errors='coerce'` troca por NaN tudo que não consegue interpretar, resultando em [1.0, 2.5, NaN]. `astype(..., errors='ignore')` apenas devolve as strings originais quando a conversão falha, e `downcast` só reduz o tipo do resultado, então ainda lança erro. Trocar 'n/a' por 0 converte, mas inventa um valor que distorce somas e médias."
+  },
+  {
+    "id": "dap-clean-nan-comparisons-false",
+    "title": "Filtros complementares que perdem uma linha",
+    "question": "Isto imprime `2 3`. Por que os dois filtros não cobrem todas as linhas?\n\n    s = pd.Series([1, np.nan, 3])\n    print((s > 2).sum() + (s <= 2).sum(), len(s))",
+    "options": [
+      "Comparações com NaN retornam False, então a linha não cai em nenhum grupo",
+      "A comparação gera NaN para essa linha, e o `sum()` a ignora",
+      "NaN é tratado como 0, então a linha entra duas vezes em `s <= 2`",
+      "Arredondamento de float faz o 3 ficar fora de `s > 2`"
+    ],
+    "explanation": "Com floats baseados em NumPy, qualquer comparação envolvendo NaN resulta em False, então a linha ausente é False tanto em `s > 2` quanto em `s <= 2`; as máscaras são booleanos comuns, não NaN. Por isso filtros complementares perdem linhas ausentes em silêncio, e `s == np.nan` não casa com nada. Conte ou trate ausentes explicitamente com `isna()`."
+  },
+  {
+    "id": "dap-clean-boolean-na-kleene-logic",
+    "title": "Lógica de três valores com o dtype boolean anulável",
+    "question": "O que este código imprime?\n\n    s = pd.Series([True, pd.NA, False], dtype='boolean')\n    print((s | True).tolist())\n    print((s & True).tolist())",
+    "options": [
+      "[True, <NA>, True] e [True, <NA>, False]",
+      "[True, True, True] e [True, <NA>, False]",
+      "[True, True, True] e [True, False, False]",
+      "TypeError: boolean value of NA is ambiguous"
+    ],
+    "explanation": "O dtype anulável `boolean` segue a lógica de Kleene (três valores): `NA | True` é True seja qual for o valor desconhecido, mas `NA & True` depende dele, então continua NA. Tratar NA como False é o que acontece quando a máscara é usada para indexar, não em operações lógicas. O TypeError de ambiguidade só aparece quando o Python precisa de `bool(pd.NA)`, por exemplo num `if`."
+  },
+  {
+    "id": "dap-merge-default-how-inner",
+    "title": "Tipo de join padrão do pd.merge",
+    "question": "O que este código imprime?\n\n    a = pd.DataFrame({'k': [1, 2, 3]})\n    b = pd.DataFrame({'k': [2, 3, 4]})\n    print(len(pd.merge(a, b)))",
+    "options": [
+      "3, porque é um left join que mantém todo o `a`",
+      "4, porque é um outer join com todas as chaves",
+      "2, porque é um inner join pela coluna `k`",
+      "9, porque combina toda linha com toda linha"
+    ],
+    "explanation": "O `pd.merge` usa `how='inner'` por padrão e, sem `on`, junta pelas colunas que os dois DataFrames têm em comum (aqui `k`), então só as chaves 2 e 3 sobrevivem. Left join (3 linhas), outer join (4 linhas) ou cross join (9 linhas) precisam ser pedidos explicitamente com `how`."
+  },
+  {
+    "id": "dap-merge-concat-keeps-duplicate-index",
+    "title": "Rótulos de índice após concatenar linhas",
+    "question": "O que este código imprime?\n\n    a = pd.DataFrame({'x': [1, 2]})\n    b = pd.DataFrame({'x': [3, 4]})\n    c = pd.concat([a, b])\n    print(c.index.tolist())",
+    "options": [
+      "[0, 1, 2, 3]",
+      "[0, 1]",
+      "[1, 2, 3, 4]",
+      "[0, 1, 0, 1]"
+    ],
+    "explanation": "O `pd.concat` mantém os rótulos de índice de cada entrada, então o resultado tem duplicatas e `c.loc[0]` retorna duas linhas. Passe `ignore_index=True` para obter um índice novo de 0 a 3. Ele empilha linhas em vez de alinhá-las, então nada é descartado."
+  },
+  {
+    "id": "dap-merge-one-to-many-row-count",
+    "title": "Quantidade de linhas de um left join um-para-muitos",
+    "question": "O que este código imprime?\n\n    customers = pd.DataFrame({'cid': [1, 2, 3]})\n    orders = pd.DataFrame({'cid': [1, 1, 2, 2, 2], 'amt': [5, 7, 1, 2, 3]})\n    r = customers.merge(orders, on='cid', how='left')\n    print(len(r))",
+    "options": [
+      "6",
+      "3",
+      "5",
+      "8"
+    ],
+    "explanation": "Um left join gera uma linha por par que casa: o cliente 1 casa com 2 pedidos, o cliente 2 com 3, e o cliente 3 não tem par, então aparece uma vez com NaN em `amt`, totalizando 6 linhas. O left join garante que cada linha da esquerda apareça pelo menos uma vez, não exatamente uma vez, e por isso a contagem cresce em chaves um-para-muitos."
+  },
+  {
+    "id": "dap-merge-validate-many-to-one",
+    "title": "Protegendo um merge de lookup contra chaves duplicadas",
+    "question": "Depois de fazer merge de uma tabela `prices` em `sales` por `sku`, a receita total ficou maior que no sistema de origem: `prices` tem duas linhas para alguns SKUs. Qual mudança faz o pipeline falhar logo se isso acontecer de novo?",
+    "options": [
+      "Passar `how='inner'` para descartar linhas com chaves duplicadas",
+      "Passar `validate='many_to_one'` para `sales.merge(...)`",
+      "Chamar `drop_duplicates()` no resultado do merge",
+      "Passar `indicator=True` e remover as linhas 'both'"
+    ],
+    "explanation": "`validate='many_to_one'` verifica se as chaves do lado direito são únicas e lança MergeError caso contrário, então uma tabela de lookup ruim interrompe o job em vez de inflar a receita em silêncio. Um inner join continua multiplicando linhas em chaves duplicadas, `drop_duplicates()` depois do merge pode apagar vendas legítimas idênticas e nunca alerta ninguém, e `indicator` só rotula a origem das linhas ('both' marca as que casaram)."
+  },
+  {
+    "id": "dap-merge-key-dtype-mismatch",
+    "title": "Merge com chaves inteiras vs strings",
+    "question": "`a` vem de um banco de dados e `b` de um CSV lido com `dtype=str`. O que acontece na última linha?\n\n    a = pd.DataFrame({'id': [1, 2]})\n    b = pd.DataFrame({'id': ['1', '2'], 'v': [10, 20]})\n    r = a.merge(b, on='id')",
+    "options": [
+      "As linhas casam, porque '1' e 1 são tratados como iguais",
+      "Retorna um DataFrame vazio sem nenhum erro",
+      "Lança ValueError sobre merge de chaves int64 com string",
+      "O pandas converte `b['id']` para int64 e depois faz o merge"
+    ],
+    "explanation": "O pandas se recusa a fazer merge de uma chave numérica com uma chave string e lança ValueError (\"You are trying to merge on int64 and object columns\"; o pandas 3.0 informa `str`). Não há conversão silenciosa, e como 1 != '1' um join sem conversão nem casaria. Converta a chave explicitamente, por exemplo `b['id'] = b['id'].astype('int64')`, de preferência ao carregar os dados."
+  },
+  {
+    "id": "dap-merge-nan-keys-match-each-other",
+    "title": "Chaves NaN em joins no pandas vs SQL",
+    "question": "Um engenheiro acostumado com SQL espera que este inner merge retorne 1 linha. O que é impresso, e por quê?\n\n    a = pd.DataFrame({'k': [1, np.nan], 'x': [1, 2]})\n    b = pd.DataFrame({'k': [np.nan, 1], 'y': [3, 4]})\n    print(len(a.merge(b, on='k')))",
+    "options": [
+      "2, porque o pandas casa chaves nulas entre si",
+      "1, porque NaN nunca é igual a NaN, como o NULL do SQL",
+      "1, porque linhas com chave NaN são descartadas antes do join",
+      "Nada: lança ValueError porque há NaN nas chaves"
+    ],
+    "explanation": "Diferente do SQL, em que NULL nunca é igual a NULL num join, o pandas casa linhas cuja chave é nula dos dois lados, então as linhas NaN formam par e 2 linhas são retornadas. A documentação do `merge` avisa isso explicitamente. Se chaves nulas não devem casar, remova-as (ou preencha com sentinelas distintas) antes do merge."
+  },
+  {
+    "id": "dap-groupby-sum-result-shape",
+    "title": "O que uma soma por groupby de uma coluna retorna",
+    "question": "O que é `r`?\n\n    df = pd.DataFrame({'city': ['A', 'B', 'A'], 'sales': [1, 2, 3]})\n    r = df.groupby('city')['sales'].sum()",
+    "options": [
+      "Um DataFrame com as colunas `city` e `sales`",
+      "Uma Series de tamanho 3, alinhada ao índice de `df`",
+      "Uma lista de tuplas: [('A', 4), ('B', 2)]",
+      "Uma Series indexada por cidade: A vale 4 e B vale 2"
+    ],
+    "explanation": "As chaves de grupo viram o índice do resultado, e selecionar uma coluna antes de agregar gera uma Series, aqui A → 4 e B → 2. Use `as_index=False` ou `reset_index()` para ter `city` de volta como coluna. Um resultado alinhado às linhas originais é o que o `transform` produz, não o `sum`."
+  },
+  {
+    "id": "dap-groupby-named-aggregation",
+    "title": "Named aggregation com nomes de colunas próprios",
+    "question": "Qual chamada retorna uma linha por `k` com colunas chamadas `total` e `n` (a soma e a contagem de não nulos de `v`)?",
+    "options": [
+      "`df.groupby('k').agg(total=('v', 'sum'), n=('v', 'count'))`",
+      "`df.groupby('k')['v'].agg({'total': 'sum', 'n': 'count'})`",
+      "`df.groupby('k').agg(['total', 'n'])`",
+      "`df.groupby('k').sum().rename(columns={'v': 'total'})`"
+    ],
+    "explanation": "A named aggregation recebe argumentos nomeados no formato `output_name=(column, function)`, o que gera exatamente as colunas `total` e `n`. Passar um dict de renomeação para o `agg` de um SeriesGroupBy foi removido e lança SpecificationError, uma lista de strings é lida como nomes de funções, e `sum().rename(...)` nunca calcula a contagem."
+  },
+  {
+    "id": "dap-groupby-transform-share-of-total",
+    "title": "Participação no total do grupo como nova coluna",
+    "question": "Você precisa da participação de cada linha no total de vendas da sua cidade, como nova coluna alinhada a `df` (RangeIndex padrão). Qual expressão está correta?",
+    "options": [
+      "`df['sales'] / df.groupby('city')['sales'].sum()`",
+      "`df['sales'] / df.groupby('city')['sales'].transform('sum')`",
+      "`df.groupby('city')['sales'].agg(lambda s: s / s.sum()).to_numpy()`",
+      "`df['sales'] / df['sales'].sum()`"
+    ],
+    "explanation": "`transform('sum')` devolve o total de cada grupo para as linhas originais, então a divisão fica alinhada linha a linha. Dividir pelo `.sum()` alinha o índice das linhas (0, 1, 2...) com rótulos de cidade e retorna só NaN. O `agg` precisa retornar um escalar por grupo, então a lambda lança \"Must produce aggregated value\", e dividir pelo total geral dá a participação nas vendas totais."
+  },
+  {
+    "id": "dap-groupby-dropna-missing-keys",
+    "title": "Totais por grupo que não fecham",
+    "question": "`df.groupby('region')['v'].sum()` soma menos que `df['v'].sum()`, e não há valores ausentes em `v`. Qual é a causa mais provável?",
+    "options": [
+      "Grupos com uma única linha ficam de fora do resultado",
+      "Regiões cujos rótulos diferem só em maiúsculas são unidas",
+      "Linhas com `region` NaN são excluídas por padrão",
+      "Arredondamento de ponto flutuante perde parte de cada total"
+    ],
+    "explanation": "O `groupby` usa `dropna=True` por padrão, então linhas cuja chave de grupo é NaN são excluídas em silêncio de todos os grupos. Passe `dropna=False` para mantê-las como um grupo NaN, ou preencha a chave antes (por exemplo 'Unknown'). Grupos de uma linha são mantidos, rótulos são comparados exatamente, e arredondamento não explica uma diferença grande."
+  },
+  {
+    "id": "dap-groupby-first-skips-nulls",
+    "title": "GroupBy.first com valores ausentes",
+    "question": "Quais valores a única linha do resultado contém?\n\n    df = pd.DataFrame({'g': ['a', 'a'], 'x': [np.nan, 2.0], 'y': [5.0, np.nan]})\n    print(df.groupby('g').first())",
+    "options": [
+      "x = NaN e y = 5.0, a primeira linha do grupo",
+      "x = 2.0 e y = NaN, a última linha do grupo",
+      "Nenhuma linha, pois nenhuma está completa",
+      "x = 2.0 e y = 5.0, misturando duas linhas"
+    ],
+    "explanation": "O `GroupBy.first()` retorna o primeiro valor não nulo de cada coluna de forma independente (`skipna=True`), então o resultado pode juntar valores de linhas diferentes: x vem da linha 1 e y da linha 0. Para obter a primeira linha real de cada grupo, use `nth(0)` ou `head(1)`. Isso importa quando colunas precisam ficar consistentes, como um status e seu timestamp."
+  },
+  {
+    "id": "dap-groupby-lambda-vs-builtin-agg",
+    "title": "Groupby lento com agregação via lambda",
+    "question": "Em 50 milhões de linhas com 2 milhões de usuários, `df.groupby('user')['amount'].agg(lambda s: s.sum())` leva minutos, enquanto `.agg('sum')` leva cerca de um segundo. Por quê?",
+    "options": [
+      "A lambda força o pandas a ordenar todos os grupos antes",
+      "Uma lambda desativa o índice de grupos em cache a cada chamada",
+      "'sum' roda um kernel otimizado; a lambda chama Python por grupo",
+      "'sum' é calculado de forma lazy, só quando o resultado é exibido"
+    ],
+    "explanation": "Nomes de agregação embutidos como 'sum' apontam para implementações otimizadas (Cython) que processam todos os grupos de uma vez. Uma função definida pelo usuário faz o pandas montar uma Series para cada grupo e chamar Python 2 milhões de vezes, o que domina o tempo de execução. A ordenação é controlada por `sort=` nos dois casos, e o pandas avalia de forma imediata, não lazy."
+  },
+  {
+    "id": "dap-ts-dt-accessor-month",
+    "title": "Extraindo o mês de uma coluna datetime",
+    "question": "`df['ts']` tem dtype `datetime64[ns]`. Qual expressão retorna o número do mês de cada timestamp?",
+    "options": [
+      "`df['ts'].dt.month`",
+      "`df['ts'].month`",
+      "`df['ts'].str.month`",
+      "`pd.month(df['ts'])`"
+    ],
+    "explanation": "As propriedades de data de uma Series ficam expostas pelo accessor `.dt`, então `df['ts'].dt.month` retorna uma Series de inteiros. A Series em si não tem o atributo `.month` (um DatetimeIndex e um Timestamp isolado têm), `.str` serve para métodos de string, e não existe a função `pd.month`."
+  },
+  {
+    "id": "dap-ts-to-datetime-ambiguous-dayfirst",
+    "title": "Interpretando datas com o dia primeiro",
+    "question": "Um CSV brasileiro tem datas como '03/04/2025', que significam 3 de abril. O que `pd.to_datetime('03/04/2025')` retorna, e como interpretar a coluna de forma confiável?",
+    "options": [
+      "2025-04-03; o pandas detecta a localidade do sistema operacional",
+      "2025-03-04; passe `format='%d/%m/%Y'` (ou `dayfirst=True`)",
+      "Lança ValueError, porque a data é ambígua",
+      "2025-03-04; tudo bem, porque `.dt.day` desfaz a troca"
+    ],
+    "explanation": "Sem dicas, uma data ambígua é interpretada com o mês primeiro (padrão americano), resultando em 4 de março de 2025. Um `format='%d/%m/%Y'` explícito é estrito e rápido; `dayfirst=True` é apenas uma dica de parsing. O pandas não lê a localidade do sistema, não lança erro para datas ambíguas, e `.dt.day` apenas lê o valor já errado."
+  },
+  {
+    "id": "dap-ts-resample-sum-empty-bins",
+    "title": "Bins vazios ao fazer resample diário",
+    "question": "O que este código imprime?\n\n    idx = pd.to_datetime(['2025-01-01', '2025-01-03'])\n    s = pd.Series([5, 7], index=idx)\n    print(s.resample('D').sum().tolist())\n    print(s.resample('D').mean().tolist())",
+    "options": [
+      "[5, 7] e [5.0, 7.0]; dias sem linhas são pulados",
+      "[5, nan, 7] e [5.0, nan, 7.0]",
+      "[5, 0, 7] e [5.0, nan, 7.0]",
+      "[5, 0, 7] e [5.0, 0.0, 7.0]"
+    ],
+    "explanation": "O `resample('D')` cria um bin para cada dia do intervalo, inclusive 2 de janeiro, que não tem linhas. A soma de um bin vazio é 0 (`min_count=0` por padrão), enquanto a média de um bin vazio é NaN. Se \"sem dados\" precisa continuar distinguível de \"venda zero\", use `sum(min_count=1)`."
+  },
+  {
+    "id": "dap-ts-rolling-window-leading-nan",
+    "title": "Média móvel no início de uma série",
+    "question": "O que este código imprime?\n\n    s = pd.Series([1, 2, 3, 4])\n    print(s.rolling(3).mean().tolist())",
+    "options": [
+      "[1.0, 1.5, 2.0, 3.0]",
+      "[2.0, 3.0]",
+      "[2.0, 3.0, 3.5, 4.0]",
+      "[nan, nan, 2.0, 3.0]"
+    ],
+    "explanation": "Uma janela rolling é retroativa (termina na linha atual) e, para janela inteira, `min_periods` tem como padrão o tamanho da janela, então as duas primeiras posições não têm 3 observações e ficam NaN. A saída mantém o tamanho da entrada. `min_periods=1` daria [1.0, 1.5, 2.0, 3.0], e [2.0, 3.0, 3.5, 4.0] parece uma janela que olha para frente."
+  },
+  {
+    "id": "dap-ts-tz-localize-vs-convert",
+    "title": "Convertendo timestamps UTC sem fuso para hora local",
+    "question": "A coluna `ts` guarda timestamps sem fuso que na verdade são UTC (por exemplo 12:00). Você precisa deles no horário de São Paulo (UTC−3, ou seja 09:00). Qual expressão está correta?",
+    "options": [
+      "`df['ts'].dt.tz_localize('America/Sao_Paulo')`",
+      "`df['ts'].dt.tz_convert('America/Sao_Paulo')`",
+      "`df['ts'].dt.tz_localize('UTC').dt.tz_localize('America/Sao_Paulo')`",
+      "`df['ts'].dt.tz_localize('UTC').dt.tz_convert('America/Sao_Paulo')`"
+    ],
+    "explanation": "`tz_localize` associa um fuso a valores sem fuso sem mudar o horário de relógio, enquanto `tz_convert` move valores com fuso para outra zona. Então primeiro você declara os valores como UTC e depois converte, obtendo 09:00-03:00. Localizar direto em São Paulo rotula 12:00 como hora local (o instante errado), `tz_convert` em valores sem fuso lança TypeError, e localizar valores que já têm fuso também lança erro."
+  },
+  {
+    "id": "dap-ts-merge-asof-tolerance",
+    "title": "merge_asof com tolerância",
+    "question": "Os dois DataFrames estão ordenados por `time`. Qual `bid` o trade das 10:00:05 recebe em `r`?\n\n    trades = pd.DataFrame({'time': pd.to_datetime(['2025-01-02 10:00:05'])})\n    quotes = pd.DataFrame({'time': pd.to_datetime(['2025-01-02 10:00:01', '2025-01-02 10:00:06']), 'bid': [1.0, 2.0]})\n    r = pd.merge_asof(trades, quotes, on='time', tolerance=pd.Timedelta('2s'))",
+    "options": [
+      "NaN, pois a última cotação anterior tem 4 s",
+      "1.0, a última cotação até o momento do trade",
+      "2.0, a cotação mais próxima no tempo do trade",
+      "2.0, pois cotações até 2 s depois também casam"
+    ],
+    "explanation": "O `merge_asof` usa `direction='backward'` por padrão: pega a última linha da direita cuja chave é anterior ou igual à da esquerda, que é a cotação das 10:00:01. A tolerância de 2 segundos então rejeita esse par porque ele tem 4 segundos, então `bid` fica NaN. Casar com a cotação das 10:00:06 exigiria `direction='nearest'` ou `'forward'`; as duas entradas também precisam estar ordenadas pela chave."
+  },
+  {
+    "id": "dap-viz-subplots-returns-axes-array",
+    "title": "O que plt.subplots retorna para uma grade",
+    "question": "Depois de `fig, axes = plt.subplots(2, 2)`, o que é `axes`?",
+    "options": [
+      "Um único Axes que ocupa uma grade 2×2",
+      "Um array NumPy 2×2 de objetos Axes",
+      "Uma lista Python simples com quatro Figures",
+      "Uma tupla com a contagem de linhas e colunas"
+    ],
+    "explanation": "O `plt.subplots` retorna a Figure e, para uma grade com várias linhas e colunas, um array NumPy 2-D de Axes (com `squeeze=True`, uma grade 1×1 retorna um único Axes). Acesse como `axes[0, 1]` ou itere sobre `axes.flat`. Há só uma Figure, que contém os quatro Axes."
+  },
+  {
+    "id": "dap-viz-histogram-for-distribution",
+    "title": "Plotando a distribuição de uma coluna numérica",
+    "question": "Você quer ver a distribuição de uma coluna numérica `price` (assimetria, modas, cauda longa). Qual chamada do seaborn é a mais adequada?",
+    "options": [
+      "`sns.lineplot(data=df, y='price')`",
+      "`sns.barplot(data=df, y='price')`",
+      "`sns.histplot(data=df, x='price')`",
+      "`sns.heatmap(df[['price']])`"
+    ],
+    "explanation": "Um histograma agrupa os valores em bins e mostra quantos caem em cada um, o que revela assimetria, múltiplas modas e caudas. O `barplot` resume a coluna como uma média com barra de erro e esconde a forma, o `lineplot` sugere uma sequência ordenada, e o `heatmap` é feito para matrizes."
+  },
+  {
+    "id": "dap-viz-savefig-after-show-blank",
+    "title": "PNG em branco salvo depois do plt.show()",
+    "question": "Um script termina assim. A janela aparece certa, mas chart.png fica em branco. Por quê?\n\n    plt.plot(x, y)\n    plt.show()\n    plt.savefig('chart.png')",
+    "options": [
+      "Um `show()` bloqueante fecha a figura, então `savefig` salva uma nova e vazia",
+      "O `savefig` precisa de `dpi=` explícito, senão grava uma imagem de 0×0 pixels",
+      "Saída PNG exige chamar `plt.draw()` logo antes de salvar o arquivo",
+      "O `show()` libera os dados de `x` e `y` assim que a janela é renderizada"
+    ],
+    "explanation": "Ao fim de um `show()` bloqueante, o pyplot fecha a figura e a remove do registro, então um `plt.savefig` posterior cria e salva uma figura nova e vazia. Chame `savefig` antes de `show`, ou guarde a referência e use `fig.savefig(...)`. O dpi padrão funciona, o `savefig` desenha a figura sozinho, e os dados plotados não são afetados."
+  },
+  {
+    "id": "dap-viz-seaborn-lineplot-ci-band",
+    "title": "A faixa sombreada num lineplot do seaborn",
+    "question": "`sns.lineplot(data=df, x='month', y='sales')` desenha uma linha com uma faixa sombreada. `df` tem várias linhas por mês (uma por loja). O que a linha e a faixa mostram por padrão?",
+    "options": [
+      "Os valores brutos de cada loja ligados, com faixa de mín–máx",
+      "A média por mês, com faixa de intervalo de confiança de 95%",
+      "A mediana por mês, com faixa do intervalo interquartil",
+      "A soma por mês, com faixa de ±1 desvio padrão"
+    ],
+    "explanation": "Quando várias linhas têm o mesmo valor de x, o `lineplot` as agrega com `estimator='mean'` e desenha `errorbar=('ci', 95)`, um intervalo de confiança por bootstrap. Use `hue='store'` (ou `units=`) para desenhar cada loja, `errorbar='sd'` para uma faixa de desvio padrão, ou `errorbar=None` para removê-la."
+  },
+  {
+    "id": "dap-viz-too-many-open-figures",
+    "title": "Consumo de memória crescendo ao salvar muitos gráficos",
+    "question": "Um loop gera um gráfico por produto com `fig, ax = plt.subplots()` e `fig.savefig(...)`. A memória não para de crescer e o matplotlib avisa 'More than 20 figures have been opened'. Qual é a correção?",
+    "options": [
+      "Chamar `plt.clf()` no início de cada iteração",
+      "Aumentar `figure.max_open_warning` para silenciar o aviso",
+      "Chamar `plt.close(fig)` depois de salvar cada gráfico",
+      "Salvar todos os gráficos com o mesmo nome de arquivo"
+    ],
+    "explanation": "O pyplot guarda uma referência para cada figura que cria até ela ser fechada explicitamente, então nenhuma pode ser coletada pelo garbage collector. `plt.close(fig)` depois de salvar a libera. `plt.clf()` só limpa o conteúdo da figura atual enquanto novas figuras continuam se acumulando, e aumentar o limite do aviso esconde o vazamento em vez de corrigi-lo."
+  },
+  {
+    "id": "dap-viz-pyplot-title-current-axes",
+    "title": "Misturando chamadas do pyplot com Axes explícitos",
+    "question": "Quais títulos aparecem no gráfico?\n\n    fig, axes = plt.subplots(1, 3)\n    for ax, col in zip(axes, ['a', 'b', 'c']):\n        ax.hist(df[col])\n        plt.title(col)",
+    "options": [
+      "'a', 'b' e 'c' nos três subplots, em ordem",
+      "'c' como um título centralizado sobre a figura toda",
+      "'a' no primeiro subplot; os outros dois ficam sem",
+      "Só o terceiro subplot tem título, e ele é 'c'"
+    ],
+    "explanation": "O `plt.title` age sobre o Axes atual (`plt.gca()`), que depois de `plt.subplots` é o último criado; chamar `ax.hist` não muda o Axes atual. Assim, cada iteração sobrescreve o título do terceiro subplot, terminando com 'c'. Use a interface explícita, `ax.set_title(col)`, ou `fig.suptitle(...)` para um título da figura toda."
+  },
+  {
+    "id": "dap-nb-line-vs-cell-time-magic",
+    "title": "%time vs %%time no Jupyter",
+    "question": "Num notebook Jupyter (kernel IPython), qual é a diferença entre `%time` e `%%time`?",
+    "options": [
+      "`%%time` roda o código várias vezes e informa a média",
+      "`%time` informa só tempo de CPU; `%%time` informa tempo real",
+      "`%time` mede um comando; `%%time` mede a célula inteira",
+      "São aliases; a forma dupla existe por compatibilidade"
+    ],
+    "explanation": "Um único `%` marca uma line magic, que vale para o resto da linha, enquanto `%%` marca uma cell magic, que vale para a célula inteira. As duas informam tempo de CPU e tempo real de uma única execução; execuções repetidas com estatísticas são o que `%timeit` e `%%timeit` oferecem."
+  },
+  {
+    "id": "dap-nb-last-expression-displayed",
+    "title": "Qual resultado uma célula de notebook exibe",
+    "question": "Uma célula de notebook contém as duas linhas abaixo e nada mais. O que aparece como saída da célula?\n\n    df.head()\n    df.describe()",
+    "options": [
+      "As duas tabelas, uma abaixo da outra",
+      "Só `df.head()`, a primeira expressão",
+      "Nada, pois nenhum resultado foi atribuído",
+      "Só `df.describe()`, a última expressão"
+    ],
+    "explanation": "Por padrão, o IPython exibe automaticamente o valor da última expressão da célula; as expressões anteriores são avaliadas, mas seus resultados são descartados. Para mostrar vários resultados numa célula, chame `display(...)` em cada um (ou separe em células). Não é preciso atribuir para exibir; aliás, uma atribuição na última linha não mostra nada."
+  },
+  {
+    "id": "dap-nb-hidden-state-restart-run-all",
+    "title": "Um notebook que só funciona no kernel do autor",
+    "question": "Um notebook dá os números certos para o autor, mas 'Restart Kernel and Run All Cells' falha com NameError em `clean_df`. A célula que definia `clean_df` foi apagada na semana passada. O que isso revela?",
+    "options": [
+      "O kernel ainda guardava estado de uma célula que não existe mais",
+      "O Run All executa as células numa ordem aleatória a cada vez",
+      "Reiniciar o kernel corrompe as variáveis guardadas em memória",
+      "Um pacote foi atualizado e renomeou `clean_df` em silêncio"
+    ],
+    "explanation": "O estado do kernel vive independente do documento: variáveis criadas por células que depois foram editadas, apagadas ou executadas fora de ordem continuam em memória até um restart. Portanto, o notebook salvo não reproduzia os resultados do autor. O Run All executa as células de cima para baixo, e reiniciar e rodar tudo regularmente é a verificação básica de reprodutibilidade."
+  },
+  {
+    "id": "dap-nb-pip-magic-kernel-env",
+    "title": "Pacote instalado, mas o import ainda falha",
+    "question": "`!pip install pyarrow` funciona numa célula do notebook, mas `import pyarrow` ainda lança ModuleNotFoundError. Qual é a correção mais confiável?",
+    "options": [
+      "Rodar `!pip install --user pyarrow` e recarregar a aba do navegador",
+      "Usar `%pip install pyarrow` e reiniciar o kernel se necessário",
+      "Rodar `!conda init` numa célula e reabrir o arquivo do notebook",
+      "Adicionar a pasta site-packages aos metadados JSON do notebook"
+    ],
+    "explanation": "O `!pip` executa o primeiro pip que aparece no PATH do shell, que pode pertencer a outro ambiente Python que não o do kernel. A magic `%pip` executa o pip do próprio interpretador do kernel, então o pacote vai para onde o import procura (é preciso reiniciar se uma versão antiga já tinha sido importada). Recarregar o navegador ou editar metadados do notebook não muda o ambiente do kernel."
+  },
+  {
+    "id": "dap-nb-autoreload-module-edits",
+    "title": "Código editado no módulo não chega ao notebook",
+    "question": "Você edita uma função em `utils.py` com um notebook aberto e roda de novo a célula com `import utils`, mas o comportamento antigo continua. Por quê, e o que ajuda?",
+    "options": [
+      "O Jupyter faz cache das saídas; use 'Clear All Outputs' para atualizar",
+      "Editores salvam de forma lazy, então a mudança ainda não chegou ao disco",
+      "O `import` reaproveita o módulo em `sys.modules`; use `%autoreload 2`",
+      "O Python recompila o `__pycache__` só uma vez por dia por padrão"
+    ],
+    "explanation": "O Python executa um módulo só no primeiro import do processo; `import`s posteriores retornam o módulo em cache em `sys.modules`. A extensão autoreload (`%load_ext autoreload` e depois `%autoreload 2`) recarrega módulos alterados antes de cada célula rodar; `importlib.reload` ou reiniciar o kernel também resolvem. Saídas de célula são apenas dados de exibição guardados, e arquivos `.pyc` são invalidados quando o código-fonte muda."
+  },
+  {
+    "id": "dap-nb-legacy-seed-vs-generator",
+    "title": "Notebook com seed que ainda amostra diferente",
+    "question": "Um notebook começa com o código abaixo, mas cada 'Restart and Run All' sorteia uma amostra diferente. Por quê?\n\n    np.random.seed(42)\n    rng = np.random.default_rng()\n    sample = rng.choice(df.index, size=100, replace=False)",
+    "options": [
+      "`seed(42)` só afeta a primeira chamada aleatória feita depois dele",
+      "`replace=False` faz o `choice` ignorar a seed por desempenho",
+      "Cada restart do kernel redefine a seed global do NumPy pelo relógio",
+      "`default_rng()` cria um Generator com seed da entropia do SO"
+    ],
+    "explanation": "`np.random.seed` só define a seed do RandomState global legado, usado por funções como `np.random.rand`. `default_rng()` sem argumento cria um Generator independente, com seed tirada da entropia do sistema operacional, então ignora a seed global. Passe a seed explicitamente, `np.random.default_rng(42)`, e entregue esse `rng` ao código que precisa de aleatoriedade."
+  }
+]

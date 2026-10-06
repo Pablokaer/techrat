@@ -1,0 +1,542 @@
+[
+  {
+    "id": "stat-desc-median-for-skewed-salaries",
+    "title": "Valor típico para salários assimétricos",
+    "question": "Em uma startup de 50 pessoas, 48 funcionários ganham entre US$ 4 mil e US$ 8 mil por mês e os dois fundadores estão registrados com US$ 60 mil cada. Qual estatística isolada descreve melhor quanto um funcionário típico ganha?",
+    "options": [
+      "A média aritmética dos 50 salários",
+      "A amplitude média, entre o mínimo e o máximo",
+      "A mediana dos 50 salários",
+      "O desvio padrão dos 50 salários"
+    ],
+    "explanation": "A mediana é o valor central, então dois salários extremos quase não a movem e ela fica dentro da faixa que a maioria realmente ganha. A média é puxada para cima pelos US$ 60 mil dos fundadores, e a amplitude média depende apenas dos dois valores mais extremos. O desvio padrão mede dispersão, não um nível típico."
+  },
+  {
+    "id": "stat-desc-iqr-outlier-fence",
+    "title": "Aplicando a regra de outliers 1,5 × IQR",
+    "question": "Uma coluna de tamanhos de pedido tem Q1 = 20 e Q3 = 40. Usando as cercas comuns de 1,5 × IQR, qual destes valores é marcado como outlier?",
+    "options": [
+      "65",
+      "72",
+      "−5",
+      "55"
+    ],
+    "explanation": "O IQR é 40 − 20 = 20, então as cercas são 20 − 1,5 × 20 = −10 e 40 + 1,5 × 20 = 70. Apenas 72 fica fora delas. O valor −5 parece suspeito, mas ainda está acima da cerca inferior de −10, e 55 e 65 ficam dentro da cerca superior."
+  },
+  {
+    "id": "stat-desc-mean-above-median-skew",
+    "title": "Média muito acima da mediana",
+    "question": "As durações de sessão de um produto têm média de 9,2 minutos e mediana de 3,1 minutos. O que isso provavelmente indica sobre a distribuição?",
+    "options": [
+      "Assimetria à direita: uma cauda de sessões longas puxa a média para cima",
+      "Assimetria à esquerda: muitas sessões curtas puxam a mediana para baixo",
+      "É simétrica, e a diferença só reflete um tamanho de amostra pequeno",
+      "É bimodal, pois uma média longe da mediana exige dois picos distintos"
+    ],
+    "explanation": "Quando poucos valores grandes esticam a cauda superior, eles inflam a média mas quase não afetam a mediana, então média > mediana é a assinatura típica de assimetria à direita, comum em durações e receita. Assimetria à esquerda normalmente colocaria a média abaixo da mediana. Nem simetria nem bimodalidade decorrem só dessa diferença; confira um histograma para confirmar o formato."
+  },
+  {
+    "id": "stat-desc-pandas-numpy-std-ddof",
+    "title": "pandas e NumPy discordam no desvio padrão",
+    "question": "Para a mesma coluna sem NaN, `df['x'].std()` retorna 2,14 enquanto `np.std(df['x'].to_numpy())` retorna 2,10. O que explica a diferença?",
+    "options": [
+      "O pandas exclui o maior valor como outlier antes de fazer o cálculo",
+      "O NumPy acumula em float32, perdendo precisão em arrays grandes",
+      "O pandas calcula uma estimativa robusta baseada no desvio absoluto mediano",
+      "O pandas usa `ddof=1` (amostral) por padrão e o NumPy usa `ddof=0`"
+    ],
+    "explanation": "`Series.std()` divide por n − 1 (correção de Bessel para a variância amostral), enquanto `np.std()` divide por n a menos que você passe `ddof=1`; por isso o pandas retorna um valor um pouco maior, e a diferença diminui conforme n cresce. O NumPy não converte dados float64 para float32, e nenhuma das bibliotecas descarta outliers ou troca para uma estimativa baseada em MAD."
+  },
+  {
+    "id": "stat-desc-mad-robust-anomaly-threshold",
+    "title": "Limiares robustos quando um outlier mascara outros",
+    "question": "Um alerta de latência marca requisições fora de média ± 3 DP. Em uma janela, um único timeout de 10 minutos entre 1.000 requisições infla tanto o DP que outras requisições claramente lentas deixam de ser marcadas. Qual mudança resolve isso mais diretamente?",
+    "options": [
+      "Usar média ± 4 DP para o limiar ser mais rigoroso com anomalias",
+      "Usar média ± 3 DP calculado com ddof=0 em vez de ddof=1",
+      "Usar mediana ± k × MAD escalado, que valores extremos quase não movem",
+      "Usar média ± 3 variâncias, já que a variância reage menos a um valor"
+    ],
+    "explanation": "A média e o DP têm ponto de ruptura zero: um único valor extremo pode deslocá-los arbitrariamente, o que causa esse efeito de mascaramento. A mediana e o desvio absoluto mediano (escalado por cerca de 1,4826 para equivaler ao DP sob normalidade) toleram até metade dos dados contaminados. Ampliar para 4 DP piora o mascaramento, a troca de ddof é desprezível com n = 1.000, e a variância é ainda mais sensível que o DP porque eleva os desvios ao quadrado."
+  },
+  {
+    "id": "stat-prob-serial-dependency-availability",
+    "title": "Disponibilidade de dois serviços obrigatórios",
+    "question": "Uma requisição de checkout precisa tanto do serviço de pagamento quanto do serviço de estoque. Cada um está disponível, de forma independente, 99% do tempo. Qual é a probabilidade de ambos estarem disponíveis em um dado momento?",
+    "options": [
+      "98,01%",
+      "99,00%",
+      "99,99%",
+      "97,02%"
+    ],
+    "explanation": "Para eventos independentes, P(A e B) = P(A) × P(B) = 0,99 × 0,99 = 0,9801. Dependências obrigatórias se multiplicam, então a disponibilidade combinada é menor que a de qualquer componente. 99,99% é a chance de pelo menos uma de duas réplicas redundantes estar no ar, que é a situação oposta."
+  },
+  {
+    "id": "stat-prob-mutually-exclusive-union",
+    "title": "União de eventos mutuamente exclusivos",
+    "question": "Cada ticket de suporte recebe exatamente uma categoria. P(cobrança) = 0,3 e P(login) = 0,4. Qual é a probabilidade de um ticket aleatório ser de cobrança ou de login?",
+    "options": [
+      "0,12",
+      "0,58",
+      "0,35",
+      "0,70"
+    ],
+    "explanation": "Como cada ticket tem exatamente uma categoria, os eventos são mutuamente exclusivos, então P(A ou B) = P(A) + P(B) = 0,7, sem sobreposição a subtrair. 0,58 vem de tratá-los erroneamente como independentes (0,3 + 0,4 − 0,3 × 0,4), e 0,12 seria a probabilidade de ambos sob independência, que aqui é na verdade zero."
+  },
+  {
+    "id": "stat-prob-conditional-direction-table",
+    "title": "Lendo P(A | B) em uma tabela de contingência",
+    "question": "De 1.000 usuários, 300 estão no mobile e 120 deles converteram; 700 estão no desktop e 140 deles converteram. Alguém da área de negócio pergunta: \"Entre os usuários que converteram, qual parcela estava no mobile?\" Qual é a resposta?",
+    "options": [
+      "40,0%",
+      "46,2%",
+      "12,0%",
+      "26,0%"
+    ],
+    "explanation": "A pergunta condiciona em quem converteu: P(mobile | converteu) = 120 / (120 + 140) = 120 / 260 ≈ 46,2%. 40% é P(converteu | mobile), a condicional invertida; 12% é a parcela conjunta dos 1.000 usuários que estão no mobile e converteram; e 26% é a taxa de conversão geral."
+  },
+  {
+    "id": "stat-prob-bayes-fraud-alert",
+    "title": "Taxa base e os alertas de um modelo de fraude",
+    "question": "1% das transações são fraudulentas. Um modelo marca 90% das transações fraudulentas e também marca 5% das legítimas. Uma transação acabou de ser marcada. Qual é, aproximadamente, a probabilidade de ser fraude?",
+    "options": [
+      "Cerca de 90%",
+      "Cerca de 95%",
+      "Cerca de 15%",
+      "Cerca de 50%"
+    ],
+    "explanation": "Pelo teorema de Bayes, P(fraude | alerta) = 0,01 × 0,9 / (0,01 × 0,9 + 0,99 × 0,05) = 0,009 / 0,0585 ≈ 15%, que é a precisão (precision) do modelo. Transações legítimas são muito mais numerosas que fraudes, então seus 5% de falsos positivos geram a maioria dos alertas. 90% é o recall, P(alerta | fraude), e 95% é a especificidade; nenhum dos dois é a probabilidade pedida."
+  },
+  {
+    "id": "stat-prob-waiting-time-paradox",
+    "title": "Tempo de espera com chegadas de ônibus Poisson",
+    "question": "Ônibus chegam segundo um processo de Poisson, em média um a cada 10 minutos. Você chega ao ponto em um momento aleatório. Qual é sua espera esperada pelo próximo ônibus?",
+    "options": [
+      "5 minutos, metade do intervalo médio",
+      "10 minutos, o intervalo médio inteiro",
+      "Menos de 5 minutos, já que ônibus se agrupam",
+      "20 minutos, a duração do intervalo em que você cai"
+    ],
+    "explanation": "Em um processo de Poisson os intervalos são exponenciais e sem memória, então a espera restante a partir de qualquer momento continua exponencial com média de 10 minutos. A intuição de \"metade do intervalo\" falha porque é mais provável você chegar durante um intervalo longo (o paradoxo da inspeção): o intervalo em que você cai tem média de 20 minutos, e você espera metade dele em média. 5 minutos só valeria para ônibus perfeitamente regulares."
+  },
+  {
+    "id": "stat-dist-normal-empirical-rule",
+    "title": "A regra empírica da distribuição normal",
+    "question": "Os tempos de resposta são aproximadamente normais, com média de 200 ms e desvio padrão de 20 ms. Que parcela aproximada das requisições leva entre 160 ms e 240 ms?",
+    "options": [
+      "Cerca de 68%",
+      "Cerca de 95%",
+      "Cerca de 99,7%",
+      "Cerca de 50%"
+    ],
+    "explanation": "De 160 a 240 ms é a média ± 2 desvios padrão, o que cobre cerca de 95% de uma distribuição normal. ±1 DP (180–220 ms) cobre cerca de 68%, e ±3 DP (140–260 ms) cobre cerca de 99,7%."
+  },
+  {
+    "id": "stat-dist-poisson-for-counts",
+    "title": "Modelando tickets por hora",
+    "question": "Você quer modelar o número de tickets de suporte que chegam por hora. Os tickets chegam de forma independente, a uma taxa média razoavelmente estável. Qual distribuição é a primeira escolha natural?",
+    "options": [
+      "Exponencial",
+      "Uniforme",
+      "Normal",
+      "Poisson"
+    ],
+    "explanation": "A distribuição de Poisson modela contagens de eventos independentes em um intervalo fixo a uma taxa média constante, e assume apenas valores inteiros não negativos. A exponencial descreve o tempo entre essas chegadas, não a contagem. Uma normal pode aproximar contagens de Poisson quando a taxa é alta, mas é contínua e permite valores negativos."
+  },
+  {
+    "id": "stat-dist-binomial-mean-sd",
+    "title": "Conversões esperadas e sua dispersão",
+    "question": "Uma landing page converte visitantes independentes a 10%. Para os próximos 200 visitantes, qual é o número esperado de conversões e seu desvio padrão?",
+    "options": [
+      "Média 20, DP ≈ 4,24",
+      "Média 20, DP = 18",
+      "Média 20, DP ≈ 1,34",
+      "Média 10, DP ≈ 3,16"
+    ],
+    "explanation": "As conversões seguem uma Binomial(n = 200, p = 0,1): a média é np = 20 e a variância é np(1 − p) = 18, então o DP é √18 ≈ 4,24. Responder 18 confunde a variância com o desvio padrão, e uma média de 10 confunde a taxa com a contagem."
+  },
+  {
+    "id": "stat-dist-lognormal-mean-vs-median",
+    "title": "Revertendo o log de um ajuste log-normal",
+    "question": "Os valores de pedido são positivos e assimétricos à direita, e log(valor do pedido) parece normal com média μ e desvio padrão σ. Um analista reporta exp(μ) como o valor médio do pedido. O que está errado?",
+    "options": [
+      "Nada: exp da média dos logs é igual à média aritmética",
+      "exp(μ) superestima a média, pois exp é convexa (desigualdade de Jensen)",
+      "exp(μ) é a mediana; a média é exp(μ + σ²/2), que é maior",
+      "exp(μ) é a moda; a mediana seria exp(μ − σ²) nesse caso"
+    ],
+    "explanation": "Em uma distribuição log-normal, exp(μ) é a mediana (e a média geométrica), enquanto a média aritmética é exp(μ + σ²/2). A desigualdade de Jensen diz que a média de exp(Y) excede exp da média de Y, então exp(μ) subestima a média em vez de superestimá-la. A moda é exp(μ − σ²), não a mediana, então a última opção troca as duas."
+  },
+  {
+    "id": "stat-dist-qq-plot-heavy-tails",
+    "title": "Lendo desvios nas caudas de um gráfico Q-Q",
+    "question": "Você plota retornos diários contra uma distribuição normal em um gráfico Q-Q (quantis teóricos no eixo x, quantis da amostra no eixo y). Os pontos seguem a reta no meio, ficam abaixo dela no extremo esquerdo e acima dela no extremo direito. O que isso indica?",
+    "options": [
+      "Caudas mais pesadas que a normal: movimentos extremos são mais frequentes",
+      "Caudas mais leves que a normal: movimentos extremos são menos frequentes",
+      "Forte assimetria à direita: cauda superior longa e inferior curta",
+      "Dados normais: gráficos Q-Q sempre desviam nos dois extremos"
+    ],
+    "explanation": "Abaixo da reta à esquerda significa que as menores observações são mais negativas do que os quantis normais preveem, e acima dela à direita significa que as maiores são mais positivas, então as duas caudas são mais pesadas que a normal. Caudas leves produzem o padrão oposto, e assimetria à direita curva as duas pontas para cima (acima da reta tanto à esquerda quanto à direita). Alguns pontos ruidosos nos extremos são comuns, mas um desvio sistemático em forma de S é um sinal real."
+  },
+  {
+    "id": "stat-samp-selection-bias-support-users",
+    "title": "Pesquisar apenas quem contatou o suporte",
+    "question": "Para estimar a satisfação geral dos clientes, um time pesquisa apenas clientes que abriram um ticket de suporte no mês passado. Qual é o principal problema dessa amostra?",
+    "options": [
+      "É pequena demais para calcular uma margem de erro",
+      "Arredondar as notas de satisfação enviesa a média",
+      "Viés de seleção: quem abre tickets difere do cliente típico",
+      "Provoca o paradoxo de Simpson entre segmentos de clientes"
+    ],
+    "explanation": "Clientes que contatam o suporte têm mais chance de ter tido problemas, então sua satisfação difere sistematicamente da base inteira, e pesquisar mais deles não remove esse viés. O tamanho da amostra afeta o erro aleatório, não esse tipo de erro sistemático, e arredondamento ou paradoxo de Simpson não têm relação com a forma como a amostra foi escolhida."
+  },
+  {
+    "id": "stat-samp-stratified-rare-segment",
+    "title": "Amostrando um segmento raro, mas importante",
+    "question": "95% dos seus usuários estão no plano gratuito e 5% são enterprise. Com orçamento para 2.000 entrevistas, você precisa de estimativas razoavelmente precisas para cada plano e para todos os usuários juntos. Qual desenho é o mais adequado?",
+    "options": [
+      "Uma amostra aleatória simples de 2.000 usuários de toda a base",
+      "Uma amostra de conveniência com os 2.000 usuários mais ativos",
+      "Amostragem por conglomerados: escolher semanas de cadastro e pesquisar todos",
+      "Estratificar por plano, sobreamostrar enterprise e ponderar os resultados"
+    ],
+    "explanation": "Uma amostra aleatória simples renderia só cerca de 100 usuários enterprise, então a estimativa deles seria imprecisa. Estratificar por plano permite alocar, por exemplo, 1.000 entrevistas para cada plano, e ponderar cada estrato pela sua participação na população (95% e 5%) dá uma estimativa geral não viesada. Amostras de conveniência introduzem viés de seleção, e amostragem por conglomerados normalmente aumenta a variância em vez de reduzi-la."
+  },
+  {
+    "id": "stat-samp-margin-of-error-sqrt-n",
+    "title": "Reduzindo pela metade a margem de erro",
+    "question": "Uma pesquisa com 400 usuários amostrados aleatoriamente tem margem de erro de ±5 pontos percentuais. Aproximadamente quantos respondentes seriam necessários para uma margem de ±2,5 pontos, mantido o resto igual?",
+    "options": [
+      "800",
+      "1.600",
+      "1.200",
+      "3.200"
+    ],
+    "explanation": "A margem de erro escala com 1/√n, então reduzi-la pela metade exige 2² = 4 vezes mais respondentes: 4 × 400 = 1.600. Dobrar n para 800 só reduz a margem por um fator de √2, para cerca de ±3,5 pontos. Essa lei da raiz quadrada explica por que precisão extra fica cara rapidamente."
+  },
+  {
+    "id": "stat-samp-nonresponse-large-n",
+    "title": "Uma amostra enorme com 2% de taxa de resposta",
+    "question": "Uma enquete in-app coleta 50.000 respostas, uma taxa de resposta de 2%. Um colega diz que a margem de erro é de cerca de ±0,4 ponto, então o resultado tem de ser preciso. Qual é a falha nesse raciocínio?",
+    "options": [
+      "A margem de erro cobre o erro amostral aleatório, não o viés de não resposta",
+      "Com 50.000 respostas a margem real fica mais perto de ±0,04 ponto",
+      "Margens de erro deixam de valer quando n passa de 10% da população",
+      "A enquete precisa da distribuição t em vez da aproximação normal"
+    ],
+    "explanation": "A margem de erro quantifica a variação aleatória, supondo que a amostra se comporte como um sorteio aleatório da população. Se os 2% que responderam diferem sistematicamente dos 98% que não responderam, a estimativa é viesada, e esse viés não diminui com mais respostas. O valor de ±0,4 em si está correto para n = 50.000 (1,96 × √(0,25 / 50.000) ≈ 0,44 ponto), e t versus normal não faz diferença nesse tamanho."
+  },
+  {
+    "id": "stat-samp-cluster-design-effect",
+    "title": "Tamanho efetivo da amostra com conglomerados",
+    "question": "Você amostra 50 empresas clientes e pesquisa todos os 100 usuários de cada uma, totalizando 5.000 respostas. A correlação intraclasse da métrica dentro das empresas é 0,05. Qual é, aproximadamente, o tamanho efetivo da amostra comparado a uma amostra aleatória simples?",
+    "options": [
+      "5.000, já que cada usuário respondeu de forma independente",
+      "Cerca de 4.750, após remover a parcela correlacionada de 5%",
+      "Cerca de 840, após dividir pelo efeito do desenho",
+      "50, já que apenas as empresas contam como observações"
+    ],
+    "explanation": "Com conglomerados de mesmo tamanho, o efeito do desenho (design effect) é 1 + (m − 1) × ICC = 1 + 99 × 0,05 = 5,95, então o tamanho efetivo é 5.000 / 5,95 ≈ 840. Usuários da mesma empresa se parecem entre si, então cada usuário extra traz menos informação nova. Tratar os dados como 5.000 respostas independentes subestima os erros padrão, enquanto contar só as 50 empresas ignora a informação que existe dentro de cada empresa."
+  },
+  {
+    "id": "stat-ht-p-value-interpretation",
+    "title": "O que p = 0,03 realmente significa",
+    "question": "Um teste bicaudal comparando um novo fluxo de onboarding com uma referência dá p = 0,03 com n = 40. Qual afirmação está correta?",
+    "options": [
+      "Há 3% de probabilidade de a hipótese nula ser verdadeira",
+      "Há 97% de probabilidade de o novo fluxo ser melhor",
+      "O efeito tem de ser grande, porque p está abaixo de 0,05",
+      "Se a nula fosse verdadeira, dados tão extremos ocorreriam ~3% das vezes"
+    ],
+    "explanation": "O p-valor é calculado supondo que a hipótese nula é verdadeira: é a probabilidade de uma estatística de teste pelo menos tão extrema quanto a observada. Ele não é a probabilidade de a nula ou a alternativa ser verdadeira, o que exigiria informação a priori. Um p-valor pequeno também não diz nada diretamente sobre o tamanho do efeito; um efeito minúsculo pode ser significativo com dados suficientes, e um grande pode passar despercebido com poucos dados."
+  },
+  {
+    "id": "stat-ht-non-significant-not-equivalence",
+    "title": "Concluir \"sem diferença\" a partir de p = 0,40",
+    "question": "Um piloto de usabilidade com 30 usuários por design encontra p = 0,40 para a diferença no tempo de conclusão de tarefas. O PM conclui que os dois designs têm o mesmo desempenho. Qual é a melhor resposta?",
+    "options": [
+      "Não se justifica: um estudo pequeno pode perder efeitos reais; veja o IC e o poder",
+      "Correto: um p-valor acima de 0,05 prova que a hipótese nula é verdadeira",
+      "Correto, mas apenas se o teste foi bicaudal em vez de unicaudal",
+      "Não se justifica: p = 0,40 significa 40% de chance de o novo design ser pior"
+    ],
+    "explanation": "Não rejeitar a nula não é evidência de que o efeito é zero; com 30 usuários por braço, o intervalo de confiança da diferença provavelmente é largo o bastante para incluir efeitos relevantes em qualquer direção. Para afirmar equivalência você precisa de um teste de equivalência (como TOST) contra uma margem definida antes, ou pelo menos de um intervalo que caia inteiramente dentro dela. O p-valor não é a probabilidade de algum dos designs ser melhor ou pior."
+  },
+  {
+    "id": "stat-ht-paired-before-after",
+    "title": "Tempos antes e depois nas mesmas pessoas",
+    "question": "Os mesmos 25 analistas rodaram um relatório antes e depois de uma mudança de índice no banco, e você tem os dois tempos de cada analista. Qual teste é o mais adequado para a mudança média?",
+    "options": [
+      "O t-test de Welch para duas amostras, tratando antes e depois como grupos separados",
+      "Um t-test pareado sobre as diferenças de cada analista",
+      "Um teste qui-quadrado de independência sobre a tabela de tempos",
+      "Um z-test de uma amostra contra o tempo médio do ano passado"
+    ],
+    "explanation": "Cada analista fornece duas medidas ligadas, então a análise correta trabalha com as diferenças dentro de cada analista, o que remove a variabilidade entre pessoas e normalmente dá muito mais poder. Um teste de duas amostras independentes trata erroneamente os dois conjuntos como grupos não relacionados. Um teste qui-quadrado é para contagens em categorias, e comparar com a média do ano passado responde a outra pergunta."
+  },
+  {
+    "id": "stat-ht-many-metrics-fdr",
+    "title": "200 métricas verificadas após um release",
+    "question": "Após um release, um analista roda testes separados em 200 métricas de produto e encontra 14 com p < 0,05. Qual é o próximo passo mais adequado?",
+    "options": [
+      "Reportar as 14 como efeitos reais, já que cada uma passou em α = 0,05",
+      "Trocar para testes unicaudais para confirmar as 14 com mais poder",
+      "Corrigir a multiplicidade (ex.: Benjamini–Hochberg): ~10 são acaso",
+      "Descartar as métricas com p > 0,05 e recalcular os p-valores do resto"
+    ],
+    "explanation": "Com 200 testes a α = 0,05, você espera cerca de 10 falsos positivos mesmo que nada tenha mudado, então 14 achados mal superam o ruído. Controlar a taxa de falsas descobertas (Benjamini–Hochberg) ou a taxa de erro por família (Bonferroni, Holm), e definir métricas primárias antes, mantém a taxa de erro significativa. Trocar para testes unicaudais ou retestar só os vencedores é p-hacking que infla ainda mais os falsos positivos."
+  },
+  {
+    "id": "stat-ht-pooled-t-unequal-variance",
+    "title": "t-test agrupado com variâncias e tamanhos desiguais",
+    "question": "O grupo A tem n = 200 com DP 5; o grupo B tem n = 20 com DP 25. Um analista compara as médias com o t-test de Student de variância agrupada. O que acontece com a taxa de erro tipo I?",
+    "options": [
+      "Nada: o t-test é robusto a variâncias desiguais com qualquer tamanho de amostra",
+      "Fica conservador, porque o DP agrupado é dominado pelo grupo B",
+      "Não muda, mas o poder cai porque o grupo B é pequeno",
+      "Fica inflada, porque o EP agrupado subestima o ruído do grupo B"
+    ],
+    "explanation": "A variância agrupada pondera cada grupo pelos seus graus de liberdade, então é dominada pelo grupo A, grande e de baixa variância, e subestima muito a incerteza da média do grupo B. O erro padrão fica pequeno demais, e o teste rejeita uma nula verdadeira muito mais vezes que α. O teste agrupado só é razoavelmente robusto com grupos de tamanho parecido; quando o grupo menor tem a maior variância ele fica liberal, e por isso o teste de Welch (`equal_var=False` no SciPy) é o padrão mais seguro."
+  },
+  {
+    "id": "stat-ci-95-interpretation",
+    "title": "Interpretando um intervalo de confiança de 95%",
+    "question": "A partir de uma amostra aleatória de pedidos, um intervalo de confiança de 95% para o valor médio do pedido vai de US$ 48 a US$ 56. Qual interpretação está correta?",
+    "options": [
+      "95% dos pedidos individuais valem entre US$ 48 e US$ 56",
+      "O método captura a média real em ~95% das amostras repetidas",
+      "Há 95% de chance de a média amostral estar entre US$ 48 e US$ 56",
+      "A média real é exatamente US$ 52, com 95% de certeza"
+    ],
+    "explanation": "Os 95% descrevem o comportamento de longo prazo do procedimento: intervalos construídos assim a partir de amostras aleatórias repetidas contêm a média real da população cerca de 95% das vezes. O intervalo é sobre a média, não sobre pedidos individuais, que se espalham muito mais. A média amostral é conhecida exatamente (é o centro, US$ 52), então não há nada probabilístico sobre onde ela está."
+  },
+  {
+    "id": "stat-ci-confidence-level-width",
+    "title": "Aumentando o nível de confiança",
+    "question": "Usando a mesma amostra, você recalcula um intervalo de confiança para uma média com 99% em vez de 95%. O que acontece com o intervalo?",
+    "options": [
+      "Fica mais largo, pois mais confiança exige um valor crítico maior",
+      "Fica mais estreito, porque 99% é uma estimativa mais precisa que 95%",
+      "A largura não muda, mas o centro se desloca em direção à mediana",
+      "Não muda, porque os dados e o erro padrão continuam os mesmos"
+    ],
+    "explanation": "O intervalo é a estimativa ± valor crítico × erro padrão; na aproximação normal, o valor crítico sobe de cerca de 1,96 para cerca de 2,58, então o intervalo fica mais largo. Confiança e precisão são um trade-off: para acertar mais vezes com os mesmos dados, você precisa dar uma faixa maior. O centro continua na média amostral."
+  },
+  {
+    "id": "stat-ci-overlap-not-a-test",
+    "title": "Intervalos sobrepostos e significância",
+    "question": "Dois segmentos têm ICs de 95% para o gasto médio de [10,0; 12,0] e [11,8; 13,8], de amostras independentes. Um analista diz que os intervalos se sobrepõem, então a diferença não é estatisticamente significativa. Isso está certo?",
+    "options": [
+      "Sim: qualquer sobreposição entre dois ICs de 95% implica p > 0,05",
+      "Sim, mas só porque a sobreposição passa de 5% da largura",
+      "Não: os intervalos são largos, então o teste só tem pouco poder",
+      "Não: sobreposição não é teste; o IC da diferença exclui o 0"
+    ],
+    "explanation": "O erro padrão de uma diferença é √(EP₁² + EP₂²), que é menor que EP₁ + EP₂, então dois intervalos de 95% podem se sobrepor mesmo com a diferença significativa. Aqui cada EP é cerca de 0,51, a diferença é 1,8 com EP ≈ 0,72, e seu IC de 95% é aproximadamente [0,4; 3,2], então p ≈ 0,01. Não sobreposição implica significância, mas sobreposição não implica sua ausência."
+  },
+  {
+    "id": "stat-ci-clt-skewed-revenue",
+    "title": "Um intervalo t para receita muito assimétrica",
+    "question": "A receita por usuário é muito assimétrica: a maioria não paga nada e poucos pagam muito. Você tem uma amostra aleatória de 5.000 usuários. Um intervalo média ± t × EP é razoável para a receita média por usuário?",
+    "options": [
+      "Não: intervalos t exigem dados brutos normais para qualquer n",
+      "Não: com dados assimétricos você deve reportar um intervalo da mediana",
+      "Em geral sim: a média amostral é quase normal aqui; confira com bootstrap",
+      "Sim, e cerca de 95% da receita dos usuários cairá dentro do intervalo"
+    ],
+    "explanation": "O intervalo t precisa que a distribuição amostral da média seja aproximadamente normal, não os dados brutos; pelo teorema central do limite isso costuma valer com n = 5.000, a menos que a cauda seja extremamente pesada, o que uma comparação com bootstrap pode revelar. Trocar para a mediana muda a pergunta, já que o negócio normalmente precisa da receita média. Um IC da média não diz nada sobre onde ficam 95% dos usuários individuais."
+  },
+  {
+    "id": "stat-ci-bootstrap-median",
+    "title": "Um intervalo de confiança para a mediana",
+    "question": "Você precisa de um intervalo de confiança de 95% para a mediana do tempo de carregamento de página, a partir de 800 medições assimétricas. Qual abordagem é padrão e válida?",
+    "options": [
+      "Mediana ± 1,96 × DP / √n, reaproveitando a fórmula da média",
+      "Bootstrap com reposição; percentis das medianas reamostradas",
+      "Reamostrar 800 linhas sem reposição; percentis das medianas",
+      "Os percentis 2,5 e 97,5 dos tempos de carregamento brutos"
+    ],
+    "explanation": "O bootstrap aproxima a distribuição amostral da mediana recalculando-a em muitas reamostras com reposição, e o intervalo percentil (ou, melhor, BCa) vem dessas réplicas; `scipy.stats.bootstrap` implementa isso. Reamostrar as 800 linhas sem reposição só permuta os dados, então todas as medianas são idênticas. DP/√n é o erro padrão de uma média, não de uma mediana, e percentis dos valores brutos descrevem onde caem carregamentos individuais, não a incerteza sobre a mediana."
+  },
+  {
+    "id": "stat-cc-common-cause-weather",
+    "title": "Vendas de sorvete e afogamentos",
+    "question": "Em cidades litorâneas, as vendas mensais de sorvete são fortemente correlacionadas com o número de afogamentos. Qual é a explicação mais plausível?",
+    "options": [
+      "Tomar sorvete antes de nadar causa afogamentos",
+      "Mais afogamentos levam as pessoas a comprar mais sorvete",
+      "O calor aumenta ambos, atuando como confundidor",
+      "A correlação deve ser um erro nos dados e pode ser descartada"
+    ],
+    "explanation": "Meses quentes trazem mais compras de sorvete e mais gente nadando, então uma causa comum (um confundidor) produz a correlação sem que uma variável afete a outra. As duas histórias causais ignoram essa terceira variável, e uma correlação real causada por um confundidor não é erro nos dados. Controlar por temperatura ou estação faria a maior parte da associação desaparecer."
+  },
+  {
+    "id": "stat-cc-pearson-misses-u-shape",
+    "title": "Pearson r quase zero com um U evidente",
+    "question": "A correlação de Pearson entre a profundidade do desconto e a satisfação do cliente é 0,02, mas o gráfico de dispersão mostra um U evidente. O que você deve concluir?",
+    "options": [
+      "Existe uma forte relação não linear que o r de Pearson não captura",
+      "Não há relação, porque r é praticamente zero",
+      "A correlação de postos de Spearman vai revelar uma associação forte",
+      "O gráfico de dispersão engana, então confie no coeficiente"
+    ],
+    "explanation": "O r de Pearson mede apenas associação linear, e as metades descendente e ascendente de um U se cancelam. O rho de Spearman mede associação monotônica, então também fica perto de zero para um U simétrico; você precisa de um modelo não linear ou de uma visão por faixas. Sempre plote os dados: coeficientes-resumo podem esconder estruturas fortes."
+  },
+  {
+    "id": "stat-cc-feature-adoption-retention",
+    "title": "Quem usa a feature retém mais: ativar para todos?",
+    "question": "Usuários que adotaram a nova feature de relatórios têm retenção de 90 dias 30% maior que os não adotantes. Um PM propõe ativá-la automaticamente para todos para aumentar a retenção em 30%. Qual é o principal problema?",
+    "options": [
+      "O número de 30% precisa de um teste de significância antes de agir",
+      "A retenção deveria ser medida em 30 dias em vez de 90 dias",
+      "Ativar automaticamente vai reduzir a retenção pelo efeito novidade",
+      "Usuários engajados se autosselecionam; teste com randomização"
+    ],
+    "explanation": "Os adotantes escolheram usar a feature, e usuários já engajados têm mais chance tanto de adotar quanto de permanecer, então a diferença de 30% mistura o efeito da feature com seleção (e possivelmente causalidade reversa). É preciso um experimento randomizado, ou ao menos uma comparação cuidadosa que controle o engajamento prévio, para estimar o ganho causal. Um teste de significância não corrige confundimento, e as outras opções não tratam o problema central."
+  },
+  {
+    "id": "stat-cc-simpsons-paradox-checkout",
+    "title": "Vence em todo segmento, perde no total",
+    "question": "Um novo checkout converte melhor que o antigo no mobile e no desktop separadamente, mas sua conversão geral é menor (3,0% contra 3,4%). Os dados e os cálculos estão corretos. Qual é a explicação mais provável?",
+    "options": [
+      "Os resultados por segmento são ruído; a comparação geral é a confiável",
+      "O novo checkout recebeu mais tráfego mobile, que converte menos",
+      "Isso não acontece com dados corretos, então um segmento está mal rotulado",
+      "Taxas de conversão não podem ser comparadas entre segmentos de tamanhos diferentes"
+    ],
+    "explanation": "Esse é o paradoxo de Simpson: a taxa geral é uma média ponderada das taxas por segmento, e se o tráfego do novo checkout pesa mais no segmento que converte menos, ele pode vencer em cada segmento e perder no agregado. Quando o mix difere entre os braços, a comparação por segmento (ou ajustada pelo mix) é a mais justa. Isso é perfeitamente possível com dados corretos, e é por isso que randomização e análise estratificada importam."
+  },
+  {
+    "id": "stat-cc-regression-to-the-mean",
+    "title": "Treinando as lojas de pior desempenho",
+    "question": "As 20 lojas com as menores vendas no 1º trimestre entraram em um programa de coaching. No 2º trimestre, suas vendas subiram muito mais que as da loja média. Por que isso, sozinho, não é evidência de que o coaching funcionou?",
+    "options": [
+      "Lojas escolhidas por mínimos extremos tendem a voltar à média de qualquer forma",
+      "Vinte lojas são poucas demais para calcular uma taxa de crescimento útil",
+      "As vendas do 2º trimestre são sempre sazonalmente maiores que as do 1º",
+      "Lojas com coaching podem reportar vendas de forma diferente das outras"
+    ],
+    "explanation": "Selecionar unidades por uma medida extrema captura azar junto com fraqueza real; o azar não se repete, então a próxima medida tende a ficar mais perto da média (regressão à média). Uma avaliação justa precisa de um grupo de controle comparável, de preferência lojas de baixo desempenho sorteadas para receber ou não o coaching. A sazonalidade afetaria todas as lojas, então não explica por que as selecionadas cresceram mais que a média."
+  },
+  {
+    "id": "stat-ab-why-randomize",
+    "title": "Por que randomizar em vez de deixar o usuário optar",
+    "question": "Por que um teste A/B deve atribuir usuários aleatoriamente a controle e tratamento em vez de deixar que eles optem pela nova versão?",
+    "options": [
+      "A randomização garante grupos de tamanho exatamente igual",
+      "A randomização reduz pela metade a amostra necessária",
+      "A randomização faz resultados significativos chegarem antes",
+      "Ela equilibra confundidores, conhecidos ou não, em média"
+    ],
+    "explanation": "A atribuição aleatória torna os grupos comparáveis, em expectativa, em todas as características, medidas ou não, então uma diferença nos resultados pode ser atribuída ao tratamento. Grupos por opção diferem sistematicamente (early adopters costumam ser mais engajados), o que confunde a comparação. A randomização não garante tamanhos iguais, amostras menores nem significância mais rápida."
+  },
+  {
+    "id": "stat-ab-peeking-early-stopping",
+    "title": "Parar o teste no primeiro dia com p < 0,05",
+    "question": "Um time verifica seu teste A/B todo dia e o encerra assim que o p-valor cai abaixo de 0,05. Qual é o problema dessa prática?",
+    "options": [
+      "Verificações diárias reduzem o poder e efeitos reais se perdem",
+      "Nenhum, desde que a amostra final seja grande o bastante",
+      "Espiar repetidamente infla os falsos positivos bem acima de 5%",
+      "Um p-valor só é válido se calculado uma vez por semana"
+    ],
+    "explanation": "Cada olhada é mais uma chance de o ruído aleatório cruzar o limiar, então parar no primeiro p < 0,05 torna falsos positivos muito mais prováveis que os 5% nominais. Ou fixe o tamanho da amostra antes e analise uma vez, ou use um método feito para monitoramento contínuo, como limites group-sequential ou testes sequenciais sempre válidos. O problema é a inflação do erro, não perda de poder."
+  },
+  {
+    "id": "stat-ab-statistical-vs-practical",
+    "title": "Um ganho significativo, mas minúsculo",
+    "question": "Um teste A/B com 5 milhões de usuários por braço mostra conversão de 5,00% contra 5,03%, p = 0,03. A nova variante adiciona custo contínuo de manutenção. Como você deve interpretar isso?",
+    "options": [
+      "Lançar: p < 0,05 mostra que a variante é claramente melhor para o negócio",
+      "Provavelmente real, mas minúsculo; lance só se 0,03 ponto superar o custo",
+      "Inválido: testes com milhões de usuários sempre terminam com p < 0,05",
+      "Rodar de novo com menos usuários, pois amostras grandes exageram efeitos"
+    ],
+    "explanation": "Com milhões de usuários, até um ganho de 0,03 ponto pode ser estatisticamente significativo, mas significância só diz que o efeito provavelmente não é zero, não que ele importa. Compare o intervalo de confiança do ganho com o efeito mínimo que compensa o custo de manutenção, de preferência definido antes do teste. Amostras grandes não exageram efeitos nem garantem significância; apenas detectam efeitos menores."
+  },
+  {
+    "id": "stat-ab-sample-ratio-mismatch",
+    "title": "Um split 50/50 que saiu 50.600 contra 49.400",
+    "question": "Um experimento está configurado com split 50/50. Após uma semana, o controle tem 50.600 usuários e o tratamento tem 49.400. O que você deve fazer primeiro?",
+    "options": [
+      "Tratar como sample ratio mismatch e encontrar a causa",
+      "Ignorar: um desequilíbrio de 1,2% é normal e não afeta resultados",
+      "Reponderar o tratamento por 50.600 / 49.400 e analisar normalmente",
+      "Descartar 1.200 usuários do controle ao acaso para igualar os braços"
+    ],
+    "explanation": "Um teste qui-quadrado de aderência contra os 50.000/50.000 esperados dá χ² = 14,4 e p < 0,001, então é muito improvável que o desequilíbrio seja acaso. Um sample ratio mismatch normalmente indica um bug na atribuição, em redirecionamentos, no filtro de bots ou no logging que pode afetar os braços de forma diferente, então o efeito do tratamento não é confiável até ser explicado. Reponderar ou cortar usuários esconde o sintoma sem corrigir a composição enviesada."
+  },
+  {
+    "id": "stat-ab-aa-test-unit-of-analysis",
+    "title": "Testes A/A que falham com frequência demais",
+    "question": "Para validar seu pipeline de experimentação, você roda 1.000 testes A/A em dados históricos: os usuários são randomizados, mas as métricas são comparadas por sessão com um t-test padrão. Cerca de 18% dos testes A/A dão p < 0,05. Qual é a causa mais provável?",
+    "options": [
+      "Nada está errado: com 1.000 testes alguns falsos positivos são garantidos",
+      "Os testes têm pouco poder, o que enviesa os p-valores para zero",
+      "Sessões do mesmo usuário são correlacionadas, mas o t-test as trata como independentes",
+      "O nível α é leniente demais e deveria baixar para 0,01"
+    ],
+    "explanation": "Em um setup A/A saudável, cerca de 5% dos testes são significativos a α = 0,05 e os p-valores são aproximadamente uniformes. Randomizar por usuário mas analisar sessões como observações independentes ignora a correlação dentro de cada usuário, então o erro padrão fica pequeno demais e os falsos positivos inflam. Analise na unidade de randomização (métricas por usuário) ou use erros padrão cluster-robust ou pelo método delta; baixar α só esconde um teste mal calibrado, e pouco poder reduziria as rejeições, não as aumentaria."
+  },
+  {
+    "id": "stat-reg-slope-interpretation",
+    "title": "Interpretando a inclinação de uma regressão",
+    "question": "Uma regressão observacional dá `monthly_spend = 12.0 + 3.5 * sessions`. Como você deve interpretar o 3,5?",
+    "options": [
+      "Cada sessão mensal extra vem com US$ 3,50 a mais de gasto, em média",
+      "Cada sessão extra causa exatamente US$ 3,50 a mais de gasto para todo usuário",
+      "O gasto mensal é sempre 3,5 vezes o número de sessões",
+      "Um usuário com zero sessões tem gasto previsto de US$ 3,50"
+    ],
+    "explanation": "A inclinação é a diferença média no gasto previsto para uma diferença de uma unidade em sessões. Como os dados são observacionais, ela descreve uma associação, não um efeito causal garantido para cada usuário. O gasto previsto com zero sessões é o intercepto, US$ 12,00, e o modelo é aditivo, não um simples múltiplo."
+  },
+  {
+    "id": "stat-reg-r-squared-meaning",
+    "title": "O que R² = 0,64 diz",
+    "question": "Uma regressão linear simples do tempo de entrega sobre a distância tem R² = 0,64. Qual afirmação está correta?",
+    "options": [
+      "64% das previsões do modelo estão exatamente corretas",
+      "A inclinação do tempo de entrega sobre a distância é 0,64",
+      "A correlação entre distância e tempo de entrega é 0,64",
+      "O modelo explica 64% da variância do tempo de entrega"
+    ],
+    "explanation": "R² é a parcela da variância do resultado explicada pelo modelo ajustado, aqui 64%, deixando 36% sem explicação. Na regressão linear simples, R² é igual à correlação ao quadrado, então |r| = 0,8, não 0,64. R² não tem unidade e não diz nada sobre o tamanho da inclinação nem sobre previsões exatamente corretas."
+  },
+  {
+    "id": "stat-reg-heteroscedastic-residuals",
+    "title": "Resíduos em forma de funil",
+    "question": "Em uma regressão do valor do pedido sobre o tamanho da cesta, o gráfico de resíduos versus valores ajustados mostra um funil: a dispersão dos resíduos cresce conforme os valores ajustados aumentam. O que isso significa para a saída usual de OLS?",
+    "options": [
+      "As inclinações são viesadas, então a reta ajustada deve ser descartada",
+      "As inclinações seguem não viesadas, mas erros padrão e p-valores não são confiáveis",
+      "Os preditores são colineares, então os coeficientes são instáveis",
+      "Os erros não são normais, então o R² não pode mais ser calculado"
+    ],
+    "explanation": "Um funil indica heterocedasticidade, ou seja, variância do erro não constante. Os coeficientes de OLS continuam não viesados, mas os erros padrão usuais supõem variância constante, então intervalos de confiança e p-valores podem estar errados; use erros padrão robustos à heterocedasticidade (HC), mínimos quadrados ponderados ou uma transformação log. Colinearidade diz respeito a preditores correlacionados, não a esse padrão de resíduos, e o R² continua calculável."
+  },
+  {
+    "id": "stat-reg-multicollinearity-vif",
+    "title": "Coeficiente negativo para número de cômodos",
+    "question": "Um modelo de preço de imóveis inclui `sqft` e `num_rooms`, que têm correlação de 0,95. O coeficiente de `num_rooms` é negativo, com erro padrão enorme, e removê-lo quase não muda o R². Qual é a melhor explicação?",
+    "options": [
+      "Cômodos extras realmente reduzem o preço, então reporte o sinal assim",
+      "O modelo sofre overfitting, então o R² deve ser calculado nos dados de teste",
+      "Multicolinearidade torna os coeficientes individuais instáveis",
+      "Heterocedasticidade: a variância dos resíduos cresce com o imóvel"
+    ],
+    "explanation": "Quando preditores são altamente correlacionados, o modelo não consegue separar seus efeitos individuais, então as variâncias dos coeficientes explodem (verifique o fator de inflação da variância) e os sinais podem se inverter, enquanto as previsões gerais e o R² seguem bons. O coeficiente compara imóveis com mais cômodos e a mesma metragem, uma comparação instável e estreita aqui, não evidência de que cômodos reduzem o preço em geral. Heterocedasticidade e overfitting não explicam um EP enorme junto com uma mudança mínima no R²."
+  },
+  {
+    "id": "stat-reg-omitted-variable-bias",
+    "title": "Omitindo um confundidor de uma regressão",
+    "question": "Você regride salário sobre anos de estudo, mas omite a habilidade, que aumenta o salário e é positivamente correlacionada com o estudo. Como o coeficiente estimado de estudo é afetado?",
+    "options": [
+      "Fica viesado para baixo, já que a habilidade compete com o estudo",
+      "Fica não viesado, mas com erro padrão maior",
+      "Fica não viesado, porque a habilidade não está no dataset",
+      "Fica viesado para cima, absorvendo parte do efeito da habilidade"
+    ],
+    "explanation": "O viés de variável omitida é igual ao efeito da variável omitida sobre o resultado vezes sua associação com o regressor incluído; aqui os dois são positivos, então o coeficiente de estudo fica viesado para cima. Omitir uma variável relevante que não é correlacionada com os regressores deixaria o coeficiente não viesado, mas aqui essa correlação é exatamente o problema. Deixar uma variável fora dos dados não faz sua influência desaparecer."
+  }
+]

@@ -74,7 +74,7 @@ export const practice: Messages["practice"] = {
       levelUp: (n) => `Subiu de nível! Você chegou ao nível ${n}`,
       topicLevel: (n) => `Nível ${n} do tópico desbloqueado`,
       stepCompleted: (title) => `Etapa do roadmap concluída: ${title}`,
-      stepCompletedBody: (xp, roadmap) => `+${xp} XP · ${roadmap}`,
+      stepCompletedBody: (xp, roadmap, module) => (module ? `+${xp} XP · módulo ${module} · ${roadmap}` : `+${xp} XP · ${roadmap}`),
       dailyComplete: "Desafio diário concluído!",
       dailyBonus: (xp) => `+${xp} XP de bônus`,
       submitError: "Não foi possível enviar sua resposta",

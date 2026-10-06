@@ -2,7 +2,7 @@
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isApiError } from "@techrat/api";
-import type { LeaderboardScope, StartPracticeRequest } from "@techrat/types";
+import type { LeaderboardScope, ModuleKind, StartPracticeRequest } from "@techrat/types";
 import { api, unwrap } from "./api";
 
 export const qk = {
@@ -12,6 +12,8 @@ export const qk = {
   topic: (slug: string) => ["topic", slug] as const,
   roadmaps: (category?: string) => ["roadmaps", category ?? "all"] as const,
   roadmap: (slug: string) => ["roadmap", slug] as const,
+  modules: (kind?: ModuleKind) => ["modules", kind ?? "all"] as const,
+  module: (slug: string) => ["module", slug] as const,
   session: (id: string) => ["session", id] as const,
   profile: (u: string) => ["profile", u] as const,
   analytics: (days: number) => ["analytics", days] as const,
@@ -51,6 +53,11 @@ export const useRoadmaps = (category?: string) =>
   });
 export const useRoadmap = (slug: string) =>
   useQuery({ queryKey: qk.roadmap(slug), queryFn: () => unwrap(api.GET("/api/v1/roadmaps/{slug}", { params: { path: { slug } } })), enabled: !!slug });
+/** Reusable module catalog; a module's progress is shared by every roadmap that contains it. */
+export const useModules = (kind?: ModuleKind) =>
+  useQuery({ queryKey: qk.modules(kind), queryFn: () => unwrap(api.GET("/api/v1/modules", { params: { query: { kind } } })), placeholderData: keepPreviousData });
+export const useModule = (slug: string) =>
+  useQuery({ queryKey: qk.module(slug), queryFn: () => unwrap(api.GET("/api/v1/modules/{slug}", { params: { path: { slug } } })), enabled: !!slug });
 export const useSession = (id: string) =>
   useQuery({
     queryKey: qk.session(id),
@@ -106,6 +113,6 @@ export function useStartRoadmap(slug: string) {
 
 /** Everything that depends on XP / progress. Called after answering questions. */
 export function invalidateProgress(qc: ReturnType<typeof useQueryClient>) {
-  for (const key of [qk.me, qk.dashboard, qk.achievements, qk.notifications, qk.daily, ["profile"], ["analytics"], ["leaderboard"], ["topic"], ["roadmap"], ["roadmaps"]])
+  for (const key of [qk.me, qk.dashboard, qk.achievements, qk.notifications, qk.daily, ["profile"], ["analytics"], ["leaderboard"], ["topic"], ["roadmap"], ["roadmaps"], ["module"], ["modules"]])
     qc.invalidateQueries({ queryKey: key });
 }

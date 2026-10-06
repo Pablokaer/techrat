@@ -70,6 +70,30 @@ export function sessionStats(answers: (AnswerFeedback | null | undefined)[]): Se
   };
 }
 
+/**
+ * Label for module kinds worth calling out in a roadmap. Core and Context modules are the normal
+ * case, so they get no label (and unknown kinds from a newer API degrade to no label).
+ */
+export function moduleKindLabel(kind: string): string | null {
+  return kind === "Capstone" ? "Capstone" : kind === "BestPractices" ? "Best practices" : null;
+}
+
+/** ["A", "B", "C", "D"] -> "Also in: A, B, C +1 more"; null when the module is not reused anywhere else. */
+export function alsoInText(roadmapNames: string[], max = 3): string | null {
+  if (roadmapNames.length === 0) return null;
+  const extra = roadmapNames.length - max;
+  return `Also in: ${roadmapNames.slice(0, max).join(", ")}${extra > 0 ? ` +${extra} more` : ""}`;
+}
+
+/**
+ * Modules are reusable, so progress from other roadmaps already counts here.
+ * "You already have 2 of 5 modules"; null when nothing was completed elsewhere.
+ */
+export function alreadyHaveModulesText(completed: number, total: number): string | null {
+  if (completed <= 0) return null;
+  return `You already have ${completed} of ${total} module${total === 1 ? "" : "s"}`;
+}
+
 export type StepState = "Completed" | "Current" | "Locked";
 
 export function stepState(status: string): StepState {

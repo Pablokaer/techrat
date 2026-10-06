@@ -77,6 +77,12 @@ roadmap("typescript-developer", "TypeScript Developer", "Languages", "Intermedia
         ["typescript-basics", "typescript-narrowing-and-generics", "typescript-advanced-types"],
         [("javascript-developer", 50)])
 
+roadmap("cpp-developer", "C++ Developer", "Languages", "Intermediate", "cpu", "Language",
+        "Modern C++ from syntax and pointers to RAII, move semantics, templates, the STL, concurrency and CMake.",
+        ["cpp-foundations", "processes-and-memory?", "cpp-memory-and-raii", "cpp-modern-and-stl", "cpp-concurrency",
+         "cpp-capstone"],
+        new=True)
+
 # ---------------------------------------------------------------- web & backend
 roadmap("frontend-developer", "Frontend Developer", "Web Development", "Intermediate", "layout", "Role",
         "HTML, CSS, accessibility, JavaScript, React and frontend performance and security.",
@@ -92,7 +98,8 @@ roadmap("backend-developer", "Backend Developer", "Web Development", "Intermedia
         "HTTP, API design, authentication, databases, caching, background jobs and observability.",
         ["dns-and-http", "http-and-apis", "sql-foundations", "sql-for-applications", "sql-performance", "security-foundations",
          "auth-fundamentals", "beyond-rest", "caching-and-queues", "observability-essentials", "dockerfile-and-compose",
-         "testing-essentials"])
+         "testing-essentials", "api-security-best-practices?", "api-hardening-best-practices?",
+         "backend-performance-best-practices?", "ai-assisted-development?"])
 
 roadmap("dotnet-backend-developer", ".NET Backend Developer", "Web Development", "Intermediate", "layers", "Role",
         "Build production APIs with ASP.NET Core, EF Core, DI, configuration, hosting and testing.",
@@ -103,12 +110,18 @@ roadmap("dotnet-backend-developer", ".NET Backend Developer", "Web Development",
 roadmap("full-stack-developer", "Full Stack Developer", "Web Development", "Intermediate", "layers", "Role",
         "End-to-end web development: frontend, backend, databases, deployment and testing.",
         ["html-and-css", "react-foundations", "http-and-apis", "auth-fundamentals", "sql-foundations", "sql-performance",
-         "dockerfile-and-compose", "ci-cd", "testing-essentials"],
+         "dockerfile-and-compose", "ci-cd", "testing-essentials", "api-security-best-practices?",
+         "backend-performance-best-practices?", "ai-assisted-development?"],
         [("javascript-developer", 30)])
 
 roadmap("database-engineering", "Database Engineering", "Data", "Intermediate", "database", "SkillTrack",
         "SQL mastery, transactions, isolation, indexing, modeling, scaling and NoSQL.",
         ["sql-foundations", "sql-for-analytics", "sql-for-applications", "sql-performance", "data-modeling-and-scaling"])
+
+roadmap("sql", "SQL", "Data", "Beginner", "database", "SkillTrack",
+        "Query, analyze and protect relational data, from SELECT and joins to window functions, transactions and query tuning.",
+        ["sql-foundations", "sql-for-analytics", "sql-for-applications", "sql-performance"],
+        new=True)
 
 # ---------------------------------------------------------------- architecture
 roadmap("system-design", "System Design", "Architecture", "Advanced", "server", "SkillTrack",
@@ -131,6 +144,13 @@ roadmap("security-fundamentals", "Security Fundamentals", "Security", "Intermedi
         "Authentication, authorization, the OWASP Top 10, secrets, threat modeling and secure coding.",
         ["identity-protocols", "security-foundations", "auth-fundamentals", "api-and-infrastructure-security", "secure-design"])
 
+roadmap("cyber-security", "Cyber Security", "Security", "Intermediate", "shield", "Role",
+        "Defend systems end to end: networks, Linux, security operations, incident response, vulnerabilities, and cloud and API security.",
+        ["security-foundations", "network-models", "tls-nat-and-firewalls", "linux-and-shell", "security-operations",
+         "threats-and-vulnerabilities", "cloud-security", "api-security-best-practices", "api-hardening-best-practices",
+         "secure-design?", "cyber-security-capstone"],
+        new=True)
+
 # ---------------------------------------------------------------- cloud & devops
 roadmap("docker", "Docker", "Cloud & DevOps", "Beginner", "container", "SkillTrack",
         "Images, containers, Dockerfiles, volumes, networks, Compose and container security.",
@@ -144,11 +164,13 @@ roadmap("kubernetes", "Kubernetes", "Cloud & DevOps", "Advanced", "ship-wheel", 
 roadmap("devops-engineer", "DevOps Engineer", "Cloud & DevOps", "Intermediate", "infinity", "Role",
         "Linux, CI/CD, containers, infrastructure as code, deployment strategies and observability.",
         ["linux-and-shell", "git-collaboration", "ci-cd", "dockerfile-and-compose", "kubernetes-essentials",
-         "infrastructure-as-code", "metrics-and-alerting", "safe-releases-and-slos"])
+         "infrastructure-as-code", "metrics-and-alerting", "safe-releases-and-slos", "aws-core-services?", "cloud-security?",
+         "ai-assisted-development?"])
 
 roadmap("cloud-engineering", "Cloud Engineering", "Cloud & DevOps", "Intermediate", "cloud", "Role",
         "Provider-agnostic cloud architecture: compute, storage, networking, identity, DR and monitoring.",
-        ["cloud-foundations", "aws-foundations", "high-availability-and-dr", "cloud-operations"])
+        ["cloud-foundations", "aws-foundations", "high-availability-and-dr", "cloud-operations", "aws-core-services?",
+         "cloud-security?"])
 
 roadmap("azure-developer", "Azure Developer", "Cloud & DevOps", "Intermediate", "cloud-cog", "SkillTrack",
         "Build on Azure: App Service, Container Apps, Functions, data, Key Vault, messaging and monitoring.",
@@ -157,12 +179,13 @@ roadmap("azure-developer", "Azure Developer", "Cloud & DevOps", "Intermediate", 
 
 roadmap("aws-fundamentals", "AWS Fundamentals", "Cloud & DevOps", "Beginner", "cloud", "SkillTrack",
         "Core cloud concepts mapped onto AWS services.",
-        ["cloud-foundations", "aws-foundations", "high-availability-and-dr"])
+        ["cloud-foundations", "aws-foundations", "high-availability-and-dr", "aws-core-services?"])
 
 # ---------------------------------------------------------------- AI & data
 roadmap("ai-engineering", "AI Engineering", "AI & Data", "Advanced", "brain-circuit", "Role",
         "Build reliable LLM applications: prompting, tool calling, embeddings, RAG, agents, evaluation and security.",
-        ["ml-foundations", "llm-application-basics", "rag-and-retrieval", "ai-agents", "production-ai"],
+        ["ml-foundations", "llm-application-basics", "rag-and-retrieval", "ai-agents", "production-ai",
+         "ai-assisted-development?"],
         [("python-developer", 30)])
 
 roadmap("machine-learning", "Machine Learning", "AI & Data", "Advanced", "chart-scatter", "SkillTrack",
@@ -171,7 +194,32 @@ roadmap("machine-learning", "Machine Learning", "AI & Data", "Advanced", "chart-
 
 roadmap("data-engineering", "Data Engineering", "AI & Data", "Intermediate", "workflow", "Role",
         "Pipelines, batch and streaming, storage architectures, Kafka, data quality and orchestration.",
-        ["data-pipelines", "data-storage-and-formats", "sql-for-analytics", "streaming-and-data-quality"])
+        ["data-pipelines", "data-storage-and-formats", "sql-for-analytics", "streaming-and-data-quality",
+         "python-data-analysis?", "bi-modeling-and-tools?", "ai-assisted-development?"])
+
+roadmap("data-analyst", "Data Analyst", "AI & Data", "Beginner", "chart-scatter", "Role",
+        "Turn raw data into decisions with spreadsheets, statistics, SQL, Python and pandas, visualization, BI and storytelling.",
+        ["spreadsheets-for-analysis", "statistics-foundations", "statistics-inference", "sql-foundations", "sql-for-analytics",
+         "python-core", "python-data-analysis", "data-visualization", "bi-modeling-and-tools",
+         "business-questions-and-storytelling", "data-analyst-capstone"],
+        new=True)
+
+roadmap("python-for-data-analysis", "Python for Data Analysis", "AI & Data", "Beginner", "terminal", "SkillTrack",
+        "Use Python, NumPy and pandas to clean, combine, summarize and visualize data, with the statistics to read it correctly.",
+        ["python-core", "python-data-analysis", "data-visualization", "statistics-foundations"],
+        new=True)
+
+roadmap("ai-and-data-scientist", "AI & Data Scientist", "AI & Data", "Advanced", "brain-circuit", "Role",
+        "From statistics and data wrangling to machine learning models and LLMs, ending with an applied capstone.",
+        ["statistics-foundations", "statistics-inference", "python-data-analysis", "time-series-and-notebooks",
+         "data-visualization?", "sql-foundations?", "sql-for-analytics?", "ml-foundations", "supervised-models", "advanced-ml",
+         "llm-application-basics", "rag-and-retrieval?", "ai-data-scientist-capstone"],
+        [("python-for-data-analysis", 30)], new=True)
+
+roadmap("ai-assisted-development", "AI-Assisted Development (Claude Code)", "AI & Data", "Intermediate", "sparkles", "SkillTrack",
+        "Ship real work with coding agents like Claude Code: context, prompting, tools, subagents, hooks, security, CI and reviewing AI-generated code.",
+        ["ai-assisted-development", "claude-code-workflows", "code-review-best-practices", "ai-assisted-development-capstone"],
+        new=True)
 
 # ---------------------------------------------------------------- careers
 roadmap("junior-software-engineer", "Junior Software Engineer", "Career", "Beginner", "rocket", "Role",
@@ -183,15 +231,37 @@ roadmap("junior-software-engineer", "Junior Software Engineer", "Career", "Begin
 roadmap("senior-software-engineer", "Senior Software Engineer", "Career", "Expert", "crown", "Role",
         "Beyond technology: architecture, distributed systems, reliability, technical decisions and leadership.",
         ["service-architecture", "distributed-systems", "sql-for-applications", "sql-performance",
-         "performance-testing-and-profiling", "secure-design", "testing-strategy", "observability-essentials",
-         "safe-releases-and-slos", "high-availability-and-dr", "code-review-and-mentoring", "design-tradeoffs-and-interviews",
-         "incident-response"],
+         "performance-testing-and-profiling", "backend-performance-best-practices", "secure-design",
+         "api-security-best-practices", "api-hardening-best-practices", "testing-strategy", "observability-essentials",
+         "safe-releases-and-slos", "high-availability-and-dr", "code-review-and-mentoring", "code-review-best-practices",
+         "design-tradeoffs-and-interviews", "incident-response", "ai-assisted-development?"],
         [("system-design", 30)])
 
 roadmap("technical-interview-preparation", "Technical Interview Preparation", "Career", "Advanced", "target", "SkillTrack",
         "A focused path through the patterns, data structures and design questions most common in interviews.",
         ["arrays-strings-hashing", "trees-and-heaps", "graph-basics", "searching-and-sorting", "array-patterns",
          "backtracking-and-dp", "greedy-and-intervals", "system-design-foundations", "design-tradeoffs-and-interviews"])
+
+# ---------------------------------------------------------------- best practices
+roadmap("api-security-best-practices", "API Security Best Practices", "Security", "Advanced", "shield", "BestPractices",
+        "Secure APIs against the OWASP API Security Top 10: authentication, authorization, input, abuse, transport and monitoring.",
+        ["auth-fundamentals?", "api-security-best-practices", "api-hardening-best-practices"],
+        new=True)
+
+roadmap("backend-performance-best-practices", "Backend Performance Best Practices", "Engineering", "Advanced", "gauge", "BestPractices",
+        "Make services fast under load: latency budgets, data access, caching, async I/O, payloads, SQL tuning and queues.",
+        ["backend-performance-best-practices", "sql-performance", "caching-and-queues", "performance-testing-and-profiling?"],
+        new=True)
+
+roadmap("code-review-best-practices", "Code Review Best Practices", "Engineering", "Intermediate", "git-merge", "BestPractices",
+        "Review code that ships safely: clear goals, small PRs, correctness, design, tests, security, useful feedback and automation.",
+        ["code-review-and-mentoring?", "code-review-best-practices"],
+        new=True)
+
+roadmap("aws-best-practices", "AWS Best Practices", "Cloud & DevOps", "Advanced", "cloud", "BestPractices",
+        "Run AWS the Well-Architected way: core services, cost optimization, security, and reliability with backup and DR.",
+        ["aws-foundations", "aws-core-services", "aws-best-practices", "cloud-security?"],
+        new=True)
 
 # ---------------------------------------------------------------- emit
 MINUTES = {"Beginner": 30, "Intermediate": 45, "Advanced": 60, "Expert": 75}

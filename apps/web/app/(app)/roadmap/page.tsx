@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Check, Clock, Lock, Play, Trophy } from "lucide-react";
-import { Card, DifficultyBadge, ProgressBar, cx } from "@techrat/ui";
+import { Card, ProgressBar, cx } from "@techrat/ui";
 import { isApiError } from "@techrat/api";
 import { useRoadmap, useStartPractice, useStartRoadmap } from "@/lib/queries";
 import { routes } from "@/lib/routes";
 import { TopicIcon } from "@/components/icons";
 import { ErrorState, PageHeader, Skeleton } from "@/components/widgets";
+import { ModuleKindBadge, ModuleStatus, OptionalTag, SharedBadge, StepCard } from "@/components/modules";
 import { useToast } from "@/components/providers";
 import { useT } from "@/i18n";
 
@@ -30,8 +31,13 @@ function RoadmapView() {
 
   async function enrol() {
     try {
-      await startRoadmap.mutateAsync();
-      toast({ kind: "success", title: t.roadmaps.detail.started(summary.name) });
+      const enrolled = await startRoadmap.mutateAsync();
+      // Modules finished in other roadmaps count here too; tell the learner how much was credited.
+      const credit = enrolled.summary.progress;
+      const body = credit && (credit.alreadyCompletedModules > 0 || credit.alreadyCompletedSteps > 0)
+        ? t.roadmaps.detail.credited(credit.alreadyCompletedModules, credit.alreadyCompletedSteps)
+        : undefined;
+      toast({ kind: "success", title: t.roadmaps.detail.started(summary.name), body });
     } catch (e) {
       toast({ kind: "error", title: isApiError(e) ? e.detail ?? e.title : t.roadmaps.detail.startError });
     }
@@ -89,44 +95,44 @@ function RoadmapView() {
       )}
 
       <ol className="mt-8 space-y-6">
-        {modules.map((m) => (
-          <li key={m.id}>
-            <div className="mb-3 flex items-center gap-3">
-              <span className={cx("flex h-8 w-8 items-center justify-center rounded-full font-mono text-sm font-bold", m.isCompleted ? "bg-primary text-on-primary" : "border border-border text-text-secondary")}>
-                {m.isCompleted ? <Check className="h-4 w-4" aria-hidden /> : m.order}
-              </span>
-              <h2 className="text-lg font-bold">{m.title}</h2>
-              <span className="ml-auto font-mono text-xs text-text-muted">{t.roadmaps.detail.moduleXp(m.xpReward)}</span>
-            </div>
-            <div className="space-y-2 border-l border-dashed border-border pl-5 sm:ml-4">
-              {m.steps.map((s) => {
-                const current = s.status === "Current" && started;
-                const done = s.status === "Completed";
-                return (
-                  <Card key={s.id} as="div" className={cx("flex flex-col gap-3 p-4 sm:flex-row sm:items-center", current && "glow-border", !done && !current && "opacity-75")}>
-                    <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", done ? "bg-primary text-on-primary" : current ? "border-2 border-primary" : "bg-white/5 text-text-muted")}>
-                      {done ? <Check className="h-5 w-5" aria-hidden /> : current ? <span className="h-3 w-3 rounded-full bg-primary" /> : <Lock className="h-4 w-4" aria-hidden />}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold">{s.order}. {s.title}</p>
-                      <p className="text-xs text-text-secondary">{s.topicName}{s.subtopicName ? ` › ${s.subtopicName}` : ""} · {t.roadmaps.detail.stepMeta(s.estimatedMinutes, s.minimumQuestions, s.minimumAccuracy)}</p>
-                      {current && s.criteria && (
-                        <div className="mt-2 flex items-center gap-3">
-                          <ProgressBar size="sm" className="max-w-xs" value={(Math.min(s.criteria.answeredQuestions, s.minimumQuestions) / s.minimumQuestions) * 100} label={t.roadmaps.detail.stepProgress} />
-                          <span className="text-xs text-text-secondary">{t.roadmaps.detail.stepCriteria(s.criteria.answeredQuestions, s.minimumQuestions, Math.round(s.criteria.accuracy))}</span>
-                        </div>
-                      )}
-                    </div>
-                    <DifficultyBadge difficulty={s.difficulty} label={t.common.difficulty[s.difficulty] ?? s.difficulty} />
-                    <span className="font-mono text-xs text-primary">{t.common.plusXp(s.xpReward)}</span>
-                    {current && <button onClick={() => practiceStep(s.id)} disabled={startPractice.isPending} className="btn-primary">{t.roadmaps.detail.practiceStep}</button>}
-                    {done && <span className="text-xs font-semibold text-primary">{t.roadmaps.stepStatus.Completed}</span>}
-                  </Card>
-                );
-              })}
-            </div>
-          </li>
-        ))}
+        {modules.map((m) => {
+          const headingId = `module-${m.id}`;
+          const capstone = m.kind === "Capstone";
+          const otherRoadmaps = m.usedInRoadmaps.filter((r) => r.slug !== summary.slug);
+          return (
+            <li key={m.id} aria-labelledby={headingId} className={cx(capstone && "rounded-2xl border border-primary/40 p-4")}>
+              <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span className={cx("flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold", m.isCompleted ? "bg-primary text-on-primary" : "border border-border text-text-secondary")}>
+                  {m.isCompleted ? <Check className="h-4 w-4" aria-hidden /> : m.order}
+                </span>
+                <h2 id={headingId} className="text-lg font-bold"><Link href={routes.module(m.moduleSlug)} className="hover:underline">{m.title}</Link></h2>
+                <ModuleKindBadge kind={m.kind} />
+                {!m.isRequired && <OptionalTag />}
+                {otherRoadmaps.length > 0 && <SharedBadge />}
+                <ModuleStatus status={m.status} completedElsewhere={m.completedElsewhere} />
+                <span className="ml-auto font-mono text-xs text-text-muted">{t.roadmaps.detail.moduleXp(m.xpReward)}</span>
+              </div>
+              {(m.description || otherRoadmaps.length > 0) && (
+                <div className="mb-3 space-y-1 text-sm text-text-secondary sm:ml-11">
+                  {m.description && <p>{m.description}</p>}
+                  {otherRoadmaps.length > 0 && (
+                    <p className="text-xs">
+                      {t.modules.alsoIn}{" "}
+                      {otherRoadmaps.map((r, i) => (
+                        <span key={r.slug}>{i > 0 && ", "}<Link href={routes.roadmap(r.slug)} className="font-semibold text-text hover:underline">{r.name}</Link></span>
+                      ))}
+                    </p>
+                  )}
+                </div>
+              )}
+              <div className="space-y-2 border-l border-dashed border-border pl-5 sm:ml-4">
+                {m.steps.map((s) => (
+                  <StepCard key={s.id} step={s} active={s.status === "Current" && started} onPractice={practiceStep} practicing={startPractice.isPending} />
+                ))}
+              </div>
+            </li>
+          );
+        })}
       </ol>
     </>
   );

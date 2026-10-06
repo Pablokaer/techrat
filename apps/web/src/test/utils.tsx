@@ -25,9 +25,13 @@ export function makeSession(count = 2): PracticeSession {
   };
 }
 
-/** Renders inside the real app providers with the signed-in user pre-cached (no network). */
-export function renderApp(ui: ReactElement) {
+/**
+ * Renders inside the real app providers with the signed-in user pre-cached (no network).
+ * `seed` pre-fills other queries (e.g. `client.setQueryData(qk.roadmap(slug), data)`) before the first render.
+ */
+export function renderApp(ui: ReactElement, seed?: (client: QueryClient) => void) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   client.setQueryData(qk.me, me);
+  seed?.(client);
   return { client, ...render(<Providers client={client}>{ui}</Providers>) };
 }

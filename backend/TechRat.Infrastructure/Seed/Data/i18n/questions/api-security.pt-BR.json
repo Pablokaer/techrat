@@ -1,0 +1,422 @@
+[
+  {
+    "id": "apisec-auth-bearer-token-header",
+    "title": "Enviando um access token OAuth para uma API",
+    "question": "Um cliente obteve um access token OAuth 2.0 e agora chama uma API REST protegida. Segundo a RFC 6750, qual é a forma recomendada de enviar o token?",
+    "options": [
+      "Como parâmetro de query `access_token` na URL de cada requisição",
+      "Em um header `Set-Cookie` que o cliente adiciona a cada requisição",
+      "No header `Authorization`, usando o esquema `Bearer`",
+      "Em um campo `token` incluído no corpo JSON de cada requisição"
+    ],
+    "explanation": "A RFC 6750 diz que os clientes DEVEM (SHOULD) enviar bearer tokens no header de requisição `Authorization` com o esquema `Bearer`, e os resource servers DEVEM (MUST) suportá-lo. O método por parâmetro de query é desaconselhado porque URLs acabam em logs e no histórico, o corpo form-encoded só é permitido em condições restritas (e nunca como um campo JSON qualquer), e `Set-Cookie` é um header de resposta, não algo que o cliente envia."
+  },
+  {
+    "id": "apisec-auth-api-key-in-query-string",
+    "title": "API key enviada na query string",
+    "question": "Uma integração de parceiro chama `GET https://api.example.com/v1/reports?api_key=sk_live_8f2...` via HTTPS. Qual é o principal problema de segurança desse design?",
+    "options": [
+      "A URL completa, com a chave, é gravada em access logs, proxies e ferramentas de APM",
+      "O TLS não criptografa a query string, então a chave trafega pela rede em texto claro",
+      "Query strings têm limite de tamanho, então chaves longas são truncadas",
+      "CDNs fazem cache de respostas GET mesmo quando a requisição tem credenciais"
+    ],
+    "explanation": "Com HTTPS, o path e a query string são criptografados na rede, então a opção de texto claro é um equívoco comum. O problema real está nas pontas: URLs completas são gravadas rotineiramente por servidores web, load balancers, ferramentas de APM e histórico do navegador, e a chave vaza para qualquer pessoa com acesso aos logs. O OWASP REST Security Cheat Sheet diz que API keys e tokens não devem aparecer em URLs; envie-os em um header. Limite de tamanho e cache de CDN não são o problema central."
+  },
+  {
+    "id": "apisec-auth-shared-app-key-user-header",
+    "title": "Chave do app mobile mais um header de ID de usuário",
+    "question": "O backend de um app bancário autentica chamadas assim:\n\nGET /v1/accounts\nX-App-Key: 3f9c...   (mesma chave compilada em toda instalação)\nX-User-Id: 18842\n\nA API retorna as contas do usuário em X-User-Id sempre que a chave do app é válida. Qual é a falha central?",
+    "options": [
+      "A chave do app deveria ser rotacionada mensalmente e ofuscada no binário",
+      "O ID do usuário deveria ser um UUID aleatório para não ser adivinhado",
+      "Os headers deveriam ir para o corpo JSON para que proxies não os registrem",
+      "A chave identifica o app, não o usuário; qualquer ID de usuário é aceito"
+    ],
+    "explanation": "Um segredo distribuído em todo cliente é, na prática, público, pois pode ser extraído do binário, e só diz 'alguma instalação do nosso app', nunca qual usuário está chamando. A identidade do usuário deve vir de autenticação por usuário (por exemplo, OAuth authorization code com PKCE) e ser derivada no servidor a partir de um token validado, nunca de um header escolhido pelo cliente. Rotação, ofuscação e UUIDs só atrasam o atacante; mover headers para o corpo não muda nada."
+  },
+  {
+    "id": "apisec-auth-webhook-replay-window",
+    "title": "Reenvio de um webhook corretamente assinado",
+    "question": "Sua API recebe webhooks de pagamento. O receptor calcula um HMAC sobre o corpo bruto com um segredo compartilhado e compara em tempo constante. Uma entrega legítima de 'pagamento aprovado' capturada poderia ser reenviada horas depois e ainda seria aceita. Qual correção resolve isso?",
+    "options": [
+      "Trocar o HMAC de SHA-256 para SHA-512 para assinaturas não serem reusadas",
+      "Assinar timestamp e ID do evento com o corpo; rejeitar antigos ou já vistos",
+      "Exigir que o remetente use TLS 1.3 em vez de TLS 1.2 em toda entrega",
+      "Rotacionar o segredo a cada entrega e enviar o próximo no próprio payload"
+    ],
+    "explanation": "Uma assinatura válida sobre os mesmos bytes continua válida para sempre, então só verificar integridade não impede replay. Incluir um timestamp e um ID único ou nonce no conteúdo assinado permite ao receptor rejeitar mensagens fora de uma janela curta de tolerância e descartar IDs já processados, a mesma ideia que a RFC 9421 descreve com os parâmetros de assinatura `created` e `nonce`. Um hash maior ou uma versão mais nova do TLS não muda a possibilidade de replay, e enviar o próximo segredo dentro do payload anula o propósito do segredo."
+  },
+  {
+    "id": "apisec-auth-dpop-sender-constrained",
+    "title": "Tornando inúteis access tokens roubados",
+    "question": "Access tokens da sua API vazaram dos logs de debug verbosos de um parceiro e foram reutilizados a partir da infraestrutura de um atacante antes de expirarem. Qual mudança torna um access token roubado inutilizável por si só?",
+    "options": [
+      "Criptografar os access tokens como JWE para que as claims não fiquem legíveis nos logs",
+      "Rotacionar refresh tokens a cada uso e revogar a família inteira em caso de reuso",
+      "Vincular tokens a uma chave do cliente com DPoP ou certificado de mutual TLS",
+      "Reduzir o tempo de vida do access token de 60 para 15 minutos"
+    ],
+    "explanation": "Bearer tokens funcionam para quem os possuir. Tokens sender-constrained (DPoP na RFC 9449, ou tokens vinculados a certificado com mutual TLS na RFC 8705) carregam uma confirmação de chave, então o resource server também exige prova de posse da chave privada do cliente em cada requisição, e um token copiado de logs é inútil sem essa chave. JWE esconde as claims, mas o token continua sendo bearer; a rotação protege refresh tokens, não access tokens; e um tempo de vida menor só encurta a janela."
+  },
+  {
+    "id": "apisec-authz-bfla-hidden-admin-export",
+    "title": "Exportação de admin escondida só na UI",
+    "question": "O console web mostra o botão 'Exportar todos os usuários' apenas para admins. O endpoint por trás dele, `GET /api/v2/users/export`, só verifica se o bearer token é válido. Um testador com conta comum o chama e recebe o CSV completo. Qual é o problema e a correção?",
+    "options": [
+      "Broken function level authorization; checar o papel para a operação no servidor",
+      "Broken authentication; exigir MFA antes de emitir qualquer token para contas de usuários comuns",
+      "Security misconfiguration; mover o endpoint para um path imprevisível",
+      "Excessive data exposure; remover as colunas sensíveis do CSV exportado"
+    ],
+    "explanation": "Esconder um botão não é controle de acesso: a API aceita qualquer chamador autenticado em uma função exclusiva de admin, o que é API5:2023 Broken Function Level Authorization. A correção é uma verificação de papel ou permissão no servidor, negando por padrão, em toda operação privilegiada. A autenticação funcionou como projetado, URLs obscuras são facilmente descobertas no código do frontend, e cortar colunas ainda deixa usuários comuns exportarem todos."
+  },
+  {
+    "id": "apisec-authz-uuid-not-a-bola-fix",
+    "title": "UUIDs aleatórios como correção de BOLA",
+    "question": "Após um relato de BOLA em `GET /api/invoices/{id}`, um time troca os IDs de fatura de inteiros sequenciais para UUIDv4 aleatórios e fecha o ticket sem outra mudança de código. Por que isso não é uma correção completa?",
+    "options": [
+      "Valores UUIDv4 são derivados de timestamps, então ainda podem ser previstos",
+      "UUIDs são longos demais para paths de URL e alguns proxies os truncam",
+      "Buscas por UUID são mais lentas, o que abre espaço para enumeração por tempo",
+      "IDs ainda vazam por links, logs e outras respostas, e o acesso não é checado"
+    ],
+    "explanation": "IDs imprevisíveis dificultam adivinhar, e a OWASP os lista apenas como medida extra. IDs de objetos vazam rotineiramente por URLs compartilhadas, e-mails, logs e outras respostas da API, e o handler continua sem verificar se o chamador pode acessar aquela fatura, então qualquer ID vazado funciona. A correção real é uma checagem de autorização em todo acesso a objeto. UUIDv4 é aleatório, não baseado em tempo (isso é v1 ou v7), e tamanho ou tempo de busca não são o problema."
+  },
+  {
+    "id": "apisec-authz-nested-route-parent-only",
+    "title": "Rota aninhada que só checa o recurso pai",
+    "question": "Handler de GET /api/shops/{shopId}/orders/{orderId}:\n\nshop = db.shops.get(shopId)\nif shop.ownerId != currentUser.id: return 403\norder = db.orders.get(orderId)\nreturn order\n\nO que está errado?",
+    "options": [
+      "Nada; a checagem de dono da loja também cobre todos os pedidos dela",
+      "O pedido nunca é ligado àquela loja, então qualquer pedido do sistema pode ser lido",
+      "Retorna 403 em vez de 404, o que revela aos atacantes quais IDs de loja existem no sistema",
+      "A loja deveria ser carregada depois do pedido para evitar race entre queries"
+    ],
+    "explanation": "A checagem de dono prova acesso à loja do path, mas o pedido é carregado só pelo ID, então um usuário pode combinar o próprio shopId com qualquer orderId: um BOLA. Restrinja a busca pelo pai (por exemplo WHERE id = ? AND shop_id = ?) ou verifique o dono do próprio pedido. Retornar 403 ou 404 é uma decisão menor de exposição de informação, e a ordem das queries não importa."
+  },
+  {
+    "id": "apisec-authz-owner-check-on-body-field",
+    "title": "Checagem de dono contra um campo do corpo",
+    "question": "Handler de PUT /api/notes/{noteId} (o chamador tem uma sessão válida):\n\nnote = db.notes.get(noteId)\nif note.ownerId != request.body.userId: return 403\nnote.text = request.body.text\nnote.save()\n\nQual é a vulnerabilidade?",
+    "options": [
+      "O campo de texto não tem limite de tamanho, então notas enormes esgotam o storage",
+      "O PUT não é idempotente aqui, então retries do cliente sobrescrevem outras edições",
+      "A checagem confia no ID de usuário enviado pelo cliente, não no da sessão",
+      "O ID da nota no path deveria ser assinado para não ser adulterado"
+    ],
+    "explanation": "A decisão de autorização compara o dono com o `userId` vindo do corpo da requisição, que o atacante controla: enviar o ID da vítima (muitas vezes visível em outras respostas) passa na checagem. A identidade usada na autorização deve vir da sessão ou do token autenticado. Limites de tamanho e concorrência são outras questões, e assinar o ID da nota não ajuda quando a checagem usa o principal errado."
+  },
+  {
+    "id": "apisec-authz-graphql-node-field",
+    "title": "Busca por node no GraphQL ignora autorização",
+    "question": "Uma API GraphQL checa o dono dentro do resolver `invoice(id:)`. Ela também implementa o campo Relay `node(id: ID!)`, que decodifica o ID global e carrega qualquer tipo de objeto direto do repositório. Revisores descobrem que `node` retorna faturas de outros clientes. Qual é a correção mais robusta?",
+    "options": [
+      "Aplicar autorização na camada de dados compartilhada por todos os resolvers",
+      "Desativar introspection em produção para que clientes não achem o campo",
+      "Adicionar limite de profundidade para o campo node não ser aninhado",
+      "Criptografar os IDs globais para clientes não montarem IDs de outros objetos"
+    ],
+    "explanation": "O GraphQL expõe muitos caminhos para o mesmo objeto (campos, edges, `node` e `nodes`), então uma checagem em um resolver é contornada por outro. O OWASP GraphQL Cheat Sheet pede autorização tanto em edges quanto em nodes; colocá-la na camada que carrega os objetos cobre todos os caminhos de uma vez. Esconder introspection é obscuridade, limites de profundidade miram negação de serviço, e IDs criptografados ainda vazam em respostas legítimas."
+  },
+  {
+    "id": "apisec-input-reject-unsupported-media-type",
+    "title": "Corpo de requisição com media type não suportado",
+    "question": "Um endpoint só de JSON, `POST /api/orders`, recebe uma requisição cujo corpo é declarado como `Content-Type: application/xml`. Seguindo o OWASP REST Security Cheat Sheet, como a API deve responder?",
+    "options": [
+      "Tentar interpretar como JSON mesmo assim e retornar 200 se der certo",
+      "Converter o corpo XML para JSON no servidor e então processar o pedido",
+      "Retornar 406 Not Acceptable, porque o servidor não produz XML",
+      "Rejeitar com 415 Unsupported Media Type sem interpretar o corpo"
+    ],
+    "explanation": "O cheat sheet manda exigir um Content-Type suportado em requisições com corpo e rejeitar o resto com 415 Unsupported Media Type. Adivinhar ou converter formatos amplia a superfície de ataque, por exemplo expondo recursos do parser XML como entidades externas. 406 Not Acceptable serve para a negociação de conteúdo da resposta, guiada pelo header Accept, não para o corpo da requisição."
+  },
+  {
+    "id": "apisec-input-allowlist-dto-binding",
+    "title": "Binding com deny-list falha aberto",
+    "question": "Para impedir mass assignment, `PATCH /api/me` faz o binding do corpo JSON para a entidade `User` após remover `isAdmin` e `role`. Depois uma coluna `creditLimit` é adicionada a `User`, e clientes passam a aumentar o próprio limite. Qual design evita essa classe de bug?",
+    "options": [
+      "Incluir `creditLimit` na lista removida e criar um teste para cada nova coluna",
+      "Fazer binding para um DTO de entrada só com os campos que o cliente pode mudar",
+      "Validar se todo campo numérico do corpo está dentro de uma faixa razoável",
+      "Trocar o endpoint para PUT para que o objeto inteiro sempre seja substituído"
+    ],
+    "explanation": "Uma deny-list falha aberta: toda nova propriedade sensível fica gravável até alguém lembrar de bloqueá-la. Fazer binding para um DTO de entrada dedicado ou uma allow-list explícita faz com que novos campos da entidade não sejam vinculáveis por padrão, que é a recomendação principal do OWASP Mass Assignment Cheat Sheet. Checagem de faixa não impede alguém de definir campos privilegiados com valores válidos, e um PUT de substituição total piora a exposição."
+  },
+  {
+    "id": "apisec-input-json-schema-extra-fields",
+    "title": "Validação por schema deixa campos extras passarem",
+    "question": "Uma API valida corpos de requisição contra este JSON Schema e depois salva o objeto interpretado diretamente:\n\n{\"type\": \"object\",\n \"properties\": {\"name\": {\"type\": \"string\"}, \"email\": {\"type\": \"string\"}},\n \"required\": [\"name\", \"email\"]}\n\nUm corpo que também contém \"role\": \"admin\" passa na validação e o papel é gravado. Por quê?",
+    "options": [
+      "`required` lista os campos obrigatórios e também rejeita qualquer outro",
+      "A palavra-chave `type` só vale para arrays, não para membros de objetos",
+      "Propriedades não declaradas são aceitas, a menos que `additionalProperties` seja false",
+      "Validadores ignoram strings que parecem membros de enum do modelo"
+    ],
+    "explanation": "No JSON Schema, `properties` só restringe as chaves que lista; por padrão qualquer outra chave é aceita. Defina `additionalProperties` como false (ou use `unevaluatedProperties` com schemas compostos) e, como defesa em profundidade, persista apenas os campos declarados. `required` só exige presença, `type` vale sim para membros de objetos, e não existe heurística de enum nos validadores."
+  },
+  {
+    "id": "apisec-input-regex-full-match",
+    "title": "Regex sem âncoras validando um código de conta",
+    "question": "Uma API em Python valida um código de conta com `re.search(r\"[A-Z]{3}[0-9]{6}\", code)` e depois repassa `code` para serviços downstream. Testadores descobrem que valores com caracteres extras ao redor de um código válido são aceitos. Qual é a correção certa?",
+    "options": [
+      "Exigir que o valor inteiro case, p. ex. com `re.fullmatch`, e limitar o tamanho",
+      "Usar `re.match`, que já exige que a string inteira, do início ao fim, case com o padrão",
+      "Adicionar a flag `re.IGNORECASE` para cobrir variantes em minúsculas",
+      "Remover espaços em branco do valor antes de aplicar o padrão atual"
+    ],
+    "explanation": "`re.search` tem sucesso se o padrão aparecer em qualquer lugar, então prefixos e sufixos arbitrários passam. `re.match` ancora só no início, então conteúdo no final continua passando. `re.fullmatch` valida o valor inteiro, como recomenda o OWASP Input Validation Cheat Sheet, e ainda evita a armadilha de `$` casar antes de uma quebra de linha final. Ignorar maiúsculas amplia o padrão, e remover espaços não pega nenhum outro caractere extra."
+  },
+  {
+    "id": "apisec-input-duplicate-json-keys",
+    "title": "Chaves JSON duplicadas e diferenças entre parsers",
+    "question": "Um API gateway checa se `role` é igual a \"viewer\" em requisições de cadastro e depois repassa o corpo bruto a um serviço de backend. Uma requisição traz o membro `role` duas vezes com valores diferentes; o parser do gateway fica com a primeira ocorrência e o do backend com a última. Qual é a melhor defesa?",
+    "options": [
+      "Ordenar as chaves JSON alfabeticamente no gateway antes de validá-las",
+      "Comprimir os corpos para que intermediários não vejam as chaves duplicadas",
+      "Confiar na RFC 8259, que proíbe nomes de membros duplicados dentro de qualquer objeto JSON",
+      "Rejeitar chaves duplicadas e repassar o objeto validado, não os bytes brutos"
+    ],
+    "explanation": "A RFC 8259 só diz que os nomes DEVERIAM (SHOULD) ser únicos e avisa que o comportamento com duplicatas é imprevisível, então parsers legitimamente divergem e nada proíbe essa entrada. Quando dois componentes interpretam os mesmos bytes de formas diferentes, a validação em um não protege o outro. Rejeitar chaves duplicadas com rigor e repassar o objeto validado e re-serializado (ou validar no serviço que age sobre os dados) elimina a divergência; ordenar ou comprimir não."
+  },
+  {
+    "id": "apisec-rate-429-retry-after",
+    "title": "Avisando ao cliente que ele está sob rate limit",
+    "question": "Um cliente excede sua cota de requisições por minuto na sua API. Qual resposta segue melhor os padrões HTTP?",
+    "options": [
+      "403 Forbidden com uma mensagem pedindo para o cliente desacelerar",
+      "429 Too Many Requests com um header `Retry-After`",
+      "503 Service Unavailable, para o cliente achar que o servidor caiu",
+      "200 OK com corpo vazio, para o cliente não perceber o limite"
+    ],
+    "explanation": "A RFC 6585 define 429 Too Many Requests para rate limiting e permite um header `Retry-After` dizendo quanto tempo o cliente deve esperar. 403 indica problema de permissão, não um limite temporário; 503 descreve indisponibilidade geral do servidor e polui o monitoramento de disponibilidade; e um 200 silencioso quebra clientes e esconde a causa real."
+  },
+  {
+    "id": "apisec-rate-client-controlled-page-size",
+    "title": "Tamanho de página controlado pelo cliente",
+    "question": "O frontend envia `GET /api/products?page=1&size=50`, e a API passa `size` direto para a cláusula LIMIT do SQL. Alguém pede `size=5000000` repetidamente e a CPU do banco dispara. Qual é a correção mais adequada?",
+    "options": [
+      "Adicionar cache de respostas para servir da memória pedidos grandes idênticos",
+      "Fazer streaming comprimido dos resultados em vez de um único array JSON",
+      "Validar `size` no servidor e impor um máximo, como 100",
+      "Remover o parâmetro `size` da documentação OpenAPI pública"
+    ],
+    "explanation": "A API4:2023 recomenda explicitamente validar no servidor os parâmetros que controlam quantos registros são retornados, com um máximo imposto. Um cache só ajuda requisições idênticas e é contornado variando os parâmetros, compressão não reduz o trabalho do banco, e esconder o parâmetro da documentação é obscuridade, não limite."
+  },
+  {
+    "id": "apisec-rate-limit-keyed-on-xff",
+    "title": "Rate limiter com chave no X-Forwarded-For",
+    "question": "Uma API de login fica atrás de um único load balancer. O rate limiter usa como chave o endereço mais à esquerda do header `X-Forwarded-For`. Atacantes fazem milhares de tentativas de login sem nunca serem limitados. Qual é a causa mais provável?",
+    "options": [
+      "O load balancer remove o `X-Forwarded-For`, e todos dividem a mesma chave",
+      "Os contadores zeram sempre que o balancer abre uma nova conexão de backend",
+      "A multiplexação do HTTP/2 esconde as requisições individuais do limiter",
+      "O próprio cliente escreve esse valor, e cada requisição pode alegar um novo IP"
+    ],
+    "explanation": "Proxies acrescentam ao `X-Forwarded-For`, então a entrada mais à esquerda é o que o cliente enviou; atacantes colocam um valor novo em cada requisição e ganham um bucket novo a cada vez. Usos de segurança do header devem confiar só nos endereços adicionados pelos seus proxies confiáveis (contados da direita), ou limitar pela conta atacada. Se todos dividissem a mesma chave, seriam mais limitados, não menos, e conexões ou multiplexação não zeram contadores da aplicação."
+  },
+  {
+    "id": "apisec-rate-graphql-alias-otp",
+    "title": "Uma requisição com muitas tentativas de OTP",
+    "question": "Seu gateway permite 10 requisições por minuto no endpoint GraphQL usado no login em dois fatores. Os logs mostram requisições únicas que contêm centenas de mutations `verifyOtp` com aliases, cada uma com um código diferente. O que melhor fecha essa brecha?",
+    "options": [
+      "Limitar tentativas por OTP na lógica de negócio e as operações por requisição",
+      "Baixar o limite do gateway para 2 requisições por minuto no endpoint",
+      "Desativar introspection para que o nome da mutation não seja descoberto",
+      "Exigir GET em requisições GraphQL para que o gateway possa fazer cache"
+    ],
+    "explanation": "O gateway conta requisições HTTP, mas aliases e batching empacotam muitas operações em uma requisição. Contar tentativas por OTP ou conta na lógica de negócio, mais limites de aliases e de tamanho de batch, fecha a brecha, como recomenda o OWASP GraphQL Cheat Sheet. Um limite menor no gateway ainda deixa passar centenas de palpites por requisição, esconder introspection é obscuridade, e GET não ajuda em nada no rate limiting."
+  },
+  {
+    "id": "apisec-rate-per-instance-counters",
+    "title": "Rate limits que crescem com o número de réplicas",
+    "question": "Cada instância da API impõe '100 requisições por minuto por API key' com um contador em memória. O serviço escalou de 3 para 20 réplicas atrás de um load balancer round-robin, e um único cliente agora sustenta cerca de 2.000 requisições por minuto. Qual é a correção certa?",
+    "options": [
+      "Ativar sticky sessions para que cada API key caia sempre na mesma réplica",
+      "Manter os contadores em um store compartilhado como Redis, com incrementos atômicos",
+      "Dividir o limite pelo número atual de réplicas a cada autoscaling",
+      "Trocar janelas fixas de um minuto por um algoritmo de janela deslizante"
+    ],
+    "explanation": "Contadores independentes em memória fazem o limite efetivo ser réplicas × 100, que cresce a cada scale-out. Um contador compartilhado com operações atômicas (ou um limiter no gateway) impõe um limite global único. Sticky sessions quebram em reescalonamentos e failover e desbalanceiam a carga, dividir pelo número de réplicas é aproximado e sujeito a race quando o tráfego é desigual, e o algoritmo de janela muda a suavidade, não o escopo do contador."
+  },
+  {
+    "id": "apisec-tls-api-http-redirect",
+    "title": "Redirecionando chamadas de API de HTTP para HTTPS",
+    "question": "Uma API REST pública escuta na porta 80 e responde a toda requisição com um 301 para a URL HTTPS, igual ao site de marketing. Por que isso é mais fraco para uma API do que para um site?",
+    "options": [
+      "Clientes de API não seguem redirects, então toda chamada HTTP simplesmente falha",
+      "Um 301 fica em cache para sempre e bloqueia futuras rotações de certificado",
+      "Um cliente mal configurado já enviou as credenciais em texto claro",
+      "O HTTP/2 não pode ser negociado após um redirect, e a latência piora"
+    ],
+    "explanation": "Quando o redirect é devolvido, a requisição, com o header Authorization, a API key e o corpo, já atravessou a rede sem criptografia, e muitas bibliotecas HTTP seguem o redirect em silêncio, então ninguém percebe. O OWASP REST Security Cheat Sheet diz que serviços REST seguros devem oferecer apenas endpoints HTTPS; recusar HTTP puro faz clientes mal configurados falharem de forma visível. A maioria dos clientes segue redirects, e cache ou negociação de HTTP/2 não são a preocupação."
+  },
+  {
+    "id": "apisec-secrets-key-in-spa-bundle",
+    "title": "Chave secreta de fornecedor dentro do bundle de uma SPA",
+    "question": "Uma SPA React chama a API de um provedor de pagamentos direto do navegador. Para funcionar, o build injeta a chave secreta do provedor por uma variável de ambiente chamada `VITE_PAYMENT_SECRET`. O que o time deve fazer?",
+    "options": [
+      "Minificar e ofuscar o bundle para que a chave seja difícil de achar",
+      "Guardar a chave no `localStorage` após o login, e não no bundle",
+      "Proteger a chave com uma política de CORS que só libera a origem da SPA",
+      "Levar as chamadas com a chave para um backend e revogar a chave exposta"
+    ],
+    "explanation": "Tudo o que é entregue ao navegador é público: variáveis de build expostas ao cliente são embutidas no JavaScript. Chamadas que exigem a chave secreta devem acontecer no servidor, por exemplo em um backend-for-frontend, e a chave exposta deve ser revogada e substituída. Ofuscação é reversível, o `localStorage` continua entregando a chave a todo cliente, e o CORS só é aplicado por navegadores, então não impede scripts de chamarem o provedor diretamente."
+  },
+  {
+    "id": "apisec-cors-suffix-origin-check",
+    "title": "Checagem de origem CORS usando endsWith",
+    "question": "Uma API com sessões em cookie define headers CORS assim:\n\nif (origin.endsWith(\"example.com\")) {\n  res.set(\"Access-Control-Allow-Origin\", origin);\n  res.set(\"Access-Control-Allow-Credentials\", \"true\");\n}\n\nQual é a falha?",
+    "options": [
+      "Domínios registrados por atacantes, como `notexample.com`, também passam",
+      "`Access-Control-Allow-Origin` precisa ser `*` sempre que credenciais são permitidas",
+      "A checagem deveria usar o header `Referer`, pois scripts da página forjam `Origin`",
+      "Navegadores rejeitam origens refletidas, então subdomínios legítimos quebram"
+    ],
+    "explanation": "Uma comparação por sufixo sem fronteira de ponto aceita qualquer domínio que apenas termine com a string, então uma página no domínio do atacante pode fazer requisições cross-origin com credenciais e ler as respostas. Compare a origem completa (esquema, host e porta) com uma allow-list exata. O curinga é na verdade proibido junto com credenciais, scripts da página não conseguem definir o header `Origin`, e devolver uma origem específica permitida é válido."
+  },
+  {
+    "id": "apisec-tls-certificate-verification-off",
+    "title": "Verificação de certificado TLS desligada",
+    "question": "Um serviço de pedidos chama a API de um parceiro com `requests` do Python usando `verify=False`, adicionado meses atrás para calar um erro sobre a CA interna do parceiro. O tráfego continua em HTTPS. Qual é o risco e a correção certa?",
+    "options": [
+      "Só custo de desempenho; está tudo bem, pois o tráfego segue criptografado",
+      "Atacantes no caminho podem se passar pela API; passe o bundle da CA em `verify`",
+      "Certificados expirados são aceitos; peça ao parceiro para renová-los antes",
+      "O TLS cai para a versão 1.0; fixe a versão mínima do protocolo para voltar a ser seguro"
+    ],
+    "explanation": "Com a verificação desligada, o cliente aceita qualquer certificado, então qualquer um no caminho da rede pode terminar o TLS com o próprio certificado, ler as credenciais e alterar respostas: criptografia sem autenticação. Mantenha a verificação ligada e aponte `verify` para o bundle da CA do parceiro ou interna. A configuração não muda a versão do protocolo, e a exposição é bem maior do que certificados expirados."
+  },
+  {
+    "id": "apisec-secrets-leaked-key-public-repo",
+    "title": "API key de produção enviada a um repositório público",
+    "question": "Um desenvolvedor fez push de um commit com uma chave de produção da sua API de pagamentos para um repositório público no GitHub. Alguém percebeu 40 minutos depois. O que deve acontecer primeiro?",
+    "options": [
+      "Reescrever o histórico do Git com force push para a chave sumir",
+      "Tornar o repositório privado e depois ver quantos clones e forks ele tem",
+      "Revogar e substituir a chave, depois revisar os logs de uso dela",
+      "Adicionar o arquivo ao `.gitignore` para a chave não ser commitada de novo"
+    ],
+    "explanation": "Depois de pública, considere a chave comprometida: scanners automáticos coletam segredos de pushes públicos em minutos, e reescrever o histórico não alcança clones, forks ou caches existentes. Revogue e rotacione primeiro, depois revise o uso desde a exposição, e só então limpe o histórico e adicione prevenção, como secret scanning. Tornar o repositório privado ou editar o `.gitignore` deixa a chave vazada válida."
+  },
+  {
+    "id": "apisec-log-security-events-to-record",
+    "title": "Eventos de segurança que uma API deve registrar",
+    "question": "Qual conjunto de eventos de API é mais importante registrar nos logs de segurança?",
+    "options": [
+      "Todo GET bem-sucedido, incluindo os corpos completos de requisição e resposta",
+      "Só erros HTTP 5xx, pois eles mostram que a API está sob ataque",
+      "Erros de JavaScript enviados pelo frontend a partir dos navegadores",
+      "Falhas de autenticação, de autorização e de validação de entrada"
+    ],
+    "explanation": "O OWASP Logging Cheat Sheet lista sucessos e falhas de autenticação, falhas de autorização (controle de acesso) e falhas de validação de entrada entre os eventos essenciais a registrar. Logar corpos completos coleta dados pessoais e segredos demais, ataques costumam gerar respostas 4xx como 401, 403 ou 400 em vez de 5xx, e erros de JavaScript do navegador não são eventos de segurança do servidor."
+  },
+  {
+    "id": "apisec-log-injection-crlf",
+    "title": "Entradas forjadas em um log de API em texto puro",
+    "question": "Uma API grava linhas como `login failed for user=<username>` em um log de texto puro. Durante um incidente, analistas encontram linhas 'login succeeded for user=admin' que nenhum trecho de código grava. O que provavelmente aconteceu e o que evita isso?",
+    "options": [
+      "CR/LF no username foi logado cru; codifique-o ou use logs estruturados",
+      "O arquivo foi rotacionado no meio da escrita; use flush síncrono",
+      "Duas threads escreveram juntas; envolva toda chamada de log em um lock global",
+      "Os relógios divergiram entre hosts; sincronize todos os servidores via NTP"
+    ],
+    "explanation": "Isso é log injection: caracteres de carriage return e line feed em uma entrada controlada pelo usuário permitem ao atacante iniciar uma linha nova e forjada. O OWASP Logging Cheat Sheet manda sanitizar CR, LF e delimitadores, e logs estruturados, como JSON com codificação correta, mantêm o valor dentro de um único campo. Rotação, concorrência e divergência de relógio podem embaralhar linhas, mas não produzem entradas coerentes com conteúdo escolhido pelo atacante."
+  },
+  {
+    "id": "apisec-log-detect-object-id-enumeration",
+    "title": "Detectando enumeração de IDs de objetos nos logs",
+    "question": "Em 10 minutos, um único access token válido chama `GET /api/invoices/{id}` para 3.000 IDs distintos; 97% retornam 403 ou 404. O rate limit por token, de 600 por minuto, nunca foi excedido. Qual regra de detecção pega melhor esse padrão?",
+    "options": [
+      "Alertar quando qualquer token exceder o rate limit configurado por minuto",
+      "Alertar quando a taxa geral de erros 5xx da API passar da base de 1%",
+      "Alertar sobre muitas falhas de authz em IDs distintos por identidade",
+      "Alertar quando um token for usado de mais de um endereço IP no mesmo dia"
+    ],
+    "explanation": "Sondagem de BOLA aparece como um único principal acessando muitos IDs de objetos distintos com alta proporção de negações. Registrar falhas de autorização com o usuário e o recurso (o evento `authz_fail` do Logging Vocabulary) é o que torna essa regra possível. O rate limit nunca foi excedido, 403 e 404 não são erros 5xx, e trocas de IP são normais em usuários mobile, enquanto um atacante com IP único nunca dispararia essa regra."
+  },
+  {
+    "id": "apisec-log-tamper-resistant-shipping",
+    "title": "Logs que o atacante conseguiu apagar",
+    "question": "Na análise de uma invasão, você descobre que o atacante obteve um shell em um container da API e apagou os arquivos de log locais da aplicação, que só eram enviados ao sistema central toda noite. Qual mudança de design resolve isso mais diretamente?",
+    "options": [
+      "Criptografar os logs locais com uma chave guardada junto deles no container",
+      "Enviar os logs na hora para um store separado onde a app só acrescenta",
+      "Subir o nível de log para DEBUG para gravar mais evidências antes da exclusão",
+      "Comprimir e rotacionar os arquivos de log a cada hora para que fiquem pequenos"
+    ],
+    "explanation": "O OWASP Logging Cheat Sheet pede que os logs sejam protegidos contra adulteração e exclusão: envie os eventos para fora do host rapidamente (por exemplo, stdout para um coletor) para um sistema separado onde a aplicação só tem direito de acrescentar, e adicione detecção de adulteração. Criptografar com a chave ao lado não impede a exclusão, e mais verbosidade ou rotação mais rápida deixam os mesmos arquivos locais à mercê do atacante."
+  },
+  {
+    "id": "apisec-log-credential-stuffing-signal",
+    "title": "Credential stuffing abaixo dos limites por IP",
+    "question": "Sua API de login alerta quando um IP tem mais de 20 logins falhos em 5 minutos. Nenhum alerta disparou, mas 3.000 contas foram tomadas em um dia. O tráfego veio de cerca de 40.000 IPs residenciais, cada um com 1–2 tentativas contra usernames diferentes. Qual sinal teria detectado isso?",
+    "options": [
+      "Contadores de bloqueio por username passando do limite usual de cinco tentativas",
+      "Uma fração crescente de respostas 5xx retornadas pelo serviço de autenticação",
+      "O limite de falhas por IP reduzido de 20 para 3 na mesma janela",
+      "Salto global na taxa de falhas e em usernames inexistentes, somando todos os IPs"
+    ],
+    "explanation": "Credential stuffing distribuído mantém de propósito as contagens por IP e por conta baixas, então só aparece no agregado: um pico na taxa geral de falhas de login, muitos usernames que não existem no seu serviço (vêm de vazamentos de outros sites) e dispositivos novos. Contadores por username veem uma tentativa cada, um limite de 3 por IP continua sem disparar com 1–2 tentativas, e o ataque gera logins falhos, não erros de servidor."
+  },
+  {
+    "id": "apisec-top10-api3-merged-categories",
+    "title": "Onde mass assignment foi parar na lista de 2023",
+    "question": "O OWASP API Security Top 10 de 2019 tinha entradas separadas para Excessive Data Exposure e Mass Assignment. Qual categoria de 2023 cobre as duas?",
+    "options": [
+      "API3:2023 Broken Object Property Level Authorization",
+      "API1:2023 Broken Object Level Authorization",
+      "API8:2023 Security Misconfiguration",
+      "API6:2023 Unrestricted Access to Sensitive Business Flows"
+    ],
+    "explanation": "A edição de 2023 juntou as duas em API3 Broken Object Property Level Authorization, porque ambas são falhas ao autorizar acesso a propriedades individuais: lê-las (exposição) ou escrevê-las (mass assignment). API1 trata de acesso a objetos inteiros, API8 cobre problemas de configuração, e API6 cobre abuso de fluxos de negócio legítimos."
+  },
+  {
+    "id": "apisec-top10-api8-verbose-errors",
+    "title": "Stack traces nas respostas de erro da API",
+    "question": "Uma requisição malformada à sua API retorna 500 com um corpo JSON contendo o stack trace completo da exceção, nomes de classes do ORM, o comando SQL e a versão do framework. Qual categoria do OWASP API Security 2023 é essa, e qual é a correção?",
+    "options": [
+      "API4 Unrestricted Resource Consumption; aplicar rate limit nos caminhos de erro",
+      "API9 Improper Inventory Management; documentar cada erro no OpenAPI",
+      "API8 Security Misconfiguration; erros genéricos e detalhes só nos logs",
+      "API10 Unsafe Consumption of APIs; validar antes as respostas do ORM"
+    ],
+    "explanation": "A API8:2023 cobre a exposição de stack traces e recomenda definir e impor schemas de resposta, incluindo respostas de erro. Retorne um corpo de erro genérico (por exemplo, problem details da RFC 9457 com um ID de correlação) e mantenha o detalhe nos logs do servidor. Rate limiting, documentação e validação de terceiros não impedem que os detalhes internos vazem."
+  },
+  {
+    "id": "apisec-top10-api9-forgotten-version",
+    "title": "Versão antiga da API sem as novas proteções",
+    "question": "`/v3/login` tem rate limiting rígido e proteção contra bots. `/v1/login` foi 'descontinuada' há dois anos, mas ainda é roteada, usa o mesmo banco de usuários e não tem nenhuma das proteções. Atacantes fazem força bruta em contas pela v1. Qual é a categoria, e qual é a correção principal?",
+    "options": [
+      "API2 Broken Authentication; adicionar MFA na v3 para que senhas roubadas não sirvam para nada",
+      "API9 Improper Inventory Management; inventariar versões, desligar ou proteger a v1",
+      "API5 Broken Function Level Authorization; exigir papel de admin na v1",
+      "API7 Server Side Request Forgery; impedir a v1 de fazer chamadas externas"
+    ],
+    "explanation": "Versões esquecidas rodando com controles mais fracos são o centro da API9:2023 Improper Inventory Management. A correção é um inventário de hosts e versões, desligar as descontinuadas e, até lá, aplicar as mesmas proteções a toda versão exposta. MFA só na v3 deixa a v1 aberta, papel de admin não faz sentido em uma rota de login, e SSRF não tem relação."
+  },
+  {
+    "id": "apisec-top10-api10-partner-data",
+    "title": "Confiando em dados retornados por uma API parceira",
+    "question": "Sua API enriquece endereços chamando um serviço de geocodificação de terceiros. Ela concatena o `formattedAddress` retornado em uma string SQL e segue qualquer redirect que o serviço devolver. Qual afirmação descreve melhor o risco e a correção?",
+    "options": [
+      "API7 SSRF; bloquear URLs vindas do usuário, já que os dados retornados pelo parceiro são confiáveis",
+      "API8 Security Misconfiguration; ativar logs verbosos de erros do parceiro",
+      "API4 Resource Consumption; fazer cache de toda resposta do parceiro por um dia",
+      "API10 Unsafe Consumption; validar dados do parceiro e usar allow-list de redirects"
+    ],
+    "explanation": "A API10:2023 manda tratar dados de APIs integradas como não confiáveis: validar e sanitizar (aqui, usar queries parametrizadas), usar TLS e nunca seguir redirects às cegas, e sim conferi-los com uma allow-list. Se o parceiro for comprometido ou falsificado, as respostas dele viram um vetor de injection. As outras opções erram o diagnóstico ou presumem que o parceiro é confiável."
+  },
+  {
+    "id": "apisec-top10-api6-limited-drop-bots",
+    "title": "Bots comprando todo o estoque de um lançamento limitado",
+    "question": "Durante o lançamento limitado de um tênis, bots compram todo o estoque em segundos pela sua API de checkout. Cada conta de bot faz poucas requisições, cada uma de um IP residencial diferente, e toda chamada é autenticada e bem formada. Qual abordagem corresponde melhor à orientação da OWASP para esse risco?",
+    "options": [
+      "Proteger o fluxo de compra com fingerprinting, verificação humana e análise de tempo",
+      "Reduzir o rate limit por IP do endpoint de checkout para uma única requisição por minuto por endereço",
+      "Adicionar validação mais rígida por JSON Schema ao corpo do checkout",
+      "Exigir TLS 1.3 e HSTS em toda requisição à API de checkout"
+    ],
+    "explanation": "Isso é API6:2023 Unrestricted Access to Sensitive Business Flows: cada requisição é legítima isoladamente, então a proteção pertence ao nível do fluxo de negócio. A OWASP sugere device fingerprinting, detecção de humanos como captchas ou biometria, identificar padrões não humanos, como ir do carrinho à compra em menos de um segundo, e bloquear proxies conhecidos. Limites por IP falham contra pools de proxies residenciais, e validação ou TLS não fazem nada contra automação."
+  }
+]

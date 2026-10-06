@@ -99,5 +99,6 @@ describe("QuestionPlayer", () => {
     await userEvent.click(screen.getByRole("button", { name: /submit answer/i }));
     expect(await screen.findByText("Level up! You reached level 4")).toBeInTheDocument();
     expect(screen.getByText("Roadmap step completed: Images & Layers")).toBeInTheDocument();
+    expect(screen.getByText("+50 XP · Docker Essentials module · Docker")).toBeInTheDocument();
   });
 });

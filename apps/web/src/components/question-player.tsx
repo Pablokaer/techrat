@@ -69,7 +69,7 @@ export function QuestionPlayer({ session, onSubmitAnswer }: {
       qc.setQueryData(qk.me, (old: typeof me) => (old ? { ...old, level: r.level, currentStreak: r.currentStreak } : old));
       if (r.leveledUp) toast({ kind: "achievement", title: t.practice.player.toasts.levelUp(r.level.level) });
       if (r.topicLeveledUp) toast({ kind: "success", title: t.practice.player.toasts.topicLevel(r.topicLevel) });
-      r.completedSteps.forEach((s) => toast({ kind: "success", title: t.practice.player.toasts.stepCompleted(s.stepTitle), body: t.practice.player.toasts.stepCompletedBody(s.xpEarned, s.roadmapName) }));
+      r.completedSteps.forEach((s) => toast({ kind: "success", title: t.practice.player.toasts.stepCompleted(s.stepTitle), body: t.practice.player.toasts.stepCompletedBody(s.xpEarned, s.roadmapName, s.moduleName || undefined) }));
       if (r.dailyChallengeBonusXp > 0) toast({ kind: "achievement", title: t.practice.player.toasts.dailyComplete, body: t.practice.player.toasts.dailyBonus(r.dailyChallengeBonusXp) });
       setTimeout(() => nextRef.current?.focus(), 0);
     } catch (e) {

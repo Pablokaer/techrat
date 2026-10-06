@@ -3,7 +3,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { colors, radii, spacing } from "@techrat/theme";
 import type { RoadmapStep } from "@techrat/types";
 import { stepState, type StepState } from "@/lib/format";
-import { AppText, Button, DifficultyBadge, XpPill, tints } from "@/components/ui";
+import { AppText, Button, DifficultyBadge, LabelBadge, XpPill, tints } from "@/components/ui";
 
 const meta: Record<StepState, { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string; label: string }> = {
   Completed: { icon: "checkmark", color: colors.primary, bg: tints.primary, label: "Completed" },
@@ -11,7 +11,7 @@ const meta: Record<StepState, { icon: keyof typeof Ionicons.glyphMap; color: str
   Locked: { icon: "lock-closed", color: colors.textMuted, bg: tints.subtle, label: "Locked" },
 };
 
-/** Roadmap step with an icon + text status (Completed / Current / Locked). */
+/** Roadmap step with an icon + text status (Completed / Current / Locked) and a "New" badge for steps added after completion. */
 export function StepRow({ step, onPractice, practicing, compact }: {
   step: RoadmapStep;
   onPractice?: () => void;
@@ -27,7 +27,11 @@ export function StepRow({ step, onPractice, practicing, compact }: {
         <Ionicons name={m.icon} size={14} color={m.color} />
       </View>
       <View style={styles.body}>
-        <AppText variant="subheading" tone={state === "Locked" ? "muted" : "default"}>{step.order}. {step.title}</AppText>
+        <View style={styles.titleRow}>
+          <AppText variant="subheading" tone={state === "Locked" ? "muted" : "default"} style={styles.title}>{step.order}. {step.title}</AppText>
+          {/* Added to the module after the learner completed it (modules are versioned and shared across roadmaps). */}
+          {step.isNew && <LabelBadge label="New" icon="sparkles" tone="primary" accessibilityLabel="New step" />}
+        </View>
         <AppText variant="caption" tone={state === "Locked" ? "muted" : state === "Current" ? "primary" : "secondary"} style={styles.status}>
           {m.label} · {step.topicName}{step.subtopicName ? ` › ${step.subtopicName}` : ""}
         </AppText>
@@ -58,6 +62,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: spacing.md, paddingVertical: spacing.sm },
   marker: { width: 28, height: 28, borderRadius: radii.pill, alignItems: "center", justifyContent: "center", marginTop: 2 },
   body: { flex: 1, gap: spacing.xs },
+  titleRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm },
+  title: { flexShrink: 1 },
   status: { fontWeight: "600" },
   meta: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: spacing.sm },
 });

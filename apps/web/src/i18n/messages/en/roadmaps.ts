@@ -25,6 +25,8 @@ export const roadmaps = {
     viewPrerequisites: "View prerequisites",
     continuePath: "Continue path",
     viewPath: "View path",
+    /** Modules of this roadmap the learner already completed elsewhere (they count here too). */
+    alreadyHave: (done: number, total: number) => `You already have ${done} of ${total} modules`,
   },
   detail: {
     notFound: "Roadmap not found",
@@ -47,5 +49,11 @@ export const roadmaps = {
     stepProgress: "Step progress",
     stepCriteria: (answered: number, min: number, accuracy: number) => `${answered}/${min} answered · ${accuracy}% accuracy`,
     practiceStep: "Practice step",
+    /** Toast body after starting a roadmap whose modules were partly completed in other roadmaps. */
+    credited: (modules: number, steps: number) => {
+      const s = steps === 1 ? "1 step" : `${steps} steps`;
+      if (modules === 0) return `You already had ${s} from other roadmaps`;
+      return `You already had ${modules === 1 ? "1 module" : `${modules} modules`} (${s}) from other roadmaps`;
+    },
   },
 };

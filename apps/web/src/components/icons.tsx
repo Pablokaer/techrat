@@ -1,7 +1,8 @@
 import {
-  Activity, Atom, Award, Boxes, Braces, BrainCircuit, Building, ChartScatter, Check, Cloud, CloudCog, Code, Coffee, Container,
-  Cpu, Crosshair, Crown, Database, DatabaseZap, FileType, Flame, FlaskConical, Gauge, GitBranch, GitMerge, Hash, Infinity as InfinityIcon,
-  Layers, Layout, Map, Network, Play, Puzzle, Rocket, Server, Shield, ShipWheel, Sparkles, Target, Terminal, Trophy, Users, Workflow,
+  Activity, Atom, Award, Bot, Boxes, Braces, BrainCircuit, Building, ChartColumn, ChartScatter, Check, Cloud, CloudCog, Code, Coffee, Container,
+  Cpu, Crosshair, Crown, Database, DatabaseZap, FileType, Flame, FlaskConical, Gauge, GitBranch, GitMerge, GitPullRequest, Hash, Infinity as InfinityIcon,
+  Layers, Layout, Lock, Map, Network, Play, Puzzle, Rocket, Server, Sheet, Shield, ShieldAlert, ShipWheel, Sigma, Sparkles, Table, Target,
+  Terminal, Trophy, Users, Workflow,
   type LucideIcon,
 } from "lucide-react";
 
@@ -13,6 +14,8 @@ const map: Record<string, LucideIcon> = {
   "flask-conical": FlaskConical, gauge: Gauge, "git-branch": GitBranch, "git-merge": GitMerge, hash: Hash, infinity: InfinityIcon,
   layers: Layers, layout: Layout, map: Map, network: Network, play: Play, puzzle: Puzzle, rocket: Rocket, server: Server, shield: Shield,
   "ship-wheel": ShipWheel, sparkles: Sparkles, target: Target, terminal: Terminal, trophy: Trophy, users: Users, workflow: Workflow,
+  "bar-chart-3": ChartColumn, bot: Bot, "git-pull-request": GitPullRequest, lock: Lock, sheet: Sheet, "shield-alert": ShieldAlert,
+  sigma: Sigma, table: Table,
 };
 
 export function TopicIcon({ name, className = "h-5 w-5" }: { name?: string | null; className?: string }) {

@@ -13,6 +13,8 @@ const map: Record<string, IconName> = {
   "git-branch": "git-branch-outline", "git-merge": "git-merge-outline", hash: "pricetag-outline", infinity: "infinite-outline",
   layers: "layers-outline", layout: "grid-outline", map: "map-outline", network: "git-network-outline", play: "play-outline",
   puzzle: "extension-puzzle-outline", rocket: "rocket-outline", server: "server-outline", shield: "shield-checkmark-outline",
+  "bar-chart-3": "bar-chart-outline", bot: "chatbubbles-outline", "git-pull-request": "git-pull-request-outline",
+  lock: "lock-closed-outline", sheet: "grid-outline", "shield-alert": "warning-outline", sigma: "calculator-outline", table: "grid-outline",
   "ship-wheel": "boat-outline", sparkles: "sparkles-outline", target: "locate-outline", terminal: "terminal-outline",
   trophy: "trophy-outline", users: "people-outline", workflow: "git-network-outline",
 };

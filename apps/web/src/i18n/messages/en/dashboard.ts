@@ -22,7 +22,7 @@ export const dashboard = {
     progress: (completed: number, total: number, percent: number) => `${completed} of ${total} steps · ${percent}%`,
     progressLabel: "Roadmap progress",
     emptyTitle: "Pick a path and start leveling up",
-    emptyText: "32 structured roadmaps from Junior Software Engineer to System Design and AI Engineering.",
+    emptyText: "Structured roadmaps from Junior Software Engineer to System Design and AI Engineering, built from shared modules.",
     browse: "Browse roadmaps",
   },
   recommended: {

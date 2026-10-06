@@ -16,7 +16,7 @@ export const landing = {
   },
   highlights: {
     questions: { title: "1,000+ real questions", text: "Easy to Expert, each with an explanation and a link to official docs." },
-    roadmaps: { title: "32 roadmaps", text: "Junior to Senior, System Design, AI Engineering, Cloud, DevOps and more." },
+    roadmaps: { title: "Learning roadmaps", text: "Junior to Senior, System Design, AI Engineering, Cloud, DevOps and more. Finish a module once and it counts in every roadmap." },
     progress: { title: "XP, levels & ranks", text: "Level up globally and per topic. Streaks, badges and leaderboards." },
     adaptive: { title: "Adaptive practice", text: "Difficulty follows your accuracy so every session stretches you." },
   },

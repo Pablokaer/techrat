@@ -1,0 +1,602 @@
+[
+  {
+    "id": "ods-secops-what-a-siem-does",
+    "title": "Para que serve um SIEM",
+    "question": "Uma empresa está montando seu primeiro Security Operations Center (SOC). Qual é a função central de um SIEM nesse SOC?",
+    "options": [
+      "Bloquear pacotes maliciosos em linha no perímetro da rede",
+      "Coletar e correlacionar logs de muitas fontes para gerar alertas",
+      "Colocar em quarentena processos suspeitos em cada notebook e servidor",
+      "Varrer hosts periodicamente para listar patches de sistema pendentes"
+    ],
+    "explanation": "Um SIEM (Security Information and Event Management) centraliza logs de firewalls, endpoints, provedores de identidade e aplicações, normaliza esses dados e executa regras de correlação para que analistas recebam alertas e pesquisem entre fontes. Bloqueio em linha é papel de firewall ou IPS, quarentena de processos é papel do EDR, e listar patches pendentes é papel de um scanner de vulnerabilidades."
+  },
+  {
+    "id": "ods-secops-noisy-powershell-rule",
+    "title": "Uma regra de detecção que ninguém lê mais",
+    "question": "Uma regra que alerta a cada execução de PowerShell dispara cerca de 4.000 vezes por dia, quase tudo vindo de um servidor de automação de TI, e os analistas passaram a fechar os alertas sem ler. Qual é a melhor correção?",
+    "options": [
+      "Desativar a regra, já que o volume prova que ela não tem valor",
+      "Elevar para Critical para forçar os analistas a lerem cada alerta",
+      "Criar uma exceção revisada para o host de automação e ajustar a lógica",
+      "Enviar os alertas a uma caixa compartilhada revisada uma vez por semana"
+    ],
+    "explanation": "Fadiga de alertas se resolve com tuning: uma exceção documentada e revisada periodicamente remove a fonte conhecida e legítima, e refinar a lógica para características suspeitas (comandos codificados, processos pai incomuns, downloads) mantém a detecção útil. Desativar deixa uma técnica real de ataque sem monitoramento, inflar a severidade só piora a fadiga, e uma caixa semanal transforma detecção em relatório com uma semana de atraso."
+  },
+  {
+    "id": "ods-secops-attack-coverage-mapping",
+    "title": "Por que mapear detecções para o MITRE ATT&CK",
+    "question": "Um líder de SOC pede que a equipe marque cada regra de detecção com as técnicas do MITRE ATT&CK que ela cobre. Qual é o principal valor disso?",
+    "options": [
+      "Mostrar quais comportamentos adversários não têm detecção, num vocabulário comum",
+      "Garantir que qualquer técnica com regra mapeada será bloqueada",
+      "Atribuir a cada alerta um score CVSS para automatizar a triagem",
+      "Dispensar a coleta de logs para as técnicas que já estão mapeadas em alguma regra"
+    ],
+    "explanation": "O ATT&CK é uma base de conhecimento de táticas e técnicas de adversários reais; mapear regras para ele mostra a cobertura e, principalmente, as lacunas, e permite discutir ameaças e threat intel nos mesmos termos. Um mapeamento não diz nada sobre prevenção, o CVSS pontua vulnerabilidades e não alertas, e as detecções continuam dependendo da telemetria coletada."
+  },
+  {
+    "id": "ods-secops-behaviour-over-indicators",
+    "title": "O atacante sempre volta com infraestrutura nova",
+    "question": "Um SOC bloqueia os hashes de arquivo e endereços IP de um relatório de threat intel, mas o mesmo ator volta uma semana depois com ferramentas recompiladas e servidores novos. Qual investimento mais aumenta o custo para o atacante?",
+    "options": [
+      "Assinar mais feeds de hashes e IPs atualizados a cada hora",
+      "Bloquear as faixas de IP de todos os países onde a campanha apareceu",
+      "Trocar a blocklist de endereços IP pelos nomes de domínio que eles usaram",
+      "Detectar o próprio comportamento, como acesso incomum à memória do LSASS"
+    ],
+    "explanation": "Hashes, IPs e domínios são baratos de trocar, então bloquear indicadores compra pouco tempo. Detecções comportamentais baseadas em técnicas (por exemplo, um processo fora do padrão lendo a memória do LSASS para extrair credenciais) continuam disparando sejam quais forem as ferramentas ou servidores, obrigando o ator a mudar como opera. Feeds mais rápidos e bloqueios mais amplos ainda perseguem indicadores descartáveis, e geobloqueio é contornado facilmente com infraestrutura local."
+  },
+  {
+    "id": "ods-secops-ingestion-delay-gap",
+    "title": "Regra agendada que nunca vê logs atrasados",
+    "question": "Uma regra agendada do SIEM roda a cada 5 minutos e pesquisa os últimos 5 minutos pelo timestamp do evento. Uma fonte de logs envia eventos em lote, que chegam cerca de 20 minutos depois de ocorrerem. A regra nunca dispara para essa fonte, nem durante um teste de red team. Qual é a correção certa?",
+    "options": [
+      "Rodar a regra a cada minuto para que ela verifique a fonte atrasada com mais frequência",
+      "Olhar 25 minutos para trás pelo evento, mas só casar linhas ingeridas nos últimos 5",
+      "Reescrever os timestamps na ingestão para que o horário do evento seja o de chegada",
+      "Aumentar a severidade da regra para o SIEM agendá-la com prioridade maior"
+    ],
+    "explanation": "Eventos atrasados são ingeridos depois que a janela que cobre o horário deles já foi pesquisada, então caem numa lacuna permanente. Estender o look-back para cobrir o atraso e filtrar pelo horário de ingestão do último intervalo pega os atrasados sem gerar alertas duplicados. Rodar mais vezes não move a janela para trás, sobrescrever o horário do evento corrompe timelines, e severidade não muda quais dados a consulta enxerga."
+  },
+  {
+    "id": "ods-ir-containment-step",
+    "title": "Identificando a ação de contenção",
+    "question": "Durante um incidente, qual destas ações é uma etapa de contenção, e não de erradicação, recuperação ou pós-incidente?",
+    "options": [
+      "Remover o malware e seus mecanismos de persistência de todos os hosts",
+      "Restaurar os servidores afetados a partir de backups limpos",
+      "Mover um notebook infectado para um segmento de rede isolado",
+      "Fazer uma reunião de lições aprendidas com todas as equipes"
+    ],
+    "explanation": "Contenção limita o dano e impede a propagação enquanto a investigação continua, por exemplo isolando um host e mantendo-o disponível para análise. Remover malware e persistência é erradicação, restaurar de backups limpos é recuperação, e a reunião de lições aprendidas é atividade pós-incidente que retroalimenta a preparação."
+  },
+  {
+    "id": "ods-ir-lessons-learned-purpose",
+    "title": "Para que serve a revisão pós-incidente",
+    "question": "Depois que um incidente de phishing é encerrado, a equipe agenda uma revisão pós-incidente. O que essa revisão deve produzir principalmente?",
+    "options": [
+      "Uma lista dos funcionários que clicaram no link, para ação disciplinar",
+      "Melhorias concretas em controles, detecções e no processo de IR",
+      "Um comunicado público explicando o incidente aos clientes",
+      "Um ticket fechado, já que a revisão é só uma formalidade"
+    ],
+    "explanation": "A revisão é uma análise sem culpados do que aconteceu, do que funcionou e do que não funcionou, e deve terminar com ações com dono e prazo, como novas detecções, mudanças de controles e atualizações de playbooks. Culpar pessoas desestimula que reportem rápido, a comunicação a clientes é uma decisão separada guiada por obrigações legais e contratuais, e tratar a revisão como formalidade desperdiça a melhor oportunidade de aprendizado."
+  },
+  {
+    "id": "ods-ir-ransomware-first-move",
+    "title": "Primeiro passo quando o ransomware se espalha",
+    "question": "Às 2h da manhã, o plantonista vê arquivos em dois file servers sendo renomeados com uma extensão nova e uma nota de resgate aparecendo em cada pasta. O que deve acontecer primeiro?",
+    "options": [
+      "Formatar e reinstalar os dois servidores na hora para remover a infecção",
+      "Rodar um antivírus completo em todos os servidores com eles ainda online",
+      "Contatar os atacantes para saber quanto custaria a descriptografia",
+      "Isolar da rede os sistemas afetados para conter a propagação"
+    ],
+    "explanation": "O guia de ransomware da CISA coloca em primeiro lugar isolar os sistemas impactados, de preferência desconectando-os da rede, para que a criptografia não alcance mais compartilhamentos e hosts enquanto o escopo é determinado. Reinstalar na hora destrói evidências e pode atingir sistemas antes de confirmar que os backups estão limpos, um scan com os sistemas online deixa a criptografia continuar, e negociar não é uma etapa de contenção."
+  },
+  {
+    "id": "ods-ir-premature-eradication",
+    "title": "Resetar uma conta alertou o invasor",
+    "question": "Os responders encontraram uma conta de admin comprometida e resetaram a senha em minutos. No dia seguinte, o invasor estava ativo por outras contas e um backdoor novo. O que a equipe deveria ter feito diferente?",
+    "options": [
+      "Levantar o escopo da intrusão e só então remover todo o acesso numa ação coordenada",
+      "Desativar todos os alertas de antivírus para o invasor não notar a resposta",
+      "Esperar o invasor sair da rede por conta própria antes de agir",
+      "Resetar apenas as senhas das contas que já tinham disparado alertas"
+    ],
+    "explanation": "Remediação aos pedaços avisa o adversário de que foi descoberto enquanto ele ainda tem outros pontos de apoio, então ele se move ou se entrincheira. A orientação da CISA é investigar o escopo completo discretamente (contas, persistência, ferramentas) e então executar a erradicação em tudo de uma vez. Silenciar defesas, esperar indefinidamente ou resetar só as contas alertadas deixam o acesso não descoberto no lugar."
+  },
+  {
+    "id": "ods-ir-krbtgt-double-reset",
+    "title": "Por que a senha da krbtgt é resetada duas vezes",
+    "question": "Depois de um comprometimento total do Active Directory, o plano de recuperação manda resetar a senha da conta krbtgt duas vezes, com tempo para replicação entre elas. Por que duas vezes?",
+    "options": [
+      "O primeiro reset só atualiza os domain controllers somente leitura da floresta",
+      "O Kerberos rejeita uma nova senha da krbtgt até ela ser trocada duas vezes",
+      "Os DCs ainda aceitam a chave anterior, então tickets forjados sobrevivem a um reset",
+      "O segundo reset é necessário para limpar os caches de tickets Kerberos guardados em cada máquina cliente"
+    ],
+    "explanation": "A chave da krbtgt assina os tickets Kerberos, e os domain controllers mantêm válidas a chave atual e a anterior para que tickets normais não quebrem durante a troca. Um atacante com a chave antiga poderia continuar forjando Golden Tickets após um único reset; o segundo reset tira essa chave do histórico. Os resets são espaçados (considerando replicação e tempo de vida dos tickets) para que as sessões legítimas não quebrem todas de uma vez."
+  },
+  {
+    "id": "ods-forensics-order-of-volatility",
+    "title": "O que coletar primeiro de um host ligado",
+    "question": "Um responder precisa coletar evidências de um servidor comprometido que ainda está ligado. Seguindo a ordem de volatilidade, o que deve ser capturado primeiro?",
+    "options": [
+      "O conteúdo da RAM do sistema",
+      "Uma imagem forense completa do disco",
+      "As fitas de backup noturno",
+      "Os diagramas de rede impressos"
+    ],
+    "explanation": "A RFC 3227 manda coletar evidências da mais volátil para a menos volátil, porque dados voláteis somem primeiro. A memória guarda processos em execução, conexões de rede e dados descriptografados que se perdem no desligamento, enquanto o disco sobrevive a um reboot e backups e documentação são praticamente permanentes."
+  },
+  {
+    "id": "ods-forensics-image-hash-integrity",
+    "title": "Calcular o hash da imagem de disco na aquisição",
+    "question": "Uma perita calcula o hash SHA-256 de uma imagem de disco logo após a aquisição e o registra no log de cadeia de custódia. Meses depois, antes de depor, ela calcula o hash de novo. O que um hash igual demonstra?",
+    "options": [
+      "Que a imagem não mudou desde a aquisição",
+      "Que o disco original do suspeito não tinha malware",
+      "Que a imagem ficou criptografada enquanto guardada",
+      "Que arquivos apagados do disco ainda podem ser recuperados"
+    ],
+    "explanation": "Um hash criptográfico funciona como impressão digital: qualquer alteração na imagem produziria outro digest, então um hash igual mostra que a evidência não foi alterada desde a aquisição. Um hash não criptografa nada, não diz nada sobre a presença de malware e não tem relação com a recuperação de dados apagados."
+  },
+  {
+    "id": "ods-forensics-timeline-timezones",
+    "title": "Eventos da timeline com três horas de diferença",
+    "question": "Um analista junta os logs de um servidor Windows com logs de auditoria da nuvem numa só timeline. O login no servidor aparece três horas depois das chamadas de API na nuvem que ele supostamente disparou. Qual é a causa mais provável e a correção certa?",
+    "options": [
+      "O atacante adulterou os logs do servidor; descarte-os por completo",
+      "As fontes usam fusos diferentes; normalize todos os eventos em UTC",
+      "O provedor de nuvem envia logs em lote; ignore eventos com menos de três horas",
+      "O SIEM perdeu eventos; reingira os logs do servidor do zero"
+    ],
+    "explanation": "Uma diferença constante de horas cheias é o sinal clássico de fusos misturados, como horário local (UTC-3) contra UTC. Timelines devem normalizar tudo em UTC e registrar o offset de cada fonte e qualquer desvio de relógio. Adulteração, atrasos ou eventos perdidos não produziriam um deslocamento limpo e constante de três horas, e descartar evidências com base nesse palpite seria um erro."
+  },
+  {
+    "id": "ods-forensics-detect-timestomping",
+    "title": "Um arquivo malicioso com datas antigas suspeitas",
+    "question": "Num volume NTFS, uma DLL maliciosa mostra datas de criação e modificação idênticas às de arquivos legítimos do Windows de anos atrás. Como o perito pode verificar se esses timestamps foram forjados?",
+    "options": [
+      "Confiar neles, porque timestamps do NTFS nunca podem ser alterados por programas em modo usuário",
+      "Comparar os horários de $STANDARD_INFORMATION com $FILE_NAME e o USN journal",
+      "Verificar o tamanho do arquivo, já que timestamps forjados sempre o alteram",
+      "Olhar o ícone do arquivo, que o Windows regenera quando as datas mudam"
+    ],
+    "explanation": "Timestomping costuma editar os timestamps de $STANDARD_INFORMATION, que APIs comuns conseguem definir, enquanto o atributo $FILE_NAME e o USN change journal são mais difíceis de alterar e muitas vezes ainda mostram a criação real. Uma divergência entre eles é um forte indício. Timestamps podem ser alterados em modo usuário, e nem tamanho nem ícone revelam essa edição."
+  },
+  {
+    "id": "ods-forensics-compromised-cloud-vm",
+    "title": "Preservando evidências de uma VM comprometida na nuvem",
+    "question": "Uma instância EC2 está confirmadamente comprometida. A equipe quer conter o dano e ainda conseguir investigar. Qual abordagem preserva melhor as evidências?",
+    "options": [
+      "Encerrar a instância na hora e subir outra a partir da golden AMI",
+      "Parar e iniciar a instância para que o malware saia da memória",
+      "Isolar com um security group restritivo, capturar a memória e fazer snapshots",
+      "Entrar como root e apagar os arquivos suspeitos antes, depois fazer snapshots dos volumes"
+    ],
+    "explanation": "Isolar a instância com um security group que só permite acesso forense corta o atacante sem destruir o estado; a memória deve ser capturada antes de qualquer stop, e snapshots dos EBS preservam os discos para análise offline. Encerrar ou parar a instância perde a memória (e dados de instance store), e apagar arquivos antes contamina justamente as evidências de que a equipe precisa."
+  },
+  {
+    "id": "ods-vuln-cvss-base-meaning",
+    "title": "O que o score base do CVSS mede",
+    "question": "Um scanner reporta uma vulnerabilidade com score base CVSS de 9,8. O que esse score base representa?",
+    "options": [
+      "A severidade técnica intrínseca da vulnerabilidade",
+      "O valor do ativo afetado para o negócio",
+      "A probabilidade de a falha ser explorada no próximo mês",
+      "O número de dias que o fornecedor levou para lançar o patch"
+    ],
+    "explanation": "As métricas base do CVSS descrevem características da vulnerabilidade que são constantes entre ambientes, como vetor de ataque, privilégios exigidos e impacto em confidencialidade, integridade e disponibilidade. Probabilidade de exploração é o que o EPSS estima, valor para o negócio vem do contexto dos seus ativos, e o CVSS não mede prazos de patch."
+  },
+  {
+    "id": "ods-vuln-kev-before-higher-cvss",
+    "title": "Escolhendo qual vulnerabilidade corrigir primeiro",
+    "question": "A equipe só consegue aplicar patch em um sistema esta noite: um servidor de teste interno e isolado com falha CVSS 9,8 sem exploit conhecido, ou o appliance de VPN exposto à internet com falha CVSS 7,5 listada no catálogo KEV da CISA. Qual vem primeiro?",
+    "options": [
+      "O servidor de teste, porque um CVSS maior sempre significa que ele deve ser corrigido primeiro",
+      "Nenhum, porque ambos estão abaixo do limite emergencial de CVSS 10,0",
+      "O appliance de VPN, porque está exposto e já é explorado ativamente",
+      "O que for mais rápido de corrigir, já que os dois têm risco equivalente"
+    ],
+    "explanation": "Priorização baseada em risco combina severidade com evidência de exploração e exposição. Estar no KEV significa que a falha está sendo explorada ativamente, e uma VPN exposta à internet é uma porta de entrada privilegiada, então ela passa à frente de uma falha com score maior num host isolado. CVSS sozinho não é ordem de prioridade, não existe limite emergencial de 10,0, e os dois riscos claramente não são equivalentes."
+  },
+  {
+    "id": "ods-vuln-epss-meaning",
+    "title": "O que o score EPSS acrescenta ao CVSS",
+    "question": "Uma equipe de gestão de vulnerabilidades adiciona scores EPSS ao lado dos scores CVSS no dashboard. Que informação extra o EPSS traz?",
+    "options": [
+      "Uma estimativa da chance de a CVE ter atividade de exploração em breve",
+      "Um score de severidade ajustado aos controles do seu ambiente",
+      "O prazo oficial em que agências federais dos EUA são obrigadas a corrigir a CVE",
+      "Uma lista dos hosts específicos da sua rede afetados pela CVE"
+    ],
+    "explanation": "O EPSS (Exploit Prediction Scoring System, do FIRST) estima a probabilidade de uma CVE ser explorada no mundo real nos próximos 30 dias, complementando a visão de severidade do CVSS. As métricas ambientais do CVSS, e não o EPSS, ajustam aos seus controles; prazos de remediação vêm do catálogo KEV da CISA sob a BOD 22-01, e listas de hosts afetados vêm dos seus scanners e do inventário de ativos."
+  },
+  {
+    "id": "ods-vuln-unpatchable-device",
+    "title": "Falha crítica num dispositivo que não recebe patch",
+    "question": "Uma vulnerabilidade crítica afeta um instrumento de laboratório legado cujo fornecedor não lança mais atualizações, então ele vai estourar o SLA de patch de 15 dias. Qual é o tratamento mais adequado?",
+    "options": [
+      "Marcar o achado como falso positivo para o scanner parar de reportá-lo",
+      "Excluir a sub-rede do instrumento das próximas varreduras",
+      "Considerar o SLA não aplicável porque o dispositivo é gerido pelo fornecedor",
+      "Registrar uma exceção de risco com prazo, controles compensatórios e dono"
+    ],
+    "explanation": "Quando a remediação não é possível, programas maduros documentam a aceitação de risco com um dono responsável e data de expiração, aplicam controles compensatórios como isolamento de rede, acesso restrito e monitoramento extra, e planejam a substituição. Chamar uma falha real de falso positivo, escondê-la das varreduras ou declarar o SLA irrelevante deixam o risco no lugar e ainda o tornam invisível."
+  },
+  {
+    "id": "ods-vuln-backported-fix-finding",
+    "title": "Scanner aponta uma correção que a distro fez backport",
+    "question": "Um scan não autenticado marca um servidor RHEL como vulnerável a uma CVE do OpenSSL porque a versão reportada é anterior à correção upstream. O time de plataforma diz que a Red Hat já fez backport do patch. Como resolver?",
+    "options": [
+      "Compilar o OpenSSL upstream mais recente a partir do código para mudar a versão",
+      "Suprimir globalmente todo achado de OpenSSL para acabar com o ruído recorrente",
+      "Conferir o pacote no advisory do fornecedor e preferir scans autenticados",
+      "Aceitar o resultado do scanner, já que a versão é evidência definitiva"
+    ],
+    "explanation": "Distribuições corporativas costumam fazer backport de correções de segurança sem mudar o número de versão upstream, então checagens baseadas em banner geram falsos positivos. O achado deve ser verificado no advisory do fornecedor ou no changelog do pacote, documentado com essa evidência, e os próximos scans devem usar checagens autenticadas, em nível de pacote. Trocar o pacote do fornecedor quebra suporte e atualizações, uma supressão global esconderia problemas reais futuros, e strings de versão não são definitivas nessas distribuições."
+  },
+  {
+    "id": "ods-pentest-written-authorisation",
+    "title": "O que torna um teste de invasão legítimo",
+    "question": "O que separa, de forma mais fundamental, um teste de invasão de um ataque que usa as mesmas técnicas?",
+    "options": [
+      "Autorização por escrito do dono do sistema definindo escopo e regras",
+      "O testador usa apenas ferramentas comerciais, nunca as de código aberto",
+      "O teste acontece fora do horário comercial para evitar impacto",
+      "O testador promete reportar os achados em até uma semana"
+    ],
+    "explanation": "Permissão explícita e por escrito de alguém com autoridade sobre os sistemas, dizendo o que pode ser testado, como e quando, é o que torna o teste legítimo e legal. Escolha de ferramentas, janelas de horário e promessas de relatório são detalhes de execução do trabalho; nenhum deles substitui a autorização."
+  },
+  {
+    "id": "ods-pentest-white-box",
+    "title": "Dando nome à abordagem de teste",
+    "question": "Os testadores recebem código-fonte, diagramas de arquitetura e contas para todos os perfis de usuário antes de avaliar uma aplicação. Que tipo de teste é esse?",
+    "options": [
+      "Teste black-box",
+      "Exercício de red team",
+      "Teste white-box",
+      "Reconhecimento passivo"
+    ],
+    "explanation": "No teste white-box (clear-box) os testadores têm conhecimento completo do alvo, o que permite cobrir mais terreno com eficiência. O black-box não dá nenhum conhecimento interno, um exercício de red team emula um adversário real para testar detecção e resposta, e o reconhecimento passivo só reúne informação pública sem interagir com o alvo."
+  },
+  {
+    "id": "ods-pentest-out-of-scope-host",
+    "title": "Um host vulnerável fora do escopo combinado",
+    "question": "Durante um teste interno autorizado, um testador nota um host fora das faixas de IP combinadas que parece pertencer a um fornecedor terceiro e está bem desatualizado. O que o testador deve fazer?",
+    "options": [
+      "Testá-lo de leve, já que está na mesma rede dos hosts do escopo",
+      "Explorá-lo uma vez para provar o impacto e incluí-lo no relatório",
+      "Parar, não testá-lo e avisar o contato do cliente indicado nas RoE",
+      "Varrê-lo a partir de um IP pessoal para não vinculá-lo ao trabalho"
+    ],
+    "explanation": "A autorização cobre apenas o que o escopo e as regras de engajamento (RoE) listam; um terceiro não consentiu com nada. O testador não deve interagir mais e deve reportar a observação pelo canal combinado para que o cliente decida o que fazer. Testar de leve, provar impacto ou esconder a origem são todos acesso não autorizado."
+  },
+  {
+    "id": "ods-pentest-red-team-goal",
+    "title": "Escolhendo entre scan, pentest e red team",
+    "question": "A liderança quer saber se o SOC perceberia e responderia a um adversário realista perseguindo um objetivo específico ao longo de várias semanas. Qual tipo de trabalho se encaixa melhor?",
+    "options": [
+      "Um scan automatizado de vulnerabilidades dos hosts externos",
+      "Um pentest de uma semana na aplicação do site público",
+      "Uma auditoria de compliance dos procedimentos do SOC",
+      "Um exercício de red team emulando um ator conhecido"
+    ],
+    "explanation": "Exercícios de red team emulam táticas e técnicas de um adversário real rumo a um objetivo, geralmente de forma furtiva, então medem detecção e resposta em vez de só listar falhas. Scans enumeram vulnerabilidades conhecidas, um pentest busca o máximo de fraquezas num alvo definido, e uma auditoria verifica documentos, não defesas em operação. A MITRE publica planos de emulação de adversários baseados no ATT&CK exatamente para isso."
+  },
+  {
+    "id": "ods-pentest-cloud-provider-policy",
+    "title": "Aprovação do cliente não basta na nuvem",
+    "question": "Um cliente hospedado na AWS assina um escopo que inclui um teste de estresse DDoS contra seu load balancer de produção. O que a empresa de testes deve reconhecer antes de prosseguir?",
+    "options": [
+      "A política da AWS também se aplica, e simulação de DDoS tem regras próprias",
+      "A assinatura do cliente cobre toda a infraestrutura que atende o app",
+      "Cargas na nuvem não podem passar por pentest sob nenhuma política",
+      "Testes de DDoS são permitidos se durarem menos de uma hora no total"
+    ],
+    "explanation": "Um cliente só pode autorizar testes no que ele controla; a infraestrutura compartilhada do provedor segue a política do próprio provedor. A AWS permite testes de segurança em muitos serviços sem aprovação prévia, mas lista DoS/DDoS entre as atividades proibidas e trata simulações de DDoS numa política separada, com condições específicas. Supor que a assinatura do cliente cobre tudo, ou inventar uma exceção por duração, violaria essa política."
+  },
+  {
+    "id": "ods-malware-worm-definition",
+    "title": "Malware que se espalha sozinho",
+    "question": "Um malware se espalha de máquina em máquina pela rede explorando uma falha num serviço, sem ninguém abrir arquivos ou clicar em links. Que tipo de malware é esse?",
+    "options": [
+      "Um cavalo de Troia",
+      "Um worm",
+      "Um vírus que infecta arquivos",
+      "Adware"
+    ],
+    "explanation": "Um worm se autopropaga: ele se copia para outros sistemas, normalmente por serviços de rede vulneráveis, sem ação do usuário. Um cavalo de Troia depende de enganar o usuário para ser executado, um vírus clássico precisa que um arquivo hospedeiro infectado seja executado, e o objetivo do adware é exibir anúncios, não se espalhar."
+  },
+  {
+    "id": "ods-malware-ransomware-backups",
+    "title": "A propriedade de backup que derrota o ransomware",
+    "question": "Qual prática de backup mais melhora a capacidade de uma organização se recuperar de ransomware sem pagar?",
+    "options": [
+      "Backups num compartilhamento mapeado no computador de cada funcionário",
+      "Backups diários replicados para um segundo file server online",
+      "Backups offline ou imutáveis, com restores testados",
+      "Backups compactados e criptografados com a senha de domain admin"
+    ],
+    "explanation": "Operadores de ransomware procuram ativamente backups alcançáveis para criptografá-los ou apagá-los, então as cópias precisam ser offline ou imutáveis, e testes regulares de restore provam que funcionam. Um compartilhamento mapeado ou uma réplica online são alcançáveis pelas mesmas contas comprometidas, e proteger backups com credencial de domain admin os amarra à identidade que atacantes costumam roubar."
+  },
+  {
+    "id": "ods-malware-returns-after-reboot",
+    "title": "Malware que volta a cada reboot",
+    "question": "Um analista mata um processo malicioso e apaga o arquivo, mas ele reaparece a cada reboot. Onde a investigação deve focar agora?",
+    "options": [
+      "No cache do navegador, que baixa de novo programas apagados a cada inicialização",
+      "No cache do cliente DNS, que continua resolvendo o domínio do malware",
+      "No pagefile, que restaura processos mortos quando o Windows inicia",
+      "Em locais de autostart como chaves Run, serviços e tarefas agendadas"
+    ],
+    "explanation": "Reaparecer após o reboot indica um mecanismo de persistência que inicia ou recria o malware no boot ou logon, como chaves de registro Run, serviços, tarefas agendadas ou pastas de inicialização; o ATT&CK cataloga esses mecanismos para que defensores possam caçá-los. Cache do navegador, cache DNS e pagefile não relançam programas por conta própria."
+  },
+  {
+    "id": "ods-malware-signatures-miss-variants",
+    "title": "Antivírus sempre perde variantes novas",
+    "question": "Toda semana uma nova variante da mesma família de malware passa pelo antivírus baseado em assinaturas, cada uma com um hash diferente. Que adição complementa melhor as assinaturas?",
+    "options": [
+      "Detecção comportamental de ações como injeção em processos",
+      "Atualizar a base de assinaturas duas vezes por dia, e não uma",
+      "Bloquear todo anexo de e-mail com mais de cinco megabytes de tamanho",
+      "Rodar um scan completo de disco em toda máquina toda noite"
+    ],
+    "explanation": "Packing e polimorfismo mudam os bytes e o hash da amostra, mas o malware ainda precisa fazer coisas como injetar código em outros processos, criar persistência ou criptografar muitos arquivos rapidamente. EDR e detecção comportamental procuram essas ações. Atualizações mais frequentes e scans noturnos ainda dependem de assinaturas que ainda não existem, e limitar o tamanho de anexos não resolve a lacuna de detecção."
+  },
+  {
+    "id": "ods-malware-living-off-the-land",
+    "title": "Atacantes usando só ferramentas nativas",
+    "question": "Uma intrusão usou apenas binários nativos e assinados do Windows e ferramentas de script, então a allowlist de software assinado pela Microsoft nunca disparou. Qual abordagem defensiva resolve melhor?",
+    "options": [
+      "Remover da allowlist todo binário assinado pela Microsoft",
+      "Confiar em binários assinados, já que código assinado nunca é abusado",
+      "Depender de blocklists de hash para as ferramentas usadas",
+      "Criar baseline de uso normal, logar linhas de comando, caçar anomalias"
+    ],
+    "explanation": "Técnicas de living off the land se misturam à administração, então o guia da CISA foca em logging detalhado (criação de processos e linhas de comando), baselines do comportamento normal, caça a usos anômalos e restrição de ferramentas desnecessárias. Remover todo binário assinado quebraria o sistema operacional, ferramentas assinadas são abusadas justamente por serem confiáveis, e bloquear por hash bloquearia os próprios arquivos legítimos do sistema."
+  },
+  {
+    "id": "ods-zt-core-principle",
+    "title": "A ideia central do zero trust",
+    "question": "Qual afirmação captura melhor o princípio central de uma arquitetura zero trust?",
+    "options": [
+      "Usuários dentro da rede corporativa são confiáveis, mas os de fora nunca são",
+      "Nenhum acesso é confiável pela localização na rede; cada requisição é avaliada",
+      "Todo tráfego é bloqueado, e só administradores acessam os sistemas",
+      "Um firewall de perímetro forte dispensa controles internos"
+    ],
+    "explanation": "A NIST SP 800-207 descreve zero trust como a remoção da confiança implícita baseada em localização na rede ou propriedade do ativo: toda requisição de acesso é autenticada e autorizada, por sessão, usando identidade, dispositivo e contexto. Confiar na rede interna é exatamente o modelo de perímetro que o zero trust substitui, bloquear tudo é inviável, e um firewall de perímetro sozinho é o modelo do qual o zero trust se afasta."
+  },
+  {
+    "id": "ods-zt-flat-vpn-access",
+    "title": "Usuários de VPN que alcançam tudo",
+    "question": "Depois de conectar na VPN, qualquer funcionário alcança todas as aplicações internas e portas de banco de dados. Que mudança leva melhor esse cenário em direção ao zero trust?",
+    "options": [
+      "Exigir uma senha de VPN mais longa, trocada a cada 30 dias",
+      "Adicionar um segundo concentrador de VPN para redundância",
+      "Acesso por aplicação decidido por identidade, saúde do dispositivo e contexto",
+      "Permitir conexões de VPN apenas a partir do país da empresa"
+    ],
+    "explanation": "Zero trust troca o acesso em nível de rede por decisões por recurso: um policy enforcement point libera uma aplicação de cada vez com base em quem é o usuário, no estado do dispositivo e em outros sinais, o que também limita o movimento lateral. Troca de senha, redundância e restrições geográficas mantêm o modelo de acesso plano depois que alguém se conecta."
+  },
+  {
+    "id": "ods-zt-standing-admin-rights",
+    "title": "Admins com privilégios permanentes",
+    "question": "Doze engenheiros têm direitos permanentes de domain admin, embora cada um só precise deles algumas vezes por mês. Qual é a melhoria de menor privilégio?",
+    "options": [
+      "Elevação just-in-time, por tempo limitado, com aprovação e log",
+      "Rodiziar a senha de domain admin entre eles a cada trimestre",
+      "Compartilhar uma única conta de admin para ter menos a monitorar",
+      "Restringir as contas de admin para logarem só em horário comercial"
+    ],
+    "explanation": "Privilégios permanentes estão sempre disponíveis para um atacante que roube uma dessas contas. Elevação just-in-time concede direitos só quando necessário, por tempo limitado, com aprovação e trilha de auditoria, reduzindo a janela e o número de contas expostas. Rodízio de senha e limites de horário mantêm o acesso permanente, e uma conta compartilhada destrói a responsabilização."
+  },
+  {
+    "id": "ods-zt-policy-engine-role",
+    "title": "Qual componente da ZTA toma a decisão",
+    "question": "No modelo lógico de arquitetura zero trust da NIST SP 800-207, qual componente toma de fato a decisão de conceder ou negar acesso a um recurso?",
+    "options": [
+      "O policy enforcement point (PEP)",
+      "O policy administrator (PA)",
+      "O policy engine (PE)",
+      "O repositório de políticas de acesso a dados"
+    ],
+    "explanation": "O policy engine avalia a política corporativa e entradas como threat intelligence e estado do dispositivo para decidir; o policy administrator age sobre essa decisão estabelecendo ou encerrando o caminho de comunicação, e o PEP habilita, monitora e encerra a conexão em si. Políticas de acesso são entradas do engine, não quem decide."
+  },
+  {
+    "id": "ods-zt-stolen-session-cookie",
+    "title": "Cookie de sessão roubado depois do MFA",
+    "question": "A política exige MFA no login. Um atacante rouba o cookie de sessão de um usuário após um login bem-sucedido e o reutiliza no próprio notebook, obtendo acesso sem nenhum prompt de MFA. Qual controle de zero trust teria feito o replay falhar de forma mais direta?",
+    "options": [
+      "Pedir MFA duas vezes seguidas em todo login",
+      "Obrigar todos a trocarem a senha a cada 30 dias",
+      "Exigir dispositivo gerenciado em cada requisição, reavaliando o contexto",
+      "Bloquear logins originados fora do país da empresa"
+    ],
+    "explanation": "O cookie roubado já representa um MFA concluído, então checagens mais fortes no login não ajudam; o que impede o replay é avaliar continuamente cada requisição contra a identidade do dispositivo e o contexto da sessão, de modo que uma sessão apresentada de um dispositivo não gerenciado do atacante seja rejeitada. Trocar a senha não invalida, por si só, um token de sessão existente, e geobloqueio é contornado facilmente com infraestrutura no país certo."
+  },
+  {
+    "id": "ods-cloud-shared-responsibility",
+    "title": "Quem aplica patches no SO de uma VM na nuvem",
+    "question": "No modelo de responsabilidade compartilhada da AWS, quem é responsável por aplicar patches no sistema operacional convidado de uma instância EC2?",
+    "options": [
+      "A AWS, já que ela opera o hardware onde a instância roda",
+      "O cliente, que gerencia o SO convidado e tudo o que roda nele",
+      "Ninguém, já que instâncias EC2 se atualizam sozinhas",
+      "Quem o contato técnico da conta AWS designar por escrito"
+    ],
+    "explanation": "A AWS é responsável pela segurança da nuvem (instalações, hardware, camada de virtualização), enquanto o cliente é responsável pela segurança na nuvem, o que em IaaS inclui o SO convidado, as aplicações, a configuração de firewall e os dados. Serviços gerenciados deslocam mais dessa linha para a AWS, mas o patch do SO convidado no EC2 continua com o cliente e não é automático."
+  },
+  {
+    "id": "ods-cloud-block-public-access",
+    "title": "Impedindo buckets S3 públicos na conta toda",
+    "question": "Depois de dois incidentes em que um desenvolvedor tornou um bucket S3 público por engano, o time de segurança quer impedir acesso público a buckets em toda a conta AWS, não importa o que digam as bucket policies individuais. Qual controle se encaixa melhor?",
+    "options": [
+      "Ativar o S3 Block Public Access no nível da conta",
+      "Ativar criptografia padrão em todos os buckets da conta",
+      "Ativar versionamento para reverter um bucket público",
+      "Rodar um script semanal que envia por e-mail a lista de buckets"
+    ],
+    "explanation": "O S3 Block Public Access, configurado no nível da conta, se sobrepõe a bucket policies e ACLs que concederiam acesso público, o que o torna um guardrail preventivo. Criptografia em repouso não impede um bucket público de servir objetos descriptografados, versionamento protege contra sobrescrita e exclusão e não contra exposição, e um relatório semanal só detecta o problema depois do fato."
+  },
+  {
+    "id": "ods-cloud-who-changed-security-group",
+    "title": "Descobrindo quem abriu um security group",
+    "question": "Um security group foi alterado durante a noite para permitir SSH de 0.0.0.0/0. Qual fonte de logs da AWS mostra qual identidade fez a mudança e quando?",
+    "options": [
+      "VPC Flow Logs da sub-rede afetada",
+      "Logs de acesso do servidor S3 da conta",
+      "Métricas do CloudWatch da instância EC2",
+      "Management events do AWS CloudTrail"
+    ],
+    "explanation": "O CloudTrail registra chamadas de API, incluindo quem chamou AuthorizeSecurityGroupIngress, de onde e quando, sendo a trilha de auditoria para mudanças no control plane. VPC Flow Logs capturam metadados de tráfego de rede, não chamadas de API; logs de acesso do S3 cobrem requisições a buckets; e métricas do CloudWatch são números de desempenho sem informação de identidade."
+  },
+  {
+    "id": "ods-cloud-scp-protect-cloudtrail",
+    "title": "Impedindo admins de contas de desligar o logging",
+    "question": "Numa AWS Organization, o time de segurança quer garantir que ninguém nas contas membro, nem os administradores delas, consiga parar ou apagar as trilhas do CloudTrail da organização. Qual mecanismo garante isso?",
+    "options": [
+      "Uma IAM policy anexada à role de admin de cada conta membro",
+      "Uma service control policy que nega as ações de parar e apagar do CloudTrail",
+      "Uma bucket policy no bucket S3 que recebe os logs das trilhas",
+      "Um alarme do CloudWatch que avisa o time quando uma trilha é parada"
+    ],
+    "explanation": "SCPs definem as permissões máximas de todo principal nas contas membro às quais se aplicam, então um deny explícito ali não pode ser anulado pelos administradores da conta. IAM policies dentro da conta podem ser editadas por esses mesmos admins, uma bucket policy protege os arquivos de log e não a trilha em si, e um alarme detecta a mudança em vez de impedi-la. Lembre que SCPs não se aplicam à management account, que precisa ser protegida separadamente."
+  },
+  {
+    "id": "ods-cloud-leaked-access-key",
+    "title": "Access key enviada a um repositório público",
+    "question": "Um desenvolvedor enviou uma access key AWS de longa duração para um repositório público no GitHub há duas horas. Qual é a ordem certa de resposta?",
+    "options": [
+      "Reescrever o histórico do Git para remover a chave e rotacioná-la na próxima sprint",
+      "Tornar o repositório privado e depois perguntar ao desenvolvedor se ela foi usada",
+      "Apagar o usuário IAM do desenvolvedor e esperar um pico na fatura para só então confirmar abuso",
+      "Desativar a chave já e depois revisar no CloudTrail o que ela fez, buscando persistência"
+    ],
+    "explanation": "Segredos públicos são coletados por scanners automáticos em minutos, então a chave precisa ser desativada imediatamente e substituída. Depois, a equipe deve revisar no CloudTrail tudo o que a chave fez, procurando principalmente usuários, chaves, roles ou recursos novos que um atacante possa ter criado para persistência. Limpar o histórico ou esconder o repositório não revoga uma chave já copiada, e apagar o usuário sem investigar perde o rastro do que aconteceu."
+  },
+  {
+    "id": "ods-crypto-hash-is-not-encryption",
+    "title": "Arquivos criptografados com SHA-256",
+    "question": "Um documento de design diz: \"os arquivos dos clientes são criptografados com SHA-256 e descriptografados no download.\" O que está errado?",
+    "options": [
+      "O SHA-256 é lento demais para arquivos grandes de clientes",
+      "O SHA-256 é um hash de mão única; nada poderia ser descriptografado",
+      "O SHA-256 precisa de uma chave de 512 bits para ser seguro",
+      "O SHA-256 só funciona com texto, não com arquivos binários como PDFs"
+    ],
+    "explanation": "Uma função de hash transforma a entrada num digest de tamanho fixo e não tem chave nem inversa, então serve para checagens de integridade e impressões digitais, não para confidencialidade. Proteção reversível exige um algoritmo de criptografia como o AES com uma chave gerenciada. O SHA-256 é rápido, não usa chave e funciona com bytes arbitrários, então as outras opções o descrevem errado."
+  },
+  {
+    "id": "ods-crypto-tls-hybrid-encryption",
+    "title": "Por que o TLS usa os dois tipos de criptografia",
+    "question": "O TLS usa criptografia de chave pública no handshake, mas cifras simétricas como AES-GCM para os dados da aplicação. Por quê?",
+    "options": [
+      "Cifras simétricas não podem ser quebradas; as de chave pública podem",
+      "Cifras de chave pública não cifram dados maiores que uma senha",
+      "Navegadores proíbem cifrar corpos de requisição HTTP com chave pública por privacidade",
+      "A criptografia simétrica é muito mais rápida para grandes volumes de dados"
+    ],
+    "explanation": "Operações de chave pública servem para autenticar o servidor e combinar chaves compartilhadas, mas são bem mais caras que cifras simétricas, então o tráfego em volume é protegido por cifras AEAD simétricas rápidas usando as chaves negociadas. Nenhuma das famílias é inquebrável por definição, esquemas de chave pública não têm esse limite de tamanho de senha, e navegadores não impõem tal regra."
+  },
+  {
+    "id": "ods-crypto-hmac-vs-plain-hash",
+    "title": "Provando que a mensagem veio de um serviço confiável",
+    "question": "Dois serviços internos compartilham um segredo. O serviço A envia mensagens com um hash SHA-256 do corpo anexado para que o serviço B detecte adulteração. Por que isso é fraco e o que usar no lugar?",
+    "options": [
+      "Quem alterar o corpo pode recalcular o hash; use um HMAC com o segredo compartilhado",
+      "O SHA-256 colide fácil demais para checar integridade; troque por MD5",
+      "Hashes sempre devem ser cifrados com RSA antes do envio; adicione uma camada RSA",
+      "Integridade não precisa ser verificada em rede interna; remova o hash por completo"
+    ],
+    "explanation": "Um hash simples não tem segredo, então um atacante que consiga alterar a mensagem simplesmente calcula o novo hash. Um HMAC mistura a chave compartilhada, de modo que só quem tem a chave produz uma tag válida, garantindo integridade e autenticidade. O SHA-256 não tem colisões práticas enquanto o MD5 está quebrado, cifrar um hash não é a construção padrão, e redes internas são um lugar comum de movimentação de atacantes."
+  },
+  {
+    "id": "ods-crypto-crypto-shredding",
+    "title": "Apagando dados que vivem em backups antigos",
+    "question": "Uma empresa SaaS precisa tornar irrecuperáveis os dados de um cliente, mas há cópias em anos de backups imutáveis. Os dados de cada cliente foram criptografados com uma chave de dados própria guardada num KMS. O que permite a exclusão efetiva?",
+    "options": [
+      "Recriptografar todos os backups com uma nova master key",
+      "Destruir a chave desse cliente, tornando todas as cópias ilegíveis",
+      "Calcular o hash de cada um dos registros do cliente dentro dos backups antigos",
+      "Compactar os backups para sobrescrever os dados antigos"
+    ],
+    "explanation": "Crypto-shredding se apoia no fato de que dados bem criptografados são inúteis sem a chave: destruir a chave do cliente no KMS torna ilegível toda cópia, inclusive em backups imutáveis. Isso só funciona porque as chaves foram gerenciadas separadas dos dados e por cliente. Backups imutáveis não podem ser recriptografados nem ter hash calculado no lugar, e compactá-los não apaga os dados originais."
+  },
+  {
+    "id": "ods-crypto-harvest-now-decrypt-later",
+    "title": "Priorizando a migração pós-quântica",
+    "question": "Um banco está planejando a migração para criptografia pós-quântica. Considerando a ameaça \"harvest now, decrypt later\", qual mudança deve vir primeiro?",
+    "options": [
+      "Substituir o AES-256 dos dados em repouso, já que computadores quânticos quebram toda cifra simétrica",
+      "Reassinar todos os documentos arquivados, já que assinaturas passadas viram falsificáveis retroativamente",
+      "Esperar existir um computador quântico funcional, já que tráfego gravado não é afetado",
+      "Levar o estabelecimento de chaves do tráfego secreto de longa vida para ML-KEM, p. ex. híbrido"
+    ],
+    "explanation": "Tráfego protegido por troca de chaves RSA ou de curvas elípticas pode ser gravado hoje e descriptografado quando existir um computador quântico capaz, então dados confidenciais com longa vida de sigilo precisam primeiro de estabelecimento de chaves resistente a quântica (ML-KEM, FIPS 203), muitas vezes em modo híbrido com esquemas clássicos. O AES-256 é considerado adequado contra os ataques quânticos conhecidos, assinaturas importam principalmente para falsificações feitas depois que a capacidade quântica existir, e esperar ignora a ameaça de gravação."
+  },
+  {
+    "id": "ods-compliance-iso-27001-scope",
+    "title": "O que a ISO/IEC 27001 certifica",
+    "question": "Uma empresa anuncia que tem certificação ISO/IEC 27001. O que um auditor acreditado certificou de fato?",
+    "options": [
+      "Que seu software não tem vulnerabilidades exploráveis conhecidas",
+      "Que seu ISMS atende aos requisitos da norma",
+      "Que ela criptografa todos os dados pessoais conforme o GDPR",
+      "Que seus produtos passaram num pentest do governo"
+    ],
+    "explanation": "A ISO/IEC 27001 especifica requisitos para um sistema de gestão de segurança da informação (ISMS, ou SGSI): avaliação e tratamento de riscos, controles escolhidos, comprometimento da liderança e melhoria contínua dentro de um escopo definido. Ela não certifica que o software está livre de vulnerabilidades, não é uma declaração de conformidade com o GDPR e não envolve pentest governamental de produtos."
+  },
+  {
+    "id": "ods-compliance-csf-govern-function",
+    "title": "A função adicionada no NIST CSF 2.0",
+    "question": "O NIST Cybersecurity Framework 2.0 adicionou uma sexta função central a Identify, Protect, Detect, Respond e Recover. Qual?",
+    "options": [
+      "Audit",
+      "Prevent",
+      "Monitor",
+      "Govern"
+    ],
+    "explanation": "O CSF 2.0, publicado em 2024, adicionou Govern, que cobre estratégia de gestão de riscos de cibersegurança, papéis, políticas e gestão de riscos da cadeia de suprimentos, e orienta as outras cinco funções. Audit, Prevent e Monitor não são funções do CSF; atividades de monitoramento ficam principalmente em Detect."
+  },
+  {
+    "id": "ods-compliance-soc2-type-ii",
+    "title": "SOC 2 Type I versus Type II",
+    "question": "O time de compras de um cliente só aceita um relatório SOC 2 Type II de um fornecedor que já tem um relatório Type I. O que o Type II acrescenta?",
+    "options": [
+      "Ele também cobre as demonstrações financeiras do fornecedor",
+      "Ele testa a eficácia dos controles ao longo de um período",
+      "Ele é emitido por um órgão do governo, e não por uma firma de CPA",
+      "Ele inclui um certificado válido por três anos"
+    ],
+    "explanation": "Um relatório Type I avalia se os controles estão bem desenhados num momento específico; um Type II também testa a eficácia operacional deles ao longo de um período de revisão, muitas vezes de 6 a 12 meses, o que é uma evidência bem mais forte. Ambos são relatórios de asseguração emitidos por firmas independentes de CPA com base nos Trust Services Criteria, e não auditorias financeiras nem certificados plurianuais."
+  },
+  {
+    "id": "ods-compliance-gdpr-breach-72-hours",
+    "title": "Prazo do GDPR para notificar um incidente",
+    "question": "Um controlador sujeito ao GDPR toma ciência de uma violação de dados pessoais que provavelmente coloca em risco os direitos das pessoas. Até quando ele deve notificar a autoridade supervisora?",
+    "options": [
+      "Em até 24 horas após a violação acontecer",
+      "Em até 30 dias, junto com o relatório final do incidente",
+      "Só depois que a investigação estiver concluída",
+      "Em até 72 horas após tomar ciência, quando viável"
+    ],
+    "explanation": "O artigo 33 do GDPR exige notificação sem demora injustificada e, quando viável, em até 72 horas após tomar ciência da violação, a menos que ela provavelmente não resulte em risco às pessoas; as informações podem ser enviadas em fases. Esperar a investigação terminar ou um relatório final perde o prazo, e o relógio começa na ciência, não no momento da violação. A LGPD tem um dever semelhante de comunicar a ANPD e os titulares, com prazos definidos por regulamentação da ANPD."
+  },
+  {
+    "id": "ods-compliance-employee-data-legal-basis",
+    "title": "Base legal para tratar dados de folha de pagamento",
+    "question": "Pela LGPD e pelo GDPR, um time de RH quer que os funcionários marquem uma caixa de consentimento antes de guardar seus dados bancários para pagar salários. Por que o consentimento é uma má escolha de base legal aqui?",
+    "options": [
+      "O tratamento é necessário ao contrato de trabalho e a deveres legais, e o consentimento é revogável",
+      "Consentimento só vale para dados de menores; adultos ficam cobertos pelo legítimo interesse",
+      "Dados bancários são dados pessoais sensíveis, que nenhuma das duas leis permite tratar",
+      "Funcionários não são titulares de dados em nenhuma das leis enquanto têm contrato de trabalho"
+    ],
+    "explanation": "Pagar salários é necessário para executar o contrato de trabalho e cumprir obrigações trabalhistas e fiscais, que são bases legais próprias nas duas leis. O consentimento precisa ser livre e revogável, o que é duvidoso diante do desequilíbrio de poder do empregador, e se os funcionários o revogassem a folha ainda teria de continuar. Dados bancários não são categoria sensível, e funcionários são plenamente titulares de dados."
+  }
+]

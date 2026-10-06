@@ -1,0 +1,614 @@
+[
+  {
+    "id": "cr-goals-what-counts-as-emergency",
+    "topic": "code-review",
+    "subtopic": "review-goals",
+    "difficulty": "Hard",
+    "title": "Which change justifies an emergency review",
+    "question": "Your team relaxes normal review depth only for genuine emergencies. Four authors ask for a same-day rubber-stamp approval. Following Google's review guidance, which request actually qualifies?",
+    "options": [
+      "A feature the author has spent two months on and wants merged before a vacation",
+      "A change that must ship by Friday evening so that Monday's sprint demo looks complete",
+      "A small patch that closes an actively exploited authentication bypass in production",
+      "A refactor the manager wants merged today because of a soft target set at planning"
+    ],
+    "correctIndex": 2,
+    "explanation": "Google's guidance limits emergencies to small changes such as closing a major security hole, fixing a bug that badly hurts production users, letting a major launch continue, or handling a pressing legal issue. Long-running work, end-of-week convenience and soft managerial deadlines are explicitly not emergencies, so those changes get the normal review standard.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/emergencies.html"
+  },
+  {
+    "id": "cr-goals-revisit-emergency-fix",
+    "topic": "code-review",
+    "subtopic": "review-goals",
+    "difficulty": "Medium",
+    "title": "After an emergency fix lands",
+    "question": "During an outage you approved a hotfix after checking only that it stopped the failing payments and looked correct. The incident is now resolved. What does Google's review guidance expect next?",
+    "options": [
+      "Look over the emergency change again and give it a more thorough review",
+      "Nothing further, because the fix has already gone through code review",
+      "Revert the hotfix and reapply it later as a regular, fully reviewed PR",
+      "Leave it to QA sign-off, since a reviewer has already seen the diff once"
+    ],
+    "correctIndex": 0,
+    "explanation": "In an emergency the reviewer may focus mainly on speed and on whether the change actually resolves the emergency, but the guidance says to look over emergency changes again once things are resolved and give them a more thorough review. Reverting a working fix adds risk, and skipping the follow-up leaves code in place that never met the normal standard.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/emergencies.html"
+  },
+  {
+    "id": "cr-goals-reject-unwanted-feature",
+    "topic": "code-review",
+    "subtopic": "review-goals",
+    "difficulty": "Hard",
+    "title": "Well-built code for an unwanted feature",
+    "question": "A PR adds a built-in cron scheduler to your HTTP routing library. The code is clean, tested and well designed, but the maintainers have decided that scheduling does not belong in this library. What is the appropriate review outcome?",
+    "options": [
+      "Approve it, since the standard favors approval whenever code health improves",
+      "Approve it with nits, and open an issue to discuss the library's scope later",
+      "Request more tests first, then approve once coverage reaches the team target",
+      "Decline it and explain the scope decision, though the code itself is good"
+    ],
+    "correctIndex": 3,
+    "explanation": "The 'approve when it improves code health' rule has explicit limits: if a change adds a feature the reviewer does not want in the system, they can deny approval even when the code is well designed. Design includes whether the change belongs in this codebase at all, so asking for more tests or approving now and debating later both miss the real problem.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/standard.html"
+  },
+  {
+    "id": "cr-goals-equally-valid-designs",
+    "topic": "code-review",
+    "subtopic": "review-goals",
+    "difficulty": "Hard",
+    "title": "Two equally valid designs",
+    "question": "You would have used a strategy interface; the author used a small switch over an enum. The author shows a benchmark and a short argument that both are equally maintainable for the three cases that exist. How should the disagreement be settled?",
+    "options": [
+      "The reviewer's choice wins, because reviewers own the design of the codebase",
+      "Accept the author's approach, since they showed both options are valid",
+      "Ask a third engineer to vote, and go with whichever option gets two votes",
+      "Require the strategy interface anyway, because it is the more extensible one"
+    ],
+    "correctIndex": 1,
+    "explanation": "Google's standard says design is weighed on engineering principles, not opinion, and when the author demonstrates with data or solid principles that several approaches are equally valid, the reviewer should accept the author's preference. Insisting on extensibility for cases that do not exist yet is personal preference, and voting replaces reasoning with a headcount.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/standard.html"
+  },
+  {
+    "id": "cr-goals-partial-review-scope",
+    "topic": "code-review",
+    "subtopic": "review-goals",
+    "difficulty": "Hard",
+    "title": "Approving when you reviewed only part",
+    "question": "A 12-file PR has three reviewers. You were asked to review only the authentication changes in two files, and they look good. What should your approval convey?",
+    "options": [
+      "Approve, noting in a comment which parts of the change you actually reviewed",
+      "Approve silently, since the merge rules count approvals and not their scope",
+      "Hold approval until you have personally gone through all twelve of the files",
+      "Leave a plain comment instead of approving, so you are not responsible for it"
+    ],
+    "correctIndex": 0,
+    "explanation": "When you are asked to review only certain files or aspects of a change, the guidance says to note in a comment which parts you reviewed and to prefer LGTM with comments. A silent approval suggests you vouched for the whole change, while withholding or refusing approval slows the author down without adding any review value.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/looking-for.html"
+  },
+  {
+    "id": "cr-goals-end-of-cycle-rush",
+    "topic": "code-review",
+    "subtopic": "review-goals",
+    "difficulty": "Expert",
+    "title": "Every release ends in a review rush",
+    "question": "Releases ship every six weeks. In the last two days of each cycle, large feature PRs arrive that 'must get in', get a superficial review, and the codebase is accumulating debt. What is the best fix according to Google's review guidance?",
+    "options": [
+      "Treat the final two days as an emergency window with a lighter review bar",
+      "Add more reviewers in the final week so the big PRs get skimmed in parallel",
+      "Change the process so large features land early, with time for review",
+      "Extend the cycle to eight weeks so that more features fit before the cutoff"
+    ],
+    "correctIndex": 2,
+    "explanation": "The guidance warns that routinely pushing 'must get in' changes through superficial review near a release cut is a common way to build overwhelming technical debt, and recommends changing the process so large feature work happens early in the cycle with enough time for good review. Release targets are usually soft deadlines, not emergencies, and longer cycles or more skimmers just move the same rush around.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/emergencies.html"
+  },
+  {
+    "id": "cr-prsize-lines-across-many-files",
+    "topic": "code-review",
+    "subtopic": "pr-size",
+    "difficulty": "Medium",
+    "title": "When 200 lines is too big",
+    "question": "Two PRs each change about 200 lines. PR A edits one file; PR B touches 50 files with a few lines each. How does Google's small-CL guidance view them?",
+    "options": [
+      "Both are fine, because size is judged only by the number of changed lines",
+      "PR A is likely fine, while PR B is usually too large because of its spread",
+      "Both are too large, since anything over 100 changed lines should be split",
+      "PR B is better, since tiny edits per file are easier for reviewers to follow"
+    ],
+    "correctIndex": 1,
+    "explanation": "The guidance treats 100 lines as usually reasonable and 1000 as usually too large, but says the number of files also affects size: a 200-line change in one file might be fine, while the same lines spread across 50 files usually is too large. Line count alone is not a hard rule, and scattered edits force the reviewer to rebuild context dozens of times.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/developer/small-cls.html"
+  },
+  {
+    "id": "cr-prsize-api-without-caller",
+    "topic": "code-review",
+    "subtopic": "pr-size",
+    "difficulty": "Hard",
+    "title": "A new API with no callers yet",
+    "question": "To keep PRs small, an author sends PR 1 adding a public `RateLimiter.TryAcquire(key, cost)` API with unit tests, and plans to add the first caller in PR 2 next week. What should the reviewer ask for?",
+    "options": [
+      "Nothing; an unused API is the ideal small change and the easiest to review",
+      "Merge the API now, but mark it internal until PR 2 actually starts using it",
+      "Combine both PRs and also add the feature flag, the docs and the dashboard",
+      "Include a real usage in the same PR so the API's shape can be judged"
+    ],
+    "correctIndex": 3,
+    "explanation": "Google's guidance warns that a change can be so small that its implications are hard to understand: when you add a new API, include a usage of it in the same change so reviewers can judge how it will be used, which also avoids checking in unused APIs. Bundling everything else back in overshoots, and changing visibility does not help the reviewer evaluate the design.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/developer/small-cls.html"
+  },
+  {
+    "id": "cr-prsize-move-and-fix",
+    "topic": "code-review",
+    "subtopic": "pr-size",
+    "difficulty": "Hard",
+    "title": "Bug fix hidden inside a move and rename",
+    "question": "A PR moves `InvoiceCalc.cs` to a new folder, renames the class to `InvoiceCalculator`, and fixes a rounding bug inside it. The diff shows the whole old file deleted and a new file added. What is the best review request?",
+    "options": [
+      "Split it: the move and rename in one PR, then the rounding fix in another",
+      "Approve, since a rename is mechanical and the tool shows the full new file",
+      "Ask the author to describe the rounding fix in detail in the description",
+      "Ask for the rounding fix to wait until the next planned refactoring sprint"
+    ],
+    "correctIndex": 0,
+    "explanation": "Refactorings such as moving and renaming a class should go in a separate change from bug fixes in that class; mixed together, the fix is buried in a delete-and-add diff that nobody can review line by line. A description helps but does not make the logic change visible, and delaying a real bug fix for process reasons is not the goal.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/developer/small-cls.html"
+  },
+  {
+    "id": "cr-prsize-generated-refactor",
+    "topic": "code-review",
+    "subtopic": "pr-size",
+    "difficulty": "Hard",
+    "title": "A 3,000-line PR from a codemod",
+    "question": "An engineer runs the team's trusted automated refactoring tool to rename a widely used method, producing a 3,000-line PR with no hand edits. How should reviewers treat its size?",
+    "options": [
+      "Reject it outright, since anything above 1,000 lines is too big to review",
+      "Ask for it to be split into 30 PRs of 100 lines each to meet the guideline",
+      "Accept the size; the job is mainly to confirm that the change is wanted",
+      "Review every line with the same depth as hand-written business logic"
+    ],
+    "correctIndex": 2,
+    "explanation": "The small-CL guidance names large changes generated by an automatic refactoring tool you trust completely as an acceptable exception: the reviewer's job is mostly to verify that they really want the change. Splitting a mechanical rename into arbitrary chunks adds merge and build risk without improving the review, although caveats such as merging and testing still apply.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/developer/small-cls.html"
+  },
+  {
+    "id": "cr-prsize-stacked-break-build",
+    "topic": "code-review",
+    "subtopic": "pr-size",
+    "difficulty": "Expert",
+    "title": "Stacked PRs that break main in between",
+    "question": "An author splits a migration into a stack: PR 1 deletes the old `GetUserAsync(int)` overload, PR 2 updates its 14 callers to the new overload. PR 1 is approved first and the author wants to merge it right away. What is the problem?",
+    "options": [
+      "None; stacked PRs are always merged in order, so it resolves itself",
+      "Main won't compile until PR 2 lands; move the callers first instead",
+      "The stack is too granular; such migrations must be one combined PR",
+      "PR 2 must be approved by a different reviewer than the one for PR 1"
+    ],
+    "correctIndex": 1,
+    "explanation": "When small changes depend on each other, each one must leave the system working after it is merged; otherwise everyone on main is broken until the next PR lands, possibly for a long time. Reordering the stack (migrate the callers first, delete the old API last) keeps the PRs small and safe, so one huge combined PR is unnecessary.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/developer/small-cls.html"
+  },
+  {
+    "id": "cr-prsize-tests-before-refactor",
+    "topic": "code-review",
+    "subtopic": "pr-size",
+    "difficulty": "Hard",
+    "title": "Refactoring code that has no tests",
+    "question": "You want to restructure a 400-line pricing module that currently has no tests. You plan one PR that both adds characterization tests and restructures the module. What split does Google's guidance suggest?",
+    "options": [
+      "No split; tests and the refactor must always ship together in one change",
+      "Refactor first, then add tests later once the new structure is stable",
+      "Skip the tests, since a pure refactoring by definition changes no behavior",
+      "Land the tests first, then the refactor, so they show behavior is unchanged"
+    ],
+    "correctIndex": 3,
+    "explanation": "The guidance allows independent test changes to go first, and specifically mentions adding tests for existing untested code before refactoring it, so you can confirm the tested behavior is the same before and after. Pure refactorings still need test coverage, and adding tests after the restructure loses the baseline that would have caught an accidental change.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/developer/small-cls.html"
+  },
+  {
+    "id": "cr-design-check-then-act-race",
+    "topic": "code-review",
+    "subtopic": "review-correctness-design",
+    "difficulty": "Hard",
+    "title": "Cache fill in a singleton service",
+    "question": "A PR adds this to a service registered as a singleton in ASP.NET Core:\n\nprivate readonly Dictionary<string, Rate> _rates = new();\npublic Rate Get(string c) {\n  if (!_rates.ContainsKey(c)) _rates[c] = Load(c);\n  return _rates[c];\n}\n\nWhat is the main correctness problem?",
+    "options": [
+      "Load runs on every request, so the cache never actually takes effect",
+      "The key comparison should be case-insensitive to avoid duplicate entries",
+      "Concurrent requests write to a non-thread-safe Dictionary and can corrupt it",
+      "A singleton cannot keep instance fields, so _rates is reset per request"
+    ],
+    "correctIndex": 2,
+    "explanation": "A singleton is shared by all concurrent requests, and Dictionary<TKey,TValue> is not safe for concurrent writes: the check-then-act sequence races and simultaneous inserts can corrupt its internal state. Use ConcurrentDictionary (for example GetOrAdd) or proper locking; otherwise the cache does work, and a singleton keeps its fields for the app's lifetime.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/collections/thread-safe/"
+  },
+  {
+    "id": "cr-design-swallowed-exception",
+    "topic": "code-review",
+    "subtopic": "review-correctness-design",
+    "difficulty": "Hard",
+    "title": "Swallowing errors in a payment status check",
+    "question": "Review this change:\n\ntry { return await _psp.GetStatusAsync(id); }\ncatch (Exception) { return null; }\n\nCallers treat `null` as 'payment not found' and then offer the customer a new payment. What is the key risk?",
+    "options": [
+      "Outages look like missing payments, so customers may be charged twice",
+      "Catching Exception is slower than catching HttpRequestException alone",
+      "Returning null instead of throwing makes the method harder to unit test",
+      "The await inside try/catch stops the method from running asynchronously"
+    ],
+    "correctIndex": 0,
+    "explanation": "Catching every exception and returning a value that callers interpret as a business fact turns timeouts and outages into 'no payment exists', which here leads to duplicate charges. Catch only what you can handle meaningfully and surface failures distinctly; performance and testability are secondary concerns, and await works normally inside try/catch.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/exceptions/best-practices-for-exceptions"
+  },
+  {
+    "id": "cr-design-singleton-request-state",
+    "topic": "code-review",
+    "subtopic": "review-correctness-design",
+    "difficulty": "Expert",
+    "title": "Per-request data stored in a singleton",
+    "question": "A PR registers `services.AddSingleton<AuditContext>()` and sets `auditContext.UserId = currentUser.Id` in a middleware; services read it later in the same request to stamp audit rows. Tests pass. What should the reviewer flag?",
+    "options": [
+      "Singletons are created lazily, so the first request will see a null UserId",
+      "Middleware cannot resolve singletons; it must take a scoped service instead",
+      "Audit rows should be stamped by a database trigger rather than in app code",
+      "All requests share one instance, so concurrent users overwrite the id"
+    ],
+    "correctIndex": 3,
+    "explanation": "A singleton is shared by every request, so storing per-request state in it is a race: under concurrency one request can stamp audit rows with another user's id, which single-user tests never reveal. Per-request data belongs in a scoped service or in HttpContext; middleware can use singletons, and lazy creation is not the issue.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection"
+  },
+  {
+    "id": "cr-design-pagination-off-by-one",
+    "topic": "code-review",
+    "subtopic": "review-correctness-design",
+    "difficulty": "Medium",
+    "title": "Page numbers that skip the first page",
+    "question": "The API contract says `page` starts at 1. The PR implements:\n\nquery.OrderBy(o => o.Id).Skip(page * size).Take(size)\n\nWhat will a reviewer reading the contract notice?",
+    "options": [
+      "Take must come before Skip, or EF Core will load the entire table first",
+      "Page 1 skips the first `size` rows, so the first page is never returned",
+      "OrderBy is unnecessary because Id is already the clustered primary key",
+      "Skip and Take are evaluated in memory, after all rows have been fetched"
+    ],
+    "correctIndex": 1,
+    "explanation": "With 1-based pages the offset must be (page - 1) * size; as written, page 1 already skips one full page, so the first results are unreachable. Checking code against its contract and edge cases is part of reviewing functionality. The operator order is correct, OrderBy is needed for stable paging, and EF Core translates Skip/Take into SQL.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/ef/core/querying/pagination"
+  },
+  {
+    "id": "cr-design-look-at-whole-method",
+    "topic": "code-review",
+    "subtopic": "review-correctness-design",
+    "difficulty": "Medium",
+    "title": "Four lines that hide a bigger problem",
+    "question": "The review tool shows a PR adding four lines to handle a new discount type. Opening the full file, you see they extend a 120-line method that already branches on eight discount types. How should you treat this?",
+    "options": [
+      "Review only the diff; code outside the changed lines is out of scope",
+      "Approve, and quietly fix the long method yourself in a follow-up later",
+      "Point out the method now needs restructuring, since the PR grows it",
+      "Block the PR until the whole discount module is rewritten from scratch"
+    ],
+    "correctIndex": 2,
+    "explanation": "Google's guidance asks reviewers to look at a change in its broader context: four new lines might look fine alone, but if they grow a method that really needs breaking up, the change adds complexity and the reviewer should say so. Systems usually become complex through many small additions, while demanding a full rewrite is out of proportion.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/looking-for.html"
+  },
+  {
+    "id": "cr-design-elapsed-time-wall-clock",
+    "topic": "code-review",
+    "subtopic": "review-correctness-design",
+    "difficulty": "Hard",
+    "title": "Measuring a timeout with the wall clock",
+    "question": "A retry loop in a PR enforces a 30-second budget like this:\n\nvar start = DateTime.Now;\nwhile (DateTime.Now - start < TimeSpan.FromSeconds(30)) { ... }\n\nWhy should the reviewer ask for a change?",
+    "options": [
+      "Wall-clock time can jump (DST, clock sync); use a monotonic Stopwatch",
+      "DateTime.Now has one-second resolution, too coarse for a 30 s budget",
+      "Subtracting two DateTime values allocates a heap object per iteration",
+      "TimeSpan.FromSeconds runs on each loop and should be a static constant"
+    ],
+    "correctIndex": 0,
+    "explanation": "DateTime.Now is local wall-clock time, which can jump backwards or forwards on daylight saving transitions or when the system clock is corrected, ending the loop early or running it far too long. Stopwatch (or TimeProvider timestamps) measures elapsed time monotonically. DateTime subtraction yields a struct TimeSpan with no heap allocation, and its resolution is far finer than a second.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.stopwatch"
+  },
+  {
+    "id": "cr-tests-mirror-implementation",
+    "topic": "code-review",
+    "subtopic": "review-tests-security",
+    "difficulty": "Hard",
+    "title": "A test that cannot fail",
+    "question": "A PR changes the shipping fee formula and adds this test:\n\nvar expected = ShippingFee.Calculate(order);\nAssert.Equal(expected, sut.GetFee(order));\n\n`GetFee` delegates to `ShippingFee.Calculate`. What is wrong with the test?",
+    "options": [
+      "It should use Assert.True with a comparison instead of Assert.Equal",
+      "It takes the expected value from the code under test, so bugs pass too",
+      "It should mock ShippingFee so the test does not depend on that class",
+      "It needs more sample orders, but otherwise it verifies the formula well"
+    ],
+    "correctIndex": 1,
+    "explanation": "The expected value is computed by the same formula the production code uses, so if the formula is wrong the test still passes: it can never catch the bug it exists for. Reviewers should ask whether tests will actually fail when the code is broken; here that means asserting against independently known values such as hand-calculated fees. Mocking the formula would make the test even more vacuous.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/looking-for.html"
+  },
+  {
+    "id": "cr-tests-unawaited-throwsasync",
+    "topic": "code-review",
+    "subtopic": "review-tests-security",
+    "difficulty": "Expert",
+    "title": "An async assertion that always passes",
+    "question": "A PR adds this xUnit test for a validation rule:\n\n[Fact]\npublic void Rejects_negative_amount() {\n  Assert.ThrowsAsync<ValidationException>(() => svc.PayAsync(-5));\n}\n\nCI is green. What should the reviewer point out?",
+    "options": [
+      "ThrowsAsync only works in Theory tests, not in Fact tests",
+      "It should catch the exception with try/catch and call Assert.Fail",
+      "The returned task is never awaited, so a failure is never observed",
+      "ValidationException must be thrown synchronously for this to work"
+    ],
+    "correctIndex": 2,
+    "explanation": "`Assert.ThrowsAsync` returns a Task; without `await` (inside an `async Task` test) the assertion's outcome is discarded and the test passes even if no exception is thrown. xUnit's analyzer rule xUnit2021 flags exactly this. The fix is to await the assertion in an async test, not a manual try/catch or a Theory.",
+    "referenceUrl": "https://xunit.net/xunit.analyzers/rules/xUnit2021"
+  },
+  {
+    "id": "cr-tests-bugfix-regression",
+    "topic": "code-review",
+    "subtopic": "review-tests-security",
+    "difficulty": "Medium",
+    "title": "A bug fix with no failing test",
+    "question": "A PR fixes a crash when an order has zero line items. It changes two lines in `OrderTotals` and touches no tests. What is the most valuable request?",
+    "options": [
+      "Add a test with an empty order that fails before the fix and passes after",
+      "Raise the module's coverage target so CI blocks similar changes later on",
+      "None; approve it, since a two-line fix is too small to need its own test",
+      "Add a code comment describing the crash and the original stack trace"
+    ],
+    "correctIndex": 0,
+    "explanation": "Google's guidance expects related tests in the same change as the code, and a regression test that reproduces the bug proves the fix works and keeps it fixed. Coverage targets do not guarantee this edge case is exercised, small fixes still need tests, and a comment does not stop the bug from coming back.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/developer/small-cls.html"
+  },
+  {
+    "id": "cr-security-fromsqlraw-interpolation",
+    "topic": "code-review",
+    "subtopic": "review-tests-security",
+    "difficulty": "Expert",
+    "title": "Raw SQL built with string interpolation",
+    "question": "A PR adds a search endpoint with EF Core:\n\ndb.Products.FromSqlRaw($\"SELECT * FROM products WHERE name LIKE '%{term}%'\")\n\n`term` comes from the query string. What should the reviewer require?",
+    "options": [
+      "Nothing, since EF Core parameterizes every interpolated value automatically",
+      "Escape single quotes in term with Replace(\"'\", \"''\") before building SQL",
+      "Wrap the call in a transaction so a malicious query can be rolled back",
+      "Use FromSql or LINQ so that term is sent as a real database parameter"
+    ],
+    "correctIndex": 3,
+    "explanation": "`FromSqlRaw` inserts the interpolated string as-is, so `term` becomes part of the SQL text: a classic SQL injection. `FromSql`/`FromSqlInterpolated`, or plain LINQ such as Contains, send values as DbParameters. Hand-escaping quotes is fragile, and a transaction does not stop data from being read or exfiltrated.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/ef/core/querying/sql-queries"
+  },
+  {
+    "id": "cr-security-exception-details-leak",
+    "topic": "code-review",
+    "subtopic": "review-tests-security",
+    "difficulty": "Medium",
+    "title": "Returning exception details to clients",
+    "question": "To ease debugging, a PR changes the global error handler of a public API to:\n\nreturn Results.Problem(detail: ex.ToString(), statusCode: 500);\n\nWhat is the main review concern?",
+    "options": [
+      "Problem details responses must use status 400, not 500, for errors",
+      "Stack traces and internals leak to callers; log them server-side",
+      "ex.ToString() is slow and should be replaced by ex.Message only",
+      "Results.Problem cannot be used inside a global exception handler"
+    ],
+    "correctIndex": 1,
+    "explanation": "Sending ex.ToString() exposes stack traces, file paths, SQL fragments and library versions to anyone who can trigger an error, which helps attackers map the system. Return a generic problem response (optionally with a correlation id) and log the details on the server. Switching to ex.Message can still leak internals, and 500 is the right status for unexpected errors.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html"
+  },
+  {
+    "id": "cr-security-disabled-cert-validation",
+    "topic": "code-review",
+    "subtopic": "review-tests-security",
+    "difficulty": "Hard",
+    "title": "Turning off TLS certificate checks",
+    "question": "A PR fixes failing calls to a partner API in staging by adding:\n\nhandler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;\n\nThe same code ships to production. What should the reviewer say?",
+    "options": [
+      "Fine for staging only; production traffic is protected by TLS anyway",
+      "Acceptable as long as the partner's hostname is pinned in configuration",
+      "Move the callback into appsettings so ops can toggle it per environment",
+      "It accepts any certificate, enabling interception; fix the trust issue"
+    ],
+    "correctIndex": 3,
+    "explanation": "Returning true unconditionally disables server certificate validation, so anyone on the network path can present their own certificate and read or alter the traffic; TLS without validation is not protection. Code analysis rule CA5359 flags this pattern. The right fix is the underlying trust problem (missing intermediate, wrong CA, hostname mismatch), not a toggle that can leak into production.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/quality-rules/ca5359"
+  },
+  {
+    "id": "cr-feedback-clarify-code-not-thread",
+    "topic": "code-review",
+    "subtopic": "review-feedback",
+    "difficulty": "Medium",
+    "title": "Answering 'what does this do?'",
+    "question": "A reviewer comments on a dense bit-manipulation block: 'I can't tell what this is doing.' What is the best first response from the author?",
+    "options": [
+      "Reply in the review thread with a detailed explanation of the logic",
+      "Point the reviewer to the design doc, where the approach is described",
+      "Make the code clearer, or add a comment saying why if it can't be",
+      "Resolve the thread, since the code is correct and the tests prove it"
+    ],
+    "correctIndex": 2,
+    "explanation": "If a reviewer cannot understand the code, future readers probably will not either, and an explanation in the review tool helps nobody later. The guidance says to clarify the code itself first and, if it cannot be made clearer, add a code comment explaining why it is there; replying only in the review tool is a last resort.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/developer/handling-comments.html"
+  },
+  {
+    "id": "cr-feedback-fyi-label",
+    "topic": "code-review",
+    "subtopic": "review-feedback",
+    "difficulty": "Easy",
+    "title": "What an 'FYI:' comment means",
+    "question": "A reviewer writes: 'FYI: the new Span-based parser in .NET could replace this whole helper someday.' How should the author read this label?",
+    "options": [
+      "A blocking request that must be done before the PR can be merged",
+      "Something worth knowing for the future, not expected in this PR",
+      "A minor polish point that the author technically should still do",
+      "A sign the reviewer approves, but only if a follow-up gets filed"
+    ],
+    "correctIndex": 1,
+    "explanation": "Google's guidance suggests labelling comment severity: 'Nit' is a minor thing you technically should do, 'Optional' or 'Consider' is a suggestion, and 'FYI' means the reviewer does not expect it in this change but it may be interesting for the future. Labels stop authors from treating every comment as mandatory.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/comments.html"
+  },
+  {
+    "id": "cr-feedback-collaborative-disagreement",
+    "topic": "code-review",
+    "subtopic": "review-feedback",
+    "difficulty": "Medium",
+    "title": "Disagreeing with a reviewer's request",
+    "question": "A reviewer asks you to replace an in-memory queue with the company's message broker. You chose the in-memory queue deliberately. Which reply best follows the author guidance?",
+    "options": [
+      "\"No, the in-memory queue is fine, and I won't change it in this PR.\"",
+      "\"Okay, I'll switch it,\" although you believe it makes the design worse",
+      "\"I chose it for latency and ops cost. Is durability your concern?\"",
+      "\"Let's ask the tech lead,\" before discussing it with the reviewer"
+    ],
+    "correctIndex": 2,
+    "explanation": "The guidance asks authors to respond collaboratively: explain the trade-offs behind the choice and ask what the reviewer is weighing differently, which usually leads to consensus based on technical facts. A flat refusal is combative, silently complying hides a real disagreement, and escalation comes only after trying to reach consensus.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/developer/handling-comments.html"
+  },
+  {
+    "id": "cr-feedback-let-it-drop",
+    "topic": "code-review",
+    "subtopic": "review-feedback",
+    "difficulty": "Hard",
+    "title": "When the author's pushback is right",
+    "question": "You asked an author to cache a lookup. They reply that the lookup is already served from a process-wide cache one layer down, and link the code. You check and they are right. What should you do?",
+    "options": [
+      "Keep the comment open, since reviewers should not reverse their requests",
+      "Ask for the cache anyway as defense in depth, to keep the review consistent",
+      "Turn it into a nit so it stays on record without blocking the change",
+      "Tell them they are right, drop the request and continue the review"
+    ],
+    "correctIndex": 3,
+    "explanation": "Google's pushback guidance says to first consider whether the developer is correct, since they are often closer to the code; if their argument makes sense from a code-health perspective, tell them they are right and let the issue drop. Insisting anyway, or leaving it as a lingering nit, wastes effort and erodes trust in the review process.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/pushback.html"
+  },
+  {
+    "id": "cr-feedback-resolving-deadlock",
+    "topic": "code-review",
+    "subtopic": "review-feedback",
+    "difficulty": "Hard",
+    "title": "A review thread going in circles",
+    "question": "An author and a reviewer have exchanged ten comments over three days on whether a module should use events or direct calls, and neither is convinced. What is the recommended next step?",
+    "options": [
+      "Talk on a call, record the outcome on the PR, and escalate if still stuck",
+      "Let the PR sit until one side gives up, since forcing it hurts the code",
+      "The reviewer approves to unblock things and the author files a ticket",
+      "Close the PR and have the author reopen it with a new set of reviewers"
+    ],
+    "correctIndex": 0,
+    "explanation": "When reaching consensus in comments gets hard, the standard recommends a face-to-face meeting or video call, recording the result as a comment on the change for future readers, and, if that fails, escalating to a broader team discussion, a tech lead, a code maintainer or an engineering manager. It explicitly says not to let a change sit because the two cannot agree.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/standard.html"
+  },
+  {
+    "id": "cr-feedback-hostile-comment",
+    "topic": "code-review",
+    "subtopic": "review-feedback",
+    "difficulty": "Hard",
+    "title": "Receiving a harsh review comment",
+    "question": "A reviewer writes on your PR: 'This is sloppy. Did you even run it?' The underlying issue they point at is real. What does Google's author guidance recommend?",
+    "options": [
+      "Reply in the thread pointing out that the tone is unprofessional",
+      "Ignore the comment, since it attacks you personally and not the code",
+      "Request a different reviewer and close the thread without replying",
+      "Fix the issue; if the tone persists, raise it with them privately"
+    ],
+    "correctIndex": 3,
+    "explanation": "Authors are advised not to take comments personally: ask what constructive point the reviewer is making, act on that, and never respond in anger in the review tool. If feedback keeps being non-constructive, explain this to the reviewer in person or privately, and escalate to a manager only if that does not work.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/developer/handling-comments.html"
+  },
+  {
+    "id": "cr-auto-codeowners-order",
+    "topic": "code-review",
+    "subtopic": "review-automation",
+    "difficulty": "Hard",
+    "title": "A CODEOWNERS rule that never applies",
+    "question": "A repository's `CODEOWNERS` file contains:\n\n/src/payments/ @org/payments-team\n* @org/platform-team\n\nPRs touching `src/payments/` request review only from the platform team. Why?",
+    "options": [
+      "Team handles must be listed before paths in a CODEOWNERS entry",
+      "The last matching pattern wins, so * overrides the payments rule",
+      "Paths with a leading slash are ignored by GitHub in CODEOWNERS",
+      "Code owners are only requested after the pull request leaves draft"
+    ],
+    "correctIndex": 1,
+    "explanation": "In CODEOWNERS the last matching pattern takes precedence; with the catch-all * placed after the payments rule, every file ends up owned only by the platform team. Put the general rule first and more specific paths after it. A leading slash anchors a pattern to the repository root, and draft status would suppress all owner requests rather than swap teams.",
+    "referenceUrl": "https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners"
+  },
+  {
+    "id": "cr-auto-stale-approval",
+    "topic": "code-review",
+    "subtopic": "review-automation",
+    "difficulty": "Hard",
+    "title": "Commits pushed after approval",
+    "question": "On a protected `main`, a PR gets one approval. The author then pushes a commit that adds a new outbound call and merges minutes later without any further review. Which branch protection setting prevents this?",
+    "options": [
+      "Require status checks to pass before merging",
+      "Require a linear commit history on the protected branch",
+      "Dismiss stale pull request approvals on new commits",
+      "Require signed commits on the protected branch"
+    ],
+    "correctIndex": 2,
+    "explanation": "With 'Dismiss stale pull request approvals when new commits are pushed', GitHub dismisses an approval once the approved diff changes, so the PR needs a fresh approval before merging; 'Require approval of the most recent reviewable push' is a related alternative. Status checks, linear history and signed commits do not ensure a human reviewed the new code.",
+    "referenceUrl": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches"
+  },
+  {
+    "id": "cr-auto-merge-group-trigger",
+    "topic": "code-review",
+    "subtopic": "review-automation",
+    "difficulty": "Expert",
+    "title": "Merge queue stuck waiting for checks",
+    "question": "After enabling a merge queue on `main`, PRs enter the queue but never merge; the required `build` check never reports. The workflow has:\n\non:\n  pull_request:\n    branches: [main]\n\nWhat is missing?",
+    "options": [
+      "A `merge_group` trigger so the check runs for queued merge groups",
+      "A `push` trigger on `main` so the check reruns after each merge",
+      "The `pull_request_target` trigger, so the check runs with secrets",
+      "A `workflow_dispatch` trigger so maintainers can rerun it by hand"
+    ],
+    "correctIndex": 0,
+    "explanation": "A merge queue validates temporary branches that combine the latest base branch with the queued PRs, and GitHub Actions only runs required checks for them when the workflow listens to the `merge_group` event; otherwise the required status is never reported and the merge fails. Running on push to main is too late, `pull_request_target` changes the security context, and manual runs do not target the merge group.",
+    "referenceUrl": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue"
+  },
+  {
+    "id": "cr-auto-formatter-over-nits",
+    "topic": "code-review",
+    "subtopic": "review-automation",
+    "difficulty": "Medium",
+    "title": "Reviews dominated by style nits",
+    "question": "Half of all review comments on a team are about brace placement, import order and spacing, and debates about them delay merges. What is the most effective change?",
+    "options": [
+      "Add a checklist item reminding reviewers to look closely at formatting",
+      "Ban style comments entirely and let each author pick their own format",
+      "Assign one style reviewer per PR so the others can focus on the logic",
+      "Enforce a formatter and linter in CI so humans can focus on design"
+    ],
+    "correctIndex": 3,
+    "explanation": "Mechanical style rules are best encoded in configuration (for example .editorconfig with dotnet format) and enforced automatically in CI, which keeps formatting consistent and frees reviewers for design, correctness and tests. Checklists and dedicated style reviewers still spend human attention on it, and dropping the standard just moves the inconsistency into the codebase.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-format"
+  },
+  {
+    "id": "cr-auto-analyzer-severity",
+    "topic": "code-review",
+    "subtopic": "review-automation",
+    "difficulty": "Hard",
+    "title": "Analyzer warnings nobody acts on",
+    "question": "A .NET solution reports CA2100 (SQL injection risk in command text) and CA5359 (disabled certificate validation) warnings, but they get lost among 600 other warnings and keep slipping through review. What is the best automation fix?",
+    "options": [
+      "Set those rules to error in .editorconfig so the build fails on them",
+      "Suppress all 600 warnings so that new ones stand out in the output",
+      "Add both rule IDs to the PR template so authors check them by hand each time",
+      "Run the analyzers weekly and email the full list to the team leads"
+    ],
+    "correctIndex": 0,
+    "explanation": "Rule severity can be configured per diagnostic in .editorconfig (for example dotnet_diagnostic.CA5359.severity = error), so high-risk findings break the CI build instead of relying on humans to spot them. Blanket suppression hides real issues, and manual checklists or weekly reports keep the problem outside the merge path.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/configuration-files"
+  },
+  {
+    "id": "cr-auto-path-filter-required-check",
+    "topic": "code-review",
+    "subtopic": "review-automation",
+    "difficulty": "Expert",
+    "title": "Required check pending on docs-only PRs",
+    "question": "The `tests` workflow is a required status check and is triggered by `pull_request` with `paths: ['src/**']`. A PR that only edits `README.md` shows `tests` as 'Pending' forever and cannot merge. Why?",
+    "options": [
+      "Required checks only run for PRs opened by users with write access",
+      "The workflow is skipped by path filtering, so the check never reports",
+      "README changes are ignored by Actions unless docs/ is listed as well",
+      "The workflow is still queued, waiting for a free GitHub-hosted runner"
+    ],
+    "correctIndex": 1,
+    "explanation": "When a workflow is skipped by branch or path filtering, the checks associated with it stay 'Pending', and a PR that requires them is blocked from merging. Fixes include not making path-filtered workflows required, or always running the workflow and skipping the expensive steps inside it so it still reports success. It is not a runner capacity or permission issue.",
+    "referenceUrl": "https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions"
+  }
+]

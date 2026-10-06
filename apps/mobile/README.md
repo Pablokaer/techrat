@@ -80,12 +80,12 @@ src/
     login.tsx, register.tsx
     (tabs)/               index (Home), learn, practice, roadmaps, profile
     topic/[slug].tsx      topic detail → start practice
-    roadmap/[slug].tsx    modules, steps, start roadmap, practice step
+    roadmap/[slug].tsx    modules (shared / optional / capstone badges, credit from other roadmaps), steps, start, practice
     session/[id].tsx      question player + summary
     leaderboard.tsx       Global / Weekly / Monthly
   components/
     ui/                   primitives (AppText, Button, Card, Chip, ProgressBar, …)
-    domain/               TopicIcon, StepRow, LevelSummary, TopicProgressCard
+    domain/               TopicIcon, StepRow, ModuleHeader, RoadmapCard, LevelSummary, TopicProgressCard
     question/             QuestionPlayer, OptionItem, FeedbackPanel, SessionSummary
     auth/                 form hook and header
   lib/                    config, session, API context, queries, pure helpers

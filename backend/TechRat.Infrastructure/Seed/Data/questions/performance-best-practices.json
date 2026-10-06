@@ -1,0 +1,597 @@
+[
+  {
+    "id": "perfbp-latency-server-timing",
+    "topic": "performance",
+    "subtopic": "bp-api-latency",
+    "difficulty": "Medium",
+    "title": "Exposing a per-request server time breakdown",
+    "question": "Front-end engineers report that `/checkout` is slow, but in the browser they only see the total time to first byte. You want each response to expose a breakdown such as database, cache and pricing time in the client's devtools. Which mechanism is designed for this?",
+    "options": [
+      "A Server-Timing header with metrics such as db;dur=53",
+      "The timings added to the Retry-After header of each response",
+      "An X-Response-Time header with a single total duration value",
+      "Cache-Control: no-store, so devtools records every server phase"
+    ],
+    "correctIndex": 0,
+    "explanation": "The Server-Timing response header carries named metrics with optional durations and descriptions (for example db;dur=53, cache;desc=\"Cache Read\";dur=23.2), which browsers show in devtools and expose through the PerformanceServerTiming interface. A single total hides the breakdown, Retry-After is for throttling and unavailability, and Cache-Control does not produce timing data.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Server-Timing"
+  },
+  {
+    "id": "perfbp-latency-jsonoptions-per-call",
+    "topic": "performance",
+    "subtopic": "bp-api-latency",
+    "difficulty": "Medium",
+    "title": "New serializer options on every call",
+    "question": "A profiler shows a hot endpoint spending noticeable CPU on System.Text.Json metadata setup. The code does:\n\nvar json = JsonSerializer.Serialize(dto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });\n\nWhat is the best fix?",
+    "options": [
+      "Switch to Newtonsoft.Json, which does not need any type metadata",
+      "Create one static JsonSerializerOptions instance and reuse it",
+      "Serialize to a byte[] first and then convert it to a string by hand",
+      "Mark the DTO properties with [JsonInclude] so reflection is skipped"
+    ],
+    "correctIndex": 1,
+    "explanation": "JsonSerializerOptions instances cache type metadata, so creating a new instance per call redoes that work every time; Microsoft's guidance is to reuse the same instance (for example a static readonly field), which is safe across threads. Changing serializer, output type or attributes does not remove the repeated metadata setup.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/configure-options"
+  },
+  {
+    "id": "perfbp-latency-exceptions-control-flow",
+    "topic": "performance",
+    "subtopic": "bp-api-latency",
+    "difficulty": "Hard",
+    "title": "Exceptions as normal control flow",
+    "question": "A product lookup endpoint throws `ProductNotFoundException` and catches it in middleware to return 404. Bots probe random IDs, so 40% of requests are 404s, and CPU per request has roughly doubled. What is the best change?",
+    "options": [
+      "Return a not-found result directly instead of throwing for an expected case",
+      "Catch the exception closer to the throw site so the stack unwinds less far",
+      "Log the exception at Debug instead of Error level to cut logging overhead",
+      "Reuse one cached exception instance so that no new ones are allocated"
+    ],
+    "correctIndex": 0,
+    "explanation": "Throwing and catching exceptions is slow compared to ordinary control flow, and ASP.NET Core performance guidance says not to use exceptions for normal program flow, especially on hot paths. A missing product is an expected outcome, so return NotFound (or a result type) directly. Moving the catch, changing log levels or reusing exception objects only trims parts of the cost and keeps the anti-pattern.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/best-practices"
+  },
+  {
+    "id": "perfbp-latency-regex-per-request",
+    "topic": "performance",
+    "subtopic": "bp-api-latency",
+    "difficulty": "Hard",
+    "title": "Compiling a regex on every request",
+    "question": "A validation filter runs on every request:\n\nvar ok = new Regex(pattern, RegexOptions.Compiled).IsMatch(input);\n\n`pattern` is a constant. After this was added, p99 rose and CPU climbed. What is the most likely cause?",
+    "options": [
+      "IsMatch backtracks exponentially on any input, whatever the pattern is",
+      "RegexOptions.Compiled makes matching slower than the interpreted engine",
+      "Each request pays the costly compile step; build the Regex once",
+      "Regex instances are not thread-safe, so requests serialize on a lock"
+    ],
+    "correctIndex": 2,
+    "explanation": "Constructing a Regex binds the engine to the pattern, which is expensive, and RegexOptions.Compiled adds even more up-front cost in exchange for faster matching; paying it on every request throws the benefit away. Create the Regex once (a static readonly field or the [GeneratedRegex] source generator) and reuse it; Regex instances are safe to share for matching.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/base-types/best-practices-regex"
+  },
+  {
+    "id": "perfbp-latency-lock-contention",
+    "topic": "performance",
+    "subtopic": "bp-api-latency",
+    "difficulty": "Hard",
+    "title": "Throughput flat, CPU low, latency rising",
+    "question": "Every request in an API calls a helper that does `lock (_sync) { RebuildSnapshot(); }`, and RebuildSnapshot takes about 50 ms. Under load, CPU stays at 25%, throughput stops growing at about 20 req/s, and latency rises with concurrency. What is the bottleneck?",
+    "options": [
+      "Thread-pool starvation from async I/O completing on too few threads",
+      "Garbage collection pauses caused by allocating each report snapshot",
+      "Kestrel's connection limit, which caps concurrent HTTP connections",
+      "Lock contention: requests serialize on one lock held ~50 ms each"
+    ],
+    "correctIndex": 3,
+    "explanation": "A 50 ms critical section allows at most about 20 entries per second, so throughput plateaus there while CPU stays low and waiting time grows with concurrency, the signature of lock contention. ASP.NET Core guidance says not to acquire locks in common code paths; rebuild the snapshot in the background or publish an immutable cached copy. GC pauses or connection limits would not produce such an exact ceiling.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/best-practices"
+  },
+  {
+    "id": "perfbp-latency-retry-amplification",
+    "topic": "performance",
+    "subtopic": "bp-api-latency",
+    "difficulty": "Expert",
+    "title": "Retries stacked at every layer",
+    "question": "A request passes through an API gateway, a BFF and an orders service before reaching the database. Each of the three layers retries failed calls 3 times (4 attempts in total). The database becomes overloaded. In the worst case, how many database attempts can one user request cause?",
+    "options": [
+      "12 attempts, since the retries simply add up across the three layers",
+      "4 attempts, because only the innermost layer talks to the database",
+      "64 attempts, because the attempts multiply across the three layers",
+      "10 attempts: three retries per layer added up, plus the original call"
+    ],
+    "correctIndex": 2,
+    "explanation": "Retries at multiple layers multiply: each attempt from an outer layer can trigger up to four attempts from the next one, so 4 x 4 x 4 = 64 database attempts per user request in the worst case, exactly when the database is least able to cope. Google's SRE guidance recommends avoiding retries at multiple levels and using retry budgets with backoff instead.",
+    "referenceUrl": "https://sre.google/sre-book/addressing-cascading-failures/"
+  },
+  {
+    "id": "perfbp-latency-redis-big-del",
+    "topic": "performance",
+    "subtopic": "bp-api-latency",
+    "difficulty": "Expert",
+    "title": "Nightly latency spike on every endpoint",
+    "question": "Every night at 02:00, p99 across all endpoints that use Redis briefly jumps to seconds. At that moment a cleanup job runs `DEL` on a set with 8 million members. What is the most appropriate fix?",
+    "options": [
+      "Use UNLINK, which reclaims the big key's memory in another thread",
+      "Raise the client timeout so requests wait out the cleanup without errors",
+      "Run the DEL inside MULTI/EXEC so the deletion is one atomic block",
+      "Increase maxmemory so Redis need not evict keys while the job runs"
+    ],
+    "correctIndex": 0,
+    "explanation": "Redis executes commands on a single main thread, and DEL on a huge collection frees all of its allocations synchronously, blocking every other client meanwhile. UNLINK removes the key in O(1) and reclaims the memory in a different thread. Longer timeouts only hide the stall, MULTI/EXEC still runs the same blocking work, and eviction is unrelated.",
+    "referenceUrl": "https://redis.io/docs/latest/commands/unlink/"
+  },
+  {
+    "id": "perfbp-data-date-cast-predicate",
+    "topic": "performance",
+    "subtopic": "bp-data-access",
+    "difficulty": "Medium",
+    "title": "Casting a timestamp in the WHERE clause",
+    "question": "`orders.created_at` (timestamptz) has a B-tree index, but this query does a sequential scan on 80M rows:\n\nSELECT * FROM orders WHERE created_at::date = '2026-03-15';\n\nWhat is the best rewrite?",
+    "options": [
+      "WHERE date_trunc('day', created_at) = '2026-03-15'::timestamptz",
+      "WHERE to_char(created_at, 'YYYY-MM-DD') = '2026-03-15'",
+      "WHERE created_at BETWEEN '2026-03-15' AND '2026-03-15'",
+      "WHERE created_at >= '2026-03-15' AND created_at < '2026-03-16'"
+    ],
+    "correctIndex": 3,
+    "explanation": "Wrapping the indexed column in a cast or function means the plain index on created_at cannot serve the comparison. A half-open range on the raw column is index-friendly and covers exactly the whole day. date_trunc and to_char still apply a function to the column (they would need a matching expression index), and BETWEEN with identical bounds only matches midnight.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/indexes-expressional.html"
+  },
+  {
+    "id": "perfbp-data-bulk-insert-copy",
+    "topic": "performance",
+    "subtopic": "bp-data-access",
+    "difficulty": "Medium",
+    "title": "Loading 2 million rows one INSERT at a time",
+    "question": "A nightly import inserts 2 million rows into PostgreSQL with one `INSERT` per row in autocommit mode and takes 3 hours. Which change gives the biggest speedup?",
+    "options": [
+      "Add more indexes to the table so each insert finds its place faster",
+      "Load with COPY, or large batched transactions, instead of row by row",
+      "Run the INSERTs from 50 parallel connections, each still in autocommit",
+      "Use SERIALIZABLE isolation so that the concurrent inserts don't conflict"
+    ],
+    "correctIndex": 1,
+    "explanation": "PostgreSQL's 'Populating a Database' guidance recommends disabling autocommit and committing once per large batch, and using COPY, which loads many rows in a single command with far less per-row overhead than separate INSERTs. Extra indexes slow inserts down, isolation levels do not reduce per-statement overhead, and parallel autocommit inserts still pay a commit per row.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/populate.html"
+  },
+  {
+    "id": "perfbp-data-n-plus-one-batch-job",
+    "topic": "performance",
+    "subtopic": "bp-data-access",
+    "difficulty": "Hard",
+    "title": "A batch job fast in dev, slow in production",
+    "question": "A billing job runs:\n\nforeach (var inv in invoices)\n  inv.Customer = await db.Customers.FindAsync(inv.CustomerId);\n\nWith 50 invoices in dev it takes 0.2 s; with 400,000 in production it takes 2 hours while the database is mostly idle. What is the best fix?",
+    "options": [
+      "Add an index on Customers.Id so that each FindAsync lookup is faster",
+      "Load the needed customers with a few set-based queries over id batches",
+      "Wrap the loop in one transaction so all lookups share a single commit",
+      "Raise the connection pool size so more lookups can run in parallel"
+    ],
+    "correctIndex": 1,
+    "explanation": "The loop makes one database round trip per invoice, an N+1 pattern whose cost scales with rows times network latency while the server sits idle. Fetch customers in batches (for example WHERE id = ANY(...) or Contains over a chunk of ids) and match them in memory. Id is already the primary key, a transaction does not remove round trips, and a bigger pool still leaves one query per row.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/ef/core/performance/efficient-querying"
+  },
+  {
+    "id": "perfbp-data-busy-database",
+    "topic": "performance",
+    "subtopic": "bp-data-access",
+    "difficulty": "Hard",
+    "title": "Database CPU spent formatting output",
+    "question": "A reporting endpoint calls a stored procedure that joins orders and then builds the final XML document, formatting currencies and dates, inside the database. Database CPU sits at 90% while the app servers idle at 15%. Which anti-pattern is this, and what is the fix?",
+    "options": [
+      "Busy Database: keep data access in SQL, move formatting to the app tier",
+      "Chatty I/O: merge the procedure's queries into one larger SQL statement",
+      "No Caching: put a cache in front of the procedure and leave it unchanged",
+      "Extraneous Fetching: return fewer columns but keep formatting in the DB"
+    ],
+    "correctIndex": 0,
+    "explanation": "The Busy Database anti-pattern is offloading processing such as formatting, string manipulation or business logic to the database, a shared resource that is hard to scale out. Let the database do set-based data retrieval and move presentation work to the horizontally scalable app tier. Caching or trimming columns may help a little, but the CPU-heavy formatting stays on the database.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/antipatterns/busy-database/"
+  },
+  {
+    "id": "perfbp-data-lock-during-http-call",
+    "topic": "performance",
+    "subtopic": "bp-data-access",
+    "difficulty": "Hard",
+    "title": "Row lock held across a remote call",
+    "question": "To reserve stock, a PR does: BEGIN; `SELECT ... FROM stock WHERE sku = $1 FOR UPDATE`; call the payment provider over HTTP (300 ms to 5 s); UPDATE stock; COMMIT. During a flash sale, latency for popular SKUs explodes. Why?",
+    "options": [
+      "FOR UPDATE escalates to a table lock once more than one row is selected",
+      "The HTTP call cancels the transaction if it takes more than one second",
+      "PostgreSQL deadlocks whenever two transactions read the same SKU row",
+      "Each buyer holds the row lock during the HTTP call, so buyers queue up"
+    ],
+    "correctIndex": 3,
+    "explanation": "A row locked with FOR UPDATE stays locked until the transaction ends, so every concurrent buyer of the same SKU waits for the slow external call of the buyer before; throughput on hot rows collapses to one payment at a time. Keep transactions short: reserve atomically (for example a conditional UPDATE), call the provider outside the transaction, then confirm or release. PostgreSQL does not escalate row locks to table locks.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/explicit-locking.html"
+  },
+  {
+    "id": "perfbp-data-generic-plan-skew",
+    "topic": "performance",
+    "subtopic": "bp-data-access",
+    "difficulty": "Expert",
+    "title": "Prepared statement slow for one big tenant",
+    "question": "An app uses prepared statements for `SELECT ... FROM events WHERE tenant_id = $1 AND ...`. One tenant owns 60% of the rows. After a few executions on each connection, that tenant's queries become much slower, while EXPLAIN with literal values shows a good plan. What is the likely cause?",
+    "options": [
+      "The plan cache filled up, so PostgreSQL now replans every single call",
+      "Prepared statements disable index scans after the fifth execution",
+      "PostgreSQL switched to a generic plan that ignores the skewed value",
+      "Autovacuum locks the events table whenever a large tenant queries it"
+    ],
+    "correctIndex": 2,
+    "explanation": "With plan_cache_mode = auto, PostgreSQL uses custom plans for the first five executions and may then switch to a generic plan if its estimated cost looks comparable; a generic plan cannot exploit knowledge of a heavily skewed parameter value. Check with EXPLAIN EXECUTE and, for such queries, consider plan_cache_mode = force_custom_plan. Autovacuum does not block ordinary reads.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/sql-prepare.html"
+  },
+  {
+    "id": "perfbp-data-hot-counter-row",
+    "topic": "performance",
+    "subtopic": "bp-data-access",
+    "difficulty": "Expert",
+    "title": "One counter row for every page view",
+    "question": "Each article view runs `UPDATE articles SET views = views + 1 WHERE id = $1` inside the request. A viral article gets 3,000 views/s, and those requests time out while other articles stay fast. What is the best fix?",
+    "options": [
+      "Switch to SERIALIZABLE isolation so that the increments don't interfere",
+      "Add an index on articles.views so the UPDATE finds the row faster",
+      "Count views in memory or Redis and flush them to the row in batches",
+      "Read the counter first, then write views + 1 back from the application"
+    ],
+    "correctIndex": 2,
+    "explanation": "Concurrent UPDATEs of the same row serialize on its row lock (and each creates a new row version), so one hot row caps throughput no matter how many connections you add. Counting in memory or Redis (INCR) and periodically writing aggregated deltas removes the contention. SERIALIZABLE adds failures, an index on views only adds write cost, and read-then-write loses updates.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/explicit-locking.html"
+  },
+  {
+    "id": "perfbp-cache-key-normalization",
+    "topic": "performance",
+    "subtopic": "bp-caching-strategy",
+    "difficulty": "Medium",
+    "title": "Cache hit ratio stuck at 5%",
+    "question": "A search API caches responses keyed by the raw query string. Clients send the same search as `?q=tv&sort=price` and `?sort=price&q=tv`, sometimes with `&_ts=<timestamp>` added for debugging. The hit ratio is about 5%. What should be fixed first?",
+    "options": [
+      "Lengthen the TTL from 5 to 60 minutes so entries live longer",
+      "Move the cache from Redis to an in-memory cache on each instance",
+      "Normalize the key: drop irrelevant params and sort the rest",
+      "Raise maxmemory so fewer keys are evicted under memory pressure"
+    ],
+    "correctIndex": 2,
+    "explanation": "Equivalent requests produce different keys (parameter order, cache-busting timestamps), so they never hit each other's entries; building a canonical key from only the parameters that affect the response fixes the root cause. Longer TTLs, more memory or a local cache all keep fragmenting the same data across many keys.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/caching"
+  },
+  {
+    "id": "perfbp-cache-key-missing-dimension",
+    "topic": "performance",
+    "subtopic": "bp-caching-strategy",
+    "difficulty": "Medium",
+    "title": "Wrong prices served from cache",
+    "question": "Prices depend on the customer's contract tier. A PR caches the result of `GetProductView(id, customer)` under the key `product:{id}` for 10 minutes. What is wrong?",
+    "options": [
+      "The key ignores the tier, so customers can see another tier's prices",
+      "Ten minutes is too short a TTL to get a meaningful cache hit ratio",
+      "Product ids should be hashed before being used inside a cache key",
+      "Caching a view model is slower than caching the raw database rows"
+    ],
+    "correctIndex": 0,
+    "explanation": "A cache key must include every input that changes the cached value; here the first customer's tier gets cached and served to everyone else for ten minutes, a correctness bug and possibly a confidentiality one. Use a key such as product:{id}:tier:{tier}, or cache only the tier-independent parts and apply pricing per request.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/caching"
+  },
+  {
+    "id": "perfbp-cache-negative-caching",
+    "topic": "performance",
+    "subtopic": "bp-caching-strategy",
+    "difficulty": "Hard",
+    "title": "Lookups for IDs that don't exist",
+    "question": "A cache-aside lookup only stores products that are found. A scraper requests millions of random, nonexistent product IDs; every request misses the cache and hits the database, which saturates. Which change addresses this directly?",
+    "options": [
+      "Increase the TTL of found products so the cache absorbs more load",
+      "Briefly cache 'not found' results too, and rate limit abusive clients",
+      "Add a read replica so the misses spread across two database servers",
+      "Pre-load every existing product into the cache when the app starts"
+    ],
+    "correctIndex": 1,
+    "explanation": "Cache-aside does nothing for keys that never resolve to a value, so every lookup for a missing id reaches the database. Caching negative results with a short TTL (plus rate limiting or input validation for abusive traffic) makes repeated misses cheap. Pre-loading valid products and longer TTLs do not help nonexistent ids, and a replica only spreads the waste.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside"
+  },
+  {
+    "id": "perfbp-cache-local-invalidation",
+    "topic": "performance",
+    "subtopic": "bp-caching-strategy",
+    "difficulty": "Hard",
+    "title": "Stale data on some instances only",
+    "question": "An API runs on 6 instances, each caching product data in `IMemoryCache`. On update, the instance handling it calls `_cache.Remove(key)`. Users keep seeing old prices for minutes, depending on which instance serves them. What is the right fix?",
+    "options": [
+      "Call Remove twice, once before and once after the database update",
+      "Lower the database isolation level so updates become visible sooner",
+      "Pin users to one instance with sticky sessions so each sees one cache",
+      "Use a shared cache or broadcast invalidations to every instance"
+    ],
+    "correctIndex": 3,
+    "explanation": "Each instance has its own in-process cache, so Remove only clears the copy on the instance that handled the update; the other five keep serving the old value until it expires. Use a distributed cache (optionally a two-level design such as HybridCache with a short local expiration) or publish invalidation messages to every instance. Sticky sessions hide the problem for some users without fixing it.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/performance/caching/overview"
+  },
+  {
+    "id": "perfbp-cache-keys-command-invalidation",
+    "topic": "performance",
+    "subtopic": "bp-caching-strategy",
+    "difficulty": "Hard",
+    "title": "Invalidating with KEYS in production",
+    "question": "To invalidate a user's cached data, a PR runs `KEYS user:42:*` against the production Redis (30 million keys) and deletes the results. During each call, latency spikes for every client. What should replace it?",
+    "options": [
+      "Run KEYS on a replica, then delete the keys it returns on the primary",
+      "Keep KEYS but add a short client timeout so callers fail fast instead",
+      "Use the pattern user:42* without the colon, which KEYS matches faster",
+      "Track each user's keys in a set (or use SCAN) and delete those keys"
+    ],
+    "correctIndex": 3,
+    "explanation": "KEYS walks the whole keyspace in one blocking call, and the Redis docs warn against using it in regular application code. Keep an index of related keys in a set (or use versioned key prefixes) so invalidation touches only those keys, or iterate incrementally with SCAN for maintenance work. Changing the pattern or timeouts keeps the full blocking scan.",
+    "referenceUrl": "https://redis.io/docs/latest/commands/keys/"
+  },
+  {
+    "id": "perfbp-cache-output-cache-authenticated",
+    "topic": "performance",
+    "subtopic": "bp-caching-strategy",
+    "difficulty": "Hard",
+    "title": "Output cache never hits for signed-in users",
+    "question": "After adding `.CacheOutput()` with the default policy to `GET /dashboard`, responses are cached for anonymous visitors but never for signed-in users. A teammate proposes overriding the policy to cache authenticated responses by URL. What is the best assessment?",
+    "options": [
+      "It is an output caching bug; overriding the policy is the standard fix",
+      "Authenticated requests are skipped on purpose; caching by URL leaks data",
+      "Output caching only supports Razor Pages, so the endpoint must move",
+      "GET requests are excluded from output caching unless explicitly enabled"
+    ],
+    "correctIndex": 1,
+    "explanation": "By default ASP.NET Core output caching only caches 200 responses to GET or HEAD, and skips authenticated requests and responses that set cookies. Caching per-user pages keyed only by URL would serve one user's dashboard to another; if caching is needed, vary by user or cache shared fragments instead of the whole response.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output"
+  },
+  {
+    "id": "perfbp-cache-concurrent-set-race",
+    "topic": "performance",
+    "subtopic": "bp-caching-strategy",
+    "difficulty": "Expert",
+    "title": "Updating the cache on every write",
+    "question": "Two requests update the same product almost simultaneously. Each runs `UPDATE products ...; COMMIT;` and then `SET product:7 <new value>`. Occasionally the cache keeps the older value indefinitely (the key has no TTL). What is the issue, and the usual fix?",
+    "options": [
+      "SET is not atomic in Redis; wrap each SET in a MULTI/EXEC transaction",
+      "The second COMMIT is lost, so the database itself holds the old value",
+      "Commits and SETs can interleave out of order; delete the key instead",
+      "Redis drops writes to one key within 1 ms; add a short sleep before SET"
+    ],
+    "correctIndex": 2,
+    "explanation": "Request A can commit first but issue its SET last, overwriting B's newer value; with no TTL the stale value lives forever. Invalidating (DEL) on write and letting the next read repopulate from the database avoids ordering bugs between writers, and a TTL bounds the damage of any remaining race. Individual Redis commands are atomic, and the database holds the right value.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside"
+  },
+  {
+    "id": "perfbp-async-thread-sleep-retry",
+    "topic": "performance",
+    "subtopic": "bp-async-concurrency",
+    "difficulty": "Medium",
+    "title": "Thread.Sleep inside an async retry",
+    "question": "An async HTTP helper retries like this:\n\ncatch (HttpRequestException) { Thread.Sleep(2000); }\n\nDuring a partner outage the API stops serving even healthy endpoints. What should replace the sleep?",
+    "options": [
+      "`await Task.Delay(2000)`, which waits without blocking a thread",
+      "`Thread.Yield()` in a loop, which keeps the thread responsive",
+      "`SpinWait.SpinUntil` for 2 s, which avoids a context switch",
+      "`Task.Run(() => Thread.Sleep(2000))` without awaiting the result"
+    ],
+    "correctIndex": 0,
+    "explanation": "Thread.Sleep blocks a thread-pool thread for the whole delay; during an outage many requests sleep at once and starve the pool, so even healthy endpoints wait for a thread. Task.Delay schedules a timer and releases the thread until it fires. Spinning burns CPU, and an un-awaited Task.Run does not delay the retry at all.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task.delay"
+  },
+  {
+    "id": "perfbp-async-channel-fullmode",
+    "topic": "performance",
+    "subtopic": "bp-async-concurrency",
+    "difficulty": "Medium",
+    "title": "Missing events from a bounded channel",
+    "question": "A PR bounds an order-events channel to stop memory growth:\n\nChannel.CreateBounded<OrderEvent>(new BoundedChannelOptions(1000) { FullMode = BoundedChannelFullMode.DropOldest });\n\nWhat should the reviewer flag?",
+    "options": [
+      "Bounded channels cannot be used with multiple concurrent readers",
+      "A capacity of 1000 is too small; it should be closer to 1,000,000",
+      "When full, older order events are silently dropped, not waited on",
+      "DropOldest blocks the writer until a reader frees space in the channel"
+    ],
+    "correctIndex": 2,
+    "explanation": "With DropOldest the channel discards the oldest queued item to make room, so bursts silently lose order events. For data that must not be lost, use FullMode = Wait (the default), so WriteAsync waits and backpressure reaches the producer; drop modes suit data such as telemetry samples. Bounded channels support many readers, and a huge capacity reintroduces the memory problem.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/extensions/channels"
+  },
+  {
+    "id": "perfbp-async-task-run-await",
+    "topic": "performance",
+    "subtopic": "bp-async-concurrency",
+    "difficulty": "Hard",
+    "title": "Wrapping controller work in Task.Run",
+    "question": "To 'make it async', a PR changes a controller action to `return await Task.Run(() => _report.Build(id));`, where Build makes synchronous database calls. What is the effect in ASP.NET Core?",
+    "options": [
+      "It frees the request thread, so the server can handle more requests",
+      "It adds a thread-pool hop and still blocks a thread inside Build",
+      "It moves the work to a dedicated background thread outside the pool",
+      "It makes Build's database calls non-blocking via the task scheduler"
+    ],
+    "correctIndex": 1,
+    "explanation": "ASP.NET Core already runs request code on thread-pool threads, so Task.Run followed by await just schedules the same synchronous work on another pool thread, adding overhead while that thread still blocks on I/O. Microsoft's guidance is not to call Task.Run and immediately await it; the real fix is making Build and its database calls asynchronous end to end.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/best-practices"
+  },
+  {
+    "id": "perfbp-async-unbounded-fanout",
+    "topic": "performance",
+    "subtopic": "bp-async-concurrency",
+    "difficulty": "Hard",
+    "title": "Fanning out 50,000 requests at once",
+    "question": "A sync job does:\n\nawait Task.WhenAll(ids.Select(id => _http.GetAsync($\"/items/{id}\")));\n\nWith 50,000 ids, the partner API starts returning 429/503, the job's memory spikes and many calls time out. What is the best fix?",
+    "options": [
+      "Replace WhenAll with WhenAny so the job continues as soon as one is done",
+      "Increase HttpClient.Timeout so that slow calls have time to complete",
+      "Bound concurrency, e.g. Parallel.ForEachAsync with a max parallelism",
+      "Call the API strictly one id at a time with a plain foreach loop"
+    ],
+    "correctIndex": 2,
+    "explanation": "WhenAll over the projected sequence starts all 50,000 requests immediately, overwhelming the partner and the local process. Limiting in-flight work (Parallel.ForEachAsync with MaxDegreeOfParallelism, a SemaphoreSlim, or batching) adds backpressure while keeping useful parallelism. A longer timeout makes things worse, WhenAny abandons work, and fully sequential calls waste the available concurrency.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.parallel.foreachasync"
+  },
+  {
+    "id": "perfbp-async-httpcontext-fire-and-forget",
+    "topic": "performance",
+    "subtopic": "bp-async-concurrency",
+    "difficulty": "Hard",
+    "title": "Using HttpContext in background work",
+    "question": "To respond faster, a controller does:\n\n_ = Task.Run(async () => { await Task.Delay(500); await _audit.LogAsync(HttpContext.User.Identity.Name); });\nreturn Accepted();\n\nIn production, audit entries are sometimes wrong or the task throws. Why?",
+    "options": [
+      "HttpContext is only valid during the request and is recycled after it",
+      "Task.Run cannot run async lambdas, so the audit call is never awaited",
+      "Accepted() aborts all background tasks started by the current request",
+      "Task.Delay inside Task.Run deadlocks with the ASP.NET Core context"
+    ],
+    "correctIndex": 0,
+    "explanation": "HttpContext is only valid while the request is active; after the response completes it is recycled, so a background task reading it can see another request's data or a disposed object. Copy the values you need (for example the user name) during the request, or hand the work to a queued background service. Task.Run accepts async lambdas, and ASP.NET Core has no synchronization context to deadlock on.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/best-practices"
+  },
+  {
+    "id": "perfbp-async-setminthreads-bandaid",
+    "topic": "performance",
+    "subtopic": "bp-async-concurrency",
+    "difficulty": "Expert",
+    "title": "Raising the thread-pool minimum as a fix",
+    "question": "An API suffers thread-pool starvation caused by blocking calls. A PR sets `ThreadPool.SetMinThreads(1000, 1000)` at startup, and latency improves in a load test. What is the best review response?",
+    "options": [
+      "Approve it; a higher minimum is the recommended permanent solution",
+      "Ask for SetMaxThreads(1000, 1000) instead, which has the same effect",
+      "Approve, but double the values to leave headroom for traffic growth",
+      "Treat it as a stopgap and remove the blocking calls it is masking"
+    ],
+    "correctIndex": 3,
+    "explanation": "Raising the minimum only lets the pool create many threads immediately; the code still blocks them, so memory use and context switching grow and the problem returns at higher load. Microsoft cautions that unnecessarily increasing the minimum can cause performance problems and that the pool's own algorithm usually performs better. The durable fix is making the blocking I/O asynchronous.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/threading/the-managed-thread-pool"
+  },
+  {
+    "id": "perfbp-async-parallel-foreach-async-lambda",
+    "topic": "performance",
+    "subtopic": "bp-async-concurrency",
+    "difficulty": "Expert",
+    "title": "Parallel.ForEach with an async lambda",
+    "question": "A job does:\n\nParallel.ForEach(files, async f => await _blob.UploadAsync(f));\nConsole.WriteLine(\"Done\");\n\n'Done' prints within milliseconds while uploads are still running, and one upload failure crashed the process. Why?",
+    "options": [
+      "Parallel.ForEach runs async lambdas on a single thread, one at a time",
+      "The lambda becomes async void, so ForEach cannot wait for the uploads",
+      "UploadAsync must be called with ConfigureAwait(false) inside the loop",
+      "Parallel.ForEach swallows exceptions thrown by asynchronous delegates"
+    ],
+    "correctIndex": 1,
+    "explanation": "Parallel.ForEach takes an Action<T>, so the async lambda compiles to async void: each invocation returns at its first await, ForEach finishes almost immediately, and exceptions are raised on the thread pool, where they can crash the process. Use Parallel.ForEachAsync (or a bounded Task.WhenAll) so the work is awaited and errors are observed.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.parallel.foreachasync"
+  },
+  {
+    "id": "perfbp-net-automatic-decompression",
+    "topic": "performance",
+    "subtopic": "bp-payloads-network",
+    "difficulty": "Medium",
+    "title": "Service-to-service JSON sent uncompressed",
+    "question": "Service A downloads 8 MB JSON responses from service B, which supports gzip and Brotli. Packet captures show the responses arrive uncompressed. A creates its client as `new HttpClient(new SocketsHttpHandler())`. What is the likely cause?",
+    "options": [
+      "Compression only works over HTTP/1.1, and the handler negotiated HTTP/2",
+      "AutomaticDecompression is off by default, so no Accept-Encoding is sent",
+      "Service B only compresses responses smaller than 1 MB by default",
+      "TLS already compresses the payload, so B skips HTTP-level compression"
+    ],
+    "correctIndex": 1,
+    "explanation": "SocketsHttpHandler.AutomaticDecompression defaults to None, so the client does not advertise gzip or Brotli in Accept-Encoding and the server sends plain bytes. Setting it to DecompressionMethods.All (or GZip | Brotli) adds the header to every request and decompresses transparently. HTTP compression works over HTTP/2, and TLS-level compression is not used.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.net.http.socketshttphandler.automaticdecompression"
+  },
+  {
+    "id": "perfbp-net-unbounded-list-response",
+    "topic": "performance",
+    "subtopic": "bp-payloads-network",
+    "difficulty": "Medium",
+    "title": "An endpoint that returns everything",
+    "question": "`GET /api/orders` returns all of a customer's orders with every field. Large B2B customers have 120,000 orders, so responses reach 90 MB and take 20 s, while the UI shows 25 rows at a time. What is the best fix?",
+    "options": [
+      "Enable Brotli compression and keep returning the full order list",
+      "Increase server and client timeouts so the big responses can finish",
+      "Paginate with a max page size and return only the fields the UI uses",
+      "Move the endpoint to HTTP/2 so the large payload streams faster"
+    ],
+    "correctIndex": 2,
+    "explanation": "This is the Extraneous Fetching anti-pattern: the API sends far more rows and fields than the client uses. Enforcing pagination with a maximum page size and returning a lean DTO shrinks payload size, serialization time and database work together. Compression, HTTP/2 or longer timeouts only make an oversized response somewhat more bearable.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/antipatterns/extraneous-fetching/"
+  },
+  {
+    "id": "perfbp-net-breach-compression",
+    "topic": "performance",
+    "subtopic": "bp-payloads-network",
+    "difficulty": "Hard",
+    "title": "Compressing HTTPS pages that carry secrets",
+    "question": "A team enables ASP.NET Core response compression with `EnableForHttps = true` for all dynamic HTML pages. Those pages embed an anti-forgery token and also reflect a `q` query parameter. Why is this option off by default?",
+    "options": [
+      "Compressed HTTPS responses can't be cached by any browser or proxy",
+      "TLS already compresses the body, so it would be compressed twice",
+      "Brotli and gzip are not allowed by HTTP/2, used by most HTTPS traffic",
+      "Secrets plus attacker-controlled input can leak via CRIME/BREACH"
+    ],
+    "correctIndex": 3,
+    "explanation": "When a compressed, encrypted response contains both a secret and attacker-controlled text, an attacker can infer the secret from changes in response size (CRIME/BREACH), so ASP.NET Core leaves compression over HTTPS disabled by default. If you enable it, avoid compressing responses that mix secrets with reflected input, or apply mitigations such as masking tokens per response. HTTP/2 supports gzip and Brotli, and caching still works.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/performance/response-compression"
+  },
+  {
+    "id": "perfbp-net-dns-pooled-connection-lifetime",
+    "topic": "performance",
+    "subtopic": "bp-payloads-network",
+    "difficulty": "Hard",
+    "title": "A long-lived HttpClient after a DNS failover",
+    "question": "Following the advice to reuse HttpClient, a service keeps one static instance. During a regional failover the partner's DNS name moves to new IPs, but the service keeps calling the old endpoint for hours. What should be configured?",
+    "options": [
+      "PooledConnectionLifetime, so pooled connections are recycled",
+      "A new HttpClient per request, so every call resolves DNS again",
+      "A lower OS DNS cache TTL on every host that runs the service",
+      "HttpClient.Timeout of 30 seconds so stuck calls get abandoned"
+    ],
+    "correctIndex": 0,
+    "explanation": "HttpClient resolves DNS only when it opens a connection and does not track DNS TTLs, so long-lived pooled connections keep using the old addresses. Setting SocketsHttpHandler.PooledConnectionLifetime (or using IHttpClientFactory) recycles connections so new ones pick up DNS changes. A client per request risks socket exhaustion, and OS DNS settings or timeouts do not close healthy pooled connections.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/http/httpclient-guidelines"
+  },
+  {
+    "id": "perfbp-net-stream-large-export",
+    "topic": "performance",
+    "subtopic": "bp-payloads-network",
+    "difficulty": "Hard",
+    "title": "Building a 300 MB export in memory",
+    "question": "An export endpoint loads all rows into a list, serializes them into a `MemoryStream`, and then copies it to the response. With several concurrent exports, gen2 GCs and OOM kills follow. What is the best change?",
+    "options": [
+      "Pre-size the MemoryStream with the expected capacity to avoid resizes",
+      "Stream rows to the response as they're read, e.g. with IAsyncEnumerable",
+      "Call GC.Collect after each export so the large buffers are released",
+      "Compress the MemoryStream before copying it into the response body"
+    ],
+    "correctIndex": 1,
+    "explanation": "Buffering a whole response in one huge byte array or string lands on the large object heap, triggers full GCs and multiplies memory by the number of concurrent exports. Writing rows progressively (for example returning IAsyncEnumerable or writing to the response body stream) keeps memory flat. Pre-sizing, forced GCs or compressing the buffer all keep the full payload in memory.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/best-practices"
+  },
+  {
+    "id": "perfbp-net-cross-region-round-trips",
+    "topic": "performance",
+    "subtopic": "bp-payloads-network",
+    "difficulty": "Expert",
+    "title": "App in one region, database in another",
+    "question": "After a migration, an API runs in us-east while its PostgreSQL primary stays in eu-west, about 80 ms away per round trip. A typical request issues 18 sequential queries, each fast on the server. p50 went from 40 ms to 1.5 s. What is the most effective fix?",
+    "options": [
+      "Add indexes to the 18 queries to cut their execution time further",
+      "Enable response compression so each round trip carries fewer bytes",
+      "Increase the connection pool size so queries use more connections",
+      "Colocate app and database, and batch queries to cut round trips"
+    ],
+    "correctIndex": 3,
+    "explanation": "Latency is dominated by round trips: 18 sequential queries x 80 ms is about 1.4 s no matter how fast each query runs. Putting the app in the database's region (or moving the database) and reducing round trips with joins or batched queries attacks the real cost. Indexes, compression and a bigger pool do not reduce the number of sequential network round trips.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/antipatterns/chatty-io/"
+  },
+  {
+    "id": "perfbp-net-grpc-stream-limit",
+    "topic": "performance",
+    "subtopic": "bp-payloads-network",
+    "difficulty": "Expert",
+    "title": "gRPC calls queuing on one connection",
+    "question": "A .NET service makes many long-running gRPC streaming calls to one backend through a SocketsHttpHandler it configured itself. Beyond about 100 concurrent calls, new calls wait in the client although the backend is idle. What is the most likely cause and fix?",
+    "options": [
+      "HTTP/2's per-connection stream limit; enable EnableMultipleHttp2Connections",
+      "Kestrel allows only 100 requests per process; add more backend replicas",
+      "Protobuf serialization is single-threaded; switch the payload to JSON",
+      "gRPC streaming requires HTTP/3; enable QUIC on both client and server"
+    ],
+    "correctIndex": 0,
+    "explanation": "A gRPC channel multiplexes calls over one HTTP/2 connection, and servers commonly limit a connection to 100 concurrent streams, so extra calls queue in the client. Setting SocketsHttpHandler.EnableMultipleHttp2Connections = true lets the channel open additional connections when the limit is reached (GrpcChannel does this for its default handler). An idle backend rules out server capacity or serialization as the cause.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/grpc/performance"
+  }
+]

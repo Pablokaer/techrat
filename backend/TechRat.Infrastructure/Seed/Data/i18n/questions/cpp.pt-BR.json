@@ -1,0 +1,722 @@
+[
+  {
+    "id": "cpp-syntax-integer-division-modulo",
+    "title": "Divisão inteira e resto",
+    "question": "O que esta instrução imprime?\n\nstd::cout << 7 / 2 << ' ' << 7 % 3;",
+    "options": [
+      "3.5 1",
+      "3 1",
+      "4 1",
+      "3 2"
+    ],
+    "explanation": "Os dois operandos são `int`, então `7 / 2` é divisão inteira, que trunca em direção a zero e dá 3, e `7 % 3` é o resto, 1. Você só obtém 3,5 quando um operando é de ponto flutuante (por exemplo `7.0 / 2`), e a divisão inteira nunca arredonda para 4."
+  },
+  {
+    "id": "cpp-syntax-brace-init-narrowing",
+    "title": "Narrowing na inicialização com chaves",
+    "question": "Um desenvolvedor escreve `int n{3.7};` para inicializar um contador. O que um compilador C++ conforme faz?",
+    "options": [
+      "Compila e trunca silenciosamente o valor armazenado para 3",
+      "Compila e arredonda o valor armazenado para o int mais próximo, 4",
+      "Aceita com um warning, exatamente como `int n = 3.7;`",
+      "Emite diagnóstico: list-initialization proíbe esse narrowing"
+    ],
+    "explanation": "A list-initialization (com chaves) torna conversões de narrowing mal formadas, então double para int exige um diagnóstico, e GCC e Clang rejeitam com erro. `int n = 3.7;` (copy-initialization) compila e trunca para 3, que é justamente o bug silencioso que a inicialização com chaves foi criada para pegar. Nenhuma conversão implícita aqui arredonda para o valor mais próximo."
+  },
+  {
+    "id": "cpp-syntax-signed-unsigned-comparison",
+    "title": "Comparando inteiros com e sem sinal",
+    "question": "O que este programa imprime?\n\nint i = -1;\nunsigned u = 1;\nif (i < u) std::cout << \"less\";\nelse std::cout << \"not less\";",
+    "options": [
+      "not less, porque -1 é convertido em um valor unsigned enorme",
+      "less, porque valores negativos sempre são menores que os positivos",
+      "Nada; a comparação não compila sem um cast",
+      "Depende de a plataforma usar complemento de dois"
+    ],
+    "explanation": "Pelas conversões aritméticas usuais, `int` e `unsigned int` têm o mesmo rank, então `i` é convertido para unsigned e -1 vira UINT_MAX, que não é menor que 1. O código compila (normalmente com um warning de -Wsign-compare), e a conversão é definida módulo 2^N, então o resultado não depende da plataforma. `std::cmp_less(i, u)`, do C++20, faz a comparação matematicamente correta."
+  },
+  {
+    "id": "cpp-syntax-auto-drops-const-ref",
+    "title": "O que auto simples deduz de uma referência const",
+    "question": "Dado `int x = 1; const int& r = x; auto a = r;`, qual é o tipo declarado de `a`?",
+    "options": [
+      "`const int&`, um alias de x",
+      "`const int`, uma cópia somente leitura",
+      "`int`, uma cópia independente",
+      "`int&`, um alias mutável de x"
+    ],
+    "explanation": "`auto` simples segue a dedução de argumentos de template para um parâmetro por valor: a referência é removida e depois o const de nível superior é descartado, então `a` é uma cópia `int` modificável. Para manter a referência e o const, escreva `const auto&` ou `decltype(auto) a = r;`. `int&` nunca é deduzido aqui, porque uma referência não const não pode se ligar a um objeto const."
+  },
+  {
+    "id": "cpp-syntax-decltype-parenthesized",
+    "title": "decltype de um nome entre parênteses",
+    "question": "Com `int x = 0;`, `decltype(x)` é `int`. O que é `decltype((x))` e por quê?",
+    "options": [
+      "`int`, porque parênteses extras nunca mudam o tipo de uma expressão",
+      "`int&`, porque `(x)` é uma expressão lvalue, não um nome simples",
+      "`int&&`, porque os parênteses transformam o nome em um valor temporário",
+      "`const int&`, porque nomes entre parênteses são tratados como somente leitura"
+    ],
+    "explanation": "Para uma id-expression sem parênteses, decltype retorna o tipo declarado da entidade (`int`). Qualquer outra expressão segue a regra da categoria de valor: um lvalue do tipo T dá T&, e `(x)` é uma expressão lvalue, então o resultado é `int&`. Isso importa em tipos de retorno `decltype(auto)`, em que `return (x);` acaba retornando sem querer uma referência para uma variável local."
+  },
+  {
+    "id": "cpp-ptr-const-pointer-vs-pointee",
+    "title": "Ponteiro const versus ponteiro para const",
+    "question": "Qual declaração permite `*p = 5;` mas faz `p = &other;` dar erro de compilação?",
+    "options": [
+      "`const int* p = &value;`",
+      "`volatile int* p = &value;`",
+      "`int* const p = &value;`",
+      "`const int* const p = &value;`"
+    ],
+    "explanation": "Leia declarações da direita para a esquerda: `int* const p` é um ponteiro const para um int mutável, então o valor apontado pode mudar, mas o ponteiro não pode ser redirecionado. `const int*` (também escrito `int const*`) é um ponteiro para const int, que proíbe `*p = 5` mas permite redirecionar, `const int* const` proíbe as duas coisas, e `volatile` não restringe nenhuma."
+  },
+  {
+    "id": "cpp-ptr-reference-cannot-be-reseated",
+    "title": "Atribuição por meio de uma referência",
+    "question": "O que isto imprime?\n\nint a = 1, b = 2;\nint& r = a;\nr = b;\nb = 3;\nstd::cout << a << ' ' << r;",
+    "options": [
+      "1 3",
+      "1 2",
+      "2 3",
+      "2 2"
+    ],
+    "explanation": "Uma referência é ligada uma única vez, na inicialização, e nunca pode ser redirecionada, então `r = b` atribui o valor de b (2) a a por meio do alias. Alterar b depois não afeta nem a nem r, então os dois imprimem 2. As respostas com 3 supõem que `r = b` religa r a b, que é o comportamento da atribuição de ponteiros, não de referências."
+  },
+  {
+    "id": "cpp-ptr-pointer-arithmetic",
+    "title": "Aritmética de ponteiros e índices negativos",
+    "question": "O que isto imprime?\n\nint arr[5] = {10, 20, 30, 40, 50};\nint* p = arr + 1;\nstd::cout << *(p + 2) << ' ' << p[-1];",
+    "options": [
+      "40 10",
+      "30 10",
+      "40 20",
+      "Não compila: índice negativo"
+    ],
+    "explanation": "`arr + 1` aponta para 20, e a aritmética de ponteiros conta em elementos, então `p + 2` aponta para 40. `p[-1]` é definido como `*(p - 1)`, que é arr[0] = 10; um índice negativo é válido desde que o resultado fique dentro do mesmo array. Responder 30 esquece que p já começa no índice 1."
+  },
+  {
+    "id": "cpp-ptr-return-reference-to-local",
+    "title": "Retornando referência para uma variável local",
+    "question": "Uma revisão de código aponta esta função. Qual é o problema de fato?\n\nconst std::string& greeting() {\n  std::string s = \"hello\";\n  return s;\n}",
+    "options": [
+      "Ela copia a string duas vezes, então só é mais lenta que retornar por valor",
+      "A referência retornada fica pendente: s é destruída quando a função retorna",
+      "Não compila porque uma referência const não pode se ligar a uma variável local",
+      "O qualificador const impede quem chama de ler a string retornada"
+    ],
+    "explanation": "`s` tem duração de armazenamento automática e é destruída quando a função retorna, então quem chama recebe uma referência para um objeto morto, e qualquer uso dela é undefined behavior. O código compila (os compiladores normalmente só emitem warning) e nada é copiado. A correção é retornar `std::string` por valor, o que é barato graças a copy elision e move semantics."
+  },
+  {
+    "id": "cpp-ptr-temporary-lifetime-extension",
+    "title": "Extensão de tempo de vida através de uma chamada",
+    "question": "Qual declaração deixa `r` pendente?\n\n// (A)\nconst std::string& r = std::string(\"hi\");\n// (B)\nconst std::string& r = std::max(std::string(\"a\"), std::string(\"b\"));",
+    "options": [
+      "As duas, porque uma referência nunca estende a vida de um temporário",
+      "Só A, porque B retorna uma cópia que a referência mantém viva",
+      "Só B, porque a extensão não atravessa o retorno de uma função",
+      "Nenhuma, porque ligar a uma referência const sempre estende a vida"
+    ],
+    "explanation": "Ligar um temporário diretamente a uma referência const, como em A, estende a vida do temporário até a da referência. Em B, os temporários são ligados aos parâmetros por referência de std::max, que retorna uma referência para um deles, não um novo temporário; ambos são destruídos no fim da expressão completa, então r fica pendente. Capture o resultado de std::max por valor."
+  },
+  {
+    "id": "cpp-raii-core-idea",
+    "title": "A ideia central do RAII",
+    "question": "Qual é a ideia central do RAII em C++?",
+    "options": [
+      "Ligar um recurso ao tempo de vida de um objeto para o destrutor liberá-lo",
+      "Alocar todo objeto no heap para que um garbage collector o libere depois",
+      "Liberar recursos manualmente em cada caminho de retorno com chamadas de limpeza",
+      "Reservar toda a memória do programa na inicialização para alocações nunca falharem"
+    ],
+    "explanation": "RAII (Resource Acquisition Is Initialization) adquire um recurso quando um objeto é construído e o libera no destrutor, então a limpeza acontece automaticamente quando o objeto sai de escopo, inclusive durante o unwinding de exceções. C++ padrão não tem garbage collector, e limpeza manual em cada caminho de retorno é exatamente o padrão propenso a erros que o RAII substitui. std::unique_ptr, std::lock_guard e std::fstream são exemplos típicos."
+  },
+  {
+    "id": "cpp-raii-new-array-delete-mismatch",
+    "title": "Liberando memória de new[] com delete",
+    "question": "Um buffer é alocado com `int* buf = new int[256];` e depois liberado com `delete buf;`. Qual é a consequência?",
+    "options": [
+      "Só o primeiro elemento é liberado e os outros 255 vazam de forma bem definida",
+      "Nenhuma; para tipos nativos `delete` e `delete[]` são totalmente intercambiáveis",
+      "O compilador rejeita o código porque registra qual forma de new foi usada",
+      "Undefined behavior: memória de `new[]` precisa ser liberada com `delete[]`"
+    ],
+    "explanation": "A forma do delete precisa corresponder à do new: memória vinda de new[] deve ser liberada com delete[], senão o comportamento é indefinido, mesmo para tipos triviais como int. Em geral o compilador não consegue rastrear isso, então compila, e \"só o primeiro elemento é liberado\" é um mito, já que UB não garante nada. Prefira std::vector<int> ou std::unique_ptr<int[]> para que a desalocação correta aconteça automaticamente."
+  },
+  {
+    "id": "cpp-raii-exception-leak",
+    "title": "Quando um par new/delete cru vaza memória",
+    "question": "Esta função vaza memória em produção. Quando exatamente o vazamento acontece?\n\nvoid handle() {\n  Widget* w = new Widget();\n  process(*w);\n  delete w;\n}",
+    "options": [
+      "Em toda chamada, porque `delete` não pode ser usado em um `Widget*`",
+      "Sempre que process() lança exceção, porque a linha do `delete` é pulada",
+      "Só quando o construtor de Widget lança exceção no meio da construção",
+      "Nunca; o Widget é liberado automaticamente quando `w` sai de escopo"
+    ],
+    "explanation": "Se process() lança exceção, o stack unwinding sai de handle() antes de `delete w;` executar, e um ponteiro cru não tem destrutor que libere o que ele aponta. Se o próprio construtor de Widget lança, a new-expression libera a memória automaticamente, então esse caso não vaza. A correção é RAII: `auto w = std::make_unique<Widget>();`, ou simplesmente um objeto Widget local."
+  },
+  {
+    "id": "cpp-raii-destruction-order",
+    "title": "Ordem do destrutor e da destruição dos membros",
+    "question": "O que este programa imprime?\n\nstruct A { ~A() { std::cout << \"A\"; } };\nstruct B { ~B() { std::cout << \"B\"; } };\nstruct C { A a; B b; ~C() { std::cout << \"C\"; } };\nint main() { C c; }",
+    "options": [
+      "ABC",
+      "CAB",
+      "CBA",
+      "BAC"
+    ],
+    "explanation": "O corpo do destrutor de C executa primeiro e, depois, os membros são destruídos na ordem inversa da declaração: b antes de a. Isso espelha a construção, em que os membros são inicializados na ordem de declaração (a, depois b) antes do corpo do construtor. A ordem inversa é o que permite que um membro posterior use com segurança um anterior durante a destruição."
+  },
+  {
+    "id": "cpp-raii-throwing-destructor-terminates",
+    "title": "Uma exceção escapando de um destrutor",
+    "question": "O destrutor de `Logger` chama `flush()`, que pode lançar exceção. Não há especificações de exceção em lugar nenhum. Em uma saída de escopo normal, sem outra exceção em andamento, flush() lança. O que acontece?",
+    "options": [
+      "std::terminate é chamado, pois destrutores são implicitamente noexcept",
+      "A exceção se propaga normalmente até o bloco catch de quem chamou",
+      "A exceção é engolida silenciosamente e o objeto ainda é destruído",
+      "O comportamento só é indefinido se já houver uma segunda exceção ativa"
+    ],
+    "explanation": "Desde o C++11, um destrutor sem especificação explícita é implicitamente noexcept(true) (a menos que o destrutor de uma base ou membro possa lançar), então uma exceção que escapa dele chama std::terminate mesmo sem outra exceção em andamento. A regra de \"só durante o unwinding\" descreve código anterior ao C++11 ou um destrutor marcado explicitamente com noexcept(false). Trate o erro dentro do destrutor ou exponha um close() explícito que possa reportar falhas."
+  },
+  {
+    "id": "cpp-smart-unique-ptr-copy",
+    "title": "Copiando um std::unique_ptr",
+    "question": "O que acontece com este código?\n\nauto a = std::make_unique<int>(42);\nauto b = a;",
+    "options": [
+      "b compartilha a posse com a e a contagem de referências vira 2",
+      "b recebe uma cópia profunda do int, e cada um tem seu próprio valor",
+      "A posse passa silenciosamente para b e a vira um ponteiro nulo",
+      "A compilação falha: o construtor de cópia de unique_ptr é deleted"
+    ],
+    "explanation": "std::unique_ptr modela posse exclusiva, então o construtor de cópia e a atribuição por cópia são deleted e o código não compila. Transferir a posse precisa ser explícito, `auto b = std::move(a);`, e depois disso a fica nulo. Contagem de referências compartilhada é papel do std::shared_ptr, e a transferência silenciosa na cópia era o defeito do std::auto_ptr, que foi removido."
+  },
+  {
+    "id": "cpp-smart-shared-ptr-use-count",
+    "title": "Contagem do shared_ptr após um escopo",
+    "question": "O que isto imprime?\n\nauto a = std::make_shared<int>(1);\nauto b = a;\n{ auto c = b; }\nstd::cout << a.use_count();",
+    "options": [
+      "1",
+      "2",
+      "3",
+      "0"
+    ],
+    "explanation": "a e b compartilham o mesmo bloco de controle, com contagem 2; c a eleva para 3 dentro do bloco interno, e o destrutor de c a devolve para 2 quando o bloco termina. use_count informa quantas instâncias de shared_ptr possuem o objeto agora, não quantas já foram criadas."
+  },
+  {
+    "id": "cpp-smart-shared-ptr-cycle",
+    "title": "Árvores pai/filho com shared_ptr vazando",
+    "question": "Um `Parent` guarda `std::vector<std::shared_ptr<Child>>` e cada `Child` guarda `std::shared_ptr<Parent> parent`. Ferramentas de memória mostram que toda árvore vaza depois de sair de escopo. Qual é a correção idiomática?",
+    "options": [
+      "Chamar reset() em cada ponteiro de filho dentro do destrutor de Parent",
+      "Trocar os dois tipos de ponteiro por ponteiros crus e deletar manualmente",
+      "Tornar a referência de volta `std::weak_ptr<Parent>` para quebrar o ciclo",
+      "Usar std::make_shared para que o bloco de controle libere o ciclo"
+    ],
+    "explanation": "Parent e Child possuem um ao outro, então nenhuma contagem chega a zero e nenhum destrutor executa, e é por isso também que reset() no destrutor de Parent nunca roda. Uma referência de volta std::weak_ptr observa o pai sem possuí-lo (chame lock() para usá-lo), e a posse volta a ser uma árvore. make_shared só muda como a memória é alocada, não a semântica de posse."
+  },
+  {
+    "id": "cpp-smart-make-shared-allocation",
+    "title": "O que make_shared muda na alocação",
+    "question": "Em comparação com `std::shared_ptr<Image>(new Image(...))`, o que `std::make_shared<Image>(...)` normalmente muda na memória?",
+    "options": [
+      "Uma alocação combinada; a memória persiste enquanto houver weak_ptrs",
+      "Duas alocações separadas, mas a memória do objeto é liberada antes",
+      "A Image é colocada na stack, então não há nenhuma alocação no heap",
+      "Nada; só economiza digitação e gera exatamente as mesmas alocações"
+    ],
+    "explanation": "make_shared normalmente aloca o objeto e o bloco de controle em um único bloco, economizando uma alocação e melhorando a localidade. O custo: o destrutor do objeto ainda roda quando o último shared_ptr morre, mas a memória combinada só pode ser devolvida quando o último weak_ptr também some, o que importa para objetos grandes observados por weak_ptrs de vida longa. O objeto continua no heap."
+  },
+  {
+    "id": "cpp-smart-enable-shared-from-this",
+    "title": "Criando um shared_ptr a partir de this",
+    "question": "Um método de `Session` se registra com `registry.add(std::shared_ptr<Session>(this));`. As sessões são criadas com `std::make_shared<Session>()`. O que dá errado e qual é a correção?",
+    "options": [
+      "Nada dá errado, porque os dois shared_ptrs detectam que apontam para o mesmo lugar",
+      "Vaza memória porque o ponteiro do registry nunca decrementa; chame reset()",
+      "O novo ponteiro é nulo dentro de métodos; capture um `this` cru em vez disso",
+      "Dois blocos de controle geram double delete; herde enable_shared_from_this"
+    ],
+    "explanation": "Construir um shared_ptr a partir de um ponteiro cru cria um bloco de controle novo e independente, então o objeto acaba com duas contagens de referência e é deletado duas vezes. Herdar de std::enable_shared_from_this<Session> e chamar shared_from_this() retorna um shared_ptr que compartilha o bloco de controle existente. shared_ptrs nunca se detectam pelo endereço."
+  },
+  {
+    "id": "cpp-oop-non-virtual-call",
+    "title": "Chamando função não virtual por ponteiro da base",
+    "question": "O que isto imprime?\n\nstruct Base { void f() { std::cout << \"Base\"; } };\nstruct Derived : Base { void f() { std::cout << \"Derived\"; } };\nBase* p = new Derived;\np->f();",
+    "options": [
+      "Base",
+      "Derived",
+      "BaseDerived",
+      "Nada; a chamada é ambígua"
+    ],
+    "explanation": "f não é virtual, então a chamada é resolvida em tempo de compilação pelo tipo estático de p, que é Base*; Derived::f apenas esconde Base::f. Só declarar Base::f como virtual faz a chamada despachar pelo tipo dinâmico e imprimir \"Derived\". Não há ambiguidade, porque o lookup por Base* encontra exatamente um f."
+  },
+  {
+    "id": "cpp-oop-virtual-destructor",
+    "title": "Deletando pela base sem destrutor virtual",
+    "question": "`Base` tem um destrutor público não virtual, e `Derived` possui um buffer `std::vector<char>`. O código faz `Base* b = new Derived; delete b;`. Qual é o problema?",
+    "options": [
+      "Só os membros de Base vazam, pois o vector libera o armazenamento de Derived",
+      "Undefined behavior; na prática o destrutor de Derived costuma ser pulado",
+      "Não compila porque Base* não pode ser deletado sem um cast",
+      "Nenhum, porque delete sempre executa o destrutor da classe mais derivada"
+    ],
+    "explanation": "Deletar um objeto derivado por um ponteiro para uma base cujo destrutor não é virtual é undefined behavior; normalmente só ~Base executa, então os membros de Derived, como o buffer do vector, nunca são liberados. Torne o destrutor da base público e virtual, ou protegido e não virtual se deletar por Base* não deve ser possível (Core Guidelines C.35). O código compila sem erros, e por isso esse bug passa pelas revisões."
+  },
+  {
+    "id": "cpp-oop-object-slicing",
+    "title": "Passando um objeto derivado por valor",
+    "question": "`name()` é virtual e sobrescrita em `Derived`. O que `show(d)` imprime?\n\nvoid show(Base b) { std::cout << b.name(); }\nDerived d;\nshow(d);",
+    "options": [
+      "Derived, porque chamadas virtuais sempre usam o tipo do objeto original",
+      "Nada; passar um Derived onde se espera um Base não compila",
+      "Base, porque o parâmetro é uma cópia fatiada só com a parte Base",
+      "Qualquer um, porque o resultado depende do layout de vtable do compilador"
+    ],
+    "explanation": "Passar por valor constrói por cópia um Base novo a partir do subobjeto Base de d, fatiando (slicing) a parte Derived; dentro de show o tipo dinâmico do objeto é realmente Base, então Base::name executa. A conversão de derivada para base é implícita, então compila, e o comportamento é totalmente definido. Receba `const Base&` (ou um ponteiro) para manter o polimorfismo (Core Guidelines ES.63)."
+  },
+  {
+    "id": "cpp-oop-virtual-call-in-constructor",
+    "title": "Chamada virtual dentro do construtor da base",
+    "question": "O que isto imprime?\n\nstruct Base {\n  Base() { hello(); }\n  virtual void hello() { std::cout << \"Base \"; }\n  virtual ~Base() = default;\n};\nstruct Derived : Base {\n  void hello() override { std::cout << \"Derived \"; }\n};\nint main() { Derived d; d.hello(); }",
+    "options": [
+      "Derived Derived",
+      "Base Base",
+      "Derived Base",
+      "Base Derived"
+    ],
+    "explanation": "Enquanto o construtor de Base executa, a parte Derived ainda não existe, então o tipo dinâmico do objeto é Base e a chamada virtual vai para Base::hello. Depois que a construção termina, d.hello() despacha para Derived::hello. Por isso a Core Guidelines C.82 diz para não chamar funções virtuais em construtores e destrutores: o override esperado não é o que roda."
+  },
+  {
+    "id": "cpp-oop-destructor-suppresses-move",
+    "title": "Um destrutor com log que transformou moves em cópias",
+    "question": "Para depurar um vazamento, alguém adiciona `~Buffer() { log(\"freed\"); }` a uma classe cujo único membro é um `std::vector<int>` e que antes não declarava membros especiais. Depois disso, o profiling mostra `Buffer b2 = std::move(b1);` copiando o vector inteiro. Por quê?",
+    "options": [
+      "Declarar um destrutor suprime o move constructor implícito",
+      "std::move é ignorado em classes com destrutor definido pelo usuário",
+      "Log em um destrutor faz o compilador desativar a copy elision",
+      "O move constructor do vector deixa de ser noexcept nesse caso"
+    ],
+    "explanation": "Quando uma classe declara um destrutor, o compilador deixa de declarar implicitamente o move constructor e o move assignment, mas continua gerando o construtor de cópia, então o rvalue de std::move se liga a ele e o vector é copiado. Seguir a rule of zero, ou a rule of five adicionando `Buffer(Buffer&&) = default;` e os demais, restaura os moves. Copy elision não tem relação, porque b1 é um objeto nomeado já existente."
+  },
+  {
+    "id": "cpp-tmpl-conflicting-deduction",
+    "title": "Deduzindo um T a partir de dois argumentos diferentes",
+    "question": "Dado `template<typename T> T maxOf(T a, T b);`, o que acontece com a chamada `maxOf(1, 2.5)`?",
+    "options": [
+      "T é deduzido como double e o argumento int é convertido implicitamente",
+      "Não compila, porque T é deduzido como int e também como double",
+      "T é deduzido como int e 2.5 é truncado para 2 com warning de narrowing",
+      "T é deduzido como o tipo comum dos dois argumentos, std::common_type"
+    ],
+    "explanation": "Cada argumento deduz T de forma independente, int a partir de 1 e double a partir de 2.5, e deduções conflitantes fazem a dedução falhar, então não há função viável e a chamada não compila. Conversões implícitas não são consideradas ao deduzir T. Corrija com `maxOf<double>(1, 2.5)`, convertendo um argumento, ou com dois parâmetros de template e std::common_type."
+  },
+  {
+    "id": "cpp-tmpl-definition-in-cpp-linker-error",
+    "title": "Template definido em um .cpp não linka",
+    "question": "Um time declara `template<class T> T clamp01(T v);` em `math.h`, define em `math.cpp` e chama `clamp01(0.5)` em `main.cpp`. Tudo compila, mas a linkagem falha com undefined reference. Por quê?",
+    "options": [
+      "Templates não podem ser declarados em header e devem ficar em um único .cpp",
+      "O linker precisa da palavra-chave `export` em todo template para achar os símbolos",
+      "math.cpp nunca instancia clamp01<double>, e main.cpp não enxerga o corpo",
+      "Templates de função têm linkage interno, então chamadas entre arquivos falham"
+    ],
+    "explanation": "Um template é instanciado onde é usado, o que exige que a definição esteja visível ali. main.cpp só vê a declaração, então emite uma chamada a clamp01<double> esperando que outro arquivo a forneça, enquanto math.cpp nunca usa clamp01<double> e por isso nunca o instancia. Coloque a definição no header ou adicione a instanciação explícita `template double clamp01(double);` em math.cpp."
+  },
+  {
+    "id": "cpp-tmpl-if-constexpr-discarded",
+    "title": "Por que if constexpr ignora o ramo inválido",
+    "question": "Por que isto compila para `len(42)` mesmo `int` não tendo um membro `size()`?\n\ntemplate<class T> auto len(const T& v) {\n  if constexpr (std::is_arithmetic_v<T>) return std::size_t{1};\n  else return v.size();\n}",
+    "options": [
+      "O ramo descartado do `if constexpr` não é instanciado para esse T",
+      "O otimizador remove o ramo morto antes da verificação de tipos",
+      "Templates nunca são verificados a menos que a função seja chamada",
+      "Chamadas a funções-membro inexistentes são resolvidas em tempo de execução"
+    ],
+    "explanation": "Com `if constexpr`, a condição é uma expressão constante e, dentro de um template, a instrução descartada não é instanciada, então `v.size()` nunca é verificado para T = int. Com um `if` comum, os dois ramos são instanciados e a chamada não compila, mesmo a condição sendo conhecida. A otimização acontece depois da análise semântica, e C++ não tem lookup de membros em tempo de execução."
+  },
+  {
+    "id": "cpp-tmpl-typename-dependent-name",
+    "title": "Usando um tipo aninhado de um parâmetro de template",
+    "question": "Este template não compila com GCC e Clang no modo C++20. O que corrige?\n\ntemplate<class C> void f(const C& c) {\n  C::value_type first = c.front();\n}",
+    "options": [
+      "Adicionar `template` antes de `C::value_type`, pois ele nomeia um template aninhado",
+      "Escrever `typename C::value_type`; nomes dependentes não são tipos por padrão",
+      "Trocar `const C&` por `C&`, porque front() não pode ser chamado em const",
+      "Adicionar `using namespace std;` para o compilador achar o alias value_type"
+    ],
+    "explanation": "Dentro de um template, um nome qualificado que depende de um parâmetro de template é tratado como não sendo um tipo, a menos que tenha o prefixo `typename`, então a linha não pode ser lida como declaração. O C++20 removeu essa exigência em alguns contextos onde só um tipo pode aparecer, como declarações de alias, mas uma declaração de variável local ainda precisa dele. A palavra-chave `template` serve para templates-membro dependentes, e std::vector::front tem sobrecarga const."
+  },
+  {
+    "id": "cpp-tmpl-specialization-vs-overload",
+    "title": "Especialização versus sobrecarga de templates de função",
+    "question": "O que isto imprime?\n\ntemplate<class T> void f(T)  { std::cout << \"1\"; }\ntemplate<>        void f(int*) { std::cout << \"2\"; }\ntemplate<class T> void f(T*) { std::cout << \"3\"; }\nint main() { int* p = nullptr; f(p); }",
+    "options": [
+      "1",
+      "2",
+      "3",
+      "Não compila: a chamada é ambígua"
+    ],
+    "explanation": "A especialização explícita `f(int*)` especializa o primeiro template, f(T), porque ele é o único template primário declarado naquele ponto. A resolução de sobrecarga considera só templates primários: f(T*) é mais especializado que f(T) para um int*, então vence e imprime 3, e a especialização de f(T) nunca é usada. Por isso sobrecarregar templates de função costuma ser preferível a especializá-los."
+  },
+  {
+    "id": "cpp-stl-unordered-map-lookup",
+    "title": "Container para busca por chave em tempo constante",
+    "question": "Você precisa buscar sessões de usuário por ID string milhões de vezes, e a ordem de iteração não importa. Qual container padrão oferece busca O(1) em média?",
+    "options": [
+      "std::map",
+      "std::vector com std::find",
+      "std::set",
+      "std::unordered_map"
+    ],
+    "explanation": "std::unordered_map é uma tabela hash com find, insert e erase em tempo constante na média (linear no pior caso, com um hash ruim). std::map e std::set são ordenados, normalmente árvores rubro-negras, com operações O(log n), e std::find em um vector é uma busca linear. Escolha std::map só quando precisar de iteração ordenada ou consultas por intervalo de chaves."
+  },
+  {
+    "id": "cpp-stl-map-subscript-inserts",
+    "title": "Lendo uma chave ausente com map::operator[]",
+    "question": "O que isto imprime?\n\nstd::map<std::string, int> m;\nstd::cout << m[\"x\"];\nstd::cout << m.size();",
+    "options": [
+      "01",
+      "00",
+      "Lança std::out_of_range",
+      "Undefined behavior: a chave não existe"
+    ],
+    "explanation": "map::operator[] insere um elemento value-initialized (0 para int) quando a chave não existe e retorna uma referência para ele, então imprime 0 e o tamanho vira 1. Por isso também ele não pode ser usado em um map const. Use find() ou contains() (C++20) para testar uma chave sem inserir, ou at(), que lança std::out_of_range."
+  },
+  {
+    "id": "cpp-stl-remove-erase",
+    "title": "Tamanho do vector depois de std::remove",
+    "question": "Depois de executar este código, quanto vale `v.size()`?\n\nstd::vector<int> v{0, 1, 0, 2, 0};\nstd::remove(v.begin(), v.end(), 0);",
+    "options": [
+      "2",
+      "5",
+      "3",
+      "0"
+    ],
+    "explanation": "std::remove apenas desloca os elementos mantidos para o início e retorna um iterator para o novo fim lógico; algoritmos trabalham com iterators e não conseguem mudar o tamanho de um container. O tamanho continua 5 e o final guarda valores válidos, mas não especificados. Use o idioma erase-remove `v.erase(std::remove(v.begin(), v.end(), 0), v.end())` ou, desde o C++20, `std::erase(v, 0)`."
+  },
+  {
+    "id": "cpp-stl-iterator-invalidation",
+    "title": "Aumentando um vector enquanto o percorre",
+    "question": "Este loop trava de forma intermitente. Qual é a causa raiz?\n\nfor (auto it = v.begin(); it != v.end(); ++it)\n  if (*it < 0) v.push_back(-*it);",
+    "options": [
+      "push_back adiciona depois de end(), então o loop nunca termina",
+      "Usar != em vez de < faz `it` pular por cima de end()",
+      "push_back pode realocar o armazenamento, invalidando `it`",
+      "Desreferenciar `it` depois de `++it` lê um elemento fora de ordem"
+    ],
+    "explanation": "Quando o tamanho passa da capacidade, push_back realoca e move os elementos para um novo armazenamento, invalidando todos os iterators, referências e ponteiros para o vector; continuar usando `it` é undefined behavior, o que explica o travamento intermitente. Comparar com `<` em vez de `!=` não ajudaria. Percorra por índice ou junte os novos valores em outro vector e adicione-os depois do loop."
+  },
+  {
+    "id": "cpp-stl-sort-strict-weak-ordering",
+    "title": "Um comparador de std::sort que derruba o serviço",
+    "question": "Um serviço trava dentro de `std::sort` com este comparador, mas só em entradas com muitos scores iguais. Por quê?\n\nstd::sort(v.begin(), v.end(),\n  [](const Player& a, const Player& b) { return a.score <= b.score; });",
+    "options": [
+      "std::sort precisa de um comparador que retorne int, como o qsort do C",
+      "Lambdas com parâmetros por referência não podem ser passadas a std::sort",
+      "std::sort não é estável, então elementos iguais o fazem entrar em loop",
+      "`<=` não é uma strict weak ordering, então o comportamento é indefinido"
+    ],
+    "explanation": "O comparador precisa ser uma strict weak ordering: comp(a, a) deve ser false, e `<=` retorna true para elementos iguais. As implementações confiam nessa garantia para omitir verificações de limite nos loops internos, então violá-la é undefined behavior que pode ler além do intervalo e travar. Use `<`; estabilidade é outra propriedade (std::stable_sort) e não causa travamentos."
+  },
+  {
+    "id": "cpp-move-what-std-move-does",
+    "title": "O que std::move faz sozinho",
+    "question": "O que `std::move(x)` faz por si só?",
+    "options": [
+      "Converte x em rvalue para que sobrecargas de move possam ser escolhidas",
+      "Transfere na hora os recursos de x para um novo objeto temporário",
+      "Marca x como destruído para que seu destrutor não execute depois",
+      "Troca x por um objeto do mesmo tipo construído por padrão"
+    ],
+    "explanation": "std::move é apenas um cast para referência rvalue (produz um xvalue) e não move nada. A transferência só acontece se o resultado inicializar ou for atribuído a um objeto cujo move constructor ou move assignment então pega os recursos. x continua sendo destruído normalmente no fim do seu escopo."
+  },
+  {
+    "id": "cpp-move-moved-from-state",
+    "title": "O que é garantido sobre uma string após o move",
+    "question": "Depois de `std::string t = std::move(s);`, qual afirmação sobre `s` a biblioteca padrão garante?",
+    "options": [
+      "s com certeza está vazia, então s.size() sempre retorna 0",
+      "Qualquer uso de s, inclusive s.clear(), é undefined behavior",
+      "s mantém o conteúdo anterior porque o move só fez uma cópia",
+      "s é válida, mas não especificada; dá para atribuir ou limpar"
+    ],
+    "explanation": "Objetos da biblioteca padrão ficam em um estado válido, mas não especificado, depois de um move: seus invariantes valem, então operações sem pré-condições como atribuição, clear() ou size() são permitidas, mas você não pode contar com o valor. Na prática a maioria das implementações deixa a string vazia, mas isso não é garantido. Atribua um novo valor antes de depender do conteúdo."
+  },
+  {
+    "id": "cpp-move-const-object-copies",
+    "title": "std::move em um objeto const",
+    "question": "Um buffer de 1 MB é declarado `const std::string payload = load();` e depois passado como `queue.push(std::move(payload));`. O profiling mostra uma cópia completa. Por quê?",
+    "options": [
+      "std::move não faz nada a menos que otimizações como -O2 estejam ativas",
+      "Ele gera `const std::string&&`, que se liga ao construtor de cópia",
+      "push() sempre copia o argumento, seja qual for a categoria de valor",
+      "Strings com menos de alguns MB são sempre copiadas pela small-string optimization"
+    ],
+    "explanation": "Fazer o cast de um objeto const gera um rvalue const; o move constructor recebe um `std::string&&` não const e não consegue se ligar a ele, então a resolução de sobrecarga escolhe o construtor de cópia que recebe `const std::string&`. Não declare um objeto como const se pretende movê-lo depois. A small-string optimization só vale para strings curtas, e std::move se comporta igual em qualquer nível de otimização."
+  },
+  {
+    "id": "cpp-move-noexcept-vector-reallocation",
+    "title": "Realocação de vector com move constructor que pode lançar",
+    "question": "Um `std::vector<Order>` cresce além da capacidade. `Order` tem um construtor de cópia definido pelo usuário e um move constructor sem noexcept. Como os elementos existentes são transferidos para o novo buffer?",
+    "options": [
+      "São movidos, porque mover é sempre mais barato que copiar",
+      "São movidos um a um e copiados só se um move lançar exceção",
+      "São copiados, preservando a strong exception guarantee",
+      "Nenhum dos dois; a realocação move os bytes crus"
+    ],
+    "explanation": "Para manter a strong exception guarantee do push_back, o vector realoca os elementos com std::move_if_noexcept: se o move constructor pode lançar e existe um construtor de cópia, ele copia, porque um move que lança no meio deixaria o buffer antigo danificado. Marcar o move constructor como noexcept (Core Guidelines C.66) permite que a realocação mova. std::vector não realoca bytes crus para tipos que não são trivially copyable."
+  },
+  {
+    "id": "cpp-move-forwarding-reference-move",
+    "title": "std::move em uma forwarding reference",
+    "question": "Depois desta chamada, o `name` de quem chamou está vazio sem motivo aparente. Qual é o bug?\n\ntemplate<class T> void add(T&& v) { store.push_back(std::move(v)); }\nstd::string name = \"Ana\";\nadd(name);",
+    "options": [
+      "push_back recebe o argumento por valor, então name é sempre consumido",
+      "T&& em um template é referência rvalue e só se liga a rvalues",
+      "store precisa ser declarado antes de add, então uma cópia temporária foi movida",
+      "v é uma forwarding reference; use std::forward<T>(v), não std::move"
+    ],
+    "explanation": "Em `template<class T> void add(T&& v)`, T&& é uma forwarding reference: passar o lvalue `name` deduz T = std::string&, então v se refere à string de quem chamou, e std::move(v) move incondicionalmente a partir dela. `std::forward<T>(v)` só move quando quem chamou passou um rvalue e copia nos outros casos. Já um parâmetro `std::string&&` fora de template nem aceitaria `name`."
+  },
+  {
+    "id": "cpp-conc-thread-not-joined",
+    "title": "Destruindo um std::thread joinable",
+    "question": "O que acontece quando esta função retorna?\n\nvoid start() {\n  std::thread t(work);\n}",
+    "options": [
+      "A thread é desanexada automaticamente e continua rodando sozinha",
+      "std::terminate é chamado porque t ainda é joinable",
+      "O destrutor de t bloqueia até work() terminar e então retorna",
+      "work() é cancelada na hora e sua pilha passa por unwinding seguro"
+    ],
+    "explanation": "Destruir um std::thread que ainda é joinable (nem join nem detach foram chamados) chama std::terminate. Fazer join na destruição é o comportamento do std::jthread do C++20, que também solicita a parada antes, e std::thread nunca faz detach ou cancela por conta própria. Chame t.join() antes de t sair de escopo ou use std::jthread."
+  },
+  {
+    "id": "cpp-conc-data-race-counter",
+    "title": "Atualizações perdidas em um contador compartilhado",
+    "question": "Duas threads executam `for (int i = 0; i < 100000; ++i) ++counter;` sobre um `int counter` compartilhado. O valor final costuma ficar abaixo de 200000. Qual é o diagnóstico e a correção?",
+    "options": [
+      "O int estoura; trocar counter por long long corrige o resultado",
+      "Marcar counter como `volatile` torna cada incremento atômico entre threads",
+      "É uma data race (undefined behavior); use std::atomic<int> ou um mutex",
+      "As threads precisam chamar std::this_thread::yield() após cada incremento"
+    ],
+    "explanation": "`++counter` é um read-modify-write, e acessos conflitantes sem sincronização vindos de duas threads são uma data race, que é undefined behavior; atualizações perdidas são o sintoma típico. std::atomic<int>, cujo ++ é um fetch_add atômico, ou um std::mutex corrige. volatile não oferece atomicidade nem ordenação entre threads em C++, e 200.000 cabe tranquilamente em um int."
+  },
+  {
+    "id": "cpp-conc-scoped-lock-deadlock",
+    "title": "Deadlock ao travar dois mutexes",
+    "question": "`transfer(a, b)` trava `a.m` e depois `b.m` com dois lock_guards, e às vezes entra em deadlock enquanto outra thread executa `transfer(b, a)`. Qual é a correção padrão mais simples?",
+    "options": [
+      "Travar os dois de uma vez com `std::scoped_lock lock(a.m, b.m);`",
+      "Trocar os dois lock_guards por objetos `std::unique_lock`",
+      "Tornar os dois mutexes `std::recursive_mutex` para poderem retravar",
+      "Adicionar um `std::this_thread::sleep_for` entre os dois locks"
+    ],
+    "explanation": "As duas threads adquirem o mesmo par de mutexes em ordens opostas, o clássico deadlock de ordem de locks. std::scoped_lock (C++17) adquire vários mutexes com um algoritmo que evita deadlock, como std::lock, então a ordem dos argumentos deixa de importar. unique_lock sozinho não muda a ordem, recursive_mutex só ajuda quando a mesma thread retrava um mutex, e dormir apenas muda o timing."
+  },
+  {
+    "id": "cpp-conc-condition-variable-predicate",
+    "title": "Consumidor acorda com a fila vazia",
+    "question": "Um consumidor executa `std::unique_lock lk(m); cv.wait(lk); auto job = q.front();` e às vezes lê de uma fila vazia. Qual é a correção?",
+    "options": [
+      "Chamar notify_all em vez de notify_one na thread produtora",
+      "Usar um std::lock_guard, porque wait precisa de um lock não movível",
+      "Liberar o lock antes de chamar wait para os produtores enfileirarem",
+      "Esperar com um predicado: `cv.wait(lk, [&]{ return !q.empty(); });`"
+    ],
+    "explanation": "wait pode retornar por um spurious wakeup ou depois que outro consumidor já pegou o item, então a condição precisa ser verificada de novo sob o lock; a sobrecarga com predicado executa `while (!pred()) wait(lk);` por você. notify_all acorda mais threads e piora a corrida, wait exige um std::unique_lock porque precisa destravar o mutex, e ele mesmo libera o mutex enquanto bloqueia (Core Guidelines CP.42)."
+  },
+  {
+    "id": "cpp-conc-release-acquire",
+    "title": "Publicando dados com uma flag atômica relaxed",
+    "question": "A thread A escreve `data = 42;` e depois `ready.store(true, std::memory_order_relaxed);`. A thread B espera em loop com `ready.load(std::memory_order_relaxed)` e então lê `data`, um int comum. O que está errado?",
+    "options": [
+      "Nada; atomics são sequencialmente consistentes seja qual for a ordem passada",
+      "Relaxed não cria happens-before, então ler data é uma data race; use release/acquire",
+      "O store precisa ser seq_cst; as ordens acquire e release só valem para mutexes",
+      "B precisa usar compare_exchange_strong em vez de load para ver a flag"
+    ],
+    "explanation": "Operações relaxed são atômicas mas não impõem ordenação, então ver ready == true não torna visível a escrita anterior em data, e os acessos não atômicos a data formam uma data race (undefined behavior). Um store release combinado com um load acquire que lê o valor armazenado cria uma relação happens-before que publica data. seq_cst só é o padrão quando nenhuma ordem é passada, e acquire e release são ordens de memória para operações atômicas."
+  },
+  {
+    "id": "cpp-cmake-configure-build",
+    "title": "Configurando e compilando fora do código-fonte",
+    "question": "Qual par de comandos configura um projeto CMake em um diretório `build` separado e depois o compila?",
+    "options": [
+      "`cmake --configure build` seguido de `cmake --make build`",
+      "`cmake --init .` seguido de `cmake --run build`",
+      "`cmake -S . -B build` seguido de `cmake --build build`",
+      "`cmake --build .` seguido de `cmake -B build`"
+    ],
+    "explanation": "`-S` indica o diretório de código-fonte e `-B` o diretório de build, o que mantém os arquivos gerados fora da árvore de código, e `cmake --build <dir>` aciona a ferramenta de build por baixo (Make, Ninja, MSBuild) de forma portável. A ordem importa: a árvore de build precisa ser configurada antes de `--build` rodar, e `--configure`, `--make`, `--init` e `--run` não são opções do CMake."
+  },
+  {
+    "id": "cpp-cmake-cxx-standard",
+    "title": "Exigindo C++20 em um target do CMake",
+    "question": "Em um CMakeLists.txt, qual linha exige C++20 de forma confiável para o target `app` em qualquer compilador suportado?",
+    "options": [
+      "`target_compile_features(app PUBLIC cxx_std_20)`",
+      "`add_definitions(-DCXX_STANDARD=20)`",
+      "`set(CMAKE_CXX_FLAGS \"-std=c++20\")`",
+      "`project(app VERSION 20)`"
+    ],
+    "explanation": "target_compile_features com a meta-feature cxx_std_20 informa ao CMake que o target precisa de pelo menos C++20, e o CMake adiciona a flag certa para o compilador em uso (definir a propriedade CXX_STANDARD com CXX_STANDARD_REQUIRED ON também funciona). Fixar -std=c++20 quebra o MSVC, que usa /std:c++20, add_definitions só define uma macro do pré-processador, e project VERSION é o número de versão do próprio projeto."
+  },
+  {
+    "id": "cpp-cmake-private-public-linking",
+    "title": "Mantendo uma dependência fora do build dos consumidores",
+    "question": "A biblioteca `net` usa OpenSSL só dentro dos seus .cpp; os headers públicos nunca incluem OpenSSL. Como `net` deve linkar a dependência para que os targets que usam `net` não herdem os include paths do OpenSSL?",
+    "options": [
+      "`target_link_libraries(net PUBLIC OpenSSL::SSL)`",
+      "`target_link_libraries(net INTERFACE OpenSSL::SSL)`",
+      "`link_libraries(OpenSSL::SSL)` no nível superior",
+      "`target_link_libraries(net PRIVATE OpenSSL::SSL)`"
+    ],
+    "explanation": "Uma dependência PRIVATE é usada para compilar o próprio net, mas seus requisitos de uso, como diretórios de include e definições de compilação, não são propagados para os targets que linkam net. PUBLIC também os propagaria, o que só é correto quando os headers de net expõem tipos do OpenSSL, e INTERFACE propaga para os consumidores sem usar a biblioteca no próprio net. link_libraries afeta todo target criado depois dele."
+  },
+  {
+    "id": "cpp-cmake-odr-header-definition",
+    "title": "Função definida em header quebra a linkagem",
+    "question": "`util.h` contém `int add(int a, int b) { return a + b; }` e é incluído por `a.cpp` e `b.cpp`. Os dois compilam, mas a linkagem falha. O que corrige mantendo o corpo no header?",
+    "options": [
+      "Envolver o header com `#pragma once` para ser incluído uma única vez",
+      "Marcar a função como `inline` para permitir definições idênticas repetidas",
+      "Declarar a função como `extern` para o linker mesclar os símbolos",
+      "Mover `#include \"util.h\"` para depois de todos os outros includes"
+    ],
+    "explanation": "Cada .cpp é uma unidade de tradução separada, então cada uma emite sua própria definição externa de add, violando a One Definition Rule, e o linker acusa definição múltipla. `inline` permite uma definição idêntica por unidade de tradução. Include guards e #pragma once só evitam inclusão dupla dentro de uma mesma unidade de tradução, e `extern` já é o linkage padrão das funções."
+  },
+  {
+    "id": "cpp-cmake-multi-config-build-type",
+    "title": "CMAKE_BUILD_TYPE ignorado por um gerador multi-config",
+    "question": "Um job de CI executa `cmake -S . -B build -G \"Visual Studio 17 2022\" -DCMAKE_BUILD_TYPE=Release` e depois `cmake --build build`, mas os binários vão parar em `build/Debug`. Por quê?",
+    "options": [
+      "CMAKE_BUILD_TYPE precisa ser definido no CMakeLists.txt, não na linha de comando",
+      "Builds Release exigem `-DCMAKE_CONFIGURATION_TYPES=Release` em toda execução",
+      "Visual Studio é multi-config; escolha a config com `--config Release`",
+      "A variável é ignorada quando o diretório de build não se chama `Release`"
+    ],
+    "explanation": "Geradores multi-config (Visual Studio, Xcode, Ninja Multi-Config) geram todas as configurações de uma vez e ignoram CMAKE_BUILD_TYPE; a configuração é escolhida no build com `cmake --build build --config Release`, e Debug é usada quando nenhuma é informada. Geradores single-config como Makefiles e Ninja é que respeitam CMAKE_BUILD_TYPE na configuração, e ela pode ser definida na linha de comando."
+  },
+  {
+    "id": "cpp-ub-unsigned-wrap-vs-signed-overflow",
+    "title": "Qual overflow de inteiro é bem definido",
+    "question": "Qual destas expressões tem comportamento bem definido em C++ padrão (com int de 32 bits)?",
+    "options": [
+      "`UINT_MAX + 1u`, que dá a volta para 0",
+      "`INT_MAX + 1`, que dá a volta para INT_MIN",
+      "`-INT_MIN`, que resulta em INT_MAX + 1",
+      "`1 << 40`, que mantém só os 32 bits menos significativos"
+    ],
+    "explanation": "A aritmética unsigned é definida módulo 2^N, então `UINT_MAX + 1u` é exatamente 0. Overflow com sinal, como em `INT_MAX + 1` ou `-INT_MIN` (cujo resultado não é representável), é undefined behavior mesmo com o C++20 exigindo complemento de dois, e deslocar por um valor maior ou igual à largura em bits do operando promovido também é indefinido."
+  },
+  {
+    "id": "cpp-ub-vector-at-vs-subscript",
+    "title": "Acesso fora dos limites com [] versus at()",
+    "question": "Dado `std::vector<int> v(5);`, qual é a diferença entre `v[10]` e `v.at(10)`?",
+    "options": [
+      "Os dois lançam std::out_of_range, mas `v[10]` também registra um log de debug",
+      "`v[10]` retorna 0 para elementos inexistentes, enquanto `v.at(10)` lança",
+      "Os dois aumentam o vector para 11 elementos e retornam um int zerado",
+      "`v[10]` é undefined behavior, enquanto `v.at(10)` lança out_of_range"
+    ],
+    "explanation": "operator[] não verifica limites, então um índice fora do intervalo é undefined behavior: pode ler lixo, travar ou parecer funcionar. at() verifica o índice e lança std::out_of_range. Diferente de std::map::operator[], o operator[] do vector nunca insere elementos. Modos de debug ou hardened da biblioteca padrão podem adicionar verificações ao [], mas não conte com isso."
+  },
+  {
+    "id": "cpp-ub-modify-string-literal",
+    "title": "Escrevendo em um string literal via cast",
+    "question": "Um código legado faz `char* p = (char*)\"hello\"; p[0] = 'H';`. Compila, mas trava em algumas plataformas. Por quê?",
+    "options": [
+      "O cast copia o literal para o heap, e essa cópia nunca é liberada",
+      "String literals são arrays const; escrever em um é undefined behavior",
+      "p[0] está fora dos limites porque literais começam no índice 1 em C++",
+      "O literal de caractere 'H' tem tipo int, então a escrita é truncada"
+    ],
+    "explanation": "Um string literal tem tipo const char[N] e pode ficar em memória somente leitura (literais idênticos podem até ser compartilhados), então modificá-lo é undefined behavior; o cast estilo C só esconde o const. Se você precisa de um buffer mutável, use `char s[] = \"hello\";` ou std::string. Em C++ um literal de caractere como 'H' tem tipo char, não int como em C."
+  },
+  {
+    "id": "cpp-ub-overflow-check-optimized-away",
+    "title": "Uma verificação de overflow removida pelo otimizador",
+    "question": "A verificação `if (len + 100 < len) return error;`, em que `len` é um `int`, some do binário compilado com -O2. O que explica isso?",
+    "options": [
+      "Um bug do compilador: otimizadores nunca podem apagar verificações explícitas",
+      "A verificação foi dobrada porque len é sempre positivo em -O2",
+      "Overflow com sinal é UB, então o compilador pode assumir que é sempre falso",
+      "Comparações de int são feitas em registradores de 64 bits, então nunca estouram"
+    ],
+    "explanation": "Como overflow com sinal é indefinido, o otimizador pode assumir que `len + 100` nunca estoura, o que torna `len + 100 < len` comprovadamente falso e o ramo, código morto. Escreva a verificação de modo que não possa estourar, por exemplo `if (len > INT_MAX - 100)`, ou use aritmética unsigned, em que a volta é definida. Compiladores podem assumir que UB nunca acontece, então isso não é bug."
+  },
+  {
+    "id": "cpp-ub-strict-aliasing-type-punning",
+    "title": "Lendo os bits de um float sem violar aliasing",
+    "question": "Para ler o padrão de bits de um float, o código faz `std::uint32_t bits = *reinterpret_cast<std::uint32_t*>(&f);`. Com -O2 ele retorna valores desatualizados em alguns pontos de chamada inlined. Qual é a correção conforme o padrão?",
+    "options": [
+      "Marcar f como volatile para o compilador sempre recarregá-lo da memória",
+      "Usar uma union e ler o membro inativo, o que C++ suporta totalmente",
+      "Usar static_cast<std::uint32_t>(f), que preserva os bits exatos",
+      "Usar std::bit_cast<std::uint32_t>(f) (C++20) ou std::memcpy"
+    ],
+    "explanation": "Acessar um objeto float por um glvalue uint32_t viola as regras de type aliasing, então é undefined behavior e o otimizador pode assumir que os dois nunca se sobrepõem. std::bit_cast (C++20), ou memcpy para um uint32_t, copia a representação do objeto de forma legal e compila para a mesma instrução. Ler um membro inativo de union é UB em C++ (diferente de C), e static_cast converte o valor (3.7f vira 3), não os bits."
+  },
+  {
+    "id": "cpp-modern-structured-bindings",
+    "title": "Structured bindings sobre um std::map",
+    "question": "O que `for (const auto& [name, score] : scores)` faz quando `scores` é um `std::map<std::string, int>`?",
+    "options": [
+      "Copia cada chave para name e ordena os scores em um novo vector",
+      "Liga name e score à chave e ao valor de cada par, sem cópias",
+      "Declara um array de dois elementos chamado name com score como tamanho",
+      "Cria uma lista de captura de lambda para name e score a cada passo"
+    ],
+    "explanation": "Structured bindings (C++17) introduzem nomes que se referem aos membros do objeto decomposto. Com `const auto&`, a variável oculta é uma referência para cada std::pair<const std::string, int>, então name e score são aliases de first e second sem cópia. Os colchetes aqui não têm relação com arrays nem com capturas de lambda."
+  },
+  {
+    "id": "cpp-modern-optional-value-or",
+    "title": "Lendo um std::optional com valor padrão",
+    "question": "`std::optional<int> findPort(const Config&);` pode não encontrar porta. Como ler o resultado com padrão 8080?",
+    "options": [
+      "`findPort(cfg).get_or_default(8080)`",
+      "`findPort(cfg) ?: 8080`",
+      "`findPort(cfg).value_or(8080)`",
+      "`findPort(cfg).value(8080)`"
+    ],
+    "explanation": "value_or retorna o valor contido, se houver, e o fallback informado caso contrário. `?:` com o operando do meio omitido é uma extensão do GNU, não C++ padrão, e std::optional não tem um membro get_or_default. value() não recebe argumentos: retorna o valor ou lança std::bad_optional_access quando o optional está vazio."
+  },
+  {
+    "id": "cpp-modern-string-view-dangling",
+    "title": "Um string_view sobre uma string temporária",
+    "question": "Por que este código tem bug?\n\nstd::string_view sv = std::string(\"user-\") + id;\nlog(sv);",
+    "options": [
+      "O temporário da concatenação morre no fim da instrução",
+      "string_view não pode ser construído a partir de std::string, só de literais",
+      "string_view copia os caracteres, então o log mostra um retrato antigo",
+      "O operador + retorna um string_view sem terminador nulo"
+    ],
+    "explanation": "std::string_view é uma visão sem posse; aqui ela aponta para dentro da std::string temporária gerada pelo operator+, que é destruída no fim da expressão completa, então log(sv) lê memória liberada. string_view converte a partir de std::string, nunca copia os caracteres, e operator+ retorna std::string. Guarde a std::string em uma variável nomeada e use string_view principalmente em parâmetros de função."
+  },
+  {
+    "id": "cpp-modern-concepts-constraint",
+    "title": "Chamando um template restrito com o tipo errado",
+    "question": "Dado `template<std::integral T> T half(T x) { return x / 2; }`, o que acontece com `half(2.5)`?",
+    "options": [
+      "Retorna 1.25 porque o concept é só uma dica de documentação",
+      "Não compila: double não satisfaz std::integral",
+      "Compila e converte 2.5 para int, então a chamada retorna 1",
+      "Lança std::invalid_argument em tempo de execução para o double"
+    ],
+    "explanation": "Um parâmetro de template restrito é verificado durante a resolução de sobrecarga: double não satisfaz std::integral, então o template não é viável e a chamada falha com um erro que aponta a restrição não satisfeita. Concepts são aplicados de verdade, não são documentação, nunca inserem conversões para tornar um template viável e não têm comportamento em tempo de execução."
+  },
+  {
+    "id": "cpp-modern-consteval-runtime-arg",
+    "title": "Chamando uma função consteval com valor de tempo de execução",
+    "question": "O que acontece ao compilar isto?\n\nconsteval int square(int n) { return n * n; }\nint main() { int k; std::cin >> k; std::cout << square(k); }",
+    "options": [
+      "Compila e square executa em tempo de execução, como uma função constexpr",
+      "Compila, mas square(k) retorna 0 porque k é desconhecido na compilação",
+      "Só compila com otimizações ativas, que dobram a chamada para uma constante",
+      "Falha: uma chamada consteval precisa produzir uma constante de compilação"
+    ],
+    "explanation": "consteval declara uma immediate function: toda chamada precisa ser uma expressão constante avaliada em tempo de compilação, e `square(k)` depende de um valor lido em tempo de execução, então o programa é mal formado. Uma função constexpr cairia silenciosamente para avaliação em tempo de execução aqui, e essa é exatamente a diferença entre as duas. Níveis de otimização nunca mudam se um programa é bem formado."
+  }
+]

@@ -87,6 +87,8 @@ public sealed partial class DatabaseSeeder
                         ModuleId = module.Id, Title = sj.Title, TopicId = topic.Id, SubtopicId = sub?.Id,
                         MinimumAccuracy = _o.DefaultStepMinimumAccuracy, XPReward = _o.RoadmapStepXp,
                     };
+                    // Through the DbSet, so a step appended to an existing module is inserted (not treated as an existing row).
+                    db.ModuleSteps.Add(step);
                     module.Steps.Add(step);
                     added.Add(step);
                     stepsAdded++;
