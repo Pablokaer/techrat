@@ -19,7 +19,7 @@ export const shell: Messages["shell"] = {
     home: "Início",
     profile: "Perfil",
   },
-  motto: ["MESMA", "CURIOSIDADE", "OUTRA", "ALTITUDE"],
+  motto: ["SIGA O", "TECHRAT", "EM VOCÊ"],
   search: {
     label: "Buscar tópicos, roadmaps e tecnologias",
     placeholder: "Busque tópicos, tecnologias ou roadmaps…",

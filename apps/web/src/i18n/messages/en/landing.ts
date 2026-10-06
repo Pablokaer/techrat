@@ -1,7 +1,7 @@
 export const landing = {
   signIn: "Sign in",
   getStarted: "Get started",
-  eyebrow: "Same curiosity · different altitude",
+  eyebrow: "Follow the TechRat in you",
   heroLine1: "Learn. Practice.",
   heroLine2: "Level up.",
   intro: "A gamified learning platform for tomorrow's builders — from your first variable to designing distributed systems and shipping AI.",

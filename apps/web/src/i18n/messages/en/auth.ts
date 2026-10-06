@@ -1,7 +1,7 @@
 // Sign in, registration and password reset screens (plus the shared auth layout).
 export const auth = {
   layout: {
-    slogan: ["SAME", "CURIOSITY", "DIFFERENT", "ALTITUDE"],
+    slogan: ["FOLLOW THE", "TECHRAT", "IN YOU"],
     tagline: "A gamified learning platform for tomorrow's builders.",
     motto: { learn: "LEARN", practice: "PRACTICE", levelUp: "LEVEL UP" },
     pillars: {

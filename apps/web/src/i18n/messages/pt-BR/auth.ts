@@ -2,7 +2,7 @@ import type { Messages } from "../en";
 
 export const auth: Messages["auth"] = {
   layout: {
-    slogan: ["MESMA", "CURIOSIDADE", "OUTRA", "ALTITUDE"],
+    slogan: ["SIGA O", "TECHRAT", "EM VOCÊ"],
     tagline: "Uma plataforma de aprendizado gamificada para quem vai construir o futuro.",
     motto: { learn: "APRENDA", practice: "PRATIQUE", levelUp: "SUBA DE NÍVEL" },
     pillars: {

@@ -198,3 +198,16 @@ describe("useLocale", () => {
     expect(result.current.locale).toBe("pt-BR");
   });
 });
+
+describe("brand motto", () => {
+  it.each([
+    ["en", "Follow the TechRat in you"],
+    ["pt-BR", "Siga o TechRat em você"],
+  ] as const)("reads the same everywhere in %s", (locale, motto) => {
+    const m = messages[locale];
+    const words = (lines: readonly string[]) => lines.join(" ").toLowerCase();
+    expect(m.landing.eyebrow).toBe(motto);
+    expect(words(m.shell.motto)).toBe(motto.toLowerCase());
+    expect(words(m.auth.layout.slogan)).toBe(motto.toLowerCase());
+  });
+});

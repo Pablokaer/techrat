@@ -47,7 +47,7 @@ export const fonts = {
 export const brand = {
   name: "TechRat",
   tagline: ["Learn", "Practice", "Level Up"] as const,
-  motto: "Same curiosity. Different altitude.",
+  motto: "Follow the TechRat in you",
 } as const;
 
 export type Difficulty = keyof typeof difficultyColors;

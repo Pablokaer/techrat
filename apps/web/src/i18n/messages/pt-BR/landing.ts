@@ -3,7 +3,7 @@ import type { Messages } from "../en";
 export const landing: Messages["landing"] = {
   signIn: "Entrar",
   getStarted: "Começar",
-  eyebrow: "Mesma curiosidade · outra altitude",
+  eyebrow: "Siga o TechRat em você",
   heroLine1: "Aprenda. Pratique.",
   heroLine2: "Suba de nível.",
   intro: "Uma plataforma de aprendizado gamificada para quem vai construir o futuro — da sua primeira variável ao design de sistemas distribuídos e à entrega de IA.",

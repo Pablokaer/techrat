@@ -17,7 +17,7 @@ export const shell = {
     home: "Home",
     profile: "Profile",
   },
-  motto: ["SAME", "CURIOSITY", "DIFFERENT", "ALTITUDE"] as string[],
+  motto: ["FOLLOW THE", "TECHRAT", "IN YOU"] as string[],
   search: {
     label: "Search topics, roadmaps and technologies",
     placeholder: "Search topics, technologies, or roadmaps…",
