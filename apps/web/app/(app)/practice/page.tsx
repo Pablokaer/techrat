@@ -69,7 +69,7 @@ function PracticeSetup() {
             {MODES.map(({ value, icon: Icon }) => (
               <button key={value} role="radio" aria-checked={mode === value} onClick={() => setMode(value)}
                 className={cx("flex items-start gap-3 rounded-2xl border p-4 text-left", mode === value ? "glow-border bg-primary/10" : "border-border bg-bg-2 hover:border-primary/40")}>
-                <Icon className={cx("mt-0.5 h-5 w-5", mode === value ? "text-primary" : "text-text-secondary")} aria-hidden />
+                <Icon className={cx("mt-0.5 h-5 w-5 shrink-0", mode === value ? "text-primary" : "text-text-secondary")} aria-hidden />
                 <span><span className="block font-semibold">{t.practice.modes[value] ?? value}</span><span className="block text-sm text-text-secondary">{t.practice.modeText[value]}</span></span>
               </button>
             ))}

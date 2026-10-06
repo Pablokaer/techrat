@@ -35,14 +35,14 @@ function ProfileView() {
     <div className="space-y-6">
       <Card className="matrix-bg p-6 sm:p-8">
         <div className="flex flex-col gap-6 md:flex-row md:items-center">
-          <div className="rounded-full p-1 shadow-[0_0_30px_rgba(0,255,65,0.35)]"><Avatar user={user} size={112} /></div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3">
-              <h1 className="truncate text-3xl font-extrabold">{user.displayName}</h1>
+          <div className="self-center rounded-full p-1 shadow-[0_0_30px_rgba(0,255,65,0.35)] md:self-auto"><Avatar user={user} size={112} /></div>
+          <div className="min-w-0 flex-1 text-center md:text-left">
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 md:flex-nowrap md:justify-start">
+              <h1 className="min-w-0 break-words text-3xl font-extrabold md:truncate">{user.displayName}</h1>
               {isMe && <Link href="/settings" className="btn-ghost px-2 py-1 text-xs"><Pencil className="h-3.5 w-3.5" /> {t.profile.edit}</Link>}
             </div>
             <p className="font-mono text-sm text-text-secondary">@{user.username}</p>
-            {user.bio && <p className="mt-2 max-w-xl text-text-secondary">{user.bio}</p>}
+            {user.bio && <p className="mx-auto mt-2 max-w-xl text-text-secondary md:mx-0">{user.bio}</p>}
             <p className="mt-2 text-xs text-text-muted">{t.profile.memberSince(f.date(user.createdAt, { month: "long", year: "numeric" }))}</p>
           </div>
           <div className="flex items-center gap-4 rounded-2xl border border-border bg-bg/60 p-5 md:min-w-72">

@@ -9,6 +9,7 @@ export const landing: Messages["landing"] = {
   intro: "Uma plataforma de aprendizado gamificada para quem vai construir o futuro — da sua primeira variável ao design de sistemas distribuídos e à entrega de IA.",
   startFree: "Comece grátis",
   haveAccount: "Já tenho uma conta",
+  navLabel: "Conta",
   logoAlt: "Logo do TechRat: um rato verde de óculos escuros programando em um notebook",
   pillars: {
     practice: { title: "Praticar", text: "Questões do mundo real" },

@@ -80,7 +80,10 @@ function Row({ entry: e, highlight, label }: { entry: LeaderboardEntry; highligh
       <Link href={routes.profile(e.username)} className="flex min-w-0 items-center gap-3 hover:text-primary">
         <Avatar user={e} size={36} />
         <span className="min-w-0">
-          <span className="block truncate font-semibold">{e.displayName} {label && <span className="ml-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] text-primary">{label}</span>}</span>
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="truncate font-semibold">{e.displayName}</span>
+            {label && <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] text-primary">{label}</span>}
+          </span>
           <span className="block truncate font-mono text-xs text-text-muted">@{e.username}</span>
         </span>
       </Link>

@@ -4,13 +4,13 @@ import { Languages } from "lucide-react";
 import { cx } from "@techrat/ui";
 import { LOCALES, LOCALE_LABELS, useLocale, useT } from "@/i18n";
 
-/** Two-option language toggle (EN / PT). `compact` shows only the short codes. */
+/** Two-option language toggle (EN / PT). `compact` shows only the short codes (and drops the icon on phones). */
 export function LanguageSwitcher({ compact = false, className }: { compact?: boolean; className?: string }) {
   const { locale, setLocale } = useLocale();
   const t = useT();
   return (
     <div role="group" aria-label={t.common.language.choose} className={cx("inline-flex items-center gap-1 rounded-xl border border-border bg-card p-1", className)}>
-      <Languages className="ml-1 h-4 w-4 text-text-muted" aria-hidden />
+      <Languages className={cx("ml-1 h-4 w-4 text-text-muted", compact && "hidden sm:block")} aria-hidden />
       {LOCALES.map((l) => (
         <button
           key={l}

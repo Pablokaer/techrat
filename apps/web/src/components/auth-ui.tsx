@@ -48,17 +48,17 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
           ))}
         </ul>
       </aside>
-      <main className="relative flex items-center justify-center px-5 pb-12 pt-16">
+      <main className="relative flex items-center justify-center px-5 pb-12 pt-20 lg:pt-16">
         <div className="absolute right-4 top-4">
           <LanguageSwitcher compact />
         </div>
         <div className="w-full max-w-md">
-          <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <Image src="/brand/rat-192.png" alt="" width={44} height={44} />
-            <span className="text-2xl font-extrabold">Tech<span className="text-primary">Rat</span></span>
+          {/* Phones have no side panel: the logo opens the screen, centred above the title. */}
+          <div data-testid="auth-mobile-logo" className="mb-6 flex justify-center lg:hidden">
+            <Image src="/brand/logo-full.png" alt="TechRat" width={360} height={322} priority className="h-auto w-40 drop-shadow-[0_0_40px_rgba(0,255,65,0.25)]" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-          <p className="mt-2 text-text-secondary">{subtitle}</p>
+          <h1 className="text-center text-3xl font-bold tracking-tight lg:text-left">{title}</h1>
+          <p className="mt-2 text-center text-text-secondary lg:text-left">{subtitle}</p>
           <div className="mt-8">{children}</div>
         </div>
       </main>
