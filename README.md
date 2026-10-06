@@ -360,7 +360,7 @@ If you build behind a TLS-inspecting corporate proxy, set `EXTRA_CA_CERT=/path/t
 | `Database__MigrateOnStartup` / `Database__SeedOnStartup` | API | Apply migrations and seed at startup |
 | `Seed__AdminEmail` / `Seed__AdminPassword` | API | Optional bootstrap admin (Compose: `ADMIN_EMAIL` / `ADMIN_PASSWORD`) |
 | `Cors__AllowedOrigins__N` | API | Allowed origins (web, Tauri, Expo web) |
-| `Smtp__Host`, `Smtp__Port`, `Smtp__Username`, `Smtp__Password`, `Smtp__From` | API | Email delivery (Mailpit locally) |
+| `Smtp__Host`, `Smtp__Port`, `Smtp__Security`, `Smtp__Username`, `Smtp__Password`, `Smtp__From`, `Smtp__ReplyTo` | API | Email delivery (Compose: `SMTP_*`; Mailpit locally). TLS is required unless `Security=None`. Setup per provider, DNS and testing: [docs/email.md](docs/email.md) |
 | `App__PublicWebUrl` | API | Base URL for password-reset links |
 | `Gamification__*` | API | XP values, level curve, step criteria, daily challenge (see `appsettings.json`) |
 | `RateLimiting__AuthPerMinute` / `RateLimiting__AnswersPerMinute` | API | Rate limits (Compose: `AUTH_RATE_LIMIT_PER_MINUTE`) |

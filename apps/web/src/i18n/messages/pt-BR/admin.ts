@@ -6,6 +6,10 @@ export const admin: Messages["admin"] = {
   eyebrow: "Administração",
   title: "Gestão de conteúdo",
   subtitle: "Questões, tópicos, módulos, roadmaps e usuários.",
+  testEmail: {
+    button: "Enviar e-mail de teste",
+    sent: (email) => `E-mail de teste enviado para ${email}. Confira a caixa de entrada (e o spam).`,
+  },
   contentLanguageNote: "O conteúdo é editado em inglês. Os nomes em português de tópicos, roadmaps e conquistas vêm do seed de traduções.",
   stats: {
     users: "Usuários",

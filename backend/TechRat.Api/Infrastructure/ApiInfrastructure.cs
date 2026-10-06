@@ -22,6 +22,7 @@ public sealed class AppExceptionHandler(IProblemDetailsService problems, ILogger
             NotFoundException => (StatusCodes.Status404NotFound, Text.Get(Text.Keys.ProblemNotFound)),
             ConflictException => (StatusCodes.Status409Conflict, Text.Get(Text.Keys.ProblemConflict)),
             ForbiddenException => (StatusCodes.Status403Forbidden, Text.Get(Text.Keys.ProblemForbidden)),
+            EmailDeliveryException => (StatusCodes.Status502BadGateway, Text.Get(Text.Keys.ProblemEmail)),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, Text.Get(Text.Keys.ProblemUnauthorized)),
             BadHttpRequestException b => (b.StatusCode, Text.Get(Text.Keys.ProblemBadRequest)),
             _ => (StatusCodes.Status500InternalServerError, Text.Get(Text.Keys.ProblemUnexpected)),

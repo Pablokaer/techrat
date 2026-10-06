@@ -5,6 +5,10 @@ export const admin = {
   eyebrow: "Administration",
   title: "Content management",
   subtitle: "Questions, topics, modules, roadmaps and users.",
+  testEmail: {
+    button: "Send test email",
+    sent: (email: string) => `Test email sent to ${email}. Check the inbox (and the spam folder).`,
+  },
   contentLanguageNote: "Content is edited in English. Portuguese names for topics, roadmaps and achievements come from the translation seed.",
   stats: {
     users: "Users",

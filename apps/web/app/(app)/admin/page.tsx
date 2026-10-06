@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Power } from "lucide-react";
+import { Mail, Pencil, Plus, Power } from "lucide-react";
 import { Card, DifficultyBadge, cx } from "@techrat/ui";
 import { DIFFICULTIES, type AdminQuestion, type AdminQuestionInput, type Difficulty } from "@techrat/types";
 import { isApiError } from "@techrat/api";
@@ -23,11 +23,18 @@ export default function AdminPage() {
   const { data: me } = useMe();
   const [tab, setTab] = useState<Tab>("questions");
   const { data: stats } = useQuery({ queryKey: ["admin-stats"], queryFn: () => unwrap(api.GET("/api/v1/admin/stats")), enabled: !!me?.isAdmin });
+  const run = useAdminAction();
 
   if (!me?.isAdmin) return <EmptyState title={t.admin.adminsOnly} text={t.admin.adminsOnlyText} />;
+  // Sends a real email through the configured SMTP provider to the signed-in admin (see docs/email.md).
+  const sendTestEmail = () => run(() => unwrap(api.POST("/api/v1/admin/email/test", { body: { to: null } })), t.admin.testEmail.sent(me.email));
   return (
     <>
-      <PageHeader eyebrow={t.admin.eyebrow} title={t.admin.title} subtitle={t.admin.subtitle} />
+      <PageHeader eyebrow={t.admin.eyebrow} title={t.admin.title} subtitle={t.admin.subtitle} actions={
+        <button type="button" className="btn-secondary" onClick={sendTestEmail}>
+          <Mail className="h-4 w-4" aria-hidden /> {t.admin.testEmail.button}
+        </button>
+      } />
       <p className="-mt-2 mb-6 text-xs text-text-muted">{t.admin.contentLanguageNote}</p>
       {stats && (
         <dl className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-9">

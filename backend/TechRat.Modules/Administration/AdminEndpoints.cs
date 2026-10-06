@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 using TechRat.Application.Administration;
+using TechRat.Application.Common;
 using TechRat.Application.Identity;
 using TechRat.Domain.Common;
 using TechRat.Domain.Roadmaps;
@@ -11,6 +13,8 @@ using TechRat.Modules.Common;
 namespace TechRat.Modules.Administration;
 
 public sealed record IdResponse(Guid Id);
+
+public sealed record AdminTestEmailInput(string? To);
 
 public sealed class AdminEndpoints : IEndpointModule
 {
@@ -98,6 +102,17 @@ public sealed class AdminEndpoints : IEndpointModule
             await svc.RemoveRoadmapModuleAsync(slug, moduleSlug, ct);
             return TypedResults.NoContent();
         });
+
+        admin.MapPost("/email/test", async (AdminTestEmailInput input, ITestEmailSender email, ICurrentUser me, IAppDbContext db, CancellationToken ct) =>
+        {
+            if (!email.IsConfigured) throw new ConflictException(Text.Get(Text.Keys.EmailNotConfigured));
+            var to = string.IsNullOrWhiteSpace(input.To)
+                ? await db.UserProfiles.Where(u => u.Id == me.RequireUserId()).Select(u => u.Email).SingleAsync(ct)
+                : input.To.Trim();
+            if (!System.Net.Mail.MailAddress.TryCreate(to, out _)) throw RequestValidationException.For("to", Text.Get(Text.Keys.EmailInvalid));
+            await email.SendTestAsync(to, ct);
+            return TypedResults.NoContent();
+        }).WithSummary("Send a test email (to the given address or to the signed-in admin) to check the SMTP settings");
 
         admin.MapGet("/users", async (string? search, int? page, int? pageSize, AdminService svc, CancellationToken ct) =>
             TypedResults.Ok(await svc.ListUsersAsync(search, page, pageSize, ct)));

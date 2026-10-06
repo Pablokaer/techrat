@@ -168,7 +168,8 @@ public sealed class IdentityEndpoints : IEndpointModule
     }
 
     private static async Task<Accepted> ForgotPasswordAsync(
-        ForgotPasswordRequest request, UserManager<ApplicationUser> users, IEmailSender<ApplicationUser> email, IConfiguration config)
+        ForgotPasswordRequest request, UserManager<ApplicationUser> users, IEmailSender<ApplicationUser> email, IConfiguration config,
+        ILoggerFactory loggers)
     {
         var user = string.IsNullOrWhiteSpace(request.Email) ? null : await users.FindByEmailAsync(request.Email.Trim());
         if (user is not null)
@@ -176,7 +177,15 @@ public sealed class IdentityEndpoints : IEndpointModule
             var code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await users.GeneratePasswordResetTokenAsync(user)));
             var baseUrl = (config["App:PublicWebUrl"] ?? "http://localhost:3000").TrimEnd('/');
             var link = $"{baseUrl}/reset-password?email={Uri.EscapeDataString(user.Email!)}&code={Uri.EscapeDataString(code)}";
-            await email.SendPasswordResetLinkAsync(user, user.Email!, link);
+            try
+            {
+                await email.SendPasswordResetLinkAsync(user, user.Email!, link);
+            }
+            catch (EmailDeliveryException)
+            {
+                // Already logged by the sender. Answer exactly like for unknown emails, so failures don't reveal accounts.
+                loggers.CreateLogger("TechRat.Identity").LogWarning("Password reset email could not be delivered");
+            }
         }
         return TypedResults.Accepted((string?)null);
     }

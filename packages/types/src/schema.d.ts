@@ -795,6 +795,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/email/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test email (to the given address or to the signed-in admin) to check the SMTP settings */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminTestEmailInput"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -2186,6 +2224,9 @@ export interface components {
         AdminSubtopicInput: {
             slug: string;
             name: string;
+        };
+        AdminTestEmailInput: {
+            to: null | string;
         };
         AdminTopicInput: {
             slug: string;

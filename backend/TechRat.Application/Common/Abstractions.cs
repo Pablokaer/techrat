@@ -60,6 +60,14 @@ public interface ICacheService
     Task RemoveAsync(string key, CancellationToken ct = default);
 }
 
+/// <summary>Sends a test email so admins can check the SMTP settings of a deployment.</summary>
+public interface ITestEmailSender
+{
+    bool IsConfigured { get; }
+    /// <summary>Throws <see cref="EmailDeliveryException"/> when the SMTP server rejects or cannot be reached.</summary>
+    Task SendTestAsync(string to, CancellationToken ct);
+}
+
 /// <summary>Pushes realtime events to connected clients (SignalR in the API host).</summary>
 public interface IRealtimePublisher
 {

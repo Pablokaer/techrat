@@ -39,7 +39,9 @@ public static class DependencyInjection
             services.AddHostedService(sp => sp.GetRequiredService<OutboxDispatcher>());
 
         services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.Section));
-        services.AddSingleton<IEmailSender<ApplicationUser>, IdentityEmailSender>();
+        services.AddSingleton<IdentityEmailSender>();
+        services.AddSingleton<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<IdentityEmailSender>());
+        services.AddSingleton<ITestEmailSender>(sp => sp.GetRequiredService<IdentityEmailSender>());
         services.AddScoped<DatabaseSeeder>();
         return services;
     }

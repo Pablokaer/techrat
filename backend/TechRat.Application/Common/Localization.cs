@@ -70,6 +70,11 @@ public static class Text
         public const string EmailResetBody = "email.reset.body";
         public const string EmailResetCodeSubject = "email.resetCode.subject";
         public const string EmailResetCodeBody = "email.resetCode.body";
+        public const string EmailTestSubject = "email.test.subject";
+        public const string EmailTestBody = "email.test.body";
+        public const string EmailNotConfigured = "email.notConfigured";
+        public const string EmailDeliveryFailed = "email.deliveryFailed";
+        public const string ProblemEmail = "problem.title.email";
 
         public const string AdminTitleRequiredMax = "admin.titleRequiredMax";
         public const string AdminQuestionTextRequired = "admin.questionTextRequired";
@@ -157,6 +162,11 @@ public static class Text
         [Keys.EmailResetBody] = "<p>Someone requested a password reset for your TechRat account.</p><p><a href=\"{0}\">Choose a new password</a></p><p>If this wasn't you, ignore this email.</p>",
         [Keys.EmailResetCodeSubject] = "Your TechRat password reset code",
         [Keys.EmailResetCodeBody] = "<p>Your reset code is:</p><pre>{0}</pre>",
+        [Keys.EmailTestSubject] = "TechRat SMTP test",
+        [Keys.EmailTestBody] = "<p>This is a test email from TechRat.</p><p>If you can read it, email delivery works ({0}:{1}, {2}).</p>",
+        [Keys.EmailNotConfigured] = "SMTP is not configured. Set Smtp__Host (and the other Smtp__ settings) and restart the API.",
+        [Keys.EmailDeliveryFailed] = "The email could not be sent: {0}",
+        [Keys.ProblemEmail] = "Email delivery failed",
 
         [Keys.AdminTitleRequiredMax] = "Title is required (max 120 chars).",
         [Keys.AdminQuestionTextRequired] = "Question text is required.",
@@ -230,6 +240,11 @@ public static class Text
         [Keys.EmailResetBody] = "<p>Alguém pediu para redefinir a senha da sua conta no TechRat.</p><p><a href=\"{0}\">Escolha uma nova senha</a></p><p>Se não foi você, ignore este e-mail.</p>",
         [Keys.EmailResetCodeSubject] = "Seu código para redefinir a senha do TechRat",
         [Keys.EmailResetCodeBody] = "<p>Seu código de redefinição é:</p><pre>{0}</pre>",
+        [Keys.EmailTestSubject] = "Teste de SMTP do TechRat",
+        [Keys.EmailTestBody] = "<p>Este é um e-mail de teste do TechRat.</p><p>Se você está lendo, o envio de e-mails funciona ({0}:{1}, {2}).</p>",
+        [Keys.EmailNotConfigured] = "O SMTP não está configurado. Defina Smtp__Host (e as demais configurações Smtp__) e reinicie a API.",
+        [Keys.EmailDeliveryFailed] = "Não foi possível enviar o e-mail: {0}",
+        [Keys.ProblemEmail] = "Falha no envio de e-mail",
 
         [Keys.AdminTitleRequiredMax] = "O título é obrigatório (máx. 120 caracteres).",
         [Keys.AdminQuestionTextRequired] = "O enunciado é obrigatório.",

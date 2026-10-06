@@ -9,6 +9,9 @@ public sealed class ConflictException(string message) : AppException(message);
 
 public sealed class ForbiddenException(string message) : AppException(message);
 
+/// <summary>The email provider rejected the message or could not be reached (HTTP 502).</summary>
+public sealed class EmailDeliveryException(string message) : AppException(message);
+
 public sealed class RequestValidationException(IDictionary<string, string[]> errors)
     : AppException(Text.Get(Text.Keys.ValidationFailed))
 {
