@@ -31,10 +31,31 @@ Internet ─► Apache :80/:443 (Let's Encrypt via certbot)
 5. HTTPS: `certbot --apache -d <domain> -d www.<domain> --redirect`. Renewal uses the existing certbot timer.
 6. Sign in with the admin account, change its password, and use **Admin → Send test email**.
 
-## Updating
+## Updating: continuous deployment
 
-Upload or pull the new code into `/opt/techrat` (the `.env` stays), then
-`docker compose -f docker-compose.prod.yml up -d --build`. Migrations run automatically on start.
+Every push to `main` goes live by itself once CI is green:
+
+```
+push to main ─► CI (.github/workflows/ci.yml) ─► success ─► Deploy (.github/workflows/deploy.yml)
+                                                              └─ ssh root@VPS "<sha>" ─► /opt/techrat/deploy/deploy.sh
+```
+
+`deploy/deploy.sh` runs on the server: it fetches `origin/main`, checks out the tested commit (skipped when a newer
+commit is already on `main`, whose own run will deploy it), runs `docker compose -f docker-compose.prod.yml up -d --build`,
+waits until `127.0.0.1:5080/health/ready` and `127.0.0.1:3000` answer, and prunes old TechRat images. If the new
+version is not healthy it checks out and rebuilds the previous commit and the workflow fails. Migrations run on API
+start. The untracked `/opt/techrat/.env` is never touched. Log: `/var/log/techrat-deploy.log`.
+
+- **Manual deploy:** GitHub → Actions → Deploy → *Run workflow* (tip of `main`), or on the server
+  `bash /opt/techrat/deploy/deploy.sh`.
+- **Server setup (once):** `/opt/techrat` is a clone of the public repository
+  (`git clone https://github.com/Pablokaer/techrat.git /opt/techrat`, then create `.env`). A dedicated key pair is
+  used only by GitHub Actions; its public key is in `/root/.ssh/authorized_keys` restricted to the script:
+  `command="bash /opt/techrat/deploy/deploy.sh",restrict ssh-ed25519 AAAA… techrat-github-deploy`. The client's
+  command is only read as a commit sha (anything else is rejected), so a leaked key can do nothing but redeploy `main`.
+- **Repository secrets** (Settings → Secrets and variables → Actions): `VPS_HOST` (server IP), `VPS_SSH_KEY` (the
+  private deploy key), `VPS_KNOWN_HOSTS` (output of `ssh-keyscan <ip>`, pins the server's host key).
+- **Turn it off:** disable the Deploy workflow in GitHub Actions, or remove the key line from `authorized_keys`.
 
 ## Operations
 
