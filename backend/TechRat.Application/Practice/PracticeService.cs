@@ -7,6 +7,7 @@ using TechRat.Application.Roadmaps;
 using TechRat.Domain.Common;
 using TechRat.Domain.Gamification;
 using TechRat.Domain.Practice;
+using TechRat.Domain.Roadmaps;
 using TechRat.Domain.Users;
 
 namespace TechRat.Application.Practice;
@@ -45,6 +46,9 @@ public sealed class PracticeService(
             subtopicId = step.SubtopicId;
             mode = PracticeMode.Roadmap;
             count = Math.Max(count, step.MinimumQuestions);
+            // Practising a step starts its module, so answers advance it even outside an enrolled roadmap.
+            if (!await db.UserModuleProgress.AnyAsync(p => p.UserId == userId && p.ModuleId == step.ModuleId, ct))
+                db.UserModuleProgress.Add(new UserModuleProgress { UserId = userId, ModuleId = step.ModuleId, StartedAt = clock.GetUtcNow() });
         }
         else
         {

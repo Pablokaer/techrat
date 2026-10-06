@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using TechRat.Application.Administration;
 using TechRat.Application.Identity;
 using TechRat.Domain.Common;
+using TechRat.Domain.Roadmaps;
 using TechRat.Modules.Common;
 
 namespace TechRat.Modules.Administration;
@@ -62,6 +63,39 @@ public sealed class AdminEndpoints : IEndpointModule
         admin.MapPut("/steps/{id:guid}", async (Guid id, AdminStepInput input, AdminService svc, CancellationToken ct) =>
         {
             await svc.UpdateStepAsync(id, input, ct);
+            return TypedResults.NoContent();
+        });
+
+        admin.MapGet("/modules", async (ModuleKind? kind, AdminService svc, CancellationToken ct) =>
+            TypedResults.Ok(await svc.ListModulesAsync(kind, ct)));
+        admin.MapGet("/modules/{slug}", async (string slug, AdminService svc, CancellationToken ct) =>
+            TypedResults.Ok(await svc.GetModuleAsync(slug, ct)));
+        admin.MapPost("/modules", async (AdminModuleInput input, AdminService svc, CancellationToken ct) =>
+            TypedResults.Ok(new IdResponse(await svc.CreateModuleAsync(input, ct))));
+        admin.MapPut("/modules/{slug}", async (string slug, AdminModuleInput input, AdminService svc, CancellationToken ct) =>
+        {
+            await svc.UpdateModuleAsync(slug, input, ct);
+            return TypedResults.NoContent();
+        });
+        admin.MapPost("/modules/{slug}/steps", async (string slug, AdminStepInput input, AdminService svc, CancellationToken ct) =>
+            TypedResults.Ok(new IdResponse(await svc.AddModuleStepAsync(slug, input, ct))))
+            .WithSummary("Add a step to a module (bumps the module version when it already had steps)");
+
+        admin.MapGet("/roadmaps/{slug}/modules", async (string slug, AdminService svc, CancellationToken ct) =>
+            TypedResults.Ok(await svc.GetCompositionAsync(slug, ct)));
+        admin.MapPost("/roadmaps/{slug}/modules", async (string slug, AdminRoadmapLinkInput input, AdminService svc, CancellationToken ct) =>
+        {
+            await svc.AddRoadmapModuleAsync(slug, input, ct);
+            return TypedResults.NoContent();
+        });
+        admin.MapPut("/roadmaps/{slug}/modules", async (string slug, AdminCompositionInput input, AdminService svc, CancellationToken ct) =>
+        {
+            await svc.SetCompositionAsync(slug, input, ct);
+            return TypedResults.NoContent();
+        }).WithSummary("Replace the roadmap's ordered module list (order, required flags; unlisted modules are removed)");
+        admin.MapDelete("/roadmaps/{slug}/modules/{moduleSlug}", async (string slug, string moduleSlug, AdminService svc, CancellationToken ct) =>
+        {
+            await svc.RemoveRoadmapModuleAsync(slug, moduleSlug, ct);
             return TypedResults.NoContent();
         });
 

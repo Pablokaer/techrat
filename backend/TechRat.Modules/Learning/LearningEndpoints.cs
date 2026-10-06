@@ -10,6 +10,7 @@ using TechRat.Application.Notifications;
 using TechRat.Application.Practice;
 using TechRat.Application.Roadmaps;
 using TechRat.Application.Users;
+using TechRat.Domain.Roadmaps;
 using TechRat.Modules.Common;
 
 namespace TechRat.Modules.Learning;
@@ -94,6 +95,19 @@ public sealed class RoadmapsEndpoints : IEndpointModule
         roadmaps.MapPost("/{slug}/start", async (string slug, RoadmapService svc, ICurrentUser me, CancellationToken ct) =>
             TypedResults.Ok(await svc.StartAsync(me.RequireUserId(), slug, ct))).RequireAuthorization()
             .WithSummary("Enrol in a roadmap (fails with 403 while prerequisites are not met)");
+    }
+}
+
+public sealed class ModulesEndpoints : IEndpointModule
+{
+    public void Map(RouteGroupBuilder api)
+    {
+        var modules = api.MapGroup("/modules").WithTags("Modules");
+        modules.MapGet("/", async (ModuleKind? kind, string? category, ModuleService svc, ICurrentUser me, CancellationToken ct) =>
+            TypedResults.Ok(await svc.ListAsync(me.UserId, kind, category, ct)))
+            .WithSummary("Module catalog: reusable modules shared by roadmaps, with the learner's progress when signed in");
+        modules.MapGet("/{slug}", async (string slug, ModuleService svc, ICurrentUser me, CancellationToken ct) =>
+            TypedResults.Ok(await svc.GetAsync(slug, me.UserId, ct)));
     }
 }
 

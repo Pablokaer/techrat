@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<AchievementService>();
         services.AddScoped<RoadmapProgressService>();
         services.AddScoped<RoadmapService>();
+        services.AddScoped<ModuleService>();
         services.AddScoped<PracticeService>();
         services.AddScoped<DailyChallengeService>();
         services.AddScoped<ContentLocalizer>();

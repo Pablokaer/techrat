@@ -513,6 +513,288 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    kind?: components["schemas"]["ModuleKind"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminModuleDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminModuleInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IdResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/modules/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminModuleDto"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminModuleInput"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/modules/{slug}/steps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a step to a module (bumps the module version when it already had steps) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminStepInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IdResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/roadmaps/{slug}/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminCompositionDto"];
+                    };
+                };
+            };
+        };
+        /** Replace the roadmap's ordered module list (order, required flags; unlisted modules are removed) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminCompositionInput"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdminRoadmapLinkInput"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/roadmaps/{slug}/modules/{moduleSlug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                    moduleSlug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users": {
         parameters: {
             query?: never;
@@ -815,6 +1097,82 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["AuthProviderDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Module catalog: reusable modules shared by roadmaps, with the learner's progress when signed in */
+        get: {
+            parameters: {
+                query?: {
+                    kind?: components["schemas"]["ModuleKind"];
+                    category?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ModuleSummaryDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/modules/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ModuleDetailDto"];
                     };
                 };
             };
@@ -1647,6 +2005,69 @@ export interface components {
             /** Format: date-time */
             unlockedAt: null | string;
         };
+        AdminCompositionDto: {
+            roadmapSlug: string;
+            seedManaged: boolean;
+            modules: components["schemas"]["AdminRoadmapLinkDto"][];
+        };
+        AdminCompositionInput: {
+            modules: components["schemas"]["AdminRoadmapLinkInput"][];
+        };
+        AdminModuleDto: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            name: string;
+            description: string;
+            kind: components["schemas"]["ModuleKind"];
+            category: string;
+            level: components["schemas"]["RoadmapDifficulty"];
+            icon: string;
+            isPublished: boolean;
+            isStandalone: boolean;
+            /** Format: int32 */
+            xpReward: number;
+            /** Format: int32 */
+            version: number;
+            seedManaged: boolean;
+            usedInRoadmaps: string[];
+            steps: components["schemas"]["AdminModuleStepDto"][];
+        };
+        AdminModuleInput: {
+            slug: string;
+            name: string;
+            description: string;
+            kind: components["schemas"]["ModuleKind"];
+            category: string;
+            level: components["schemas"]["RoadmapDifficulty"];
+            icon: string;
+            isPublished: boolean;
+            isStandalone: boolean;
+            /** Format: int32 */
+            xpReward: number;
+        };
+        AdminModuleStepDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            order: number;
+            title: string;
+            description: string;
+            difficulty: components["schemas"]["Difficulty"];
+            /** Format: int32 */
+            estimatedMinutes: number;
+            topicSlug: string;
+            subtopicSlug: null | string;
+            /** Format: int32 */
+            minimumQuestions: number;
+            /** Format: int32 */
+            minimumAccuracy: number;
+            /** Format: int32 */
+            xpReward: number;
+            isActive: boolean;
+            /** Format: int32 */
+            addedInVersion: number;
+        };
         AdminOptionDto: {
             /** Format: uuid */
             id: string;
@@ -1704,6 +2125,23 @@ export interface components {
             /** Format: int32 */
             xpReward: number;
         };
+        AdminRoadmapLinkDto: {
+            moduleSlug: string;
+            moduleName: string;
+            kind: components["schemas"]["ModuleKind"];
+            /** Format: int32 */
+            order: number;
+            isRequired: boolean;
+            /** Format: int32 */
+            steps: number;
+        };
+        AdminRoadmapLinkInput: {
+            moduleSlug: string;
+            /** @default true */
+            isRequired: boolean;
+            /** Format: int32 */
+            order?: null | number;
+        };
         AdminStatsDto: {
             /** Format: int32 */
             users: number;
@@ -1721,6 +2159,8 @@ export interface components {
             steps: number;
             /** Format: int32 */
             attempts: number;
+            /** Format: int32 */
+            modules: number;
         };
         AdminStepInput: {
             /** Format: uuid */
@@ -1741,6 +2181,7 @@ export interface components {
             xpReward: number;
             /** Format: int32 */
             order: null | number;
+            isActive?: null | boolean;
         };
         AdminSubtopicInput: {
             slug: string;
@@ -1854,6 +2295,8 @@ export interface components {
             xpEarned: number;
             moduleCompleted: boolean;
             roadmapCompleted: boolean;
+            moduleSlug: string;
+            moduleName: string;
         };
         DailyActivityDto: {
             /** Format: date */
@@ -1985,6 +2428,46 @@ export interface components {
             email: string;
             password: string;
         };
+        ModuleDetailDto: {
+            summary: components["schemas"]["ModuleSummaryDto"];
+            steps: components["schemas"]["RoadmapStepDto"][];
+            requires: components["schemas"]["ModuleRefDto"][];
+        };
+        /** @enum {unknown} */
+        ModuleKind: "Core" | "Context" | "BestPractices" | "Capstone";
+        ModuleRefDto: {
+            slug: string;
+            name: string;
+        };
+        ModuleSummaryDto: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            name: string;
+            description: string;
+            kind: string;
+            category: string;
+            level: string;
+            icon: string;
+            /** Format: int32 */
+            stepsCount: number;
+            /** Format: int32 */
+            estimatedMinutes: number;
+            /** Format: int32 */
+            xpReward: number;
+            /** Format: int32 */
+            version: number;
+            usedInRoadmaps: components["schemas"]["RoadmapRefDto"][];
+            progress: null | components["schemas"]["ModuleUserStateDto"];
+        };
+        ModuleUserStateDto: {
+            isStarted: boolean;
+            isCompleted: boolean;
+            /** Format: int32 */
+            completedSteps: number;
+            /** Format: int32 */
+            completedVersion: null | number;
+        };
         NotificationDto: {
             /** Format: uuid */
             id: string;
@@ -2104,6 +2587,15 @@ export interface components {
             xpReward: number;
             isCompleted: boolean;
             steps: components["schemas"]["RoadmapStepDto"][];
+            moduleSlug: string;
+            kind: string;
+            isRequired: boolean;
+            description: string;
+            usedInRoadmaps: components["schemas"]["RoadmapRefDto"][];
+            completedElsewhere: boolean;
+            /** Format: int32 */
+            version: number;
+            status: string;
         };
         RoadmapPrerequisiteDto: {
             slug: string;
@@ -2132,6 +2624,10 @@ export interface components {
             /** Format: date-time */
             lastActivityAt: string;
         };
+        RoadmapRefDto: {
+            slug: string;
+            name: string;
+        };
         RoadmapStepDto: {
             /** Format: uuid */
             id: string;
@@ -2154,6 +2650,7 @@ export interface components {
             xpReward: number;
             status: string;
             criteria: null | components["schemas"]["StepCriteriaResult"];
+            isNew: boolean;
         };
         RoadmapSummaryDto: {
             /** Format: uuid */
@@ -2185,6 +2682,10 @@ export interface components {
             percentComplete: number;
             /** Format: date-time */
             lastActivityAt: null | string;
+            /** Format: int32 */
+            alreadyCompletedModules: number;
+            /** Format: int32 */
+            alreadyCompletedSteps: number;
         };
         SearchResultDto: {
             type: string;

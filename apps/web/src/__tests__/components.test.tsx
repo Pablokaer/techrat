@@ -34,7 +34,7 @@ describe("Roadmap chain", () => {
   it("labels completed, current and locked steps with text", () => {
     const step = (id: string, status: string) => ({
       id, title: id, description: "", order: 1, difficulty: "Easy", estimatedMinutes: 30, topicSlug: "git", topicName: "Git", subtopicSlug: null,
-      subtopicName: null, minimumQuestions: 5, minimumAccuracy: 70, xpReward: 50, status, criteria: null,
+      subtopicName: null, minimumQuestions: 5, minimumAccuracy: 70, xpReward: 50, status, criteria: null, isNew: false,
     });
     render(<RoadmapChain roadmapSlug="git" steps={[step("Basics", "Completed"), step("Branching", "Current"), step("Rebase", "Locked")]} />);
     expect(screen.getByText("Completed")).toBeInTheDocument();

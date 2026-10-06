@@ -142,9 +142,16 @@ public sealed class CatalogService(IAppDbContext db, ICacheService cache, Conten
             .Where(r => Match(r.Base.Name, r.Name, r.Base.Slug, r.Base.Category, r.Category))
             .Select(r => new SearchResultDto("Roadmap", r.Base.Slug, r.Name, r.Category, r.Base.Icon, $"/roadmaps/{r.Base.Slug}")));
 
+        var modules = await db.LearningModules.AsNoTracking().Where(m => m.IsPublished)
+            .Select(m => new { m.Id, m.Slug, m.Name, m.Category, m.Icon }).ToListAsync(ct);
+        results.AddRange(modules
+            .Select(m => (Base: m, Name: tr.ModuleName(m.Id, m.Name)))
+            .Where(m => Match(m.Base.Name, m.Name, m.Base.Slug))
+            .Select(m => new SearchResultDto("Module", m.Base.Slug, m.Name, m.Base.Category, m.Base.Icon, $"/modules/{m.Base.Slug}")));
+
         return results
             .OrderBy(r => r.Title.Equals(term, StringComparison.OrdinalIgnoreCase) ? 0 : r.Title.StartsWith(term, StringComparison.OrdinalIgnoreCase) ? 1 : 2)
-            .ThenBy(r => r.Type == "Topic" ? 0 : r.Type == "Roadmap" ? 1 : 2)
+            .ThenBy(r => r.Type switch { "Topic" => 0, "Roadmap" => 1, "Module" => 2, _ => 3 })
             .Take(20).ToList();
     }
 }

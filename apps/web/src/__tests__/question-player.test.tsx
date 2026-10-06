@@ -92,7 +92,7 @@ describe("QuestionPlayer", () => {
   it("announces roadmap step completion and level ups", async () => {
     const submit = vi.fn(async (q: string, o: string) => result(q, o, "q1o0", 25, {
       leveledUp: true, level: { ...me.level, level: 4 },
-      completedSteps: [{ roadmapId: "r", roadmapName: "Docker", stepId: "st", stepTitle: "Images & Layers", xpEarned: 50, moduleCompleted: false, roadmapCompleted: false }],
+      completedSteps: [{ roadmapId: "r", roadmapName: "Docker", stepId: "st", stepTitle: "Images & Layers", xpEarned: 50, moduleCompleted: false, roadmapCompleted: false, moduleSlug: "docker-essentials", moduleName: "Docker Essentials" }],
     }));
     renderApp(<QuestionPlayer session={makeSession()} onSubmitAnswer={submit} />);
     await userEvent.click(screen.getAllByRole("radio")[0]);

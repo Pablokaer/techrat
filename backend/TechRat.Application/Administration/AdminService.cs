@@ -29,7 +29,7 @@ public sealed record AdminRoadmapInput(string Slug, string Name, string Descript
 /// <summary>Adds a step to a roadmap: into an existing module of the roadmap (<see cref="ModuleId"/>) or a new Context module.</summary>
 public sealed record AdminStepInput(Guid? ModuleId, string? NewModuleTitle, string Title, string Description, Difficulty Difficulty,
     int EstimatedMinutes, string TopicSlug, string? SubtopicSlug, int MinimumQuestions, int MinimumAccuracy, int XpReward, int? Order,
-    bool IsActive = true);
+    bool? IsActive = null);
 
 public sealed record AdminModuleInput(string Slug, string Name, string Description, ModuleKind Kind, string Category, RoadmapDifficulty Level,
     string Icon, bool IsPublished, bool IsStandalone, int XpReward);
@@ -275,7 +275,7 @@ public sealed class AdminService(IAppDbContext db, ICacheService cache, IOptions
         step.Title = input.Title.Trim(); step.Description = input.Description; step.Difficulty = input.Difficulty;
         step.EstimatedMinutes = input.EstimatedMinutes; step.TopicId = topicId; step.SubtopicId = subId;
         step.MinimumQuestions = input.MinimumQuestions; step.MinimumAccuracy = input.MinimumAccuracy; step.XPReward = input.XpReward;
-        step.IsActive = input.IsActive;
+        step.IsActive = input.IsActive ?? true;
         var module = await db.LearningModules.FirstAsync(m => m.Id == step.ModuleId, ct);
         module.SeedManaged = false;
         await db.SaveChangesAsync(ct);
@@ -370,7 +370,7 @@ public sealed class AdminService(IAppDbContext db, ICacheService cache, IOptions
         {
             ModuleId = module.Id, Title = input.Title.Trim(), Description = input.Description, Order = order, Difficulty = input.Difficulty,
             EstimatedMinutes = input.EstimatedMinutes, TopicId = topicId, SubtopicId = subId, MinimumQuestions = input.MinimumQuestions,
-            MinimumAccuracy = input.MinimumAccuracy, XPReward = input.XpReward, IsActive = input.IsActive, AddedInVersion = module.Version,
+            MinimumAccuracy = input.MinimumAccuracy, XPReward = input.XpReward, IsActive = input.IsActive ?? true, AddedInVersion = module.Version,
         };
         db.ModuleSteps.Add(step);
         module.SeedManaged = false;
