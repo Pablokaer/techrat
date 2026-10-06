@@ -1,0 +1,242 @@
+[
+  {
+    "id": "ds-ll-dotnet-doubly-linked",
+    "title": "Por que LinkedList<T> remove das duas pontas em O(1)",
+    "question": "Uma `LinkedList<T>` do .NET tem um milhão de itens, e você guarda a referência para um dos nós. Por que `RemoveLast()` e `AddBefore(node, x)` rodam em O(1)?",
+    "options": [
+      "Cada nó aponta tanto para o próximo (Next) quanto para o anterior (Previous)",
+      "A lista guarda os itens em um único array contíguo",
+      "A lista mantém um índice hash de cada valor para o seu nó",
+      "Os nós ficam ordenados, então as posições são achadas por busca binária"
+    ],
+    "explanation": "LinkedList<T> é uma lista duplamente encadeada: cada LinkedListNode<T> tem referências Next e Previous, e a lista conhece o primeiro e o último nó. Remover o último nó ou inserir antes de um nó conhecido só religa as referências vizinhas, então as duas operações são O(1). Não existe array por trás, nem índice de valores para nós (Find é O(n)), nem ordenação."
+  },
+  {
+    "id": "pf-bigo-growth-not-time",
+    "title": "O que Big O diz e o que não diz",
+    "question": "O algoritmo A é O(n log n) e o algoritmo B é O(n²). Com uma entrada de 20 itens, B termina mais rápido em um benchmark. O que isso diz sobre a análise de Big O?",
+    "options": [
+      "A análise está errada, já que O(n log n) é sempre mais rápido que O(n²)",
+      "Nada: Big O descreve como o custo cresce com n, não o tempo em um tamanho",
+      "Big O mede milissegundos, então a máquina do benchmark está com defeito",
+      "A complexidade real de B deve ser O(n log n), já que ele foi mais rápido"
+    ],
+    "explanation": "Big O descreve como o custo cresce conforme a entrada cresce, ignorando fatores constantes e termos de menor ordem. Em entradas pequenas, as constantes menores de B podem vencer; conforme n cresce, o termo n² domina e A passa à frente. Big O não mede tempo de relógio, e um benchmark em um único tamanho de entrada não prova nem refuta uma taxa de crescimento."
+  },
+  {
+    "id": "cs-using-dispose-on-exception",
+    "title": "using quando o bloco lança exceção",
+    "question": "using (var conn = new SqlConnection(cs))\n{\n    conn.Open();\n    Import(conn); // throws InvalidDataException\n}\n\nQuem chamou captura a exceção. O que acontece com `conn`?",
+    "options": [
+      "Continua aberto até o garbage collector finalizá-lo",
+      "Só é descartado se um catch dentro do bloco tratar a exceção",
+      "É descartado quando o controle sai do bloco, como em um finally",
+      "Nunca é descartado, pois Dispose só roda na saída normal"
+    ],
+    "explanation": "O compilador transforma o using em try/finally com uma chamada a Dispose no finally, então a conexão é descartada tanto quando o bloco termina normalmente quanto quando sai por uma exceção. Esse é o principal motivo para preferir using a chamar Dispose você mesmo no fim do bloco. Nenhum catch é necessário, e depender da finalização deixaria a conexão aberta por um tempo imprevisível."
+  },
+  {
+    "id": "net-di-transient-per-resolution",
+    "title": "Serviços transient dentro de uma requisição",
+    "question": "`IClock` está registrado com `AddTransient<IClock, SystemClock>()`. Durante uma requisição HTTP, tanto o OrdersController quanto o PricingService que ele usa recebem um IClock no construtor. Quantas instâncias de SystemClock são criadas nessa requisição?",
+    "options": [
+      "Uma, compartilhada por tudo na requisição",
+      "Duas, uma para cada construtor que a pede",
+      "Uma para a aplicação inteira, criada no primeiro uso",
+      "Nenhuma até o primeiro método de IClock ser chamado"
+    ],
+    "explanation": "Um serviço transient ganha uma instância nova toda vez que é resolvido pelo container, então cada uma das duas injeções por construtor recebe o seu próprio SystemClock. Uma instância por requisição é o lifetime scoped, e uma para a aplicação inteira é singleton. O container nativo cria a instância quando a resolve, não de forma lazy na primeira chamada de método."
+  },
+  {
+    "id": "be-http-204-delete",
+    "title": "Respondendo a um DELETE bem-sucedido",
+    "question": "DELETE /carts/7/items/3 remove o item, e a API não tem nada útil para devolver. Qual resposta segue melhor a semântica HTTP?",
+    "options": [
+      "202 Accepted, com o item removido no corpo",
+      "201 Created, com um header Location para o carrinho",
+      "404 Not Found, já que o item não existe mais",
+      "204 No Content, sem corpo na resposta"
+    ],
+    "explanation": "204 No Content diz ao cliente que a requisição deu certo e que a resposta não tem corpo de propósito, que é a resposta comum para um DELETE ou PUT sem nada a devolver. 202 significa que a requisição foi aceita mas ainda não processada, e 201 é para criação de recursos. 404 diria, de forma errada, que o alvo não existia, quando o item existia e foi removido."
+  },
+  {
+    "id": "sec-oauth-delegated-access",
+    "title": "O que o OAuth 2.0 dá a um app de terceiros",
+    "question": "Um site de impressão de fotos quer ler os álbuns de um usuário em um serviço de fotos na nuvem sem nunca conhecer a senha dele. O que o OAuth 2.0 entrega a esse site?",
+    "options": [
+      "Um access token aprovado pelo usuário, limitado a ler os álbuns",
+      "Uma cópia da senha do usuário, criptografada com a chave pública do site",
+      "Um ID token assinado que prova quem é o usuário e libera os álbuns",
+      "Uma API key compartilhada do serviço de fotos que vale para todos"
+    ],
+    "explanation": "OAuth 2.0 é um framework de autorização delegada: o usuário aprova o pedido no authorization server do serviço de fotos, e o cliente recebe um access token limitado ao escopo concedido, sem nunca lidar com a senha. O ID token vem do OpenID Connect e identifica o usuário em vez de dar acesso à API, e uma chave compartilhada exporia os dados de todos os usuários."
+  },
+  {
+    "id": "db-agg-group-by-no-order",
+    "title": "Ordem das linhas depois de um GROUP BY",
+    "question": "Um relatório roda `SELECT country, COUNT(*) FROM customers GROUP BY country;` e os países sempre saíram em ordem alfabética. Depois de um upgrade do PostgreSQL, a ordem muda. O que é verdade?",
+    "options": [
+      "GROUP BY sempre ordena os grupos, então o upgrade tem um bug",
+      "Os grupos seguem a ordem de inserção, e clientes novos a mudaram",
+      "Sem ORDER BY a ordem das linhas não é definida, então inclua um",
+      "O PostgreSQL ordena os grupos pela contagem, salvo outra instrução"
+    ],
+    "explanation": "GROUP BY só divide as linhas em grupos para agregação; ele não garante nenhuma ordem de saída. O PostgreSQL pode agrupar ordenando, o que por acaso devolve linhas ordenadas, ou usando hash, o que não devolve, e o planner pode alternar entre os dois conforme os dados ou a versão mudam. Se a ordem importa, escreva ORDER BY country explicitamente."
+  },
+  {
+    "id": "db-idx-low-selectivity-seq-scan",
+    "title": "Índice ignorado para um valor comum",
+    "question": "Uma tabela orders com 10M linhas tem um índice B-tree em status. `WHERE status = 'shipped'` casa com 85% das linhas, e o EXPLAIN mostra um sequential scan. Por que o planner não usa o índice?",
+    "options": [
+      "O índice está corrompido e precisa ser refeito com REINDEX",
+      "Índices só são usados em condições de faixa, não de igualdade",
+      "Buscar 85% das linhas pelo índice custa mais que um seq scan",
+      "Colunas de texto não podem usar índices B-tree no PostgreSQL"
+    ],
+    "explanation": "Um índice compensa quando a condição é seletiva, ou seja, casa com uma fração pequena das linhas. Para 85% da tabela, seguir as entradas do índice significa muitas leituras aleatórias de páginas, então o planner estima que um sequential scan sai mais barato. Um valor raro, como status = 'cancelled' com 0,1%, ainda usaria o índice. Índices B-tree suportam igualdade e colunas de texto, e nada indica corrupção."
+  },
+  {
+    "id": "os-sync-mutex-single-owner",
+    "title": "O que um mutex garante",
+    "question": "Um colega propõe trocar o mutex que protege um cache compartilhado em memória por um semáforo inicializado com 3, \"para ganhar throughput\". Qual afirmação sobre o mutex original está correta?",
+    "options": [
+      "Deixa até três threads entrarem ao mesmo tempo, se só lerem",
+      "Evita deadlocks sozinho, aplicando timeout às threads em espera",
+      "Qualquer thread pode liberá-lo, então é um semáforo com contador 1",
+      "Só uma thread o detém por vez, e só quem o detém pode liberá-lo"
+    ],
+    "explanation": "Um mutex garante exclusão mútua: no máximo uma thread está na seção crítica, e a thread que travou o mutex é a que o libera. Um semáforo inicializado com 3 deixaria três threads alterarem o cache ao mesmo tempo, trazendo de volta a race condition que o mutex evita. Um mutex não evita deadlock sozinho e, ao contrário de um semáforo binário, tem um dono."
+  },
+  {
+    "id": "nw-tls-three-guarantees",
+    "title": "O que o TLS protege",
+    "question": "Um serviço chama uma API de pagamentos via TLS com a validação de certificado ligada. Quais garantias o TLS dá a essa conexão?",
+    "options": [
+      "Só confidencialidade; integridade exige um checksum à parte",
+      "Autenticação do servidor, integridade e confidencialidade",
+      "Proteção contra bugs como SQL injection na API de pagamentos",
+      "Entrega garantida e ordenada de mensagens sobre UDP"
+    ],
+    "explanation": "O TLS autentica o servidor pelo certificado (e, opcionalmente, o cliente), detecta adulteração e mantém os dados confidenciais diante de quem escuta a rede. O TLS 1.3 usa apenas cifras AEAD, então a integridade já vem embutida, não é adicionada à parte. O TLS só protege os dados em trânsito: vulnerabilidades na aplicação por trás dele continuam lá, e a entrega confiável e ordenada vem do TCP, não do TLS."
+  },
+  {
+    "id": "test-unit-aaa-act-line",
+    "title": "Encontrando o Act no Arrange-Act-Assert",
+    "question": "var cart = new Cart();\ncart.Add(new Item(\"book\", 20m));\n\nvar total = cart.Total();\n\nAssert.Equal(20m, total);\n\nEste teste de Cart.Total segue o padrão Arrange-Act-Assert. Qual linha é o Act?",
+    "options": [
+      "`var cart = new Cart();`",
+      "`cart.Add(new Item(\"book\", 20m));`",
+      "`var total = cart.Total();`",
+      "`Assert.Equal(20m, total);`"
+    ],
+    "explanation": "O Arrange prepara os objetos e o estado de que o teste precisa, aqui criando o carrinho e adicionando um item. O Act chama o comportamento testado, Total(), e o Assert verifica o resultado. Manter as três fases separadas, com um único Act, deixa claro o que o teste exercita e por que ele falhou."
+  },
+  {
+    "id": "cr-auto-static-analysis",
+    "title": "Análise estática versus executar o código",
+    "question": "Um time adiciona uma etapa de CI que aponta possíveis null dereferences e SQL montado por concatenação de strings, sem rodar a aplicação nem os testes. Que tipo de ferramenta é essa?",
+    "options": [
+      "Um analisador estático, que inspeciona o código sem executá-lo",
+      "Um profiler, que amostra o processo em execução atrás de hotspots",
+      "Um fuzzer, que envia entradas aleatórias ao programa em execução",
+      "Um teste de carga, que repete tráfego de produção em staging"
+    ],
+    "explanation": "A análise estática examina o código-fonte ou compilado sem executá-lo, então consegue apontar padrões como possíveis null dereferences ou SQL concatenado em todo pull request. Profilers, fuzzers e testes de carga são dinâmicos: precisam do programa rodando e só enxergam os caminhos que de fato executam. Os dois tipos se complementam, e nenhum substitui a revisão humana."
+  },
+  {
+    "id": "sec-pwd-salt-purpose",
+    "title": "Por que cada senha ganha o seu próprio salt",
+    "question": "Dois usuários escolhem a mesma senha, 'Summer2026!'. O sistema guarda hashes Argon2id com um salt aleatório e único por usuário. O que o salt consegue?",
+    "options": [
+      "A senha passa a ser reversível para admins que têm o salt",
+      "O salt é uma chave secreta, então atacantes nem conseguem testar senhas",
+      "O hash fica mais lento, que é a principal defesa contra força bruta",
+      "Os hashes guardados ficam diferentes, anulando tabelas pré-computadas"
+    ],
+    "explanation": "Um salt único é misturado a cada hash, então senhas iguais produzem valores guardados diferentes. Atacantes não conseguem usar tabelas pré-computadas (rainbow tables) nem identificar usuários com a mesma senha, e precisam atacar cada hash separadamente. Salts não são secretos e ficam guardados junto do hash; a lentidão vem do work factor do Argon2id, e um hash de senha nunca é reversível."
+  },
+  {
+    "id": "sec-csrf-browser-attaches-cookie",
+    "title": "Como um ataque CSRF chega autenticado",
+    "question": "Um usuário está logado em bank.example com um cookie de sessão definido como `SameSite=None; Secure`. Em outra aba ele abre evil.example, que envia em silêncio um formulário com um POST para bank.example/transfer. Por que essa requisição pode dar certo?",
+    "options": [
+      "evil.example antes lê o cookie de sessão do banco com JavaScript",
+      "O navegador anexa sozinho o cookie do banco à requisição",
+      "O atacante já tinha roubado a senha do usuário com phishing",
+      "O DNS do banco foi alterado para apontar para o servidor do atacante"
+    ],
+    "explanation": "No CSRF o atacante nunca vê o cookie: o navegador da vítima adiciona os cookies de bank.example a qualquer requisição para esse site, inclusive uma disparada por outro site, então a transferência forjada chega autenticada. A same-origin policy impede evil.example de ler o cookie ou a resposta, mas não de enviar a requisição. As defesas são tokens anti-CSRF e cookies SameSite=Lax ou Strict."
+  },
+  {
+    "id": "k8s-workloads-pod-shared-network",
+    "title": "Containers no mesmo Pod",
+    "question": "Um Pod roda um container da aplicação e um sidecar de logs. A aplicação escuta na porta 8080. Como o sidecar a alcança?",
+    "options": [
+      "Só por um Service, já que cada container recebe o seu próprio IP",
+      "Pelo IP do node, depois de publicar a porta com hostPort",
+      "Não alcança, porque containers de um Pod são totalmente isolados",
+      "Em localhost:8080, pois os dois compartilham a rede do Pod"
+    ],
+    "explanation": "Um Pod é a menor unidade implantável do Kubernetes: um ou mais containers agendados juntos que compartilham um network namespace (um endereço IP e um espaço de portas) e podem compartilhar volumes. Containers do mesmo Pod conversam por localhost, então não podem usar a mesma porta. Services e hostPort servem para alcançar Pods de fora deles."
+  },
+  {
+    "id": "k8s-config-password-not-in-configmap",
+    "title": "Onde fica a senha do banco",
+    "question": "Um Deployment precisa de LOG_LEVEL, FEATURE_FLAGS e DB_PASSWORD. Um colega coloca os três em um único ConfigMap. O que deve mudar?",
+    "options": [
+      "Mover DB_PASSWORD para um Secret; ConfigMaps não são para segredos",
+      "Nada, já que ConfigMaps criptografam os valores em repouso por padrão",
+      "Embutir os três na imagem, para nada ficar guardado no cluster",
+      "Dividir em três ConfigMaps, cada um com um único valor"
+    ],
+    "explanation": "ConfigMaps são feitos para configuração não confidencial, e a documentação do Kubernetes manda usar um Secret para dados confidenciais. Secrets podem ser restringidos separadamente com RBAC e criptografados em repouso quando você habilita isso, embora por padrão sejam só codificados em base64. ConfigMaps não são criptografados, embutir uma senha na imagem a expõe a qualquer um que consiga baixar a imagem, e dividir o ConfigMap não muda nada."
+  },
+  {
+    "id": "sd-fund-non-functional-requirement",
+    "title": "Identificando um requisito não funcional",
+    "question": "Ao delimitar um sistema de corridas por app em uma entrevista de system design, você lista estes requisitos. Qual deles é não funcional?",
+    "options": [
+      "Passageiros veem a localização do motorista ao vivo em um mapa",
+      "Motoristas podem aceitar ou recusar cada pedido de corrida",
+      "O matching de motorista leva menos de 2 s no p99 no pico",
+      "Passageiros avaliam o motorista e comentam depois da corrida"
+    ],
+    "explanation": "Requisitos não funcionais definem metas de qualidade como latência, disponibilidade, throughput, durabilidade, segurança e custo, e orientam a arquitetura: um p99 de 2 segundos no pico molda o serviço de matching, o seu armazenamento e como ele escala. Os outros três descrevem funcionalidades que o sistema precisa oferecer, o que os torna requisitos funcionais. Esclareça os dois tipos antes de escolher componentes."
+  },
+  {
+    "id": "sd-fund-storage-estimate",
+    "title": "Estimativa rápida de armazenamento",
+    "question": "Um app de fotos tem 10 milhões de usuários ativos por dia. Cada um envia 2 fotos por dia, com média de 500 KB depois da compressão. Aproximadamente quanto armazenamento novo é necessário por dia, antes da replicação?",
+    "options": [
+      "Cerca de 10 GB",
+      "Cerca de 1 TB",
+      "Cerca de 10 TB",
+      "Cerca de 100 TB"
+    ],
+    "explanation": "10 milhões de usuários × 2 fotos = 20 milhões de fotos por dia, e 20 milhões × 500 KB = 10 milhões de MB, cerca de 10 TB por dia, ou uns 3,6 PB por ano antes da replicação. Uma estimativa assim define cedo se um único servidor de banco basta ou se você precisa de object storage, particionamento e CDN. Errar por ordens de grandeza, como com 10 GB ou 100 TB, leva à arquitetura errada."
+  },
+  {
+    "id": "perf-fund-p95-meaning",
+    "title": "Lendo uma latência p95",
+    "question": "Um dashboard mostra latência p95 = 300 ms para a API de checkout na última hora. O que isso significa?",
+    "options": [
+      "Cerca de 95% das requisições levaram 300 ms ou menos",
+      "Os 5% de requisições mais lentas tiveram média de 300 ms",
+      "A requisição mais lenta da hora levou 300 ms",
+      "95% das requisições levaram mais de 300 ms"
+    ],
+    "explanation": "O percentil 95 é o valor no qual ou abaixo do qual ficam cerca de 95% das observações, então mais ou menos 1 requisição em 20 foi mais lenta que 300 ms. Ele não é o máximo nem a média das requisições mais lentas; essas são outras estatísticas. Percentis como p95 e p99 revelam a latência de cauda que a média esconde."
+  },
+  {
+    "id": "obs-metrics-saturation-pool",
+    "title": "Reconhecendo saturação",
+    "question": "A CPU de um serviço fica em 40%, mas o pool de 50 conexões com o banco está sempre todo em uso, e as requisições esperam em fila por uma conexão. Qual golden signal isso descreve?",
+    "options": [
+      "Traffic: a demanda sobre o serviço passou do nível habitual",
+      "Saturation: um recurso limitado está cheio e o trabalho enfileira",
+      "Errors: o pool rejeita requisições, então a taxa de erro sobe",
+      "Nenhum: a CPU está em 40%, então o serviço ainda tem folga"
+    ],
+    "explanation": "Saturation é o quanto o serviço está cheio, medido no seu recurso mais limitado, que aqui é o pool de conexões e não a CPU. Um pool cheio com requisições em fila significa que o serviço está no limite mesmo com 40% de CPU, e a latência vai subir conforme a fila cresce. Nada indica mais tráfego ou requisições com falha, e CPU baixa não significa folga quando outro recurso está esgotado."
+  }
+]

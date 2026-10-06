@@ -1460,5 +1460,107 @@
     "correctIndex": 1,
     "explanation": "queryBy returns null when nothing matches instead of throwing, which makes it the right tool for absence assertions. getBy and getAllBy throw when there is no match, so the assertion never runs, and findBy rejects after its timeout.",
     "referenceUrl": "https://testing-library.com/docs/queries/about"
+  },
+  {
+    "id": "pf-vt-js-safe-integer",
+    "topic": "javascript",
+    "subtopic": "types",
+    "difficulty": "Hard",
+    "title": "Integer precision in JavaScript numbers",
+    "question": "A Node.js service parses 64-bit database IDs into regular JavaScript numbers. Why does 9007199254740993 === 9007199254740992 evaluate to true?",
+    "options": [
+      "The === operator coerces both operands to 32-bit integers before comparing",
+      "JavaScript truncates numeric literals longer than 15 digits at parse time",
+      "Numbers are IEEE 754 doubles, so not every integer above 2^53 is exact",
+      "Large integers are stored as strings and compared by their first 16 characters"
+    ],
+    "correctIndex": 2,
+    "explanation": "A JavaScript number is a 64-bit double with a 53-bit significand, so only integers up to Number.MAX_SAFE_INTEGER (2^53 - 1) are guaranteed exact; 2^53 + 1 rounds to 2^53. === does not coerce to 32-bit ints and numbers are not strings. Keep such IDs as strings or BigInt.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER"
+  },
+  {
+    "id": "pf-cf-foreach-return",
+    "topic": "javascript",
+    "subtopic": "functions-this",
+    "difficulty": "Medium",
+    "title": "return inside forEach",
+    "question": "A developer wants to stop processing at the first value greater than 2:\n\n[1, 3, 2].forEach(x => {\n  if (x > 2) return;\n  console.log(x);\n});\n\nWhat is logged?",
+    "options": [
+      "Only 1, because return exits the whole forEach loop",
+      "Nothing, because return inside forEach is a SyntaxError",
+      "1, 3 and 2, because forEach ignores callback return values",
+      "1 and then 2, because return only ends that callback"
+    ],
+    "correctIndex": 3,
+    "explanation": "return inside the arrow function only ends that single callback invocation; forEach still calls the callback for every remaining element. So 3 is skipped (its return comes before console.log) and 2 is logged. forEach cannot be stopped early except by throwing; use for...of with break, or some()/find() when early exit is needed.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach"
+  },
+  {
+    "id": "pf-cf-switch-fallthrough",
+    "topic": "javascript",
+    "subtopic": "types",
+    "difficulty": "Easy",
+    "title": "Switch fall-through",
+    "question": "What is the value of out after this JavaScript runs?\n\nlet x = 1, out = '';\nswitch (x) {\n  case 1: out += 'a';\n  case 2: out += 'b'; break;\n  case 3: out += 'c';\n}",
+    "options": [
+      "'ab'",
+      "'abc'",
+      "'b'",
+      "'a'"
+    ],
+    "correctIndex": 0,
+    "explanation": "Once a case matches, execution continues into the following cases until it reaches a break (fall-through). Case 1 appends 'a', falls into case 2 which appends 'b', then break exits the switch, so case 3 never runs. Forgetting break is a classic bug; C# forbids implicit fall-through for non-empty cases for this reason.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/switch"
+  },
+  {
+    "id": "pf-fn-closure-loop",
+    "topic": "javascript",
+    "subtopic": "scope-closures",
+    "difficulty": "Hard",
+    "title": "Top-level var and let on the global object",
+    "question": "In a classic (non-module) script, what does this JavaScript log?\n\nvar a = 1;\nlet b = 2;\nconsole.log(globalThis.a, globalThis.b);",
+    "options": [
+      "1 2",
+      "undefined undefined",
+      "1 undefined",
+      "undefined 2"
+    ],
+    "correctIndex": 2,
+    "explanation": "At the top level of a classic script, var (and function) declarations become properties of the global object, while let, const and class declarations live in a separate declarative part of the global scope: b is visible everywhere as a global variable, but globalThis.b is undefined. In an ES module neither declaration touches the global object, because top-level var is module-scoped, so both would be undefined.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/let"
+  },
+  {
+    "id": "ds-str-utf16-length",
+    "topic": "javascript",
+    "subtopic": "types",
+    "difficulty": "Hard",
+    "title": "String length and emoji",
+    "question": "A form validator limits usernames with value.length <= 10 in JavaScript. Why does '😀'.length return 2?",
+    "options": [
+      "Emoji are stored together with an invisible variation selector",
+      "length counts UTF-16 code units; the emoji is a surrogate pair",
+      "length returns the display width in terminal columns",
+      "length counts bytes, and the emoji takes 2 bytes when encoded as UTF-8"
+    ],
+    "correctIndex": 1,
+    "explanation": "JavaScript strings are sequences of UTF-16 code units; characters outside the Basic Multilingual Plane, like U+1F600, need two units (a surrogate pair). In UTF-8 this emoji is 4 bytes, not 2. To count code points use [...value].length; for user-perceived characters use Intl.Segmenter.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/length"
+  },
+  {
+    "id": "pf-bool-short-circuit-js",
+    "topic": "javascript",
+    "subtopic": "types",
+    "difficulty": "Medium",
+    "title": "Short-circuit evaluation result",
+    "question": "In JavaScript, user is null. What does user && user.profile && user.profile.name evaluate to?",
+    "options": [
+      "false",
+      "undefined",
+      "null",
+      "It throws a TypeError"
+    ],
+    "correctIndex": 2,
+    "explanation": "&& evaluates left to right and returns the first falsy operand without evaluating the rest, so it returns user itself, which is null. It does not coerce the result to a boolean, and user.profile is never accessed, so there is no TypeError. Optional chaining (user?.profile?.name) would return undefined instead.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Logical_AND"
   }
 ]

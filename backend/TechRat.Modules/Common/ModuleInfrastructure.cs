@@ -9,6 +9,15 @@ using TechRat.Application.Identity;
 
 namespace TechRat.Modules.Common;
 
+/// <summary>
+/// Caps the request body of one endpoint (Kestrel answers 413 beyond it). Minimal-API counterpart of MVC's
+/// RequestSizeLimitAttribute, honoured through <see cref="Microsoft.AspNetCore.Http.Metadata.IRequestSizeLimitMetadata"/>.
+/// </summary>
+public sealed class RequestSizeLimit(long maxBytes) : Microsoft.AspNetCore.Http.Metadata.IRequestSizeLimitMetadata
+{
+    public long? MaxRequestBodySize => maxBytes;
+}
+
 /// <summary>Each module exposes its HTTP surface through one implementation of this interface.</summary>
 public interface IEndpointModule
 {

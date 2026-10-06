@@ -13,6 +13,8 @@ export const validation: Messages["validation"] = {
   displayNameMax: "No máximo 40 caracteres",
   bioMax: "No máximo 280 caracteres",
   passwordsMismatch: "As senhas não coincidem",
+  currentPasswordRequired: "Digite sua senha atual",
+  passwordSameAsCurrent: "Use uma senha diferente da atual",
   url: "Informe uma URL válida",
   httpsUrl: "Use uma URL https",
   invalid: "Valor inválido",

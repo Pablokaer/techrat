@@ -974,6 +974,70 @@
         }
       }
     },
+    "/api/v1/auth/password": {
+      "get": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Whether the signed-in account has a password (change it) or not (set one)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Change (or set) the password of the signed-in account",
+        "description": "Checks the current password on the server (failures count towards lockout) and applies the sign-up rules. Every other session is signed out. The calling session continues: a cookie session gets a renewed cookie (204), a bearer session gets new tokens (200). The owner is emailed.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessTokenResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/providers": {
       "get": {
         "tags": [
@@ -1029,6 +1093,36 @@
                   "items": {
                     "$ref": "#/components/schemas/ModuleSummaryDto"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/modules/{slug}/resources": {
+      "get": {
+        "tags": [
+          "Modules"
+        ],
+        "summary": "Study resources: the topics to master in the module and the sources to learn each from",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModuleResourcesDto"
                 }
               }
             }
@@ -1454,6 +1548,36 @@
         }
       }
     },
+    "/api/v1/roadmaps/{slug}/resources": {
+      "get": {
+        "tags": [
+          "Roadmaps"
+        ],
+        "summary": "Study resources: general overview reading for the roadmap (books, official docs, courses), in the request language",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoadmapResourcesDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/roadmaps/{slug}/start": {
       "post": {
         "tags": [
@@ -1625,6 +1749,84 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/avatar": {
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Upload a profile photo (multipart field `file`)",
+        "description": "The client crops the photo to a square and compresses it (512×512 recommended). JPG, PNG or WEBP up to 1 MB, detected from the file signature. Replaces the previous photo and returns the updated user.",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "$ref": "#/components/schemas/IFormFile"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSummaryDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Remove the profile photo and go back to the default avatar",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSummaryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/avatar": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "A user's uploaded profile photo (public, cacheable; the avatarUrl of a user points here)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
           }
         }
       }
@@ -2754,6 +2956,27 @@
           }
         }
       },
+      "ChangePasswordRequest": {
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newPassword": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CompletedStepDto": {
         "required": [
           "roadmapId",
@@ -3068,6 +3291,10 @@
           }
         }
       },
+      "IFormFile": {
+        "type": "string",
+        "format": "binary"
+      },
       "LeaderboardDto": {
         "required": [
           "scope",
@@ -3291,6 +3518,20 @@
           },
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "ModuleResourcesDto": {
+        "required": [
+          "topics"
+        ],
+        "type": "object",
+        "properties": {
+          "topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudyTopicDto"
+            }
           }
         }
       },
@@ -3523,6 +3764,17 @@
           "totalCount": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "PasswordStatusDto": {
+        "required": [
+          "hasPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "hasPassword": {
+            "type": "boolean"
           }
         }
       },
@@ -4028,6 +4280,20 @@
           }
         }
       },
+      "RoadmapResourcesDto": {
+        "required": [
+          "sources"
+        ],
+        "type": "object",
+        "properties": {
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudySourceDto"
+            }
+          }
+        }
+      },
       "RoadmapStepDto": {
         "required": [
           "id",
@@ -4132,7 +4398,8 @@
           "icon",
           "xpReward",
           "prerequisites",
-          "progress"
+          "progress",
+          "juniorRank"
         ],
         "type": "object",
         "properties": {
@@ -4189,6 +4456,13 @@
                 "$ref": "#/components/schemas/RoadmapUserStateDto"
               }
             ]
+          },
+          "juniorRank": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -4456,6 +4730,58 @@
           },
           "isMet": {
             "type": "boolean"
+          }
+        }
+      },
+      "StudySourceDto": {
+        "required": [
+          "title",
+          "url",
+          "type",
+          "language",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "StudyTopicDto": {
+        "required": [
+          "key",
+          "name",
+          "sources"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudySourceDto"
+            }
           }
         }
       },
@@ -4821,6 +5147,12 @@
               "null",
               "string"
             ]
+          },
+          "showOnLeaderboard": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -4840,7 +5172,8 @@
           "correctAnswers",
           "accuracy",
           "globalRank",
-          "createdAt"
+          "createdAt",
+          "showOnLeaderboard"
         ],
         "type": "object",
         "properties": {
@@ -4902,6 +5235,9 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "showOnLeaderboard": {
+            "type": "boolean"
           }
         }
       }

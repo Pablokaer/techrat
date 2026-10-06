@@ -946,5 +946,305 @@
       "O save sofreu flush, e mudanças com flush nunca podem sofrer rollback"
     ],
     "explanation": "As regras padrão de rollback do Spring fazem rollback em exceções unchecked (RuntimeException e Error) e commit nas checked; use rollbackFor = PaymentDeclinedException.class ou lance uma exceção unchecked. A exceção é propagada, tipos de retorno são irrelevantes, e mudanças com flush ainda fazem parte da transação não commitada."
+  },
+  {
+    "id": "pf-vt-integer-cache-identity",
+    "title": "Identidade de Integer boxed",
+    "question": "Com as configurações padrão da JVM, o que este código Java imprime?\n\nInteger a = 127, b = 127;\nInteger c = 128, d = 128;\nSystem.out.println(a == b);\nSystem.out.println(c == d);",
+    "options": [
+      "true, depois true",
+      "false, depois false",
+      "false, depois true",
+      "true, depois false"
+    ],
+    "explanation": "O autoboxing passa por Integer.valueOf, e a JLS 5.1.7 exige que valores boxed no intervalo de -128 a 127 fiquem em cache, então a e b referenciam o mesmo objeto. 128 está fora do cache garantido, então c e d normalmente são objetos distintos e == (uma comparação de referências) é false. Compare números boxed com equals() ou faça unboxing para int."
+  },
+  {
+    "id": "pf-jr-vt-integer-division",
+    "title": "Divisão inteira antes da conversão para double",
+    "question": "O que este código Java imprime?\n\nint total = 7;\nint count = 2;\ndouble average = total / count;\nSystem.out.println(average);",
+    "options": [
+      "3.5",
+      "3.0",
+      "4.0",
+      "3"
+    ],
+    "explanation": "Os dois operandos são int, então total / count é uma divisão inteira: a parte fracionária é descartada e o resultado é 3. Só depois esse int é convertido para o double 3.0 na atribuição, e o println imprime um double com a parte decimal, como 3.0. Para obter 3.5, converta um dos operandos para double antes de dividir, por exemplo (double) total / count; a divisão inteira nunca arredonda para cima, para 4."
+  },
+  {
+    "id": "pf-jr-vt-negative-remainder",
+    "title": "Um isOdd que falha com números negativos",
+    "question": "Um helper em Java deveria detectar números ímpares:\n\nstatic boolean isOdd(int n) {\n    return n % 2 == 1;\n}\n\nisOdd(3) retorna true, mas isOdd(-3) retorna false. Por quê?",
+    "options": [
+      "% não é definido para operandos negativos, então a JVM retorna 0",
+      "Dividir -3 por 2 estoura o int, então o resto se perde",
+      "Em Java, % mantém o sinal do dividendo, então -3 % 2 é -1",
+      "A precedência faz ler como n % (2 == 1), usando um boolean"
+    ],
+    "explanation": "O % do Java é o resto da divisão truncada, definido de forma que (a / b) * b + a % b == a; por isso o resultado tem o sinal do dividendo. -3 / 2 é -1, o que deixa -3 % 2 == -1, e -1 não é 1. Teste n % 2 != 0 ou use Math.floorMod(n, 2) == 1. O % funciona com ints negativos sem nenhum overflow, e o == tem precedência menor que o %, então a expressão já é (n % 2) == 1."
+  },
+  {
+    "id": "pf-cf-for-else",
+    "title": "Semântica do for...else em Python",
+    "question": "O que este código Python imprime?\n\nfor n in [3, 5, 7]:\n    if n % 2 == 0:\n        break\nelse:\n    print('none even')",
+    "options": [
+      "Um SyntaxError, já que loops não podem ter cláusula else",
+      "none even (impresso três vezes)",
+      "Nada, porque o else só executa depois de um if",
+      "none even (impresso uma vez)"
+    ],
+    "explanation": "A cláusula else de um loop executa uma vez quando o loop termina sem passar por um break. Nenhum elemento é par, então o break nunca executa e o bloco else imprime uma vez. Ela não está ligada ao if dentro do loop e é sintaxe válida tanto para for quanto para while."
+  },
+  {
+    "id": "pf-cf-finally-return",
+    "title": "Return dentro do finally",
+    "question": "O que f() retorna em Python?\n\ndef f():\n    try:\n        return 1\n    finally:\n        return 2",
+    "options": [
+      "2, porque o return no finally sobrescreve o return pendente",
+      "1, porque o primeiro return sempre prevalece",
+      "Lança um RuntimeError por returns conflitantes",
+      "None, porque os dois returns se anulam"
+    ],
+    "explanation": "O bloco finally sempre executa antes de a função realmente sair, e um return executado no finally substitui o valor de retorno pendente (e também engoliria uma exceção em andamento). Por isso esse padrão é considerado propenso a bugs; desde o Python 3.14 o compilador emite um SyntaxWarning para return, break ou continue que saia de um bloco finally."
+  },
+  {
+    "id": "pf-fn-implicit-none",
+    "title": "Função sem return",
+    "question": "Qual é o valor de result depois que este código Python executa?\n\ndef greet(name):\n    print('Hi', name)\n\nresult = greet('Ana')",
+    "options": [
+      "'Hi Ana', o texto que a função imprimiu",
+      "Uma string vazia, que é o que print() retorna",
+      "None, já que a função não tem instrução return",
+      "Nada; lança um erro já que greet não retorna nada"
+    ],
+    "explanation": "Uma função Python que termina sem executar uma instrução return retorna None. Imprimir escreve na saída padrão, mas não é o valor de retorno da função, e o próprio print() também retorna None, não uma string vazia. Atribuir o resultado None é perfeitamente válido."
+  },
+  {
+    "id": "pf-fn-keyword-only-args",
+    "title": "Parâmetros keyword-only",
+    "question": "Um helper Python é declarado como def connect(host, *, timeout=5). O que acontece quando ele é chamado como connect('db.local', 10)?",
+    "options": [
+      "timeout recebe 10, já que é o segundo parâmetro",
+      "10 é ignorado em silêncio e timeout mantém o padrão de 5",
+      "10 é coletado em uma tupla ligada ao marcador * sozinho",
+      "Um TypeError é lançado, porque timeout é keyword-only"
+    ],
+    "explanation": "Parâmetros depois de um * sozinho são keyword-only, então a função aceita só um argumento posicional e a chamada falha com TypeError (takes 1 positional argument but 2 were given). O * sozinho não coleta nada, ao contrário de *args. Quem chama precisa escrever connect('db.local', timeout=10), o que deixa as chamadas autoexplicativas."
+  },
+  {
+    "id": "pf-fn-lru-cache-method-leak",
+    "title": "lru_cache em métodos de instância",
+    "question": "Um serviço Python de longa duração decora um método de instância com @functools.lru_cache(maxsize=None). A memória continua crescendo mesmo depois que os objetos Report não são mais usados. Por quê?",
+    "options": [
+      "O lru_cache guarda resultados em um dicionário de chaves fracas que o garbage collector nunca limpa",
+      "O decorator copia o método para cada instância, então cada objeto tem um cache completo",
+      "self faz parte de toda chave do cache, então o cache mantém cada instância viva",
+      "O lru_cache desliga a contagem de referências de qualquer objeto passado ao método"
+    ],
+    "explanation": "O cache fica no objeto função compartilhado pela classe, e suas chaves incluem self, então ele guarda referências fortes para toda instância que já viu; com maxsize=None nada é removido. O FAQ do Python observa que essa abordagem mantém as instâncias vivas até que saiam do cache ou que ele seja limpo. Use um cache limitado, functools.cached_property ou um cache por instância."
+  },
+  {
+    "id": "pf-fn-mutable-default",
+    "title": "Ordem de decorators empilhados",
+    "question": "O que este código Python imprime?\n\ndef bold(fn):\n    def wrapper():\n        return '<b>' + fn() + '</b>'\n    return wrapper\n\ndef italic(fn):\n    def wrapper():\n        return '<i>' + fn() + '</i>'\n    return wrapper\n\n@bold\n@italic\ndef greet():\n    return 'hi'\n\nprint(greet())",
+    "options": [
+      "<i><b>hi</b></i>, já que os decorators são aplicados de cima para baixo",
+      "<b><i>hi</i></b>, já que greet vira bold(italic(greet))",
+      "<b>hi</b>, já que só o decorator de cima tem efeito",
+      "<i>hi</i>, já que o decorator de baixo substitui o de cima"
+    ],
+    "explanation": "Decorators empilhados são aplicados de baixo para cima: o mais próximo do def envolve a função primeiro, então o código equivale a greet = bold(italic(greet)). Chamar greet() executa o wrapper de bold, que chama o wrapper de italic, que chama a função original, resultando em <b><i>hi</i></b>. Todos os decorators têm efeito, e a ordem importa em código real também, por exemplo se uma verificação de autorização roda por fora ou por dentro de um decorator de cache."
+  },
+  {
+    "id": "pf-jr-fn-unbound-local",
+    "title": "Atualizando uma variável global dentro de uma função",
+    "question": "O que acontece quando este código Python roda?\n\ncount = 0\n\ndef increment():\n    count += 1\n\nincrement()",
+    "options": [
+      "count vira 1, já que funções podem alterar variáveis do módulo",
+      "count continua 0, porque a função alterou a própria cópia",
+      "Um SyntaxError é lançado assim que o módulo é carregado",
+      "UnboundLocalError, pois a atribuição torna count local"
+    ],
+    "explanation": "O Python decide o escopo de um nome ao compilar a função: como count recebe uma atribuição dentro de increment, ele é um nome local em toda a função. count += 1 precisa ler essa variável local antes de ela ter valor, então a chamada lança UnboundLocalError (uma subclasse de NameError) em tempo de execução, não quando o módulo é carregado. Declarar global count dentro da função resolve, mas receber o valor como parâmetro e retornar o resultado costuma ser mais limpo."
+  },
+  {
+    "id": "ds-arr-covariance-store",
+    "title": "Covariância de arrays em Java",
+    "question": "Este código Java compila. O que acontece quando ele executa?\n\nObject[] items = new String[2];\nitems[0] = 42;",
+    "options": [
+      "Lança ArrayStoreException, pois o array em runtime é String[]",
+      "Guarda \"42\" como string por meio de uma conversão implícita",
+      "Funciona, já que o tipo de elemento declarado é Object",
+      "Lança ClassCastException só quando items[0] é lido"
+    ],
+    "explanation": "Arrays em Java são covariantes, então um String[] pode ser atribuído a uma variável Object[], mas toda escrita é verificada contra o tipo de componente do array em runtime (JLS 10.5), e guardar um Integer lança ArrayStoreException. O Java nunca converte 42 em string aqui. Coleções genéricas evitam o problema em tempo de compilação, porque List<String> não é um List<Object>."
+  },
+  {
+    "id": "ds-arr-modify-while-iterating",
+    "title": "Alterando uma lista devolvida por Arrays.asList",
+    "question": "O que acontece quando este código Java executa?\n\nString[] arr = {\"a\", \"b\", \"c\"};\nList<String> names = Arrays.asList(arr);\nnames.set(0, \"z\");\nnames.add(\"d\");",
+    "options": [
+      "Funciona: names fica [z, b, c, d] e arr continua igual",
+      "set lança UnsupportedOperationException, pois a lista é somente leitura",
+      "arr[0] vira \"z\", depois add lança UnsupportedOperationException",
+      "add aumenta arr para quatro elementos, já que a lista escreve nele"
+    ],
+    "explanation": "Arrays.asList devolve uma lista de tamanho fixo apoiada no array informado: set é permitido e escreve no array, então arr[0] vira \"z\", mas add e remove mudariam o tamanho e lançam UnsupportedOperationException. Um array Java nunca cresce, então nada é acrescentado a arr, e a lista não é somente leitura como List.of. Copie-a, como em new ArrayList<>(Arrays.asList(arr)), quando precisar de uma lista redimensionável."
+  },
+  {
+    "id": "ds-jr-arr-java-fixed-length",
+    "title": "Um array Java que precisa de mais uma posição",
+    "question": "Um formulário de cadastro em Java guarda os nomes em:\n\nString[] names = new String[3];\n\nAs três posições estão ocupadas e uma quarta pessoa se cadastra. Qual é o jeito certo de guardar o novo nome?",
+    "options": [
+      "Atribuir names[3] = name; o array ganha mais uma posição",
+      "Chamar names.add(name), que o adiciona depois da última posição usada",
+      "Copiar para um array maior, ou passar a usar um ArrayList<String>",
+      "Fazer names.length = 4 antes e depois atribuir names[3] = name"
+    ],
+    "explanation": "O tamanho de um array Java é fixado quando o array é criado. length é um campo final, então não pode receber atribuição, e arrays não têm método add, então essas duas linhas nem compilam. names[3] = name compila, mas lança ArrayIndexOutOfBoundsException em tempo de execução, já que os índices válidos vão de 0 a 2. Para crescer, aloque um array maior e copie os elementos (por exemplo Arrays.copyOf(names, 6)), ou use ArrayList<String>, uma lista redimensionável que aumenta o array interno por você."
+  },
+  {
+    "id": "ds-str-java-equals",
+    "title": "Comparando strings com ==",
+    "question": "Uma checagem de login em Java usa if (input == \"admin\"), onde input vem de request.getParameter(). Ela falha mesmo quando o usuário digita admin. Por quê?",
+    "options": [
+      "== compara tamanhos primeiro, e o request adiciona uma quebra de linha oculta no final",
+      "Literais de string são guardados em UTF-16, mas parâmetros do request ficam em UTF-8",
+      "== diferencia maiúsculas, e parâmetros do request vêm em maiúsculas por padrão",
+      "== compara referências, e uma string criada em runtime é um objeto distinto"
+    ],
+    "explanation": "Para objetos, == verifica se os dois operandos são a mesma instância. O literal \"admin\" é internado, mas uma string extraída de um request é um objeto novo com os mesmos caracteres, então == é false. Use \"admin\".equals(input), que compara o conteúdo e, nessa ordem, também é seguro contra null."
+  },
+  {
+    "id": "ds-hash-equals-hashcode",
+    "title": "Buscando uma chave Long com um literal int",
+    "question": "O que este código Java imprime?\n\nMap<Long, String> names = new HashMap<>();\nnames.put(1L, \"Ana\");\nSystem.out.println(names.get(1));",
+    "options": [
+      "Ana, já que 1 é alargado para 1L antes da busca",
+      "Não compila, já que get espera um argumento Long",
+      "null, já que uma chave Integer nunca é igual a uma Long",
+      "Lança ClassCastException ao converter Integer para Long"
+    ],
+    "explanation": "Map.get recebe um parâmetro Object, então o literal 1 sofre autoboxing para Integer em vez de ser alargado para long, e a chamada compila. Integer 1 e Long 1 têm o mesmo hash code, mas Long.equals só retorna true para outro Long, então a busca não encontra chave correspondente e retorna null; o HashMap nunca faz cast das chaves. Passe o tipo certo, como em names.get(1L)."
+  },
+  {
+    "id": "ds-hash-load-factor",
+    "title": "Pré-dimensionando um hash map",
+    "question": "Um job Java insere 10 milhões de entradas em um new HashMap() e o profiling mostra tempo gasto em resize(). O que explica isso e o que ajuda?",
+    "options": [
+      "Ele faz rehash sempre que size passa de capacity x 0.75; defina uma capacidade inicial",
+      "O load factor é 1.0, então os buckets transbordam; defina-o como 2.0",
+      "O redimensionamento é causado por colisões; sobrescreva hashCode para retornar uma constante",
+      "O HashMap redimensiona a cada put; troque por TreeMap"
+    ],
+    "explanation": "Com o load factor padrão de 0.75, o HashMap dobra de tamanho e faz rehash de todas as entradas sempre que o tamanho passa de capacity x load factor. Criá-lo com uma capacidade inicial adequada (ou usar HashMap.newHashMap(n) no Java 19+) evita rehashes repetidos. Um hashCode constante faria todas as operações degradarem drasticamente."
+  },
+  {
+    "id": "ds-hash-flooding",
+    "title": "Mitigação de hash flooding",
+    "question": "Um atacante envia um JSON com 100.000 chaves criadas para ter hash codes idênticos, travando a CPU de um servidor web. Qual mitigação embutida o HashMap do Java 8+ usa nessa situação?",
+    "options": [
+      "O HashMap troca o salt dos hash codes com uma seed aleatória a cada resize",
+      "O HashMap rejeita chaves após um número fixo de colisões por bucket",
+      "O HashMap passa para open addressing com linear probing quando as colisões disparam",
+      "Buckets lotados viram árvores red-black, deixando as buscas em O(log n)"
+    ],
+    "explanation": "Desde o Java 8, quando um bin cresce demais o HashMap o converte de lista ligada em árvore red-black (ordenando chaves Comparable quando possível), então as operações no pior caso passam a ser O(log n) e o ataque cai para O(n log n) no total, em vez de O(n^2). Ele não rejeita chaves nem muda para open addressing. Outros runtimes, como o hashing de str do Python, usam hashes aleatorizados com chave."
+  },
+  {
+    "id": "ds-jr-hash-count-keyerror",
+    "title": "Contando palavras com um dict simples",
+    "question": "words = ['a', 'b', 'a']\ncounts = {}\nfor w in words:\n    counts[w] += 1\n\nO que acontece quando isso roda?",
+    "options": [
+      "counts termina como {'a': 2, 'b': 1}",
+      "counts termina como {'a': 1, 'b': 1}",
+      "counts fica vazio, pois += em uma chave ausente não faz nada",
+      "KeyError na primeira palavra, pois 'a' ainda não é chave"
+    ],
+    "explanation": "counts[w] += 1 primeiro lê counts[w], e ler uma chave ausente de um dict lança KeyError, então o loop falha em 'a' antes de guardar qualquer coisa. Um dict simples nunca cria chaves com valor padrão por conta própria. Use counts[w] = counts.get(w, 0) + 1, um collections.defaultdict(int) ou simplesmente collections.Counter(words), que conta 'a' duas vezes e 'b' uma vez."
+  },
+  {
+    "id": "ds-jr-hash-list-unhashable",
+    "title": "Guardando coordenadas da grade em um set",
+    "question": "Uma busca em grade registra as células que já visitou:\n\nvisited = set()\nvisited.add([row, col])\n\nIsso falha com TypeError: unhashable type: 'list'. Qual é a correção certa?",
+    "options": [
+      "Guardar as células em uma lista, já que sets só aceitam strings e números",
+      "Adicionar a tupla (row, col), que é imutável e portanto hashable",
+      "Adicionar hash([row, col]), para o set guardar um inteiro simples",
+      "Adicionar frozenset([row, col]), que é hashable e guarda os dois valores"
+    ],
+    "explanation": "Elementos de set e chaves de dict precisam ser hashable, e built-ins mutáveis como list não são: um hash que mudasse depois de um append deixaria o elemento no bucket errado. Uma tupla de valores imutáveis é hashable e mantém a ordem, então (2, 3) e (3, 2) continuam distintos. hash() em uma lista lança o mesmo TypeError, um frozenset trataria (2, 3) e (3, 2) como a mesma célula, e sets guardam tuplas sem problema, então voltar para uma lista só torna cada busca O(n)."
+  },
+  {
+    "id": "pf-bool-or-default-zero",
+    "title": "Valores falsy com padrão via or",
+    "question": "Um carregador de configuração em Python usa timeout = settings.get('timeout') or 30. Um usuário define timeout como 0 para desativá-lo, mas o serviço continua usando 30. Por quê?",
+    "options": [
+      "dict.get() transforma valores inteiros zero armazenados em None ao retorná-los",
+      "or sempre avalia os dois operandos e retorna o maior dos dois valores",
+      "O Python guarda em cache o primeiro valor que uma expressão or produz em cada módulo",
+      "or retorna o operando da direita quando o da esquerda é falsy, e 0 é falsy"
+    ],
+    "explanation": "x or y retorna x se x for truthy e, caso contrário, y; 0, strings vazias e coleções vazias são todos falsy, então um 0 explícito é substituído pelo padrão. dict.get retorna o 0 armazenado sem alteração e o or faz curto-circuito em vez de comparar magnitudes. Use uma checagem explícita como 30 if value is None else value."
+  },
+  {
+    "id": "pf-rec-slicing-cost",
+    "title": "Custo oculto do slicing na recursão",
+    "question": "Qual é a complexidade de tempo desta soma recursiva em Python para uma lista de n números?\n\ndef total(xs):\n    return 0 if not xs else xs[0] + total(xs[1:])",
+    "options": [
+      "O(n), já que cada elemento é somado só uma vez",
+      "O(n log n), já que a lista cai pela metade a cada chamada",
+      "O(n^2), já que cada slice xs[1:] copia o restante",
+      "O(log n), já que um slice é uma view de tempo constante"
+    ],
+    "explanation": "Um slice de lista cria uma nova lista e custa O(k) para k elementos copiados, então as chamadas copiam n-1, n-2, ... elementos, somando O(n^2). A lista diminui um elemento por chamada, não pela metade, e slices de listas em Python são cópias, não views. Passar um índice em vez de fatiar torna a função O(n), embora um n grande ainda vá atingir o limite de recursão."
+  },
+  {
+    "id": "pf-rec-tail-call-python",
+    "title": "Recursão de cauda no CPython",
+    "question": "Um desenvolvedor reescreve uma soma recursiva na forma de recursão de cauda (def s(n, acc=0): return acc if n == 0 else s(n-1, acc+n)) esperando somar 1..100000 no CPython. O que acontece?",
+    "options": [
+      "Funciona, mas usa memória O(n) na heap em vez da pilha",
+      "Falha com SyntaxError porque argumentos padrão não são permitidos em recursão",
+      "Funciona, porque o CPython reutiliza o frame em chamadas na posição de cauda",
+      "Ainda lança RecursionError, porque o CPython não elimina tail calls"
+    ],
+    "explanation": "O CPython não faz eliminação de tail calls, então cada chamada ainda empilha um novo frame, e 100000 frames excedem o limite padrão de recursão. Linguagens como Scheme garantem tail calls adequadas, mas o Python mantém tracebacks completos de propósito. A correção é um loop explícito (ou acumulação iterativa), não um formato recursivo diferente."
+  },
+  {
+    "id": "pf-bigo-list-membership",
+    "title": "Testes de pertinência dentro de um loop",
+    "question": "Um job remove duplicatas de 200.000 IDs com: for x in ids: if x not in seen: seen.append(x), onde seen é uma lista. Leva minutos. Qual é a causa e a correção?",
+    "options": [
+      "O loop é O(n log n) porque listas são mantidas ordenadas; use um deque",
+      "in em lista é O(n), então o loop é O(n^2); use um set no lugar",
+      "Loops em Python são sempre O(n^2); use recursão",
+      "list.append é O(n), tornando o loop O(n^2); pré-aloque a lista"
+    ],
+    "explanation": "x in list percorre linearmente, então n iterações fazendo até n comparações cada é quadrático. Um set é baseado em hash, com pertinência O(1) em média, o que leva o job inteiro a O(n). list.append é O(1) amortizado, listas não são mantidas ordenadas e recursão não mudaria a complexidade."
+  },
+  {
+    "id": "pf-dm-floor-mod",
+    "title": "Módulo negativo em Java",
+    "question": "Um ring buffer em Java anda para trás com idx = (idx - 1) % size. Quando idx é 0, ele lança ArrayIndexOutOfBoundsException. Por quê, e qual é a correção?",
+    "options": [
+      "% mantém o sinal do dividendo, dando -1; use Math.floorMod(idx - 1, size)",
+      "% estoura para Integer.MIN_VALUE com negativos; converta os dois operandos para long",
+      "% arredonda para mais infinito e retorna size; subtraia um do resultado",
+      "% é indefinido para operandos negativos em Java; envolva o cálculo em um try/catch"
+    ],
+    "explanation": "A divisão inteira do Java trunca em direção a zero, e o resto satisfaz (a / b) * b + a % b == a, então -1 % size é -1, um índice inválido. Math.floorMod retorna um resultado com o sinal do divisor, dando size - 1 como desejado. O % do Python já usa piso, e é por isso que o mesmo código funciona lá."
+  },
+  {
+    "id": "pf-dm-modular-exponentiation",
+    "title": "Exponenciação modular rápida",
+    "question": "Um exercício precisa de 7^(10^18) mod 1.000.000.007 em Python. Por que pow(7, 10**18, 1_000_000_007) retorna instantaneamente enquanto (7 ** 10**18) % 1_000_000_007 nunca termina?",
+    "options": [
+      "O pow com três argumentos memoiza chamadas anteriores, então expoentes repetidos são grátis",
+      "O operador ** converte os dois operandos para float e depois precisa refazer o cálculo exato",
+      "O pow joga o trabalho para threads nativas, enquanto ** roda em uma thread do interpretador",
+      "O pow com três argumentos faz square-and-multiply mod m, com só ~60 quadrados"
+    ],
+    "explanation": "7 ** 10**18 tenta construir um inteiro exato com cerca de 8.5e17 dígitos decimais, o que nunca caberia na memória. pow(base, exp, mod) reduz módulo m após cada passo da exponenciação binária, então precisa de O(log exp) multiplicações de números pequenos; como 10^18 < 2^60, isso dá cerca de 60 elevações ao quadrado. Inteiros Python continuam exatos (sem conversão para float) e o pow não usa cache nem threads."
   }
 ]

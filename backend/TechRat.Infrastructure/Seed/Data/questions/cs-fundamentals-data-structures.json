@@ -5,15 +5,15 @@
     "subtopic": "variables-types",
     "difficulty": "Easy",
     "title": "Floating-point equality",
-    "question": "In Python, what does the expression 0.1 + 0.2 == 0.3 evaluate to?",
+    "question": "In a language whose floating-point numbers are standard binary doubles (IEEE 754), what does the expression 0.1 + 0.2 == 0.3 evaluate to?",
     "options": [
-      "True, but only when the values are stored in variables",
-      "It raises a TypeError when comparing computed floats",
-      "True, because Python rounds float results to 15 digits",
-      "False, because neither 0.1 nor 0.2 is exact in binary"
+      "true, but only when the values are stored in variables",
+      "It raises an error when comparing computed floats",
+      "true, because results are rounded to 15 digits first",
+      "false, because neither 0.1 nor 0.2 is exact in binary"
     ],
     "correctIndex": 3,
-    "explanation": "Floats are IEEE 754 binary doubles, and decimal fractions like 0.1 cannot be represented exactly in base 2, so 0.1 + 0.2 yields 0.30000000000000004. Python does not silently round comparisons. Compare with math.isclose() or use decimal.Decimal when exact decimal arithmetic matters.",
+    "explanation": "Binary floating-point builds fractions from powers of two, and decimal fractions like 0.1 and 0.2 have no exact binary representation, so 0.1 + 0.2 yields 0.30000000000000004. The comparison does not silently round to 15 digits, and comparing floats is never an error. Compare with a tolerance (|a - b| < epsilon) or use a decimal type when exact decimal arithmetic matters.",
     "referenceUrl": "https://docs.python.org/3/tutorial/floatingpoint.html"
   },
   {
@@ -22,15 +22,15 @@
     "subtopic": "variables-types",
     "difficulty": "Easy",
     "title": "Value-type assignment copies",
-    "question": "In C#, Point is a struct with a public int field X.\n\nvar a = new Point { X = 1 };\nvar b = a;\nb.X = 5;\nConsole.WriteLine(a.X);\n\nWhat is printed?",
+    "question": "Point is a value type (like a struct), not a reference type, with a field x:\n\na ← Point(x = 1)\nb ← a\nb.x ← 5\nprint(a.x)\n\nWhat is printed?",
     "options": [
       "5",
-      "It does not compile because structs are immutable",
+      "An error, because value types are immutable",
       "1",
       "0"
     ],
     "correctIndex": 2,
-    "explanation": "Structs are value types, so assigning a to b copies the whole value; b is an independent copy and changing b.X leaves a.X untouched. If Point were a class, both variables would reference the same object and 5 would be printed. Structs are only immutable if you declare them readonly.",
+    "explanation": "Assigning a value type copies the whole value, so b is an independent copy and changing b.x leaves a.x untouched. If Point were a reference type (a class instance), a and b would refer to the same object and 5 would be printed. Value types are only immutable when they are declared that way.",
     "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/value-types"
   },
   {
@@ -38,85 +38,17 @@
     "topic": "programming-fundamentals",
     "subtopic": "variables-types",
     "difficulty": "Medium",
-    "title": "Silent integer overflow in C#",
-    "question": "A C# counter is declared as int and the project uses the default (unchecked) overflow setting.\n\nint x = int.MaxValue;\nx = x + 1;\n\nWhat is the value of x afterwards?",
+    "title": "Silent integer overflow",
+    "question": "A counter is a 32-bit signed two's-complement integer, and the language performs no overflow check, so arithmetic wraps around. x starts at 2147483647, the largest 32-bit signed value:\n\nx ← x + 1\n\nWhat is the value of x afterwards?",
     "options": [
-      "An OverflowException is thrown at runtime",
-      "-2147483648 (int.MinValue)",
-      "2147483648, promoted to long automatically",
-      "0, because the value is clamped and reset"
+      "2147483647, because the value saturates at the maximum",
+      "-2147483648, the smallest 32-bit signed value",
+      "2147483648, because x is widened to 64 bits",
+      "0, because the counter wraps back to zero"
     ],
     "correctIndex": 1,
-    "explanation": "In an unchecked context, integer arithmetic on non-constant operands silently wraps around using two's complement, so int.MaxValue + 1 becomes int.MinValue. C# never widens the variable's type automatically. An OverflowException is only thrown inside a checked block/expression or when the project enables CheckForOverflowUnderflow.",
+    "explanation": "In two's complement, 2147483647 is 0111...1; adding 1 gives 1000...0, the bit pattern of -2147483648, so unchecked arithmetic wraps from the maximum to the minimum. Saturating at the maximum is a different, explicit kind of arithmetic, the variable's type never widens on its own, and wrapping to 0 is what an unsigned counter does after its maximum. Languages differ by default (wrap, throw, or undefined behaviour), so use a wider type or checked arithmetic when overflow is possible.",
     "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/checked-and-unchecked"
-  },
-  {
-    "id": "pf-vt-js-safe-integer",
-    "topic": "programming-fundamentals",
-    "subtopic": "variables-types",
-    "difficulty": "Hard",
-    "title": "Integer precision in JavaScript numbers",
-    "question": "A Node.js service parses 64-bit database IDs into regular JavaScript numbers. Why does 9007199254740993 === 9007199254740992 evaluate to true?",
-    "options": [
-      "The === operator coerces both operands to 32-bit integers before comparing",
-      "JavaScript truncates numeric literals longer than 15 digits at parse time",
-      "Numbers are IEEE 754 doubles, so not every integer above 2^53 is exact",
-      "Large integers are stored as strings and compared by their first 16 characters"
-    ],
-    "correctIndex": 2,
-    "explanation": "A JavaScript number is a 64-bit double with a 53-bit significand, so only integers up to Number.MAX_SAFE_INTEGER (2^53 - 1) are guaranteed exact; 2^53 + 1 rounds to 2^53. === does not coerce to 32-bit ints and numbers are not strings. Keep such IDs as strings or BigInt.",
-    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER"
-  },
-  {
-    "id": "pf-cf-switch-fallthrough",
-    "topic": "programming-fundamentals",
-    "subtopic": "control-flow",
-    "difficulty": "Easy",
-    "title": "Switch fall-through",
-    "question": "What is the value of out after this JavaScript runs?\n\nlet x = 1, out = '';\nswitch (x) {\n  case 1: out += 'a';\n  case 2: out += 'b'; break;\n  case 3: out += 'c';\n}",
-    "options": [
-      "'ab'",
-      "'abc'",
-      "'b'",
-      "'a'"
-    ],
-    "correctIndex": 0,
-    "explanation": "Once a case matches, execution continues into the following cases until it reaches a break (fall-through). Case 1 appends 'a', falls into case 2 which appends 'b', then break exits the switch, so case 3 never runs. Forgetting break is a classic bug; C# forbids implicit fall-through for non-empty cases for this reason.",
-    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/switch"
-  },
-  {
-    "id": "pf-cf-for-else",
-    "topic": "programming-fundamentals",
-    "subtopic": "control-flow",
-    "difficulty": "Medium",
-    "title": "Python for...else semantics",
-    "question": "What does this Python code print?\n\nfor n in [3, 5, 7]:\n    if n % 2 == 0:\n        break\nelse:\n    print('none even')",
-    "options": [
-      "A SyntaxError, since loops cannot have an else clause",
-      "none even (printed three times)",
-      "Nothing, because else only runs after an if",
-      "none even (printed once)"
-    ],
-    "correctIndex": 3,
-    "explanation": "A loop's else clause runs once when the loop finishes without hitting break. No element is even, so break never executes and the else block prints once. It is not tied to the if inside the loop, and it is valid syntax for both for and while loops.",
-    "referenceUrl": "https://docs.python.org/3/tutorial/controlflow.html"
-  },
-  {
-    "id": "pf-cf-finally-return",
-    "topic": "programming-fundamentals",
-    "subtopic": "control-flow",
-    "difficulty": "Hard",
-    "title": "Return inside finally",
-    "question": "What does f() return in Python?\n\ndef f():\n    try:\n        return 1\n    finally:\n        return 2",
-    "options": [
-      "2, because the return in finally overrides the pending return",
-      "1, because the first return statement always wins",
-      "It raises a RuntimeError for conflicting returns",
-      "None, because the two returns cancel each other"
-    ],
-    "correctIndex": 0,
-    "explanation": "The finally block always runs before the function actually exits, and a return executed in finally replaces the pending return value (and would also swallow an in-flight exception). That is why it is considered a bug-prone pattern; since Python 3.14 the compiler emits a SyntaxWarning for return, break or continue that exits a finally block.",
-    "referenceUrl": "https://docs.python.org/3/reference/compound_stmts.html"
   },
   {
     "id": "pf-fn-pass-by-sharing",
@@ -124,7 +56,7 @@
     "subtopic": "functions",
     "difficulty": "Easy",
     "title": "Passing a list to a function",
-    "question": "What does this Python code print?\n\ndef f(lst):\n    lst.append(4)\n    lst = [9]\n\na = [1, 2, 3]\nf(a)\nprint(a)",
+    "question": "A list variable holds a reference to a list object, and arguments are passed by value, so the function receives a copy of that reference. What is printed?\n\nfunction f(lst)\n    append(lst, 4)\n    lst ← [9]\n\na ← [1, 2, 3]\nf(a)\nprint(a)",
     "options": [
       "[1, 2, 3]",
       "[9, 4]",
@@ -132,42 +64,8 @@
       "[1, 2, 3, 4]"
     ],
     "correctIndex": 3,
-    "explanation": "Python passes object references by value: lst initially refers to the same list as a, so append mutates the caller's list. Rebinding lst to a new list only changes the local name and does not affect a. Hence a ends up as [1, 2, 3, 4], not [9] and not unchanged.",
+    "explanation": "lst starts as a copy of the reference held by a, so both point to the same list and append mutates the caller's list. Assigning a new list to lst only changes the function's local copy of the reference and does not affect a. Hence a ends up as [1, 2, 3, 4], not [9] and not unchanged. This model, often called call by sharing, is how many mainstream languages pass objects.",
     "referenceUrl": "https://docs.python.org/3/faq/programming.html"
-  },
-  {
-    "id": "pf-fn-mutable-default",
-    "topic": "programming-fundamentals",
-    "subtopic": "functions",
-    "difficulty": "Medium",
-    "title": "Mutable default argument",
-    "question": "A helper is defined as def add(item, acc=[]): acc.append(item); return acc. What do add(1) and then add(2) return?",
-    "options": [
-      "[1] and then [2]",
-      "[1] and then [1, 2]",
-      "[1] and then a TypeError",
-      "[] and then [2]"
-    ],
-    "correctIndex": 1,
-    "explanation": "Default argument values are evaluated once, when the def statement runs, so every call that omits acc shares the same list object. The second call appends to the list that already contains 1. The idiomatic fix is acc=None and creating a new list inside the function.",
-    "referenceUrl": "https://docs.python.org/3/faq/programming.html"
-  },
-  {
-    "id": "pf-fn-closure-loop",
-    "topic": "programming-fundamentals",
-    "subtopic": "functions",
-    "difficulty": "Hard",
-    "title": "Closures capturing a loop variable",
-    "question": "What does this JavaScript log?\n\nfor (var i = 0; i < 3; i++) {\n  setTimeout(() => console.log(i), 0);\n}",
-    "options": [
-      "0, 0, 0",
-      "undefined three times",
-      "3, 3, 3",
-      "0, 1, 2"
-    ],
-    "correctIndex": 2,
-    "explanation": "var is function-scoped, so all three arrow functions close over the same binding i, which equals 3 by the time the timers fire. Declaring the loop variable with let creates a fresh binding per iteration and would log 0, 1, 2. The callbacks are not run synchronously, so they never see intermediate values.",
-    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Closures"
   },
   {
     "id": "pf-rec-base-case",
@@ -175,16 +73,16 @@
     "subtopic": "recursion",
     "difficulty": "Easy",
     "title": "Missing base case",
-    "question": "A developer writes def fact(n): return n * fact(n - 1) in CPython and calls fact(5). What happens?",
+    "question": "A developer writes this function and calls fact(5):\n\nfunction fact(n)\n    return n * fact(n - 1)\n\nWhat happens?",
     "options": [
-      "It returns 0, because the recursion stops when n reaches 0",
-      "It returns 120 because Python infers the base case",
-      "RecursionError, once the recursion limit is exceeded",
-      "It loops forever without any error"
+      "It returns 0, because the calls stop once n reaches 0",
+      "It returns 120, because fact(1) multiplies by 1 and stops",
+      "It keeps calling itself until the call stack overflows",
+      "It loops forever without ever using any extra memory"
     ],
     "correctIndex": 2,
-    "explanation": "Without a base case the function keeps calling itself (5, 4, ... 0, -1, ...). Reaching 0 multiplies but never stops the recursion. CPython guards the C stack with a recursion limit (default 1000, see sys.getrecursionlimit()) and raises RecursionError instead of looping forever.",
-    "referenceUrl": "https://docs.python.org/3/library/sys.html"
+    "explanation": "Without a base case nothing stops the recursion: fact(5) calls fact(4), ..., fact(0), fact(-1) and so on. Reaching 1 or 0 only changes the value being multiplied; it does not end the calls. Each pending call keeps a frame on the call stack because its multiplication still has to run, so memory grows until the runtime reports a stack overflow (or a recursion-depth error). A base case such as \"if n <= 1 then return 1\" fixes it.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/recursion.html"
   },
   {
     "id": "pf-rec-naive-fib",
@@ -192,33 +90,16 @@
     "subtopic": "recursion",
     "difficulty": "Medium",
     "title": "Naive recursive Fibonacci",
-    "question": "def fib(n): return n if n < 2 else fib(n-1) + fib(n-2) becomes unusably slow around n = 40. What is its time complexity and the simplest fix?",
+    "question": "This function becomes unusably slow around n = 40:\n\nfunction fib(n)\n    if n < 2 then return n\n    return fib(n - 1) + fib(n - 2)\n\nWhat is its time complexity and the simplest fix?",
     "options": [
-      "Exponential; cache results with @functools.cache to make it linear",
-      "Linear; the slowness comes from Python's function call overhead",
-      "O(n log n); increase the recursion limit",
-      "Quadratic; convert it to a while loop to make it linear"
+      "Exponential; memoize fib(k) so each value is computed once",
+      "Linear; the slowness comes from the overhead of every call",
+      "O(n log n); give the program a larger call stack to use",
+      "Quadratic; turn it into a loop to bring it down to linear"
     ],
     "correctIndex": 0,
-    "explanation": "Each call spawns two more and subproblems are recomputed repeatedly, giving roughly O(phi^n) calls. Memoizing with functools.cache computes each fib(k) once, so the run time becomes O(n). Raising the recursion limit does nothing for speed, and call overhead is not the dominant factor.",
-    "referenceUrl": "https://docs.python.org/3/library/functools.html"
-  },
-  {
-    "id": "pf-rec-tail-call-python",
-    "topic": "programming-fundamentals",
-    "subtopic": "recursion",
-    "difficulty": "Hard",
-    "title": "Tail recursion in CPython",
-    "question": "A developer rewrites a recursive sum into tail-recursive form (def s(n, acc=0): return acc if n == 0 else s(n-1, acc+n)) hoping to sum 1..100000 in CPython. What happens?",
-    "options": [
-      "It succeeds, but uses O(n) heap memory instead of stack",
-      "It fails with a SyntaxError because default arguments are not allowed in recursion",
-      "It succeeds, because CPython reuses the frame for calls in tail position",
-      "It still raises RecursionError, because CPython does not eliminate tail calls"
-    ],
-    "correctIndex": 3,
-    "explanation": "CPython does not perform tail-call elimination, so every call still pushes a new frame and 100000 frames exceeds the default recursion limit. Languages such as Scheme guarantee proper tail calls, but Python deliberately keeps full tracebacks. The fix is an explicit loop (or iterative accumulation), not a different recursive shape.",
-    "referenceUrl": "https://docs.python.org/3/library/sys.html"
+    "explanation": "Each call spawns two more and the same subproblems are recomputed over and over, so the number of calls grows roughly like phi^n (about 1.6^n). Memoizing, that is storing each fib(k) the first time it is computed and reusing it, makes the run time O(n). Call overhead is only a constant factor, and a larger call stack allows deeper recursion but the depth here is just n, so it does nothing for speed.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/memoize.html"
   },
   {
     "id": "pf-rec-quicksort-stack",
@@ -246,13 +127,13 @@
     "question": "What is a dangling pointer (or dangling reference)?",
     "options": [
       "A pointer that has been set to null after use",
-      "A pointer to memory allocated on the heap rather than the stack",
+      "A pointer to memory allocated on the heap rather than on the stack",
       "A pointer whose type does not match the pointed-to value",
       "A pointer that still refers to memory that has already been freed"
     ],
     "correctIndex": 3,
-    "explanation": "A dangling pointer outlives the object it pointed to, for example after free() or when returning the address of a local variable; using it is undefined behaviour. A null pointer is a known-invalid value, not dangling. Rust's borrow checker rejects code that would create dangling references at compile time.",
-    "referenceUrl": "https://doc.rust-lang.org/book/ch04-02-references-and-borrowing.html"
+    "explanation": "A dangling pointer outlives the object it pointed to, for example after that memory is explicitly freed or when a function returns the address of its own local variable; dereferencing it is a use-after-free bug with undefined results. A null pointer is a known-invalid value, not dangling. Memory-safe languages rule dangling references out with garbage collection or with compile-time lifetime checks.",
+    "referenceUrl": "https://cwe.mitre.org/data/definitions/825.html"
   },
   {
     "id": "pf-mem-gc-leak",
@@ -260,15 +141,15 @@
     "subtopic": "memory-pointers",
     "difficulty": "Medium",
     "title": "Memory leaks in a garbage-collected runtime",
-    "question": "A long-running ASP.NET Core service's memory grows steadily until it is recycled. Profiling shows millions of objects held by a static Dictionary used as a cache with no eviction. Why doesn't the garbage collector free them?",
+    "question": "A long-running web service written in a garbage-collected language grows in memory steadily until it is restarted. Profiling shows millions of objects held by a global (static) dictionary used as a cache with no eviction. Why doesn't the garbage collector free them?",
     "options": [
-      "They are still reachable from a GC root, so the GC treats them as live",
-      "The GC only frees objects allocated on the stack",
-      "Objects in a Dictionary are pinned and never moved or collected",
-      "The GC skips collections while the process handles requests"
+      "They stay reachable from a GC root, so the GC treats them as live",
+      "The GC only frees objects that were allocated on the call stack",
+      "Objects stored in a dictionary are pinned, never moved or collected",
+      "The GC skips all collections while the process is handling requests"
     ],
     "correctIndex": 0,
-    "explanation": "The .NET GC reclaims only objects that are unreachable from roots such as static fields, stack variables and handles. A static dictionary is a root, so everything it references stays alive forever. The fix is bounded caching (e.g. size limits and expiration), not forcing GC.Collect().",
+    "explanation": "A tracing garbage collector reclaims only objects that are unreachable from roots such as global or static variables, stack variables and handles. A global dictionary is reachable from a root, so everything it references stays alive forever. The fix is bounded caching (size limits and expiration), not forcing collections; the GC does not manage stack memory, does not pin dictionary entries and keeps running under load.",
     "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/fundamentals"
   },
   {
@@ -277,16 +158,16 @@
     "subtopic": "memory-pointers",
     "difficulty": "Hard",
     "title": "Reference cycles with reference counting",
-    "question": "In Rust, a parent node holds Rc<Node> children and each child holds an Rc<Node> back to its parent. When the tree goes out of scope, what happens and what is the idiomatic fix?",
+    "question": "A runtime manages memory by reference counting alone. A parent node holds strong references to its children and each child holds a strong reference back to its parent. When the last outside reference to the tree is dropped, what happens, and what is the usual fix?",
     "options": [
-      "The program panics at runtime when the cycle is detected",
-      "The nodes leak since strong counts never reach zero; use Weak for parents",
-      "The compiler rejects the code because Rc cannot form cycles",
-      "Everything is freed, since Rc runs a cycle collector on drop; no fix needed"
+      "The runtime raises an error when it detects the reference cycle",
+      "The nodes leak since counts never reach zero; make parent links weak",
+      "The compiler rejects the code because counted references can't form cycles",
+      "Everything is freed once the root's count drops to zero; no fix needed"
     ],
     "correctIndex": 1,
-    "explanation": "Rc frees a value only when its strong count reaches zero; a parent-child cycle keeps both counts at least 1, so the memory is leaked even though nothing can reach it. Rust does not detect such cycles at compile time and Rc has no cycle collector. Making back-references Weak<Node> breaks the cycle because weak references do not keep the value alive.",
-    "referenceUrl": "https://doc.rust-lang.org/book/ch15-06-reference-cycles.html"
+    "explanation": "With reference counting, an object is freed only when its count reaches zero; a parent-child cycle keeps every count at least 1, so the memory leaks even though nothing outside can reach it. Plain reference counting neither detects cycles at run time nor rejects them at compile time, and the root's count never drops to zero because its children still reference it. Making the back-references weak breaks the cycle, because weak references do not add to the count.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Memory_management"
   },
   {
     "id": "pf-bigo-nested-loop",
@@ -294,7 +175,7 @@
     "subtopic": "complexity-big-o",
     "difficulty": "Easy",
     "title": "Triangular nested loop",
-    "question": "What is the time complexity of this code?\n\nfor i in range(n):\n    for j in range(i, n):\n        count += 1",
+    "question": "What is the time complexity of this code?\n\nfor i from 0 to n - 1\n    for j from i to n - 1\n        count = count + 1",
     "options": [
       "O(n^2)",
       "O(n^3)",
@@ -319,25 +200,8 @@
       "About 20"
     ],
     "correctIndex": 3,
-    "explanation": "Binary search halves the remaining range on each comparison, so it needs about log2(n) steps; log2(1,000,000) is just under 20. 500,000 is the average for linear search, and 1,000 would be sqrt(n). This logarithmic growth is why sorted data plus bisect is so effective.",
-    "referenceUrl": "https://docs.python.org/3/library/bisect.html"
-  },
-  {
-    "id": "pf-bigo-list-membership",
-    "topic": "programming-fundamentals",
-    "subtopic": "complexity-big-o",
-    "difficulty": "Medium",
-    "title": "Membership tests in a loop",
-    "question": "A job dedupes 200,000 IDs with: for x in ids: if x not in seen: seen.append(x), where seen is a list. It takes minutes. What is the cause and fix?",
-    "options": [
-      "The loop is O(n log n) because lists are kept sorted; use a deque",
-      "in on a list is O(n), so the loop is O(n^2); use a set instead",
-      "Python loops are always O(n^2); use recursion instead",
-      "list.append is O(n), making the loop O(n^2); preallocate the list"
-    ],
-    "correctIndex": 1,
-    "explanation": "x in list scans linearly, so n iterations each doing up to n comparisons is quadratic. A set is hash-based with average O(1) membership, bringing the whole job to O(n). list.append is amortized O(1), lists are not kept sorted, and recursion would not change the complexity.",
-    "referenceUrl": "https://wiki.python.org/moin/TimeComplexity"
+    "explanation": "Binary search halves the remaining range on each comparison, so it needs about log2(n) steps; log2(1,000,000) is just under 20. 500,000 is the average for linear search, and 1,000 would be sqrt(n). This logarithmic growth is why keeping data sorted pays off when it is searched many times.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/binarySearch.html"
   },
   {
     "id": "pf-bigo-amortized-append",
@@ -345,7 +209,7 @@
     "subtopic": "complexity-big-o",
     "difficulty": "Medium",
     "title": "Amortized dynamic array append",
-    "question": "A dynamic array (like List<T> or a Python list) doubles its capacity when full, copying all elements. What is the total cost of appending n items, starting empty?",
+    "question": "A dynamic array (a growable list stored in one contiguous block) doubles its capacity when full, copying all elements to the new block. What is the total cost of appending n items, starting empty?",
     "options": [
       "O(n log n) total, because there are log n resizes",
       "O(n^2) total, because each resize copies everything",
@@ -354,7 +218,7 @@
     ],
     "correctIndex": 3,
     "explanation": "Resizes happen at sizes 1, 2, 4, ..., n, so the copy work is 1 + 2 + 4 + ... + n < 2n, plus n writes: O(n) total. Averaged over all appends that is O(1) each, even though an individual append that triggers a resize costs O(n). Growing by a constant amount instead of a factor would make it quadratic.",
-    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1"
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/resources/lecture-2-data-structures-and-dynamic-arrays/"
   },
   {
     "id": "pf-bigo-master-theorem",
@@ -408,40 +272,6 @@
     "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/boolean-logical-operators"
   },
   {
-    "id": "pf-bool-short-circuit-js",
-    "topic": "programming-fundamentals",
-    "subtopic": "boolean-logic",
-    "difficulty": "Medium",
-    "title": "Short-circuit evaluation result",
-    "question": "In JavaScript, user is null. What does user && user.profile && user.profile.name evaluate to?",
-    "options": [
-      "false",
-      "undefined",
-      "null",
-      "It throws a TypeError"
-    ],
-    "correctIndex": 2,
-    "explanation": "&& evaluates left to right and returns the first falsy operand without evaluating the rest, so it returns user itself, which is null. It does not coerce the result to a boolean, and user.profile is never accessed, so there is no TypeError. Optional chaining (user?.profile?.name) would return undefined instead.",
-    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Logical_AND"
-  },
-  {
-    "id": "pf-bool-non-short-circuit",
-    "topic": "programming-fundamentals",
-    "subtopic": "boolean-logic",
-    "difficulty": "Medium",
-    "title": "& versus && in C#",
-    "question": "This C# code throws a NullReferenceException when list is null:\n\nif (list != null & list.Count > 0) { ... }\n\nWhy?",
-    "options": [
-      "& has higher precedence than !=, so the comparison is grouped incorrectly",
-      "& converts the bools to integers and Count is evaluated first",
-      "& on bools evaluates both operands, so list.Count runs on a null list",
-      "The compiler reorders the operands of & to evaluate the cheaper one first"
-    ],
-    "correctIndex": 2,
-    "explanation": "For bool operands, & is the non-short-circuiting logical AND: it always evaluates the right operand. && skips the right operand when the left is false, which is what protects the null check. Operator precedence is not the issue here because != binds tighter than &.",
-    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/boolean-logical-operators"
-  },
-  {
     "id": "pf-num-hex-to-decimal",
     "topic": "programming-fundamentals",
     "subtopic": "number-systems",
@@ -464,7 +294,7 @@
     "subtopic": "number-systems",
     "difficulty": "Medium",
     "title": "Two's complement interpretation",
-    "question": "A sensor sends the byte 0xFF, which your code reads as an 8-bit signed integer (sbyte / Java byte). What value does it hold?",
+    "question": "A sensor sends the byte 0xFF, which your code reads as a signed 8-bit integer. What value does it hold?",
     "options": [
       "-1",
       "-127",
@@ -473,7 +303,7 @@
     ],
     "correctIndex": 0,
     "explanation": "Signed integers use two's complement: the top bit has weight -128, so 1111 1111 = -128 + 127 = -1. 255 is the unsigned interpretation, -128 is 0x80, and -127 would be the sign-magnitude reading. Mixing signed and unsigned reads of the same byte is a common protocol-parsing bug.",
-    "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html"
+    "referenceUrl": "https://www.cs.cornell.edu/~tomf/notes/cps104/twoscomp.html"
   },
   {
     "id": "pf-num-power-of-two",
@@ -523,8 +353,8 @@
       "0x12"
     ],
     "correctIndex": 2,
-    "explanation": "Little-endian stores the least significant byte at the lowest address, so memory holds 78 56 34 12. Big-endian (network byte order) would put 0x12 first. When serializing binary data, specify the byte order explicitly, e.g. '<' or '>' in Python's struct format strings.",
-    "referenceUrl": "https://docs.python.org/3/library/struct.html"
+    "explanation": "Little-endian stores the least significant byte at the lowest address, so memory holds 78 56 34 12. Big-endian (network byte order) would put 0x12 first. When serializing binary data, state the byte order explicitly in the file or protocol format instead of relying on the host's native order.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Endianness"
   },
   {
     "id": "pf-arch-false-sharing",
@@ -532,10 +362,10 @@
     "subtopic": "computer-architecture",
     "difficulty": "Expert",
     "title": "False sharing between threads",
-    "question": "Two threads each increment their own counter in a tight loop. The counters are adjacent longs in the same array, yet throughput is far lower than with one thread. What is the most likely cause?",
+    "question": "Two threads each increment their own counter in a tight loop. The counters are adjacent 64-bit integers in the same array, yet throughput is far lower than with one thread. What is the most likely cause?",
     "options": [
       "The OS scheduler pins both threads to the same core",
-      "The JIT serializes access to elements of one array from different threads",
+      "The runtime serializes access to elements of one array from different threads",
       "False sharing: both counters share one cache line, bouncing between cores",
       "Integer increments are atomic and take a global memory bus lock"
     ],
@@ -663,23 +493,6 @@
     "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1"
   },
   {
-    "id": "ds-arr-modify-while-iterating",
-    "topic": "data-structures",
-    "subtopic": "arrays",
-    "difficulty": "Medium",
-    "title": "Removing elements during iteration",
-    "question": "This Java code throws at runtime:\n\nfor (String s : names) {\n  if (s.isEmpty()) names.remove(s);\n}\n\nwhere names is an ArrayList. Which exception and why?",
-    "options": [
-      "NullPointerException, because remove() leaves a null slot",
-      "UnsupportedOperationException, because ArrayList is immutable during iteration",
-      "ConcurrentModificationException, since the list changed outside its iterator",
-      "IndexOutOfBoundsException, because the loop index exceeds the new size"
-    ],
-    "correctIndex": 2,
-    "explanation": "ArrayList iterators are fail-fast: they track a modification count and throw ConcurrentModificationException when the list is changed other than through the iterator. Use Iterator.remove() or names.removeIf(String::isEmpty). The exception has nothing to do with threads despite its name.",
-    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ConcurrentModificationException.html"
-  },
-  {
     "id": "ds-arr-prefix-sums",
     "topic": "data-structures",
     "subtopic": "arrays",
@@ -693,25 +506,25 @@
       "Re-sum the range on each query, since summing a slice is already O(1)"
     ],
     "correctIndex": 1,
-    "explanation": "A prefix-sum array costs O(n) to build (e.g. itertools.accumulate) and answers any range sum in O(1). Looping over each range is O(r - l) per query, and sorting or hashing destroys positional information. If the array were updated frequently, a Fenwick or segment tree would be the next step.",
-    "referenceUrl": "https://docs.python.org/3/library/itertools.html"
+    "explanation": "A prefix-sum array, where prefix[i] holds the sum of the first i values, costs one O(n) pass to build and answers any range sum in O(1). Looping over each range is O(r - l) per query, and sorting or hashing destroys the positional information the query needs. If the array were updated frequently, a Fenwick (binary indexed) tree or a segment tree would be the next step.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/parallelPrefix.html"
   },
   {
     "id": "ds-arr-go-slice-aliasing",
     "topic": "data-structures",
     "subtopic": "arrays",
     "difficulty": "Hard",
-    "title": "Slices sharing a backing array",
-    "question": "What does this Go program print?\n\na := []int{1, 2, 3, 4}\nb := a[:2]\nb = append(b, 99)\nfmt.Println(a)",
+    "title": "Writing through an array view",
+    "question": "An array a holds [1, 2, 3, 4]. v is a view of a that starts at index 1 and has length 2: it shares a's memory instead of copying it. w is an independent copy of v. The code then runs:\n\nv[1] = 99\nw[0] = 50\nprint(a)\n\nWhat is printed?",
     "options": [
-      "[1 2 3 4 99]",
-      "[1 2 3 4]",
-      "[1 2 99 4]",
-      "[1 2 99 3 4]"
+      "[1, 50, 99, 4]",
+      "[1, 2, 3, 4]",
+      "[1, 2, 99, 4]",
+      "[1, 50, 3, 4]"
     ],
     "correctIndex": 2,
-    "explanation": "b shares a's backing array and has length 2 but capacity 4, so append writes 99 into index 2 of the shared array instead of allocating. a therefore sees the change. Use a full slice expression a[:2:2] or copy to force a new allocation when you need independence.",
-    "referenceUrl": "https://go.dev/blog/slices-intro"
+    "explanation": "A view stores a reference to the original memory plus an offset and a length, so v[1] is the same slot as a[1 + 1] = a[2], and writing 99 through v changes a. The copy w owns separate memory, so writing 50 into it leaves a untouched. Forgetting that slices or sub-arrays may share storage with their source is a classic aliasing bug; copy explicitly when the pieces must change independently.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray/subarray"
   },
   {
     "id": "ds-str-utf8-bytes",
@@ -729,40 +542,6 @@
     "correctIndex": 1,
     "explanation": "UTF-8 uses 1 byte for U+0000..U+007F (ASCII), 2 bytes for U+0080..U+07FF, 3 bytes up to U+FFFF and 4 bytes beyond. U+00E9 falls in the 2-byte range, encoded as C3 A9. That is why byte length and character count differ for non-ASCII text.",
     "referenceUrl": "https://www.rfc-editor.org/rfc/rfc3629"
-  },
-  {
-    "id": "ds-str-concat-loop",
-    "topic": "data-structures",
-    "subtopic": "strings",
-    "difficulty": "Medium",
-    "title": "String concatenation in a loop",
-    "question": "A C# report builder runs result += line; for 100,000 lines and is very slow. What is the main reason?",
-    "options": [
-      "Strings are immutable, so each += copies everything: O(n^2) total",
-      "Strings are stored as linked lists, so += walks every character",
-      "+= takes a global lock on the string intern pool",
-      "The garbage collector runs a full collection after every concatenation"
-    ],
-    "correctIndex": 0,
-    "explanation": "Each concatenation allocates a new string and copies all previous characters, so total work grows quadratically with the output length. StringBuilder appends into a growable buffer with amortized O(1) per character and produces the final string once. There is no per-concatenation lock or forced GC.",
-    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.text.stringbuilder"
-  },
-  {
-    "id": "ds-str-utf16-length",
-    "topic": "data-structures",
-    "subtopic": "strings",
-    "difficulty": "Hard",
-    "title": "String length and emoji",
-    "question": "A form validator limits usernames with value.length <= 10 in JavaScript. Why does '😀'.length return 2?",
-    "options": [
-      "Emoji are stored together with an invisible variation selector",
-      "length counts UTF-16 code units; the emoji is a surrogate pair",
-      "length returns the display width in terminal columns",
-      "length counts bytes, and the emoji takes 2 bytes when encoded as UTF-8"
-    ],
-    "correctIndex": 1,
-    "explanation": "JavaScript strings are sequences of UTF-16 code units; characters outside the Basic Multilingual Plane, like U+1F600, need two units (a surrogate pair). In UTF-8 this emoji is 4 bytes, not 2. To count code points use [...value].length; for user-perceived characters use Intl.Segmenter.",
-    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/length"
   },
   {
     "id": "ds-ll-insert-at-node",
@@ -905,51 +684,17 @@
     "topic": "data-structures",
     "subtopic": "hash-tables",
     "difficulty": "Easy",
-    "title": "HashSet versus List lookup",
-    "question": "You check whether each of 1 million incoming emails is in a blocklist of 100,000 addresses. Why is HashSet<string> much faster than List<string> for this?",
+    "title": "Hash set versus list lookup",
+    "question": "You check whether each of 1 million incoming emails is in a blocklist of 100,000 addresses. Why is keeping the blocklist in a hash set much faster than keeping it in a plain list?",
     "options": [
-      "HashSet keeps the strings sorted for binary search",
-      "HashSet stores data on the stack, avoiding heap access",
-      "HashSet.Contains is O(1) on average, while List.Contains is O(n)",
-      "List.Contains compares strings byte by byte, HashSet does not compare at all"
+      "A hash set keeps the strings sorted for binary search",
+      "A hash set stores its data on the stack, avoiding the heap",
+      "Membership in a hash set is O(1) on average; in a list it is O(n)",
+      "A list compares strings byte by byte; a hash set never compares them"
     ],
     "correctIndex": 2,
-    "explanation": "A hash set computes the key's hash and checks a single bucket, giving average constant-time lookups, whereas a list scans linearly. Hash sets are unordered, not sorted. They still compare candidates with Equals after matching the hash, to handle collisions.",
-    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.dictionary-2"
-  },
-  {
-    "id": "ds-hash-equals-hashcode",
-    "topic": "data-structures",
-    "subtopic": "hash-tables",
-    "difficulty": "Medium",
-    "title": "Overriding equals without hashCode",
-    "question": "A Java class Money overrides equals() but not hashCode(). After map.put(new Money(5, \"EUR\"), x), map.get(new Money(5, \"EUR\")) returns null. Why?",
-    "options": [
-      "HashMap uses == instead of equals() to compare keys",
-      "get() must be called with the exact same instance that was used in put()",
-      "Equal instances get different hash codes, so get() probes another bucket",
-      "HashMap requires keys to implement Comparable"
-    ],
-    "correctIndex": 2,
-    "explanation": "The Object.hashCode contract requires equal objects to have equal hash codes. Without an override, each instance typically gets a different identity hash, so HashMap looks in a different bucket and never calls equals(). Overriding hashCode consistently with equals fixes it.",
-    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
-  },
-  {
-    "id": "ds-hash-load-factor",
-    "topic": "data-structures",
-    "subtopic": "hash-tables",
-    "difficulty": "Medium",
-    "title": "Pre-sizing a hash map",
-    "question": "A Java job inserts 10 million entries into a new HashMap() and profiling shows time spent in resize(). What explains it and what helps?",
-    "options": [
-      "It rehashes whenever size exceeds capacity x 0.75; set an initial capacity",
-      "The load factor is 1.0 so buckets overflow; set it to 2.0",
-      "Resizing is caused by hash collisions; override hashCode to return a constant",
-      "HashMap resizes on every put; switch to TreeMap"
-    ],
-    "correctIndex": 0,
-    "explanation": "With the default load factor of 0.75, HashMap doubles and rehashes all entries whenever its size exceeds capacity x load factor. Constructing it with a suitable initial capacity (or using HashMap.newHashMap(n) in Java 19+) avoids repeated rehashing. A constant hashCode would make every operation degrade dramatically.",
-    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html"
+    "explanation": "A hash set hashes the key and inspects a single bucket, so a membership test takes constant time on average, whereas a list must be scanned element by element. Hash sets are unordered, not sorted, and stack versus heap placement is not what makes them fast. After the hashes match, they still compare the candidate keys for equality, to handle collisions.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/hashtab.html"
   },
   {
     "id": "ds-hash-mutable-key",
@@ -957,33 +702,16 @@
     "subtopic": "hash-tables",
     "difficulty": "Hard",
     "title": "Mutating a key after insertion",
-    "question": "A C# Order object whose GetHashCode uses its Status field is added to a HashSet<Order>. Later order.Status changes. What does set.Contains(order) most likely return, with the same instance?",
+    "question": "An order object is added to a hash set, and its hash is computed from its status field. Later, the program changes that same object's status in place. What does a membership test for that same object most likely return?",
     "options": [
-      "false, because the object is now looked up in a different bucket than it was stored in",
-      "It throws InvalidOperationException because the set was modified",
-      "true, because HashSet recomputes hashes when fields change",
-      "true, because the set holds a reference to the same instance"
+      "false, as the lookup now goes to a bucket other than where it is stored",
+      "An error, since the set refuses lookups of keys changed after insertion",
+      "true, since the set recomputes the stored hashes when a field changes",
+      "true, since the set holds a reference to that same order object"
     ],
     "correctIndex": 0,
-    "explanation": "The set placed the object according to the hash at insertion time; the new hash points at a different bucket, so Contains does not find it, and the set is effectively corrupted. Collections cannot observe field changes. Hash codes must not change while an object is used as a key, so base them on immutable data.",
-    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.object.gethashcode"
-  },
-  {
-    "id": "ds-hash-flooding",
-    "topic": "data-structures",
-    "subtopic": "hash-tables",
-    "difficulty": "Expert",
-    "title": "Hash flooding mitigation",
-    "question": "An attacker posts JSON with 100,000 keys crafted to have identical hash codes, pinning a web server's CPU. Which built-in mitigation does Java 8+ HashMap use for this situation?",
-    "options": [
-      "HashMap re-salts hash codes with a random seed on every resize",
-      "HashMap rejects keys after a fixed number of collisions per bucket",
-      "HashMap switches to open addressing with linear probing when collisions spike",
-      "Overfull buckets turn into red-black trees, making lookups O(log n)"
-    ],
-    "correctIndex": 3,
-    "explanation": "Since Java 8, when a bin grows large HashMap converts it from a linked list to a red-black tree (ordering Comparable keys where possible), so worst-case operations become O(log n) and the attack degrades to O(n log n) total rather than O(n^2). It does not reject keys or switch to open addressing. Other runtimes, such as Python's str hashing, use randomized keyed hashes instead.",
-    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html"
+    "explanation": "The set placed the object in the bucket chosen by its hash at insertion time; the changed status yields a different hash, so the lookup inspects another bucket and misses it, even though the same object is still stored there. A hash table cannot observe field changes and does not rehash on its own. A key must not change in any way that affects its hash or equality while it is stored, so derive hashes from immutable data.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/hashtab.html"
   },
   {
     "id": "ds-tree-preorder",

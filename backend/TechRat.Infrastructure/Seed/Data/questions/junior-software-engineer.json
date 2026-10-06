@@ -1,0 +1,206 @@
+[
+  {
+    "id": "be-jr-http-malformed-json-400",
+    "topic": "backend-engineering",
+    "subtopic": "http-rest",
+    "difficulty": "Easy",
+    "title": "Malformed JSON in a request body",
+    "question": "A client sends `POST /api/users` with the body `{\"name\": \"Ana\",}` (note the trailing comma). The junior's endpoint parses the body by hand and lets the parser's exception bubble up, so the API answers 500. Which status should it return instead?",
+    "options": [
+      "500 Internal Server Error, because the exception was thrown on the server",
+      "422 Unprocessable Content, because the JSON is valid but its values are wrong",
+      "400 Bad Request, because the client sent a body the server cannot parse",
+      "503 Service Unavailable, because the server could not handle it right now"
+    ],
+    "correctIndex": 2,
+    "explanation": "A 4xx status tells the caller the problem is in their request, and malformed syntax is the textbook case for 400 Bad Request. A 500 says the server itself failed, which sends people hunting for a bug in the wrong place and inflates server-error alerts. 422 is meant for a body that parses correctly but has invalid content, which is not the case with a trailing comma, and 503 signals a temporary overload or maintenance.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/400"
+  },
+  {
+    "id": "be-jr-http-get-must-be-safe",
+    "topic": "backend-engineering",
+    "subtopic": "http-rest",
+    "difficulty": "Medium",
+    "title": "Orders cancelled by a chat link preview",
+    "question": "A junior adds `GET /orders/{id}/cancel`, which cancels the order, and pastes a few of these links in the team chat to ask for a review. Minutes later those orders are cancelled, although nobody clicked them. The logs show requests from the chat app's link-preview bot. What is the root problem?",
+    "options": [
+      "GET must be safe; bots and browsers fetch GET URLs freely, so use POST",
+      "The bot is attacking the API, so its user agent should be blocked",
+      "The link needs a CSRF token in its query string so the bot can't use it",
+      "The endpoint returns 200; a 204 would stop the bot from following it"
+    ],
+    "correctIndex": 0,
+    "explanation": "HTTP defines GET as a safe method: it should only read data, so crawlers, link previews and browser prefetching request GET URLs without asking anyone. Putting a state change behind GET lets any of them trigger it, so cancelling should be a POST sent by a button or form. Blocking one bot leaves every other crawler, a token in the URL travels with the link the bot fetches, and the status code has no effect on whether the URL gets requested.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Safe/HTTP"
+  },
+  {
+    "id": "be-jr-api-nouns-not-verbs",
+    "topic": "backend-engineering",
+    "subtopic": "api-design",
+    "difficulty": "Easy",
+    "title": "Naming endpoints in a REST API",
+    "question": "A junior's PR adds these endpoints:\n\nPOST /createOrder\nGET  /getOrder?id=42\nPOST /deleteOrder?id=42\n\nThe reviewer asks for resource-oriented REST URIs instead. Which set fits?",
+    "options": [
+      "GET /orders/create, GET /orders/get/42, GET /orders/delete/42",
+      "POST /order/create, POST /order/get/42, POST /order/delete/42",
+      "POST /orders/new, GET /orders/read/42, POST /orders/remove/42",
+      "POST /orders, GET /orders/42, DELETE /orders/42"
+    ],
+    "correctIndex": 3,
+    "explanation": "REST URIs name resources with nouns, usually plural for collections, and let the HTTP method carry the action: POST to /orders creates an order, GET /orders/42 reads it and DELETE /orders/42 removes it. The other options only move the verbs into the path, and some use GET for actions that change data, which breaks the rule that GET must be safe.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design"
+  },
+  {
+    "id": "be-jr-api-200-for-errors",
+    "topic": "backend-engineering",
+    "subtopic": "api-design",
+    "difficulty": "Medium",
+    "title": "Every response is 200, even errors",
+    "question": "A junior's API answers every request with HTTP 200 and reports failures only in the body, e.g. `{\"success\": false, \"error\": \"Order not found\"}`. Why will a reviewer push back?",
+    "options": [
+      "The HTTP spec forbids a 200 response from carrying an error field",
+      "Clients and monitoring read the status, so failures look like successes",
+      "Browsers automatically retry 200 responses whose body has an error field",
+      "A 200 response can never be cached, so every failed lookup is repeated"
+    ],
+    "correctIndex": 1,
+    "explanation": "The status code is what HTTP clients, proxies, retry policies, logs and error-rate dashboards look at. If a missing order comes back as 200, a client library treats it as a success and monitoring shows 0% errors during an outage. Return the matching status, here 404 Not Found, together with an error body. HTTP does not restrict what a 200 body contains, browsers do not retry based on the body, and 200 responses are cacheable.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status"
+  },
+  {
+    "id": "test-jr-unit-try-catch-no-assert",
+    "topic": "testing",
+    "subtopic": "unit-testing",
+    "difficulty": "Easy",
+    "title": "A test that cannot fail",
+    "question": "[Fact]\npublic void Withdraw_NegativeAmount_Throws()\n{\n    var account = new Account(100);\n    try\n    {\n        account.Withdraw(-5);\n    }\n    catch (ArgumentOutOfRangeException)\n    {\n    }\n}\n\nA bug makes `Withdraw(-5)` succeed without throwing. What does this xUnit test report?",
+    "options": [
+      "It passes, because nothing in the test fails when no exception is thrown",
+      "It fails, because xUnit fails a test whose catch block never runs",
+      "It fails, because a test with no Assert call is reported as failed",
+      "It is skipped, because xUnit skips every test that contains no assertions"
+    ],
+    "correctIndex": 0,
+    "explanation": "An xUnit test passes unless something throws, so if Withdraw stops throwing, the catch block is simply skipped and the test stays green. xUnit does not look at catch blocks and does not fail or skip a test for having no Assert. Write `Assert.Throws<ArgumentOutOfRangeException>(() => account.Withdraw(-5));`, which fails when the expected exception is not thrown.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-best-practices"
+  },
+  {
+    "id": "test-jr-unit-private-via-public",
+    "topic": "testing",
+    "subtopic": "unit-testing",
+    "difficulty": "Medium",
+    "title": "Testing a private helper",
+    "question": "`CsvImporter` has a public `Import(string csvText)` and a private `ParseLine(string line)` with tricky parsing rules. A junior wants unit tests for `ParseLine`. What does the usual guidance recommend?",
+    "options": [
+      "Make ParseLine public so that the tests can call it directly",
+      "Call ParseLine through reflection so that it can stay private",
+      "Test the parsing rules through Import, the public method using it",
+      "Leave it untested, since tests cannot reach any private code at all"
+    ],
+    "correctIndex": 2,
+    "explanation": "Private methods are implementation details that exist to serve a public method, so test them through that method: feed Import inputs that exercise each parsing rule. The tests then check observable behaviour, and ParseLine can be renamed or split without breaking them. Making it public just for tests widens the API, reflection ties tests to private names, and private code is clearly reachable through the public method that calls it.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-best-practices"
+  },
+  {
+    "id": "test-jr-e2e-reuse-login-state",
+    "topic": "testing",
+    "subtopic": "integration-e2e",
+    "difficulty": "Medium",
+    "title": "Logging in before every E2E test",
+    "question": "All 60 Playwright tests in a suite start by filling in the login form. The suite is slow, and a small change to the login page broke every test at once. What does Playwright recommend?",
+    "options": [
+      "Merge the 60 tests into one long test so the login runs only once",
+      "Turn off authentication in the app whenever it runs under tests",
+      "Raise the test timeout and add more workers so the logins overlap",
+      "Log in once in a setup project and reuse the saved storageState"
+    ],
+    "correctIndex": 3,
+    "explanation": "Playwright's guidance is to authenticate once in a setup project, save the browser state (cookies and local storage) to a file with storageState, and load that file in the other tests so they start already signed in. A dedicated test still covers the login page itself. One giant test loses isolation and clear failures, disabling auth tests a different app from production, and more time or workers still repeat the login 60 times.",
+    "referenceUrl": "https://playwright.dev/docs/auth"
+  },
+  {
+    "id": "sec-jr-sqli-stored-proc-dynamic",
+    "topic": "security",
+    "subtopic": "injection",
+    "difficulty": "Hard",
+    "title": "Is a stored procedure injection-proof?",
+    "question": "To fix a SQL injection, a junior moves the search into a stored procedure and calls it with a parameter:\n\nCREATE PROCEDURE SearchProducts @name NVARCHAR(100) AS\nEXEC('SELECT * FROM Products WHERE Name LIKE ''%' + @name + '%''')\n\nIs the search now safe?",
+    "options": [
+      "Yes: a value passed as a procedure parameter can never run as SQL",
+      "No: EXEC runs @name glued into dynamic SQL, so it is still injectable",
+      "Yes: NVARCHAR(100) truncates the input, so no harmful payload can fit",
+      "No, but only because % and _ inside @name act as LIKE wildcards"
+    ],
+    "correctIndex": 1,
+    "explanation": "A parameter only protects you if the value stays a value all the way down. Here the procedure concatenates @name into a string and EXEC runs it as SQL, so input such as `x' OR 1=1 --` changes the query just as before. Use static SQL (`WHERE Name LIKE '%' + @name + '%'`) or sp_executesql with parameters. Short payloads fit easily in 100 characters, and LIKE wildcards can widen the matches but cannot run SQL.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-jr-authz-hidden-admin-button",
+    "topic": "security",
+    "subtopic": "authorization",
+    "difficulty": "Easy",
+    "title": "Hiding the admin button",
+    "question": "A junior hides the \"Delete user\" button in the React app unless the user is an admin. The API endpoint `DELETE /api/users/{id}` only checks that the caller is logged in. Is deleting users protected?",
+    "options": [
+      "Yes: without the button, a regular user has no way to build the request",
+      "Yes, as long as the JavaScript bundle is minified so the URL is hidden",
+      "No: any logged-in user can call the API directly, so it must check the role",
+      "No: the button should be shown but disabled instead of being hidden"
+    ],
+    "correctIndex": 2,
+    "explanation": "The UI is not a security boundary: anyone can send the request with curl, Postman or the browser's dev tools, and URLs are easy to find in network traffic or in the bundle. The API must check on every request that the caller is an admin. Hiding or disabling the button is good user experience but protects nothing, and minification does not hide strings such as URLs.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+  },
+  {
+    "id": "devops-jr-ci-push-main-only",
+    "topic": "devops",
+    "subtopic": "ci-cd",
+    "difficulty": "Medium",
+    "title": "No CI checks on a pull request",
+    "question": "A junior pushes the branch `feature/login` and opens a pull request into `main`, but no CI checks appear. The GitHub Actions workflow starts with:\n\non:\n  push:\n    branches: [main]\n\nWhy didn't it run?",
+    "options": [
+      "Checks only start after a reviewer approves the pull request",
+      "It runs only on pushes to main; add a pull_request trigger too",
+      "runs-on must be set to pull-request for the workflow to run on PRs",
+      "Triggers ignore branch names that contain a slash, like feature/login"
+    ],
+    "correctIndex": 1,
+    "explanation": "A push trigger with a branches filter runs only when commits are pushed to a matching branch, so pushes to feature/login never match and the PR gets no run until it is merged. Adding `pull_request:` (optionally with `branches: [main]`, which filters on the PR's base branch) runs the workflow for PRs that target main. Branches in the same repository need no approval to run checks, runs-on picks the runner machine, and slashes in branch names are fine.",
+    "referenceUrl": "https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows"
+  },
+  {
+    "id": "nw-jr-https-padlock-meaning",
+    "topic": "networking",
+    "subtopic": "http-https",
+    "difficulty": "Easy",
+    "title": "What the HTTPS padlock does and doesn't prove",
+    "question": "A user reports a phishing site at `examp1e-bank-login.com` that copies Example Bank's login page and shows the browser's padlock icon. What does the padlock (HTTPS) actually guarantee?",
+    "options": [
+      "That the site's owner was verified to be a legitimate, trusted business",
+      "That the browser scanned the page's content for phishing and malware",
+      "That the site is the real bank, since only banks get such certificates",
+      "That traffic is encrypted and the certificate is valid for that domain"
+    ],
+    "correctIndex": 3,
+    "explanation": "HTTPS encrypts the connection and proves the server holds a valid certificate for the name in the address bar, which here is the attacker's own domain. Domain-validated certificates can be obtained quickly and for free by anyone who controls a domain, so they say nothing about who runs the site or whether its content is honest. Phishing filters are a separate browser feature, so users still need to check the domain itself.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/HTTPS"
+  },
+  {
+    "id": "nw-jr-cookie-host-only",
+    "topic": "networking",
+    "subtopic": "http-https",
+    "difficulty": "Hard",
+    "title": "Session cookie missing on another subdomain",
+    "question": "After signing in at `https://auth.example.com`, the response sets:\n\nSet-Cookie: session=abc123; Path=/; Secure; HttpOnly\n\nThe browser's later requests to `https://app.example.com` don't include the cookie. Why?",
+    "options": [
+      "With no Domain attribute it is host-only, sent back only to auth.example.com",
+      "Secure cookies are only ever sent back to the exact host that set them",
+      "HttpOnly stops the cookie from being sent to any other subdomain",
+      "Path=/ limits the cookie to the root path of the site that set it"
+    ],
+    "correctIndex": 0,
+    "explanation": "When Set-Cookie has no Domain attribute, the browser stores a host-only cookie and returns it only to the exact host that set it, auth.example.com. Setting `Domain=example.com` would share it with example.com and all its subdomains, which also widens who receives the session, so do it deliberately. Secure only requires HTTPS, HttpOnly hides the cookie from JavaScript, and Path=/ matches every path on that host.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie"
+  }
+]

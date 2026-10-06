@@ -11,7 +11,7 @@ namespace TechRat.Application.Users;
 public sealed record UserSummaryDto(
     Guid Id, string Username, string DisplayName, string Email, string? AvatarUrl, string? Bio, bool IsAdmin,
     LevelDto Level, int CurrentStreak, int LongestStreak, int QuestionsAnswered, int CorrectAnswers, double Accuracy,
-    int GlobalRank, DateTimeOffset CreatedAt);
+    int GlobalRank, DateTimeOffset CreatedAt, bool ShowOnLeaderboard);
 
 public sealed record AchievementDto(
     string Code, string Name, string Description, string Category, string Icon, string Tier, int XpReward, bool Unlocked, DateTimeOffset? UnlockedAt);
@@ -41,7 +41,8 @@ public sealed record ProfileDto(
     IReadOnlyList<TopicProgressDto> WeakestTopics,
     IReadOnlyList<Analytics.DailyActivityDto> Activity);
 
-public sealed record UpdateProfileRequest(string? DisplayName, string? Bio, string? AvatarUrl);
+/// <param name="ShowOnLeaderboard">Null leaves the setting as it is; false removes the learner from every leaderboard.</param>
+public sealed record UpdateProfileRequest(string? DisplayName, string? Bio, string? AvatarUrl, bool? ShowOnLeaderboard = null);
 
 public sealed class ProfileService(
     IAppDbContext db,
@@ -63,7 +64,7 @@ public sealed class ProfileService(
         var rank = await leaderboard.GlobalRankAsync(userId, ct);
         return new UserSummaryDto(u.Id, u.Username, u.DisplayName, u.Email, u.AvatarUrl, u.Bio, isAdmin,
             LevelDto.From(levels.Evaluate(u.CurrentGlobalXP)), StreakRules.Effective(u.LastActivityDate, u.CurrentStreak, today),
-            u.LongestStreak, u.QuestionsAnswered, u.CorrectAnswers, u.GlobalAccuracy, rank, u.CreatedAt);
+            u.LongestStreak, u.QuestionsAnswered, u.CorrectAnswers, u.GlobalAccuracy, rank, u.CreatedAt, u.ShowOnLeaderboard);
     }
 
     public async Task<DashboardDto> GetDashboardAsync(Guid userId, bool isAdmin, CancellationToken ct)
@@ -189,7 +190,13 @@ public sealed class ProfileService(
         var user = await db.UserProfiles.FirstAsync(u => u.Id == userId, ct);
         if (request.DisplayName is not null) user.DisplayName = request.DisplayName.Trim();
         if (request.Bio is not null) user.Bio = request.Bio.Trim();
-        if (request.AvatarUrl is not null) user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+        if (request.ShowOnLeaderboard is { } show) user.ShowOnLeaderboard = show;
+        if (request.AvatarUrl is not null)
+        {
+            // An external URL (or none) replaces an uploaded photo, so its bytes are not kept around.
+            user.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+            await db.UserAvatars.Where(a => a.UserId == userId).ExecuteDeleteAsync(ct);
+        }
         await db.SaveChangesAsync(ct);
         return await GetSummaryAsync(userId, isAdmin, ct);
     }

@@ -1256,5 +1256,107 @@
     "correctIndex": 0,
     "explanation": "migrations add compares the model to the last snapshot and generates Up/Down code; database update applies pending migrations. dbcontext scaffold reverse-engineers code from an existing database, and building alone never changes the schema.",
     "referenceUrl": "https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/"
+  },
+  {
+    "id": "pf-vt-decimal-money",
+    "topic": "csharp",
+    "subtopic": "language-basics",
+    "difficulty": "Medium",
+    "title": "Choosing a type for money",
+    "question": "A C# billing service stores prices as double. Adding 0.10 ten times yields 0.9999999999999999 instead of 1.0, and invoices are off by a cent. Which type should hold the money amounts?",
+    "options": [
+      "float, since its smaller size reduces the accumulated rounding error",
+      "decimal, since it represents base-10 fractions like 0.10 exactly",
+      "double, rounded with Math.Round after every addition to fix the drift",
+      "BigInteger, since only arbitrary precision removes rounding entirely"
+    ],
+    "correctIndex": 1,
+    "explanation": "double is a binary floating-point type, so 0.10 has no exact representation and errors accumulate. decimal is a base-10 floating-point type with 28-29 significant digits, so amounts like 0.10 are exact, which is why it is recommended for financial values. float is even less precise, rounding after each step only hides the symptom, and BigInteger cannot hold fractions at all.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/floating-point-numeric-types"
+  },
+  {
+    "id": "pf-cf-switch-expression-unmatched",
+    "topic": "csharp",
+    "subtopic": "language-basics",
+    "difficulty": "Hard",
+    "title": "Unmatched C# switch expression",
+    "question": "A C# method uses a switch expression with no discard arm:\n\nstring Label(int code) => code switch\n{\n    1 => \"low\",\n    2 => \"high\"\n};\n\nWhat happens when Label(3) is called at runtime?",
+    "options": [
+      "It throws a SwitchExpressionException because no arm matched",
+      "It returns null, because no arm matched the input value",
+      "It returns string.Empty, the default for string results",
+      "Nothing; the compiler rejects the non-exhaustive switch with an error"
+    ],
+    "correctIndex": 0,
+    "explanation": "The compiler only emits warning CS8509 for a non-exhaustive switch expression, so the code builds. At runtime, when no pattern matches, .NET throws System.Runtime.CompilerServices.SwitchExpressionException rather than returning null or a default value. Add a discard arm (_ => ...) that returns a fallback or throws a meaningful exception.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/switch-expression"
+  },
+  {
+    "id": "pf-jr-fn-ref-parameter",
+    "topic": "csharp",
+    "subtopic": "language-basics",
+    "difficulty": "Easy",
+    "title": "Passing an int by value and by ref",
+    "question": "Given these two C# methods:\n\nstatic void AddTen(int x) { x += 10; }\nstatic void AddTenRef(ref int x) { x += 10; }\n\nWhat does this print?\n\nint n = 5;\nAddTen(n);\nAddTenRef(ref n);\nConsole.WriteLine(n);",
+    "options": [
+      "5",
+      "25",
+      "15",
+      "10"
+    ],
+    "correctIndex": 2,
+    "explanation": "By default C# passes arguments by value: AddTen receives a copy of n and changes only that copy, so n is still 5 afterwards. With ref, AddTenRef works on the caller's variable itself, so n becomes 15. 25 would need both calls to change n, and 5 would mean ref made no difference.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/method-parameters#pass-by-value-and-pass-by-reference"
+  },
+  {
+    "id": "ds-str-turkish-i",
+    "topic": "csharp",
+    "subtopic": "language-basics",
+    "difficulty": "Expert",
+    "title": "Culture-sensitive case conversion",
+    "question": "A C# check uses ext.ToUpper() == \"FILE\". It passes in tests but fails on servers whose current culture is tr-TR. Why, and what is the fix?",
+    "options": [
+      "Turkish upper-cases i to dotted I (U+0130); compare with OrdinalIgnoreCase",
+      "tr-TR stores strings as UTF-32 internally; convert both sides to UTF-8 first",
+      "ToUpper is evaluated lazily under some cultures; call ToString() to force it",
+      "tr-TR sorts capitals after lowercase; use String.Compare with CurrentCulture"
+    ],
+    "correctIndex": 0,
+    "explanation": "ToUpper() uses the current culture, and in Turkish the lowercase dotted i maps to U+0130 (capital I with dot), so \"file\" becomes \"FİLE\" and the comparison fails. Identifiers, file extensions and protocol tokens should use string.Equals(a, b, StringComparison.OrdinalIgnoreCase) or invariant casing. .NET strings are always UTF-16 and ToUpper is not lazy.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/base-types/best-practices-strings"
+  },
+  {
+    "id": "ds-str-concat-loop",
+    "topic": "csharp",
+    "subtopic": "performance",
+    "difficulty": "Medium",
+    "title": "String concatenation in a loop",
+    "question": "A C# report builder runs result += line; for 100,000 lines and is very slow. What is the main reason?",
+    "options": [
+      "Strings are immutable, so each += copies everything: O(n^2) total",
+      "Strings are stored as linked lists, so += walks every character",
+      "+= takes a global lock on the string intern pool",
+      "The garbage collector runs a full collection after every concatenation"
+    ],
+    "correctIndex": 0,
+    "explanation": "Each concatenation allocates a new string and copies all previous characters, so total work grows quadratically with the output length. StringBuilder appends into a growable buffer with amortized O(1) per character and produces the final string once. There is no per-concatenation lock or forced GC.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.text.stringbuilder"
+  },
+  {
+    "id": "pf-bool-non-short-circuit",
+    "topic": "csharp",
+    "subtopic": "language-basics",
+    "difficulty": "Medium",
+    "title": "& versus && in C#",
+    "question": "This C# code throws a NullReferenceException when list is null:\n\nif (list != null & list.Count > 0) { ... }\n\nWhy?",
+    "options": [
+      "& has higher precedence than !=, so the comparison is grouped incorrectly",
+      "& converts the bools to integers and Count is evaluated first",
+      "& on bools evaluates both operands, so list.Count runs on a null list",
+      "The compiler reorders the operands of & to evaluate the cheaper one first"
+    ],
+    "correctIndex": 2,
+    "explanation": "For bool operands, & is the non-short-circuiting logical AND: it always evaluates the right operand. && skips the right operand when the left is false, which is what protects the null check. Operator precedence is not the issue here because != binds tighter than &.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/boolean-logical-operators"
   }
 ]

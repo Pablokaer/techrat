@@ -11,7 +11,8 @@ import {
 import { cx } from "@techrat/ui";
 import type { UserSummary } from "@techrat/types";
 import { useFormat, useT } from "@/i18n";
-import { api, logout, unwrap } from "@/lib/api";
+import { resolveMediaUrl } from "@techrat/api";
+import { API_BASE_URL, api, logout, unwrap } from "@/lib/api";
 import { qk, useMe, useNotifications, useSearch } from "@/lib/queries";
 import { searchHref } from "@/lib/routes";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -50,11 +51,16 @@ export function Logo({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function Avatar({ user, size = 36 }: { user: Pick<UserSummary, "displayName" | "avatarUrl">; size?: number }) {
+/**
+ * A user's photo, or their initials. Uploaded photos come back as API-relative URLs and are resolved against the API
+ * (same origin on the web, the API host on desktop). `alt` is empty by default: next to a name the photo is decorative.
+ */
+export function Avatar({ user, size = 36, alt = "" }: { user: Pick<UserSummary, "displayName" | "avatarUrl">; size?: number; alt?: string }) {
   const initials = user.displayName.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
-  return user.avatarUrl ? (
+  const src = resolveMediaUrl(user.avatarUrl, API_BASE_URL);
+  return src ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={user.avatarUrl} alt="" width={size} height={size} className="rounded-full border border-primary/50 object-cover" style={{ width: size, height: size }} />
+    <img src={src} alt={alt} width={size} height={size} className="rounded-full border border-primary/50 object-cover" style={{ width: size, height: size }} />
   ) : (
     <span
       aria-hidden

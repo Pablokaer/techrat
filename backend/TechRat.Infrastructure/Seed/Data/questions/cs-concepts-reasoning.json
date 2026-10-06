@@ -1,0 +1,138 @@
+[
+  {
+    "id": "pf-cs-rec-print-after-call",
+    "topic": "programming-fundamentals",
+    "subtopic": "recursion",
+    "difficulty": "Easy",
+    "title": "Printing after the recursive call",
+    "question": "What does this program print when countdown(3) is called?\n\nfunction countdown(n)\n    if n == 0 then return\n    countdown(n - 1)\n    print(n)",
+    "options": [
+      "3 2 1",
+      "0 1 2 3",
+      "1 2 3",
+      "3 2 1 0"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each call recurses first and prints only after the inner call has returned. countdown(3) waits for countdown(2), which waits for countdown(1), which waits for countdown(0); that base case returns without printing, and then the pending calls finish in reverse order, printing 1, 2 and 3. Printing before the recursive call would give 3 2 1, and 0 is never printed because the base case returns first.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/recursion.html"
+  },
+  {
+    "id": "pf-cs-rec-hanoi-moves",
+    "topic": "programming-fundamentals",
+    "subtopic": "recursion",
+    "difficulty": "Medium",
+    "title": "Tower of Hanoi move count",
+    "question": "A puzzle solver uses the classic recursive Tower of Hanoi algorithm: move the top n - 1 disks to the spare peg, move the largest disk to the target peg, then move the n - 1 disks back on top of it. How many single-disk moves does it make for 20 disks?",
+    "options": [
+      "400",
+      "1,048,576",
+      "210",
+      "1,048,575"
+    ],
+    "correctIndex": 3,
+    "explanation": "Moving n disks takes M(n) = 2M(n - 1) + 1 moves with M(1) = 1, because the n - 1 smaller disks are moved twice plus one move for the largest; this solves to 2^n - 1, so every extra disk doubles the work. For 20 disks that is 2^20 - 1 = 1,048,575 (1,048,576 is 2^20, one too many). 400 (n^2) and 210 (n(n + 1) / 2) assume polynomial growth, which two recursive calls on n - 1 disks rule out.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/towersOfHanoi.html"
+  },
+  {
+    "id": "pf-cs-rec-fib-stack-depth",
+    "topic": "programming-fundamentals",
+    "subtopic": "recursion",
+    "difficulty": "Hard",
+    "title": "Billions of calls, shallow stack",
+    "question": "A naive recursive fib(n) that returns fib(n - 1) + fib(n - 2) makes billions of calls for n = 45 and runs for a long time, yet it never overflows the call stack. Why?",
+    "options": [
+      "Only about n frames are active at once; each call ends before its sibling starts",
+      "The runtime reuses one frame for both calls, since they share one return statement",
+      "Finished calls keep their frames on the stack, but each frame is only a few bytes",
+      "The two recursive calls run on separate threads, each with a call stack of its own"
+    ],
+    "correctIndex": 0,
+    "explanation": "The calls form a tree with exponentially many nodes, but execution walks it depth first: fib(n - 1) runs to completion and its frames are popped before fib(n - 2) begins. The stack only ever holds one root-to-leaf path, about n frames long, so time is exponential while stack space is O(n). Neither call is in tail position (the addition still has to run), finished frames are popped rather than kept, and plain recursion does not spread calls across threads.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Call_stack"
+  },
+  {
+    "id": "pf-cs-bigo-doubling-counter",
+    "topic": "programming-fundamentals",
+    "subtopic": "complexity-big-o",
+    "difficulty": "Easy",
+    "title": "A loop that doubles its counter",
+    "question": "What is the time complexity of this loop, for n >= 1?\n\ni = 1\nwhile i < n\n    i = i * 2",
+    "options": [
+      "O(n)",
+      "O(log n)",
+      "O(n log n)",
+      "O(sqrt(n))"
+    ],
+    "correctIndex": 1,
+    "explanation": "i takes the values 1, 2, 4, 8, ..., so after k iterations i = 2^k, and the loop stops once 2^k >= n, that is after about log2(n) iterations: O(log n). O(n) would need i to grow by a constant each time (i = i + 1), O(sqrt(n)) comes from loops such as while i * i < n with i = i + 1, and nothing here repeats an O(n) pass, so it is not O(n log n).",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/logarithmic.html"
+  },
+  {
+    "id": "pf-cs-bigo-quadratic-scaling",
+    "topic": "programming-fundamentals",
+    "subtopic": "complexity-big-o",
+    "difficulty": "Medium",
+    "title": "Doubling the input of a quadratic job",
+    "question": "A nightly report job uses an O(n^2) algorithm and takes 2 seconds for 10,000 records. Assuming the n^2 term dominates, roughly how long should it take for 20,000 records?",
+    "options": [
+      "About 2 seconds",
+      "About 4 seconds",
+      "About 8 seconds",
+      "About 16 seconds"
+    ],
+    "correctIndex": 2,
+    "explanation": "For a quadratic algorithm the work grows with the square of the input size: doubling n multiplies the dominant term by 2^2 = 4, so 2 seconds becomes about 8. About 4 seconds is what a linear algorithm would show, 16 seconds matches cubic growth (2^3 = 8 times as much work), and an unchanged 2 seconds would mean constant time. This back-of-the-envelope scaling is how Big O helps predict whether a job will still fit its time window as data grows.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/bigOnotation.html"
+  },
+  {
+    "id": "pf-cs-dm-migration-orders",
+    "topic": "programming-fundamentals",
+    "subtopic": "discrete-math",
+    "difficulty": "Easy",
+    "title": "Every possible migration order",
+    "question": "A test harness wants to apply 6 independent database migrations in every possible order, one at a time, to look for ordering bugs. How many different orders must it try?",
+    "options": [
+      "720",
+      "36",
+      "46,656",
+      "21"
+    ],
+    "correctIndex": 0,
+    "explanation": "Arranging n distinct items in a sequence gives n! orders: 6 choices for the first position, 5 for the second and so on, so 6 * 5 * 4 * 3 * 2 * 1 = 720. 36 is 6^2, 46,656 is 6^6, which would allow the same migration to be chosen more than once, and 21 is 1 + 2 + ... + 6. Factorial growth is why trying every ordering stops being practical after only a handful of items.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/permutation.html"
+  },
+  {
+    "id": "pf-cs-dm-contrapositive",
+    "topic": "programming-fundamentals",
+    "subtopic": "discrete-math",
+    "difficulty": "Medium",
+    "title": "What a rule really guarantees",
+    "question": "A security rule states: \"If a request is authenticated, then it carries a valid token.\" Assuming the rule always holds, which statement must also be true?",
+    "options": [
+      "If a request carries a valid token, then it is authenticated",
+      "If a request is not authenticated, then it has no valid token",
+      "A request is authenticated exactly when it has a valid token",
+      "If a request has no valid token, then it is not authenticated"
+    ],
+    "correctIndex": 3,
+    "explanation": "An implication \"P implies Q\" is logically equivalent to its contrapositive \"not Q implies not P\": a request without a valid token cannot be authenticated, or the rule would be broken. The converse (Q implies P) and the inverse (not P implies not Q) do not follow, because a request might carry a valid token and still not be authenticated. The \"exactly when\" version claims both directions, which the rule never stated.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-042j-mathematics-for-computer-science-spring-2015/"
+  },
+  {
+    "id": "pf-cs-dm-probe-step-gcd",
+    "topic": "programming-fundamentals",
+    "subtopic": "discrete-math",
+    "difficulty": "Hard",
+    "title": "A probe sequence that skips most slots",
+    "question": "An open-addressing hash table has 12 slots and resolves collisions with a fixed step: slot = (home + i * 8) mod 12 for i = 0, 1, 2, ... Inserts start failing while most slots are still empty. What is the cause?",
+    "options": [
+      "Any fixed step above 1 skips slots; only a step of 1 can reach all of them",
+      "gcd(8, 12) = 4, so each probe sequence visits only 12 / 4 = 3 distinct slots",
+      "A step bigger than half the table size wraps around and repeats after two probes",
+      "Primary clustering: keys pile up in runs of adjacent slots and block inserts"
+    ],
+    "correctIndex": 1,
+    "explanation": "The positions home + 8i mod 12 repeat with period 12 / gcd(8, 12) = 3: home, home + 8, home + 4, then home again. Once those three slots are taken the insert fails although nine others are empty. A step reaches every slot exactly when it is coprime with the table size, so steps 1, 5, 7 or 11 would work here (step 7 is above half the table and still covers it). Clustering only makes probe runs longer; it never makes an insert fail while an empty slot is reachable. This is why double hashing often uses a prime table size, which makes every step from 1 to m - 1 coprime with m.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/greatestCommonDivisor.html"
+  }
+]

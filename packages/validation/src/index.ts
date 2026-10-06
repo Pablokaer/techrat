@@ -14,6 +14,8 @@ export const VALIDATION_MESSAGES = {
   displayNameMax: "At most 40 characters",
   bioMax: "At most 280 characters",
   passwordsMismatch: "Passwords do not match",
+  currentPasswordRequired: "Enter your current password",
+  passwordSameAsCurrent: "Use a password different from your current one",
   url: "Enter a valid URL",
   httpsUrl: "Use an https URL",
 } as const;
@@ -48,6 +50,20 @@ export const registerSchema = z.object({
   password: passwordSchema,
 });
 
+/**
+ * Settings → change password, with the sign-up rules for the new one. Accounts created through an external provider
+ * have no password yet (`hasPassword` false): they set one without a current password. The API re-checks everything.
+ */
+export const changePasswordSchema = (hasPassword: boolean) =>
+  z
+    .object({
+      current: hasPassword ? z.string().min(1, M.currentPasswordRequired) : z.string(),
+      password: passwordSchema,
+      confirm: z.string(),
+    })
+    .refine((v) => v.password === v.confirm, { message: M.passwordsMismatch, path: ["confirm"] })
+    .refine((v) => !hasPassword || v.password !== v.current, { message: M.passwordSameAsCurrent, path: ["password"] });
+
 export const forgotPasswordSchema = z.object({ email: emailSchema });
 
 export const resetPasswordSchema = z
@@ -80,3 +96,4 @@ export function fieldErrors(
   }
   return out;
 }
+export * from "./avatar";

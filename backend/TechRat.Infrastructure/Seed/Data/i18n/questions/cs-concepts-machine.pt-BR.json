@@ -1,0 +1,50 @@
+[
+  {
+    "id": "pf-cs-bool-short-circuit-side-effect",
+    "title": "Um efeito colateral pulado pelo OR com curto-circuito",
+    "question": "Um handler de login executa:\n\nif isTrustedDevice(user) OR recordLoginAttempt(user) then\n    allow()\n\nrecordLoginAttempt grava uma entrada de auditoria e retorna true. A equipe de segurança descobre que logins de dispositivos confiáveis nunca aparecem no log de auditoria, enquanto todos os outros aparecem. O OR faz curto-circuito. Por que essas entradas estão faltando?",
+    "options": [
+      "A auditoria roda primeiro, mas allow() descarta a entrada que ela gravou",
+      "Cada chamada dentro de uma condição roda em escopo próprio e perde seus efeitos",
+      "Quando o operando da esquerda é verdadeiro, o OR pula a auditoria à direita",
+      "Uma chamada dentro da condição só roda quando a condição inteira é falsa"
+    ],
+    "explanation": "O OR faz curto-circuito: quando isTrustedDevice(user) é verdadeiro, o resultado já está definido, então recordLoginAttempt nunca é chamada e seu efeito colateral nunca acontece. Um efeito colateral que precisa sempre rodar deve ficar em uma instrução própria antes da condição (ou guarde os dois resultados em variáveis antes). Nada é descartado nem perdido por escopo, e o operando da direita roda sempre que o da esquerda é falso, não só quando a condição inteira é falsa."
+  },
+  {
+    "id": "pf-cs-bool-absorption",
+    "title": "Simplificando uma condição redundante",
+    "question": "Uma code review encontra esta regra de acesso:\n\nif isAdmin OR (isAdmin AND hasMfa) then\n    allowAccess()\n\nQual condição mais simples sempre dá o mesmo resultado?",
+    "options": [
+      "hasMfa",
+      "isAdmin AND hasMfa",
+      "isAdmin OR hasMfa",
+      "isAdmin"
+    ],
+    "explanation": "Pela lei da absorção, A OR (A AND B) é igual a A: se isAdmin é verdadeiro o OR já é verdadeiro, e se é falso o AND também é falso, então hasMfa nunca muda o resultado. isAdmin AND hasMfa negaria admins sem MFA, isAdmin OR hasMfa liberaria não admins que têm MFA, e hasMfa sozinho ignora o papel. Uma regra redundante assim costuma esconder um bug: o autor provavelmente queria exigir MFA dos admins."
+  },
+  {
+    "id": "pf-cs-bool-implication",
+    "title": "Transformando uma regra se-então em condição",
+    "question": "Uma regra de validação diz: \"Se um pedido é internacional, ele precisa ter um código alfandegário.\" Qual expressão booleana é verdadeira exatamente para os pedidos que cumprem a regra?",
+    "options": [
+      "isInternational AND hasCustomsCode",
+      "(NOT isInternational) OR hasCustomsCode",
+      "isInternational OR hasCustomsCode",
+      "(NOT hasCustomsCode) OR isInternational"
+    ],
+    "explanation": "Uma implicação A → B só é falsa quando A é verdadeiro e B é falso, então equivale a (NOT A) OR B: pedidos nacionais passam com ou sem código, e os internacionais só passam com código. A versão com AND rejeita todo pedido nacional, o OR simples rejeita pedidos nacionais sem código e aceita internacionais sem ele, e (NOT hasCustomsCode) OR isInternational codifica a regra recíproca, que também deixa passar pedidos internacionais sem código."
+  },
+  {
+    "id": "pf-cs-mem-external-fragmentation",
+    "title": "Muita memória livre, mas a alocação falha",
+    "question": "Um processo de longa duração aloca e libera muitos blocos de tamanhos variados em um heap sem compactação. O alocador informa 900 MB livres, mas um pedido de um único bloco contíguo de 64 MB falha. Qual é a causa mais provável?",
+    "options": [
+      "Fragmentação externa: o espaço livre está espalhado em buracos pequenos e separados",
+      "Fragmentação interna: blocos são arredondados para cima, desperdiçando espaço interno",
+      "Vazamento de memória: blocos nunca liberados ainda são contados como espaço livre",
+      "Stack overflow: o pedido de 64 MB excede o tamanho fixo da pilha da thread"
+    ],
+    "explanation": "Sem compactação, liberar blocos de tamanhos variados deixa buracos entre os blocos vivos: o espaço livre total é grande, mas nenhum buraco tem 64 MB contíguos. Isso é fragmentação externa. Fragmentação interna é desperdício dentro de blocos alocados e não aparece como livre, um vazamento reduz a memória livre em vez de inflá-la, e pedidos ao heap não saem da pilha de uma thread. Alocadores por classe de tamanho ou pools, reservar buffers grandes cedo ou um coletor com compactação reduzem o problema."
+  }
+]

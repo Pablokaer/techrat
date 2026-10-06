@@ -28,6 +28,7 @@ const roadmap = (state: RoadmapUserState | null): RoadmapSummary => ({
   xpReward: 1000,
   prerequisites: [],
   progress: state,
+  juniorRank: null,
 });
 
 describe("RoadmapCard", () => {

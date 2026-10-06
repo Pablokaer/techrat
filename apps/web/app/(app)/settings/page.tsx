@@ -14,6 +14,9 @@ import { Field } from "@/components/auth-ui";
 import { PageHeader } from "@/components/widgets";
 import { useToast } from "@/components/providers";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { AvatarEditor } from "@/components/avatar-editor";
+import { ChangePasswordCard } from "@/components/change-password";
+import { LeaderboardPrivacy } from "@/components/leaderboard-privacy";
 import { useT, useValidationTranslator } from "@/i18n";
 
 export default function SettingsPage() {
@@ -28,7 +31,7 @@ function SettingsForm({ me }: { me: UserSummary }) {
   const toast = useToast();
   const t = useT();
   const translate = useValidationTranslator();
-  const [form, setForm] = useState({ displayName: me.displayName, bio: me.bio ?? "", avatarUrl: me.avatarUrl ?? "" });
+  const [form, setForm] = useState({ displayName: me.displayName, bio: me.bio ?? "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
@@ -39,7 +42,8 @@ function SettingsForm({ me }: { me: UserSummary }) {
     setErrors({});
     setSaving(true);
     try {
-      const updated = await unwrap(api.PATCH("/api/v1/users/me", { body: { displayName: form.displayName, bio: form.bio, avatarUrl: form.avatarUrl } }));
+      // avatarUrl: null leaves the photo alone; it is managed by AvatarEditor.
+      const updated = await unwrap(api.PATCH("/api/v1/users/me", { body: { displayName: form.displayName, bio: form.bio, avatarUrl: null } }));
       qc.setQueryData(qk.me, updated);
       qc.invalidateQueries({ queryKey: ["profile"] });
       toast({ kind: "success", title: t.settings.profile.saved });
@@ -55,19 +59,28 @@ function SettingsForm({ me }: { me: UserSummary }) {
     <>
       <PageHeader eyebrow={t.settings.eyebrow} title={t.settings.title} subtitle={t.settings.signedInAs(me.email)} />
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <Card className="p-6">
-          <h2 className="mb-5 font-semibold">{t.settings.profile.heading}</h2>
-          <form onSubmit={save} className="space-y-5" noValidate>
-            <Field id="displayName" label={t.settings.profile.displayName} value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} error={errors.displayName} />
-            <div>
-              <label htmlFor="bio" className="label">{t.settings.profile.bio}</label>
-              <textarea id="bio" className="input min-h-24" maxLength={280} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} aria-describedby="bio-count" />
-              <p id="bio-count" className="mt-1 text-right text-xs text-text-muted">{form.bio.length}/280</p>
-            </div>
-            <Field id="avatarUrl" label={t.settings.profile.avatarUrl} value={form.avatarUrl} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })} error={errors.avatarUrl} placeholder={t.settings.profile.avatarPlaceholder} />
-            <button className="btn-primary" disabled={saving}>{saving ? t.settings.profile.saving : t.settings.profile.save}</button>
-          </form>
-        </Card>
+        <div className="space-y-6">
+          <Card className="p-6">
+            <AvatarEditor />
+            <hr className="my-6 border-border" />
+            <h2 className="mb-5 font-semibold">{t.settings.profile.heading}</h2>
+            <form onSubmit={save} className="space-y-5" noValidate>
+              <Field id="displayName" label={t.settings.profile.displayName} value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} error={errors.displayName} />
+              <div>
+                <label htmlFor="bio" className="label">{t.settings.profile.bio}</label>
+                <textarea id="bio" className="input min-h-24" maxLength={280} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} aria-describedby="bio-count" />
+                <p id="bio-count" className="mt-1 text-right text-xs text-text-muted">{form.bio.length}/280</p>
+              </div>
+              <button className="btn-primary" disabled={saving}>{saving ? t.settings.profile.saving : t.settings.profile.save}</button>
+            </form>
+          </Card>
+          <Card className="p-6">
+            <ChangePasswordCard />
+          </Card>
+          <Card className="p-6">
+            <LeaderboardPrivacy />
+          </Card>
+        </div>
         <div className="space-y-4">
           <Card className="p-6">
             <h2 className="font-semibold">{t.settings.language.heading}</h2>

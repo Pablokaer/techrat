@@ -16,6 +16,7 @@ namespace TechRat.Application.Common;
 public interface IAppDbContext
 {
     DbSet<User> UserProfiles { get; }
+    DbSet<UserAvatar> UserAvatars { get; }
     DbSet<Topic> Topics { get; }
     DbSet<Subtopic> Subtopics { get; }
     DbSet<ContentTranslation> ContentTranslations { get; }
@@ -58,6 +59,13 @@ public interface ICacheService
 {
     Task<T> GetOrCreateAsync<T>(string key, TimeSpan ttl, Func<CancellationToken, Task<T>> factory, CancellationToken ct = default);
     Task RemoveAsync(string key, CancellationToken ct = default);
+}
+
+/// <summary>Security notices about the user's own account.</summary>
+public interface IAccountEmailSender
+{
+    /// <summary>Tells the owner their password changed, with a way out if it wasn't them. Throws <see cref="EmailDeliveryException"/>.</summary>
+    Task SendPasswordChangedAsync(string email, CancellationToken ct);
 }
 
 /// <summary>Sends a test email so admins can check the SMTP settings of a deployment.</summary>

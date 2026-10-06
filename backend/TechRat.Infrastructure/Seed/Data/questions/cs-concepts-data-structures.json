@@ -1,0 +1,206 @@
+[
+  {
+    "id": "ds-cs-arr-absent-linear-search",
+    "topic": "data-structures",
+    "subtopic": "arrays",
+    "difficulty": "Easy",
+    "title": "Proving a value is absent from an unsorted array",
+    "question": "A kiosk keeps 10,000 badge numbers in an array, in no particular order. A scanned badge is not in the array. How many elements must the lookup examine before it can safely report \"not found\"?",
+    "options": [
+      "About 14, by halving the remaining range at each step",
+      "About 100, the square root of the array's length",
+      "About 5,000, since a search stops halfway on average",
+      "All 10,000, as any unchecked slot might hold it"
+    ],
+    "correctIndex": 3,
+    "explanation": "In an unordered array, the value at one position says nothing about the others, so a linear search can only conclude that a value is absent after checking every slot: n comparisons. Halving the range (about 14 steps for 10,000 items) requires a sorted array, and stopping halfway is the average cost of a successful search, not of a miss. If lookups are frequent, sort the array once or build a hash set.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/linearSearch.html"
+  },
+  {
+    "id": "ds-cs-arr-swap-remove",
+    "topic": "data-structures",
+    "subtopic": "arrays",
+    "difficulty": "Medium",
+    "title": "Removing from an array when order does not matter",
+    "question": "A game keeps its active bullets in a dynamic array, and their order does not matter. Every frame it removes bullets at arbitrary indices. Which removal technique takes O(1) per bullet and leaves no gaps in the array?",
+    "options": [
+      "Copy the last element into the freed slot, then drop the last slot",
+      "Shift every later element one slot to the left to close the gap",
+      "Mark the slot as empty and leave the array length unchanged",
+      "Rebuild the array, copying over every element except the removed one"
+    ],
+    "correctIndex": 0,
+    "explanation": "Moving the last element into the hole and shrinking the length by one touches a constant number of slots and keeps the array compact; it only changes the order of the elements, which this scenario allows. Shifting the later elements or rebuilding the array costs O(n) per removal. Marking the slot empty is O(1) but leaves holes that every later pass has to skip.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/array.html"
+  },
+  {
+    "id": "ds-cs-arr-shrink-thrash",
+    "topic": "data-structures",
+    "subtopic": "arrays",
+    "difficulty": "Hard",
+    "title": "A dynamic array that shrinks too eagerly",
+    "question": "A dynamic array doubles its capacity when it is full and halves its capacity as soon as it becomes half full. A workload fills it to exactly its capacity, then alternates one append and one removal at the end, millions of times. What happens, and what is the usual fix?",
+    "options": [
+      "Each operation stays amortized O(1); no change is needed",
+      "Each operation copies all n elements; shrink at a quarter full",
+      "Capacity keeps growing; cap it at twice the largest size seen",
+      "Only appends copy, and removals are free; preallocate more space"
+    ],
+    "correctIndex": 1,
+    "explanation": "The append on a full array doubles it to just over half full, the next removal brings it to exactly half full and halves it, and the following append doubles it again, so every operation copies about n elements and m operations cost O(mn). The fix is hysteresis: grow when full but shrink only when the array drops to a quarter full, so Θ(n) cheap operations happen between two resizes and both operations stay amortized O(1). Removals are not free here, and capacity oscillates rather than grows.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/resources/mit6_006s20_lec2/"
+  },
+  {
+    "id": "ds-cs-str-code-point",
+    "topic": "data-structures",
+    "subtopic": "strings",
+    "difficulty": "Easy",
+    "title": "What Unicode assigns to each character",
+    "question": "Unicode gives every character, such as \"A\" or \"€\", a unique number that stays the same whether the text is saved as UTF-8, UTF-16 or UTF-32. What is that number called, and how do those encodings use it?",
+    "options": [
+      "A glyph ID; each encoding defines its own set of glyphs",
+      "A byte value; all three encodings store it unchanged",
+      "A code point; each encoding turns it into code units",
+      "A code unit; each encoding numbers characters anew"
+    ],
+    "correctIndex": 2,
+    "explanation": "Unicode assigns each character a code point, written U+0041 for \"A\" and U+20AC for \"€\". UTF-8, UTF-16 and UTF-32 are encoding forms that represent the same code point as one or more 8-, 16- or 32-bit code units, so the number never changes when the encoding does. Glyphs belong to fonts, and code units are the encoded pieces, not the character's identity.",
+    "referenceUrl": "https://www.unicode.org/glossary/"
+  },
+  {
+    "id": "ds-cs-str-normalization",
+    "topic": "data-structures",
+    "subtopic": "strings",
+    "difficulty": "Medium",
+    "title": "Two identical-looking names that compare unequal",
+    "question": "A sign-up check reports that the username \"José\" is free, although \"José\" already exists. Both render identically, but one stores é as the single code point U+00E9 and the other as \"e\" followed by U+0301 (combining acute accent). What is the correct fix?",
+    "options": [
+      "Compare usernames case-insensitively before checking for duplicates",
+      "Strip every character outside ASCII from usernames before storing them",
+      "Compare byte lengths first and treat equal lengths as the same name",
+      "Normalize both strings to one Unicode form, such as NFC, first"
+    ],
+    "correctIndex": 3,
+    "explanation": "Unicode defines canonically equivalent sequences: the precomposed é (U+00E9) and e + U+0301 mean the same text but differ code point by code point, so a plain comparison sees two different names. Normalizing to one form (NFC composes, NFD decomposes) before storing and comparing makes them equal. Case-insensitive comparison does not merge the two forms, stripping non-ASCII characters mangles legitimate names, and the byte lengths of the two forms differ anyway.",
+    "referenceUrl": "https://www.unicode.org/reports/tr15/"
+  },
+  {
+    "id": "ds-cs-str-collation",
+    "topic": "data-structures",
+    "subtopic": "strings",
+    "difficulty": "Medium",
+    "title": "Sorting names by code point",
+    "question": "A contact list is sorted with a plain string comparison that orders characters by their Unicode code points. Users complain that \"Zoe\" appears before \"adam\" and that \"Émile\" appears after \"zack\". What is the appropriate fix?",
+    "options": [
+      "Convert every name to upper case first, then keep the code point order",
+      "Use locale-aware collation, such as the Unicode Collation Algorithm",
+      "Sort the names by their raw UTF-8 bytes instead of by their code points",
+      "Normalize every name to NFC first, then sort by code point again"
+    ],
+    "correctIndex": 1,
+    "explanation": "Code point order puts every uppercase ASCII letter before every lowercase one and accented letters after z, which is not the order people expect. A collation algorithm such as the Unicode Collation Algorithm, tailored to the user's locale, compares base letters first and treats accents and case as secondary differences. Upper-casing still leaves É (U+00C9) after Z, UTF-8 byte order matches code point order exactly, and normalization changes the representation, not the ordering rules.",
+    "referenceUrl": "https://www.unicode.org/reports/tr10/"
+  },
+  {
+    "id": "ds-cs-str-utf8-truncate",
+    "topic": "data-structures",
+    "subtopic": "strings",
+    "difficulty": "Hard",
+    "title": "Cutting UTF-8 text at a byte limit",
+    "question": "A service fits user bios into a column limited to 100 bytes of UTF-8 by keeping only the first 100 bytes. Some stored bios then fail to decode. What causes this, and what is the safe approach?",
+    "options": [
+      "The cut can split a multi-byte character; cut at a character boundary",
+      "UTF-8 text requires a byte order mark at its start; add one before cutting",
+      "Cutting drops the terminating null byte; append one after the cut",
+      "UTF-8 bytes come in pairs; always cut to an even number of bytes"
+    ],
+    "correctIndex": 0,
+    "explanation": "UTF-8 encodes every character outside ASCII as 2 to 4 bytes, so a cut at byte 100 can keep the leading byte of a character without its continuation bytes, which is invalid UTF-8. Continuation bytes always have the bit pattern 10xxxxxx, so the fix is to move the cut back past them to the start of a character (ideally a grapheme boundary, so combining marks stay with their letter). UTF-8 needs no byte order mark or null terminator, and its sequences are not paired.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc3629"
+  },
+  {
+    "id": "ds-cs-hash-collision-chaining",
+    "topic": "data-structures",
+    "subtopic": "hash-tables",
+    "difficulty": "Easy",
+    "title": "Two keys in the same bucket",
+    "question": "In a hash table that uses separate chaining, the keys \"tea\" and \"eat\" both hash to bucket 7. What happens when both are inserted?",
+    "options": [
+      "The second key overwrites the first, as a bucket holds one key",
+      "Both stay in bucket 7's list; a lookup compares the stored keys",
+      "The second insert fails until the table is resized to make room",
+      "The second key moves to bucket 8, the next free slot in the array"
+    ],
+    "correctIndex": 1,
+    "explanation": "Two different keys mapping to the same bucket is a collision, and it is expected. Separate chaining keeps a small list (or another structure) per bucket, so both entries live in bucket 7, and a lookup hashes the key, goes to that bucket and compares keys to find the right entry. Overwriting would lose data, inserts do not fail on a collision, and moving to the next free slot is linear probing, an open-addressing scheme.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/separateChaining.html"
+  },
+  {
+    "id": "ds-cs-hash-load-factor-chains",
+    "topic": "data-structures",
+    "subtopic": "hash-tables",
+    "difficulty": "Medium",
+    "title": "Chain length and the load factor",
+    "question": "A hash table with separate chaining has 1,000 buckets and holds 4,000 keys, spread evenly by a good hash function. Roughly how many stored keys does a lookup for a missing key compare against, and what brings that number down?",
+    "options": [
+      "About 1; hashing makes every lookup compare one entry",
+      "About 2,000; a miss scans half of all the stored keys",
+      "About 4, the load factor; resize to around 4,000 buckets",
+      "About 12, log2 of 4,000; keep every chain sorted instead"
+    ],
+    "correctIndex": 2,
+    "explanation": "The load factor is α = n / m = 4,000 / 1,000 = 4, and with an even spread each chain holds about α keys, so a miss compares against roughly 4 of them after hashing. Implementations grow the bucket array (typically doubling it) when α passes a threshold, which keeps chains short: with about 4,000 buckets the expected chain length drops to about 1. A miss never scans the whole table, and chain length does not grow logarithmically.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/loadfactor.html"
+  },
+  {
+    "id": "ds-cs-hash-weak-function",
+    "topic": "data-structures",
+    "subtopic": "hash-tables",
+    "difficulty": "Medium",
+    "title": "A hash function that sums character codes",
+    "question": "A hash table of product codes such as \"AB12\" and \"BA21\" uses this hash function:\n\nfunction h(s)\n  total = 0\n  for each character c in s\n    total = total + code(c)\n  return total mod tableSize\n\nLookups get slower and slower as the table grows, even after resizing. Why?",
+    "options": [
+      "Summing is too slow, since every character is read on each lookup",
+      "The mod step loses keys, so lookups fall back to scanning the table",
+      "The sum overflows for long codes, so lookups start failing at random",
+      "Anagrams collide, and the sums fall into a narrow range of buckets"
+    ],
+    "correctIndex": 3,
+    "explanation": "Addition ignores character order, so every permutation of a code hashes to the same bucket, and four characters from a small alphabet sum to only a few hundred distinct values however many buckets exist. The chains in those buckets keep growing and lookups degrade toward O(n). A good hash function mixes both the position and the value of every character (for example polynomial hashing) so keys spread evenly. Every string hash reads each character, mod alone loses no keys, and four-character sums are far too small to overflow.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/hash.html"
+  },
+  {
+    "id": "ds-cs-hash-linear-probing-clustering",
+    "topic": "data-structures",
+    "subtopic": "hash-tables",
+    "difficulty": "Hard",
+    "title": "Linear probing near a full table",
+    "question": "A cache index uses open addressing with linear probing and never deletes keys. As it fills from 50% to 95% of its slots, lookups for missing keys become dramatically slower, far more than the extra occupancy suggests. What is the main cause, and what is the usual remedy?",
+    "options": [
+      "Filled slots merge into long runs; resize well before the table is full",
+      "The hash output range shrinks as it fills; switch to a cryptographic hash",
+      "Probes wrap around to slot zero too often; double the probe step each time",
+      "Each probe recomputes the key's hash; cache the hash inside every slot"
+    ],
+    "correctIndex": 0,
+    "explanation": "With linear probing a colliding key takes the next free slot, so filled slots coalesce into clusters, and every key that hashes into a cluster makes it longer (primary clustering). The expected probes for a miss grow roughly like ½(1 + 1/(1 - α)²): about 2.5 at α = 0.5 but about 200 at α = 0.95. Implementations therefore resize at a moderate load factor. A stronger hash or cached hash values do not remove clustering, and wrap-around is not the cause.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/linearprobng.html"
+  },
+  {
+    "id": "ds-cs-hash-incremental-resize",
+    "topic": "data-structures",
+    "subtopic": "hash-tables",
+    "difficulty": "Expert",
+    "title": "Latency spikes when a huge hash table grows",
+    "question": "An in-memory key-value server keeps 50 million keys in a single hash table. Each time the table doubles, every request stalls for hundreds of milliseconds while all entries are rehashed, although average throughput is fine. Which design removes the stalls?",
+    "options": [
+      "Store each key's hash so a resize copies entries without rehashing",
+      "Grow by 10% instead of doubling, so each resize moves fewer keys",
+      "Rehash gradually: keep both tables and move a few buckets per call",
+      "Lower the load factor limit so the table resizes earlier and more often"
+    ],
+    "correctIndex": 2,
+    "explanation": "A stop-the-world resize does O(n) work at once, so although inserts are amortized O(1), the request that triggers it waits for the whole rehash. Incremental rehashing allocates the new table, keeps the old one, and migrates a few buckets on each operation, with lookups checking both tables until the move ends; the cost is spread so no single request pays it (Redis's main dictionary and linear hashing work this way). Stored hashes make each move cheaper but still copy every entry in one go, smaller growth steps resize far more often, and an earlier threshold only moves the stall.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/linearHashing.html"
+  }
+]

@@ -1,0 +1,206 @@
+[
+  {
+    "id": "pf-cs-vt-static-typing-check",
+    "title": "Quando um erro de tipo estático é detectado",
+    "question": "Em uma linguagem com tipagem estática, uma função declara seu parâmetro quantity como inteiro. Uma nova linha de código a chama passando o texto \"ten\". Quando esse erro é apontado?",
+    "options": [
+      "Em tempo de execução, e só se a execução chegar de fato a essa chamada",
+      "Antes de o programa rodar, quando o código é compilado ou verificado",
+      "Nunca, porque o texto é convertido silenciosamente para o número 10",
+      "Só mais tarde, quando a função tentar fazer contas com esse valor"
+    ],
+    "explanation": "Tipagem estática significa que os tipos de variáveis e parâmetros são conhecidos e verificados antes de o programa rodar, então passar texto onde foi declarado um inteiro é rejeitado na compilação (ou na verificação de tipos). Apontar o erro só quando a chamada executa, ou quando o valor é usado pela primeira vez em uma conta, descreve a tipagem dinâmica. Um verificador de tipos não transforma \"ten\" em 10 silenciosamente."
+  },
+  {
+    "id": "pf-cs-vt-local-shadows-global",
+    "title": "Variável local com o mesmo nome de uma global",
+    "question": "Aqui `declare` sempre cria uma nova variável no escopo atual:\n\ndeclare total ← 1\n\nfunction report()\n    declare total ← 2\n    print(total)\n\nreport()\nprint(total)\n\nO que é impresso?",
+    "options": [
+      "2 e depois 2, porque report sobrescreveu o total global",
+      "1 e depois 1, porque o total global é usado dentro de report",
+      "Um erro, porque total foi declarado em dois lugares",
+      "2 e depois 1, porque o total local esconde o global"
+    ],
+    "explanation": "A declaração dentro de report cria uma variável local separada que sombreia (shadowing) a global dentro da função, então o primeiro print mostra 2. Quando report retorna, a local deixa de existir, e o total global, que nunca recebeu atribuição, continua valendo 1. Sobrescrever a global exigiria atribuir a ela sem declarar uma nova variável, e reutilizar o nome de uma global em uma local é permitido, embora fácil de ler errado."
+  },
+  {
+    "id": "pf-cs-vt-exact-binary-fraction",
+    "title": "Qual fração um float binário guarda exatamente",
+    "question": "Um teste compara resultados de ponto flutuante com ==. Qual destes valores decimais um tipo de ponto flutuante binário padrão (IEEE 754 double) consegue guardar exatamente, sem erro de arredondamento?",
+    "options": [
+      "0.375",
+      "0.001",
+      "0.35",
+      "0.6"
+    ],
+    "explanation": "Um float binário só guarda uma fração exatamente quando ela pode ser escrita como um inteiro dividido por uma potência de dois (dentro da sua precisão). 0.375 é 3/8, então é exato. 0.001 (1/1000), 0.35 (7/20) e 0.6 (3/5) têm um fator 5 no denominador, então sua expansão binária se repete para sempre e é arredondada para o valor representável mais próximo, assim como 1/3 não pode ser escrito exatamente em decimal."
+  },
+  {
+    "id": "pf-cs-vt-float-addition-order",
+    "title": "Ordem das somas em ponto flutuante",
+    "question": "Usando números de ponto flutuante binário de 64 bits (IEEE 754 double, cerca de 15 a 17 dígitos decimais significativos):\n\na ← (1e16 + 1) + 1\nb ← 1e16 + (1 + 1)\n\nComo a e b se comparam?",
+    "options": [
+      "São iguais, porque a adição é associativa em qualquer tipo numérico",
+      "a vale 1e16 + 2 e b vale 1e16, porque agrupar à direita descarta os uns",
+      "a fica 1e16 e b vale 1e16 + 2, porque cada 1 sozinho se perde no arredondamento",
+      "Os dois estouram, porque 1e16 está além da faixa que um double guarda"
+    ],
+    "explanation": "Perto de 1e16, doubles vizinhos estão a 2 de distância, então 1e16 + 1 fica exatamente no meio e é arredondado (para o par) de volta a 1e16; o segundo + 1 se perde do mesmo jeito, e a = 1e16. Em b os uns são somados primeiro, e 1e16 + 2 é representável, então b = 10000000000000002. A adição em ponto flutuante é comutativa, mas não associativa, por isso a ordem da soma importa (somar primeiro os valores pequenos ou usar soma compensada reduz o erro). Doubles chegam a cerca de 1.8e308, então nada estoura."
+  },
+  {
+    "id": "pf-cs-vt-ms-counter-wrap",
+    "title": "Contador de uptime que falha depois de semanas",
+    "question": "O firmware de um dispositivo guarda os milissegundos desde o boot em um inteiro com sinal de 32 bits. Relatos de campo dizem que os timers só se comportam mal em unidades que ficaram várias semanas sem reiniciar. Depois de quanto tempo, aproximadamente, esse contador estoura?",
+    "options": [
+      "Cerca de 12,4 dias",
+      "Cerca de 24,9 dias",
+      "Cerca de 49,7 dias",
+      "Cerca de 68 anos"
+    ],
+    "explanation": "Um inteiro com sinal de 32 bits chega no máximo a 2^31 - 1 = 2.147.483.647; contando milissegundos, isso dá cerca de 2.147.484 segundos, ou 24,9 dias, e depois o contador estoura (normalmente voltando para um valor negativo grande). 49,7 dias é o limite de um contador de milissegundos sem sinal de 32 bits, a volta documentada da API GetTickCount do Windows, e cerca de 68 anos é o limite de 32 bits com sinal quando se contam segundos. Use um contador de 64 bits."
+  },
+  {
+    "id": "pf-cs-cf-do-while-runs-once",
+    "title": "Um laço do ... while com condição falsa",
+    "question": "O que este laço do ... while imprime?\n\nx ← 10\ndo\n    print(x)\n    x ← x + 1\nwhile x < 5",
+    "options": [
+      "10, impresso exatamente uma vez",
+      "Nada, já que 10 < 5 é falso desde o início",
+      "10, 11, 12 e assim por diante, sem nunca parar",
+      "De 10 a 14, cinco números no total"
+    ],
+    "explanation": "Um laço do ... while (com teste no final) executa o corpo primeiro e só depois avalia a condição, então o corpo sempre roda pelo menos uma vez. Ele imprime 10, faz x valer 11, e então 11 < 5 é falso e o laço termina. Um while com teste no início e a mesma condição não imprimiria nada, e o laço não roda para sempre porque a condição é falsa depois da primeira passada."
+  },
+  {
+    "id": "pf-cs-cf-else-if-order",
+    "title": "Regras de nota verificadas na ordem errada",
+    "question": "Uma função de notas devolve a letra errada para os melhores alunos:\n\nfunction grade(score)\n    if score >= 60 then return 'D'\n    else if score >= 70 then return 'C'\n    else if score >= 80 then return 'B'\n    else if score >= 90 then return 'A'\n    else return 'F'\n\nO que grade(95) retorna?",
+    "options": [
+      "'A', porque 95 atende à condição mais específica",
+      "'F', porque as condições se sobrepõem umas às outras",
+      "'D', porque só o primeiro ramo verdadeiro executa",
+      "Um erro, porque mais de uma condição é verdadeira"
+    ],
+    "explanation": "Uma cadeia if / else-if testa as condições de cima para baixo e executa só o primeiro ramo cuja condição é verdadeira; os demais são ignorados. 95 >= 60 é verdadeiro, então a função retorna 'D' e as verificações mais específicas nunca são alcançadas. Condições sobrepostas são permitidas, não geram erro. Ordene as verificações da mais restritiva para a menos restritiva (>= 90 primeiro) ou deixe cada faixa explícita."
+  },
+  {
+    "id": "pf-cs-cf-guard-before-index",
+    "title": "Verificação de limite do lado errado do and",
+    "question": "Uma busca linear falha com erro de índice fora do intervalo sempre que target não está no array. A linguagem verifica os limites do array e avalia o and com curto-circuito:\n\ni ← 0\nwhile a[i] ≠ target and i < length(a)\n    i ← i + 1\n\nQual é a correção?",
+    "options": [
+      "Trocar and por or, para que qualquer teste sozinho encerre o laço",
+      "Começar i em 1, para o laço nunca ler além do último elemento",
+      "Usar um and que sempre avalia os dois lados em cada passada",
+      "Inverter os operandos: i < length(a) and a[i] ≠ target"
+    ],
+    "explanation": "Com o and de curto-circuito, o operando da direita só é avaliado quando o da esquerda é verdadeiro, então a guarda precisa vir primeiro. Quando target não existe, i chega a length(a) e a[i] é lido antes de o teste de limite rodar. Escrever i < length(a) primeiro interrompe a avaliação antes do acesso inválido. Avaliar os dois lados sempre continuaria lendo a[i], usar or faria o laço seguir além de uma ocorrência, e começar em 1 pula o primeiro elemento sem resolver o estouro."
+  },
+  {
+    "id": "pf-cs-cf-unsigned-countdown",
+    "title": "Laço de contagem regressiva com contador sem sinal",
+    "question": "Para processar um array não vazio de trás para frente, uma pessoa desenvolvedora escreve este laço, em que i é um inteiro sem sinal de 32 bits cuja aritmética dá a volta:\n\ni ← length(a) - 1\nwhile i >= 0\n    process(a[i])\n    i ← i - 1\n\nO que dá errado?",
+    "options": [
+      "Nada: i cai para -1 depois de a[0], o teste falha e o laço termina",
+      "i >= 0 é sempre verdadeiro, então depois de 0 o contador vira 4.294.967.295",
+      "a[0] é pulado, porque o laço para assim que i chega a 0",
+      "O decremento abaixo de 0 é recusado, então o laço trava com i em 0"
+    ],
+    "explanation": "Um valor sem sinal nunca pode ser negativo, então i >= 0 é sempre verdadeiro e a condição nunca encerra o laço. Decrementar 0 dá a volta para o maior valor de 32 bits, 4.294.967.295, e a próxima iteração acessa um índice muito além do fim do array (um erro, se houver verificação de limites, ou corrupção de memória, se não houver). Use um índice com sinal ou teste antes de decrementar, por exemplo, repita enquanto i > 0 e processe a[i - 1]."
+  },
+  {
+    "id": "pf-cs-cf-loop-variant-gcd",
+    "title": "Provando que um laço termina",
+    "question": "Um revisor pergunta por que este laço de máximo divisor comum sempre para, para inteiros não negativos a e b:\n\nwhile b ≠ 0\n    r ← a mod b\n    a ← b\n    b ← r\nreturn a\n\nQual argumento prova que ele termina?",
+    "options": [
+      "b é um inteiro não negativo que diminui a cada passada, pois a mod b < b",
+      "a diminui estritamente a cada passada, então em algum momento chega a zero",
+      "Cada passada divide o maior valor por dois, então rodam no máximo log2(a) passadas",
+      "O laço tem uma condição de saída, e todo laço assim acaba saindo"
+    ],
+    "explanation": "Uma prova de terminação precisa de um variante: uma quantidade de um conjunto bem ordenado, aqui os inteiros não negativos, que diminui estritamente a cada iteração. Como 0 ≤ a mod b < b, o novo b é sempre menor que o anterior, e uma sequência estritamente decrescente de inteiros não negativos precisa chegar a 0, o que encerra o laço. a pode crescer na primeira passada (quando a < b), não há garantia de dividir por dois em toda passada, e ter uma condição não prova nada: while x > 0 com x nunca mudando também tem uma."
+  },
+  {
+    "id": "pf-cs-fn-return-exits-loop",
+    "title": "return dentro de um laço",
+    "question": "function firstNegative(values)\n    for each v in values\n        if v < 0 then return v\n    return 0\n\nO que firstNegative([4, -2, 7, -9]) retorna?",
+    "options": [
+      "-9, o último valor negativo que o laço verifica",
+      "0, já que o return final sempre é executado",
+      "-2, já que o return encerra a função na hora",
+      "-11, a soma de todos os valores negativos"
+    ],
+    "explanation": "return encerra imediatamente a função inteira, incluindo qualquer laço em que esteja, e devolve o valor para quem chamou. O laço chega a -2 na segunda passada e o retorna, então -9 nunca é examinado, e o return 0 final só roda quando não existe valor negativo. Nada na função acumula uma soma."
+  },
+  {
+    "id": "pf-cs-fn-fresh-locals-per-call",
+    "title": "Variáveis locais a cada chamada",
+    "question": "function nextTicket()\n    declare count ← 0\n    count ← count + 1\n    return count\n\nnextTicket() é chamada três vezes seguidas. O que as três chamadas retornam?",
+    "options": [
+      "1, 2 e 3, já que count continua crescendo entre chamadas",
+      "0, 0 e 0, já que o incremento acontece depois do return",
+      "1 e depois um erro, já que count já foi declarada",
+      "1, 1 e 1, já que cada chamada recebe um count novo"
+    ],
+    "explanation": "Uma variável local pertence a uma única chamada: cada invocação recebe sua própria cópia (no seu próprio stack frame), inicializa com 0 e a descarta quando a função retorna, então toda chamada retorna 1. Manter um valor entre chamadas exige estado que sobreviva à chamada, como um campo, uma variável de closure ou uma global. Declarar count de novo não é problema, porque cada declaração acontece em uma nova chamada, e o incremento roda antes do return."
+  },
+  {
+    "id": "pf-cs-fn-spot-pure-function",
+    "title": "Identificando uma função pura",
+    "question": "Qual destas funções é pura, ou seja, sempre retorna o mesmo resultado para os mesmos argumentos e não tem efeitos colaterais?",
+    "options": [
+      "applyDiscount(price), que lê a taxa de promoção do dia de uma configuração global",
+      "lineTotal(price, qty), que retorna price * qty e não mexe em mais nada",
+      "addItem(cart, item), que adiciona item ao carrinho que recebeu",
+      "rollDice(sides), que retorna um número inteiro aleatório de 1 a sides"
+    ],
+    "explanation": "O resultado de uma função pura depende só dos seus argumentos e ela não altera nada fora de si, então lineTotal se encaixa. Ler uma taxa global faz applyDiscount depender de estado oculto, adicionar ao carrinho de quem chamou é um efeito colateral (altera um argumento), e um resultado aleatório muda entre chamadas com a mesma entrada. Funções puras são fáceis de testar, guardar em cache e executar em paralelo."
+  },
+  {
+    "id": "pf-cs-fn-compose-order",
+    "title": "Compondo duas funções",
+    "question": "Funções podem ser passadas e retornadas como qualquer outro valor:\n\nfunction compose(f, g)\n    return a new function that, given x, returns f(g(x))\n\nfunction double(x)\n    return x * 2\n\nfunction addOne(x)\n    return x + 1\n\nh ← compose(double, addOne)\n\nQuanto vale h(5)?",
+    "options": [
+      "12, já que addOne roda primeiro e double depois",
+      "11, já que double roda primeiro e addOne depois",
+      "10, já que só a função externa double roda",
+      "6, já que só a função interna addOne roda"
+    ],
+    "explanation": "compose retorna uma nova função que aplica g primeiro e depois f ao resultado, então h(5) = double(addOne(5)) = double(6) = 12. 11 seria addOne(double(5)), a ordem inversa. Isso funciona porque funções são valores de primeira classe: podem ser passadas como argumento e retornadas por outras funções, e a função retornada continua com acesso a f e g."
+  },
+  {
+    "id": "pf-cs-fn-eager-argument-cost",
+    "title": "Argumento caro para um logger desativado",
+    "question": "Um serviço chama debugLog(buildFullReport(order)) em toda requisição. debugLog não escreve nada quando o log de debug está desligado, mas, com o debug desligado, o profiling ainda mostra a maior parte do tempo de CPU dentro de buildFullReport. Por quê?",
+    "options": [
+      "O logger monta o relatório internamente para verificar se ele está vazio",
+      "debugLog não pode ser feita inline, então o corpo dela roda inteiro toda vez",
+      "Loggers desativados ainda formatam cada mensagem antes de descartá-la",
+      "Os argumentos são avaliados antes da chamada, então o relatório é sempre montado"
+    ],
+    "explanation": "A maioria das linguagens usa avaliação estrita (eager): toda expressão de argumento é avaliada por completo antes de o corpo da função rodar, então buildFullReport executa mesmo que debugLog depois jogue o resultado fora. Verifique se o log de debug está ativo antes de montar o relatório, ou passe uma função que o monte só quando necessário (avaliação preguiçosa, lazy). O tempo é gasto calculando o argumento, não na formatação do logger nem em um inlining que não aconteceu."
+  },
+  {
+    "id": "pf-cs-fn-lexical-scope-lookup",
+    "title": "Qual variável uma função enxerga",
+    "question": "declare level ← 'global'\n\nfunction show()\n    return level\n\nfunction run()\n    declare level ← 'local'\n    return show()\n\nprint(run())\n\nCom escopo léxico (estático), a regra usada pela maioria das linguagens modernas, o que é impresso?",
+    "options": [
+      "'local', porque show é chamada de dentro de run",
+      "Um erro, porque show não declara um level próprio",
+      "'global', porque show resolve level onde foi definida",
+      "'local', porque a declaração mais recente de level vence"
+    ],
+    "explanation": "Com escopo léxico, uma variável livre em uma função é resolvida pelo lugar onde a função está escrita no código, não por quem a chama. show é definida no nível mais externo, então o level dela é o global e o level local de run fica invisível para ela. Imprimir 'local' é o que o escopo dinâmico (usado pelos primeiros Lisps e pelas variáveis local do shell) faria. show não precisa de declaração própria porque pode ler a global que a envolve."
+  },
+  {
+    "id": "pf-cs-fn-memoize-impure",
+    "title": "Memoizando uma função que não é pura",
+    "question": "Para reduzir a carga no banco, um time aplica memoização em getStockLevel(productId): o primeiro resultado de cada productId vai para o cache e é devolvido em todas as chamadas seguintes. Depois do release, a loja continua mostrando itens como disponíveis muito tempo depois de esgotarem. Qual é a causa raiz?",
+    "options": [
+      "A chave do cache deveria combinar productId com um hash da pilha de chamadas",
+      "Memoização só é segura para funções puras, e este resultado muda",
+      "Funções memoizadas precisam ser recursivas, senão o cache não é reutilizado",
+      "O cache guarda uma cópia de cada resultado, então atualizações nunca chegam a ele"
+    ],
+    "explanation": "Memoização troca uma chamada por um resultado calculado antes, o que só é correto quando a função é pura: os mesmos argumentos sempre precisam produzir a mesma resposta. O nível de estoque depende de um estado do banco que muda com o tempo, então o valor em cache fica desatualizado. Use um cache com expiração ou invalidação explícita. Memoização também funciona para funções não recursivas, e nem cópias nem chaves com a pilha de chamadas resolvem o dado desatualizado."
+  }
+]

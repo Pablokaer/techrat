@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { formatNumber, percent } from "@/lib/format";
 import { useMe, useProfile } from "@/lib/queries";
 import { AppText, Avatar, Button, Card, Divider, ErrorState, ListRow, LoadingState, ProgressBar, Screen, SectionHeader, StatCard, TierDot } from "@/components/ui";
+import { AvatarPicker } from "@/components/domain/AvatarPicker";
 import { LevelSummary } from "@/components/domain/LevelSummary";
 import { TopicIcon } from "@/components/domain/TopicIcon";
 
@@ -25,13 +26,16 @@ export default function ProfileScreen() {
 
   return (
     <Screen onRefresh={() => { void me.refetch(); void profile.refetch(); }} refreshing={profile.isRefetching}>
-      <Card style={styles.header}>
-        <Avatar name={user.displayName} url={user.avatarUrl} size={72} />
-        <View style={styles.flex}>
-          <AppText variant="heading" accessibilityRole="header">{user.displayName}</AppText>
-          <AppText variant="caption" tone="secondary">@{user.username}</AppText>
-          {!!user.bio && <AppText variant="caption" tone="secondary">{user.bio}</AppText>}
+      <Card style={styles.headerCard}>
+        <View style={styles.header}>
+          <Avatar name={user.displayName} url={user.avatarUrl} size={72} />
+          <View style={styles.flex}>
+            <AppText variant="heading" accessibilityRole="header">{user.displayName}</AppText>
+            <AppText variant="caption" tone="secondary">@{user.username}</AppText>
+            {!!user.bio && <AppText variant="caption" tone="secondary">{user.bio}</AppText>}
+          </View>
         </View>
+        <AvatarPicker user={user} />
       </Card>
       <Card><LevelSummary level={user.level} /></Card>
 
@@ -43,7 +47,8 @@ export default function ProfileScreen() {
       </View>
 
       <Card style={styles.list}>
-        <ListRow icon="trophy-outline" title="Leaderboard" subtitle={`Global rank #${user.globalRank}`} onPress={() => router.push("/leaderboard")} />
+        <ListRow icon="trophy-outline" title="Leaderboard" subtitle={user.showOnLeaderboard ? `Global rank #${user.globalRank}` : "You are hidden from the leaderboards"} onPress={() => router.push("/leaderboard")} />
+        <ListRow icon="key-outline" title="Password" subtitle="Change your password" onPress={() => router.push("/change-password")} />
       </Card>
 
       <SectionHeader title="Topic levels" />
@@ -97,6 +102,7 @@ function AchievementTile({ achievement: a }: { achievement: Achievement }) {
 }
 
 const styles = StyleSheet.create({
+  headerCard: { gap: spacing.md },
   header: { flexDirection: "row", alignItems: "center", gap: spacing.lg },
   flex: { flex: 1 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md },

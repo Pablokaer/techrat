@@ -1,99 +1,15 @@
 [
   {
-    "id": "pf-vt-decimal-money",
-    "title": "Escolhendo um tipo para dinheiro",
-    "question": "Um serviço de cobrança em C# guarda preços como double. Somar 0.10 dez vezes dá 0.9999999999999999 em vez de 1.0, e as faturas saem com um centavo de diferença. Qual tipo deve guardar os valores monetários?",
-    "options": [
-      "float, já que o tamanho menor reduz o erro de arredondamento acumulado",
-      "decimal, já que representa frações de base 10 como 0.10 de forma exata",
-      "double, arredondado com Math.Round após cada soma para corrigir o desvio",
-      "BigInteger, já que só precisão arbitrária elimina todo o arredondamento"
-    ],
-    "explanation": "double é um tipo de ponto flutuante binário, então 0.10 não tem representação exata e os erros se acumulam. decimal é um tipo de ponto flutuante de base 10 com 28-29 dígitos significativos, então valores como 0.10 são exatos, e é por isso que ele é recomendado para valores financeiros. float é ainda menos preciso, arredondar a cada passo só esconde o sintoma, e BigInteger nem consegue guardar frações."
-  },
-  {
-    "id": "pf-vt-integer-cache-identity",
-    "title": "Identidade de Integer boxed",
-    "question": "Com as configurações padrão da JVM, o que este código Java imprime?\n\nInteger a = 127, b = 127;\nInteger c = 128, d = 128;\nSystem.out.println(a == b);\nSystem.out.println(c == d);",
-    "options": [
-      "true, depois true",
-      "false, depois false",
-      "false, depois true",
-      "true, depois false"
-    ],
-    "explanation": "O autoboxing passa por Integer.valueOf, e a JLS 5.1.7 exige que valores boxed no intervalo de -128 a 127 fiquem em cache, então a e b referenciam o mesmo objeto. 128 está fora do cache garantido, então c e d normalmente são objetos distintos e == (uma comparação de referências) é false. Compare números boxed com equals() ou faça unboxing para int."
-  },
-  {
     "id": "pf-cf-while-continue",
-    "title": "continue dentro de um loop while",
-    "question": "O que este código Python imprime?\n\ni = 0\nwhile i < 5:\n    i += 1\n    if i == 3:\n        continue\n    print(i, end=' ')",
+    "title": "continue dentro de um laço while",
+    "question": "O que este código imprime? Cada print escreve o valor seguido de um espaço.\n\ni ← 0\nwhile i < 5\n    i ← i + 1\n    if i = 3 then continue\n    print(i)",
     "options": [
       "1 2",
       "1 2 4 5",
       "1 2 3 4 5",
       "0 1 2 4"
     ],
-    "explanation": "continue pula o resto da iteração atual e volta para a condição do loop, então só o print de i == 3 é pulado. Como i é incrementado antes da checagem, o loop continua avançando e não fica girando para sempre. A saída 1 2 é o que um break produziria, e 0 nunca é impresso porque o incremento acontece primeiro."
-  },
-  {
-    "id": "pf-cf-foreach-return",
-    "title": "return dentro do forEach",
-    "question": "Um desenvolvedor quer parar o processamento no primeiro valor maior que 2:\n\n[1, 3, 2].forEach(x => {\n  if (x > 2) return;\n  console.log(x);\n});\n\nO que é registrado?",
-    "options": [
-      "Só 1, porque o return sai do loop forEach inteiro",
-      "Nada, porque return dentro do forEach é um SyntaxError",
-      "1, 3 e 2, porque o forEach ignora o retorno dos callbacks",
-      "1 e depois 2, porque o return só encerra aquele callback"
-    ],
-    "explanation": "O return dentro da arrow function só encerra aquela invocação do callback; o forEach continua chamando o callback para cada elemento restante. Então o 3 é pulado (o return vem antes do console.log) e o 2 é registrado. Não dá para parar um forEach antes do fim a não ser lançando uma exceção; use for...of com break, ou some()/find() quando precisar de saída antecipada."
-  },
-  {
-    "id": "pf-cf-switch-expression-unmatched",
-    "title": "Switch expression sem correspondência em C#",
-    "question": "Um método C# usa uma switch expression sem braço de descarte:\n\nstring Label(int code) => code switch\n{\n    1 => \"low\",\n    2 => \"high\"\n};\n\nO que acontece quando Label(3) é chamado em runtime?",
-    "options": [
-      "Lança uma SwitchExpressionException porque nenhum braço casou",
-      "Retorna null, porque nenhum braço casou com o valor",
-      "Retorna string.Empty, o padrão para resultados string",
-      "Nada; o compilador rejeita o switch não exaustivo com um erro"
-    ],
-    "explanation": "O compilador só emite o warning CS8509 para uma switch expression não exaustiva, então o código compila. Em runtime, quando nenhum padrão casa, o .NET lança System.Runtime.CompilerServices.SwitchExpressionException em vez de retornar null ou um valor padrão. Adicione um braço de descarte (_ => ...) que retorne um fallback ou lance uma exceção significativa."
-  },
-  {
-    "id": "pf-fn-implicit-none",
-    "title": "Função sem return",
-    "question": "Qual é o valor de result depois que este código Python executa?\n\ndef greet(name):\n    print('Hi', name)\n\nresult = greet('Ana')",
-    "options": [
-      "'Hi Ana', o texto que a função imprimiu",
-      "Uma string vazia, que é o que print() retorna",
-      "None, já que a função não tem instrução return",
-      "Nada; lança um erro já que greet não retorna nada"
-    ],
-    "explanation": "Uma função Python que termina sem executar uma instrução return retorna None. Imprimir escreve na saída padrão, mas não é o valor de retorno da função, e o próprio print() também retorna None, não uma string vazia. Atribuir o resultado None é perfeitamente válido."
-  },
-  {
-    "id": "pf-fn-keyword-only-args",
-    "title": "Parâmetros keyword-only",
-    "question": "Um helper Python é declarado como def connect(host, *, timeout=5). O que acontece quando ele é chamado como connect('db.local', 10)?",
-    "options": [
-      "timeout recebe 10, já que é o segundo parâmetro",
-      "10 é ignorado em silêncio e timeout mantém o padrão de 5",
-      "10 é coletado em uma tupla ligada ao marcador * sozinho",
-      "Um TypeError é lançado, porque timeout é keyword-only"
-    ],
-    "explanation": "Parâmetros depois de um * sozinho são keyword-only, então a função aceita só um argumento posicional e a chamada falha com TypeError (takes 1 positional argument but 2 were given). O * sozinho não coleta nada, ao contrário de *args. Quem chama precisa escrever connect('db.local', timeout=10), o que deixa as chamadas autoexplicativas."
-  },
-  {
-    "id": "pf-fn-lru-cache-method-leak",
-    "title": "lru_cache em métodos de instância",
-    "question": "Um serviço Python de longa duração decora um método de instância com @functools.lru_cache(maxsize=None). A memória continua crescendo mesmo depois que os objetos Report não são mais usados. Por quê?",
-    "options": [
-      "O lru_cache guarda resultados em um dicionário de chaves fracas que o garbage collector nunca limpa",
-      "O decorator copia o método para cada instância, então cada objeto tem um cache completo",
-      "self faz parte de toda chave do cache, então o cache mantém cada instância viva",
-      "O lru_cache desliga a contagem de referências de qualquer objeto passado ao método"
-    ],
-    "explanation": "O cache fica no objeto função compartilhado pela classe, e suas chaves incluem self, então ele guarda referências fortes para toda instância que já viu; com maxsize=None nada é removido. O FAQ do Python observa que essa abordagem mantém as instâncias vivas até que saiam do cache ou que ele seja limpo. Use um cache limitado, functools.cached_property ou um cache por instância."
+    "explanation": "continue pula o restante da iteração atual e volta para a condição do laço, então só o print de i = 3 é pulado. Como i é incrementado antes da verificação, o laço continua avançando e não fica girando para sempre. A saída 1 2 é o que break produziria, e 0 nunca é impresso porque o incremento acontece primeiro."
   },
   {
     "id": "pf-rec-call-stack-frames",
@@ -108,64 +24,40 @@
     "explanation": "Cada chamada empilha um frame com seus parâmetros, variáveis locais e endereço de retorno na call stack, e o frame é desempilhado quando a chamada retorna. É por isso que recursão profunda pode esgotar a pilha. Uma tabela compartilhada indexada pelo nome não conseguiria guardar várias chamadas ativas da mesma função, e os registradores são poucos demais para guardar todos os frames pendentes."
   },
   {
-    "id": "pf-rec-slicing-cost",
-    "title": "Custo oculto do slicing na recursão",
-    "question": "Qual é a complexidade de tempo desta soma recursiva em Python para uma lista de n números?\n\ndef total(xs):\n    return 0 if not xs else xs[0] + total(xs[1:])",
-    "options": [
-      "O(n), já que cada elemento é somado só uma vez",
-      "O(n log n), já que a lista cai pela metade a cada chamada",
-      "O(n^2), já que cada slice xs[1:] copia o restante",
-      "O(log n), já que um slice é uma view de tempo constante"
-    ],
-    "explanation": "Um slice de lista cria uma nova lista e custa O(k) para k elementos copiados, então as chamadas copiam n-1, n-2, ... elementos, somando O(n^2). A lista diminui um elemento por chamada, não pela metade, e slices de listas em Python são cópias, não views. Passar um índice em vez de fatiar torna a função O(n), embora um n grande ainda vá atingir o limite de recursão."
-  },
-  {
     "id": "pf-mem-pointer-arithmetic",
-    "title": "Escala na aritmética de ponteiros em C",
-    "question": "Em C: int arr[8]; int *p = arr; Em uma plataforma onde int tem 4 bytes e p contém o endereço 0x1000, qual endereço p + 2 contém?",
+    "title": "Escala na aritmética de ponteiros",
+    "question": "arr é um array de 8 inteiros, cada um com 4 bytes, e p é um ponteiro tipado para arr[0] que contém o endereço 0x1000. Com aritmética de ponteiros tipada, qual endereço p + 2 contém?",
     "options": [
       "0x1008",
       "0x1002",
       "0x1004",
       "0x1010"
     ],
-    "explanation": "Somar um inteiro a um ponteiro o avança essa quantidade de elementos, não de bytes, então p + 2 anda 2 * sizeof(int) = 8 bytes, até 0x1008. 0x1002 seria aritmética de bytes, que você só obtém com um ponteiro char. Essa escala também é o motivo de arr[i] ser definido como *(arr + i)."
-  },
-  {
-    "id": "pf-mem-vector-invalidation",
-    "title": "Ponteiro para um vector que cresce",
-    "question": "Este código C++ às vezes imprime lixo ou trava:\n\nstd::vector<int> v{1, 2, 3};\nint* first = &v[0];\nv.push_back(4);\nstd::cout << *first;\n\nQual é a causa?",
-    "options": [
-      "push_back pode realocar o buffer, deixando first pendente",
-      "Pegar o endereço de um elemento de vector é comportamento indefinido",
-      "std::cout não consegue imprimir um valor lido através de um ponteiro bruto",
-      "push_back desloca os elementos existentes uma posição para a direita"
-    ],
-    "explanation": "Quando push_back excede a capacidade atual, o vector aloca um novo buffer, move os elementos e libera o antigo, invalidando todos os ponteiros, referências e iterators para os elementos. Ler através de first passa a ser um use-after-free. Pegar endereços de elementos é seguro enquanto não houver realocação; chame reserve() antes ou guarde índices em vez de ponteiros."
+    "explanation": "Somar um inteiro a um ponteiro tipado o avança essa quantidade de elementos, não de bytes, então p + 2 anda 2 × 4 = 8 bytes, até 0x1008. 0x1002 seria aritmética de bytes pura, que você só obtém com um ponteiro para elementos de 1 byte. Essa escala também é o motivo de arr[i] ser o elemento no endereço arr + i × tamanho do elemento."
   },
   {
     "id": "pf-mem-go-escape-analysis",
-    "title": "Retornando ponteiro para variável local em Go",
-    "question": "Um revisor com experiência em C aponta que esta função Go retorna um dangling pointer:\n\nfunc newUser() *User {\n    u := User{Name: \"ana\"}\n    return &u\n}\n\nO que realmente acontece?",
+    "title": "Retornando o endereço de uma variável local",
+    "question": "Em uma linguagem compilada, com garbage collector e memory-safe, esta função retorna o endereço de uma de suas variáveis locais:\n\nfunction newUser()\n    u = User(name: \"ana\")\n    return address of u\n\nUm revisor acostumado a gerenciar memória manualmente aponta isso como um dangling pointer. O que realmente acontece?",
     "options": [
-      "O programa entra em panic quando quem chamou desreferencia o ponteiro",
+      "O programa aborta quando quem chamou desreferencia o ponteiro retornado",
       "O compilador rejeita retornar o endereço de uma variável local",
-      "A struct é copiada para o stack frame de quem chamou no retorno",
+      "O registro é copiado para o stack frame de quem chamou no retorno",
       "A escape analysis vê que u sobrevive à chamada e o aloca na heap"
     ],
-    "explanation": "O Go decide entre pilha e heap pela escape analysis: como &u escapa da função, o compilador aloca u na heap gerenciada pelo garbage collector, então o ponteiro continua válido. Isso é Go idiomático, não um bug. O custo é uma alocação na heap e pressão no GC; go build -gcflags=-m imprime essas decisões de escape ao otimizar hot paths."
+    "explanation": "Compiladores dessas linguagens decidem entre pilha e heap pela escape analysis: como o endereço de u escapa da função, o compilador aloca u na heap gerenciada pelo garbage collector, então o ponteiro continua válido. Isso é idiomático, não um bug. O custo é uma alocação na heap e mais pressão no GC, por isso esses compiladores conseguem relatar suas decisões de escape quando você otimiza hot paths."
   },
   {
     "id": "pf-ps-binary-search-precondition",
     "title": "Pré-condição da busca binária",
-    "question": "Um colega quer usar busca binária (o módulo bisect do Python) para procurar IDs em uma lista. O que precisa ser verdade sobre a lista para os resultados estarem corretos?",
+    "question": "Um colega quer usar busca binária para procurar IDs em uma lista. O que precisa ser verdade sobre a lista para os resultados estarem corretos?",
     "options": [
       "Ela não pode ter valores duplicados",
       "O tamanho dela deve ser uma potência de dois",
-      "Ela precisa estar ordenada pela chave de busca",
+      "Precisa estar ordenada pela chave de busca",
       "Ela só pode conter valores inteiros"
     ],
-    "explanation": "A busca binária descarta metade do intervalo restante a cada passo com base em uma comparação, o que só é válido se os dados estiverem ordenados pela chave buscada. Duplicatas não são problema (bisect_left e bisect_right lidam com elas), qualquer tamanho funciona, e qualquer tipo comparável, como strings, pode ser buscado."
+    "explanation": "A busca binária descarta metade do intervalo restante a cada passo com base em uma comparação, o que só é válido se os dados estiverem ordenados pela chave buscada. Duplicatas não são problema (variantes que retornam a primeira ou a última ocorrência lidam com elas), qualquer tamanho funciona, e qualquer tipo com uma ordenação consistente, como strings, pode ser buscado."
   },
   {
     "id": "pf-ps-merge-intervals",
@@ -201,31 +93,7 @@
       "1000",
       "30"
     ],
-    "explanation": "Isso é uma combinação: C(10, 3) = 10 * 9 * 8 / 3! = 120, que o Python calcula com math.comb(10, 3). 720 conta seleções ordenadas (permutações), 1000 = 10^3 permite escolher a mesma pessoa repetidamente, e 30 é só 10 * 3."
-  },
-  {
-    "id": "pf-dm-floor-mod",
-    "title": "Módulo negativo em Java",
-    "question": "Um ring buffer em Java anda para trás com idx = (idx - 1) % size. Quando idx é 0, ele lança ArrayIndexOutOfBoundsException. Por quê, e qual é a correção?",
-    "options": [
-      "% mantém o sinal do dividendo, dando -1; use Math.floorMod(idx - 1, size)",
-      "% estoura para Integer.MIN_VALUE com negativos; converta os dois operandos para long",
-      "% arredonda para mais infinito e retorna size; subtraia um do resultado",
-      "% é indefinido para operandos negativos em Java; envolva o cálculo em um try/catch"
-    ],
-    "explanation": "A divisão inteira do Java trunca em direção a zero, e o resto satisfaz (a / b) * b + a % b == a, então -1 % size é -1, um índice inválido. Math.floorMod retorna um resultado com o sinal do divisor, dando size - 1 como desejado. O % do Python já usa piso, e é por isso que o mesmo código funciona lá."
-  },
-  {
-    "id": "pf-dm-modular-exponentiation",
-    "title": "Exponenciação modular rápida",
-    "question": "Um exercício precisa de 7^(10^18) mod 1.000.000.007 em Python. Por que pow(7, 10**18, 1_000_000_007) retorna instantaneamente enquanto (7 ** 10**18) % 1_000_000_007 nunca termina?",
-    "options": [
-      "O pow com três argumentos memoiza chamadas anteriores, então expoentes repetidos são grátis",
-      "O operador ** converte os dois operandos para float e depois precisa refazer o cálculo exato",
-      "O pow joga o trabalho para threads nativas, enquanto ** roda em uma thread do interpretador",
-      "O pow com três argumentos faz square-and-multiply mod m, com só ~60 quadrados"
-    ],
-    "explanation": "7 ** 10**18 tenta construir um inteiro exato com cerca de 8.5e17 dígitos decimais, o que nunca caberia na memória. pow(base, exp, mod) reduz módulo m após cada passo da exponenciação binária, então precisa de O(log exp) multiplicações de números pequenos; como 10^18 < 2^60, isso dá cerca de 60 elevações ao quadrado. Inteiros Python continuam exatos (sem conversão para float) e o pow não usa cache nem threads."
+    "explanation": "Isso é uma combinação: C(10, 3) = 10 * 9 * 8 / 3! = 120. 720 conta seleções ordenadas (permutações), 1000 = 10^3 permite escolher a mesma pessoa repetidamente, e 30 é só 10 * 3."
   },
   {
     "id": "pf-bool-xor",
@@ -240,40 +108,28 @@
     "explanation": "O ou exclusivo é verdadeiro quando as entradas diferem: verdadeiro para (true, false) e (false, true), falso para (true, true) e (false, false). OR também é verdadeiro quando as duas flags estão ligadas, AND exige as duas, e NAND é verdadeiro quando nenhuma está ligada. Para booleanos, a != b expressa a mesma coisa na maioria das linguagens."
   },
   {
-    "id": "pf-bool-or-default-zero",
-    "title": "Valores falsy com padrão via or",
-    "question": "Um carregador de configuração em Python usa timeout = settings.get('timeout') or 30. Um usuário define timeout como 0 para desativá-lo, mas o serviço continua usando 30. Por quê?",
-    "options": [
-      "dict.get() transforma valores inteiros zero armazenados em None ao retorná-los",
-      "or sempre avalia os dois operandos e retorna o maior dos dois valores",
-      "O Python guarda em cache o primeiro valor que uma expressão or produz em cada módulo",
-      "or retorna o operando da direita quando o da esquerda é falsy, e 0 é falsy"
-    ],
-    "explanation": "x or y retorna x se x for truthy e, caso contrário, y; 0, strings vazias e coleções vazias são todos falsy, então um 0 explícito é substituído pelo padrão. dict.get retorna o 0 armazenado sem alteração e o or faz curto-circuito em vez de comparar magnitudes. Use uma checagem explícita como 30 if value is None else value."
-  },
-  {
     "id": "pf-bool-sql-not-in-null",
-    "title": "NOT IN com NULL na subquery",
-    "question": "Esta query PostgreSQL retorna zero linhas, embora muitos usuários não gerenciem nenhum time:\n\nSELECT * FROM users\nWHERE id NOT IN (SELECT manager_id FROM teams);\n\nUma linha em teams tem manager_id = NULL. O que explica isso?",
+    "title": "Teste de pertinência com um valor desconhecido na lista",
+    "question": "Um filtro usa lógica de três valores (true, false, unknown) e mantém um registro só quando a condição é true. A regra \"x não está em L\" é calculada como (x != L[0]) AND (x != L[1]) AND ... para cada elemento. Com x = 5 e L = [1, 2, unknown], o registro é descartado. Por quê?",
     "options": [
-      "NOT IN sobre uma lista com NULL nunca é true, só false ou null",
-      "O planner para de varrer uma subquery NOT IN na primeira linha NULL",
-      "NULL é igual a qualquer valor, então cada id casa com a linha NULL",
-      "O PostgreSQL rejeita NULL em subqueries e retorna nenhuma linha em silêncio"
+      "5 != unknown é unknown, e true AND unknown continua unknown, não true",
+      "unknown é igual a qualquer valor, então 5 casa com o elemento unknown de L",
+      "Qualquer AND com um operando unknown resulta em false, então a regra falha",
+      "Comparar com unknown gera um erro, e os registros com falha são pulados"
     ],
-    "explanation": "O SQL usa lógica de três valores: id <> NULL é unknown, então quando nenhuma correspondência é encontrada mas a subquery produz um NULL, o NOT IN resulta em null em vez de true, e o WHERE descarta a linha. NULL não é igual a nada, nem a si mesmo. Use NOT EXISTS ou filtre a subquery com WHERE manager_id IS NOT NULL."
+    "explanation": "Na lógica de três valores, uma comparação com unknown também é unknown, e o AND é true só se todos os operandos forem true, false se algum for false, e unknown nos demais casos. Aqui 5 != 1 e 5 != 2 são true, mas 5 != unknown é unknown, então a condição inteira é unknown e o filtro, que só mantém true, descarta o registro. unknown não é igual a nada, nem a si mesmo, e um AND com unknown só é false quando outro operando é false. Consultas a bancos de dados caem exatamente nisso quando uma lista de NOT IN contém um NULL; exclua os desconhecidos da lista ou teste-os explicitamente."
   },
   {
     "id": "pf-num-binary-to-decimal",
     "title": "Binário para decimal",
-    "question": "Qual é o valor decimal do número binário 0b1011?",
+    "question": "Qual é o valor decimal do número binário 1011?",
     "options": [
       "13",
       "9",
       "22",
       "11"
     ],
-    "explanation": "Lendo da direita para a esquerda, os bits valem 1, 2, 4 e 8, então 1011 = 8 + 0 + 2 + 1 = 11; o int('1011', 2) do Python confirma. 13 é 0b1101 (bits invertidos), 9 é 0b1001, e 22 é 0b10110, o valor deslocado um bit para a esquerda."
+    "explanation": "Lendo da direita para a esquerda, os bits valem 1, 2, 4 e 8, então 1011 = 8 + 0 + 2 + 1 = 11. 13 é 1101 (os bits invertidos), 9 é 1001, e 22 é 10110, o valor deslocado um bit para a esquerda."
   },
   {
     "id": "pf-num-octal-permissions",
@@ -290,14 +146,14 @@
   {
     "id": "pf-num-float32-counter",
     "title": "Um contador float que para de contar",
-    "question": "Uma engine de jogo mantém um contador de frames em um float de 32 bits e executa counter += 1.0f a cada frame. Depois de cerca de 16,7 milhões de frames, o valor para de aumentar. Por quê?",
+    "question": "Uma engine de jogo mantém um contador de frames em uma variável de ponto flutuante IEEE 754 de 32 bits (precisão simples) e soma 1.0 a ela a cada frame. Depois de cerca de 16,7 milhões de frames, o valor para de aumentar. Por quê?",
     "options": [
-      "float32 tem significando de 24 bits; após 2^24, somar 1 arredonda para baixo",
-      "float32 satura em 2^24 e limita todo resultado maior a esse valor",
+      "Com significando de 24 bits, após 2^24 somar 1 arredonda para baixo",
+      "O formato satura em 2^24 e limita todo resultado maior a esse valor",
       "A CPU zera o contador depois que ele vira denormal em 2^24",
       "A soma em precisão simples transborda para os bits de expoente em 2^24"
     ],
-    "explanation": "Um float tem 24 bits de precisão no significando, então inteiros só são exatos até 2^24 = 16.777.216; acima disso, floats adjacentes estão a 2 de distância e 16.777.216 + 1 é arredondado de volta para 16.777.216 (round-half-to-even). O alcance do tipo vai até cerca de 3.4e38, então nada satura nem transborda, e denormais dizem respeito a valores minúsculos. Use um contador inteiro."
+    "explanation": "Um float de precisão simples tem 24 bits de precisão no significando, então inteiros só são exatos até 2^24 = 16.777.216; acima disso, valores representáveis adjacentes estão a 2 de distância e 16.777.216 + 1 é arredondado de volta para 16.777.216 (round-half-to-even). O alcance do formato vai até cerca de 3.4e38, então nada satura nem transborda, e denormais dizem respeito a valores minúsculos perto de zero. Use um contador inteiro."
   },
   {
     "id": "pf-arch-32bit-address-space",
@@ -306,7 +162,7 @@
     "options": [
       "O SO reserva todo endereço acima de 4 GB para o kernel",
       "Módulos de memória para CPUs de 32 bits só vão até 4 GB",
-      "O alocador de heap do C recusa pedidos maiores que 2^32 bytes",
+      "O alocador de heap do processo recusa qualquer pedido acima de 2^32 bytes",
       "Ponteiros de 32 bits só codificam 2^32 endereços de byte distintos"
     ],
     "explanation": "Um endereço de 32 bits consegue nomear 2^32 = 4.294.967.296 bytes, então esse é todo o espaço de endereçamento virtual do processo; no Windows parte dele ainda é reservada para o sistema, deixando de 2 GB a 4 GB para o modo usuário. O limite tem a ver com a largura do ponteiro, não com módulos de RAM física nem com um alocador específico."
@@ -337,63 +193,27 @@
   },
   {
     "id": "ds-arr-insert-middle",
-    "title": "Inserindo no meio de uma lista",
-    "question": "Uma List<int> do .NET tem 1.000.000 de itens. Qual é o custo de list.Insert(500000, x)?",
+    "title": "Inserindo no meio de um array dinâmico",
+    "question": "Um array dinâmico (um array redimensionável guardado em um único bloco contíguo de memória) tem 1.000.000 de itens. Qual é o custo de inserir um novo item no índice 500.000?",
     "options": [
-      "O(1), já que List<T> mantém capacidade sobrando para inserções",
+      "O(1), já que o array mantém capacidade sobrando para inserções",
       "O(n), já que os elementos seguintes deslocam uma posição",
-      "O(log n), já que List<T> acha a posição por busca binária",
+      "O(log n), já que o array acha a posição por busca binária",
       "O(1) amortizado, igual a fazer append no final"
     ],
-    "explanation": "List<T> é baseada em um array contíguo, então inserir em um índice exige mover cada elemento depois dele uma posição para a direita; a documentação chama Insert de operação O(n). Capacidade sobrando só torna os appends no final O(1) amortizado, e indexar nunca precisa de busca."
-  },
-  {
-    "id": "ds-arr-covariance-store",
-    "title": "Covariância de arrays em Java",
-    "question": "Este código Java compila. O que acontece quando ele executa?\n\nObject[] items = new String[2];\nitems[0] = 42;",
-    "options": [
-      "Lança ArrayStoreException, pois o array em runtime é String[]",
-      "Guarda \"42\" como string por meio de uma conversão implícita",
-      "Funciona, já que o tipo de elemento declarado é Object",
-      "Lança ClassCastException só quando items[0] é lido"
-    ],
-    "explanation": "Arrays em Java são covariantes, então um String[] pode ser atribuído a uma variável Object[], mas toda escrita é verificada contra o tipo de componente do array em runtime (JLS 10.5), e guardar um Integer lança ArrayStoreException. O Java nunca converte 42 em string aqui. Coleções genéricas evitam o problema em tempo de compilação, porque List<String> não é um List<Object>."
+    "explanation": "Os elementos ficam lado a lado em um único bloco, então abrir espaço em um índice exige mover cada elemento depois dele uma posição para a direita: cerca de n/2 movimentos aqui, o que é O(n). Capacidade sobrando só torna os appends no final O(1) amortizado, e chegar a um índice nunca precisa de busca, porque o endereço dele é calculado diretamente."
   },
   {
     "id": "ds-str-immutable-assign",
-    "title": "Atribuindo a um índice de string",
-    "question": "O que acontece quando este código Python executa?\n\ns = 'cat'\ns[0] = 'b'",
+    "title": "Alterando um caractere de uma string imutável",
+    "question": "Um programa guarda s = \"cat\" em uma linguagem cujas strings são imutáveis, e agora precisa que s contenha \"bat\". Qual abordagem funciona?",
     "options": [
-      "TypeError, porque objetos str são imutáveis",
-      "s vira 'bat', já que strings permitem atribuição por item",
-      "Uma nova string 'bat' é criada e religada a s",
-      "IndexError, porque o índice 0 guarda o tamanho da string"
+      "Construir uma nova string com \"b\" mais o resto de s e atribuí-la a s",
+      "Atribuir s[0] = \"b\", pois numa string imutável só o tamanho é fixo",
+      "Chamar um método que edita os caracteres de s no lugar, no mesmo endereço",
+      "Copiar s para t, fazer t[0] = \"b\" e atribuir t de volta a s"
     ],
-    "explanation": "Strings Python são sequências imutáveis, então a atribuição por item lança TypeError: 'str' object does not support item assignment. Para mudar um caractere, você constrói uma nova string, por exemplo s = 'b' + s[1:] ou s.replace('c', 'b'). O Python nunca religa a variável implicitamente, e o índice 0 é simplesmente o primeiro caractere."
-  },
-  {
-    "id": "ds-str-java-equals",
-    "title": "Comparando strings com ==",
-    "question": "Uma checagem de login em Java usa if (input == \"admin\"), onde input vem de request.getParameter(). Ela falha mesmo quando o usuário digita admin. Por quê?",
-    "options": [
-      "== compara tamanhos primeiro, e o request adiciona uma quebra de linha oculta no final",
-      "Literais de string são guardados em UTF-16, mas parâmetros do request ficam em UTF-8",
-      "== diferencia maiúsculas, e parâmetros do request vêm em maiúsculas por padrão",
-      "== compara referências, e uma string criada em runtime é um objeto distinto"
-    ],
-    "explanation": "Para objetos, == verifica se os dois operandos são a mesma instância. O literal \"admin\" é internado, mas uma string extraída de um request é um objeto novo com os mesmos caracteres, então == é false. Use \"admin\".equals(input), que compara o conteúdo e, nessa ordem, também é seguro contra null."
-  },
-  {
-    "id": "ds-str-turkish-i",
-    "title": "Conversão de maiúsculas dependente de cultura",
-    "question": "Uma checagem em C# usa ext.ToUpper() == \"FILE\". Ela passa nos testes, mas falha em servidores cuja cultura atual é tr-TR. Por quê, e qual é a correção?",
-    "options": [
-      "Em turco, i vira o I com ponto (U+0130); compare com OrdinalIgnoreCase",
-      "tr-TR guarda strings internamente em UTF-32; converta os dois lados para UTF-8",
-      "ToUpper é avaliado de forma lazy em algumas culturas; chame ToString() para forçar",
-      "tr-TR ordena maiúsculas depois de minúsculas; use String.Compare com CurrentCulture"
-    ],
-    "explanation": "ToUpper() usa a cultura atual, e em turco o i minúsculo com ponto vira U+0130 (I maiúsculo com ponto), então \"file\" vira \"FİLE\" e a comparação falha. Identificadores, extensões de arquivo e tokens de protocolo devem usar string.Equals(a, b, StringComparison.OrdinalIgnoreCase) ou conversão invariante. Strings .NET são sempre UTF-16 e ToUpper não é lazy."
+    "explanation": "Uma string imutável nunca muda depois de criada, então toda edição produz uma nova string: concatene \"b\" com a substring que começa no índice 1 (ou use uma operação de replace que devolve uma nova string) e atribua o resultado a s. Escrever em um índice é rejeitado ou ignorado, conforme a linguagem, nenhum método edita a string no lugar, e uma cópia de uma string imutável é tão imutável quanto ela."
   },
   {
     "id": "ds-hash-open-addressing-delete",

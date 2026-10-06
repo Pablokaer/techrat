@@ -718,5 +718,17 @@
       "Falha: uma chamada consteval precisa produzir uma constante de compilação"
     ],
     "explanation": "consteval declara uma immediate function: toda chamada precisa ser uma expressão constante avaliada em tempo de compilação, e `square(k)` depende de um valor lido em tempo de execução, então o programa é mal formado. Uma função constexpr cairia silenciosamente para avaliação em tempo de execução aqui, e essa é exatamente a diferença entre as duas. Níveis de otimização nunca mudam se um programa é bem formado."
+  },
+  {
+    "id": "pf-mem-vector-invalidation",
+    "title": "Ponteiro para um vector que cresce",
+    "question": "Este código C++ às vezes imprime lixo ou trava:\n\nstd::vector<int> v{1, 2, 3};\nint* first = &v[0];\nv.push_back(4);\nstd::cout << *first;\n\nQual é a causa?",
+    "options": [
+      "push_back pode realocar o buffer, deixando first pendente",
+      "Pegar o endereço de um elemento de vector é comportamento indefinido",
+      "std::cout não consegue imprimir um valor lido através de um ponteiro bruto",
+      "push_back desloca os elementos existentes uma posição para a direita"
+    ],
+    "explanation": "Quando push_back excede a capacidade atual, o vector aloca um novo buffer, move os elementos e libera o antigo, invalidando todos os ponteiros, referências e iterators para os elementos. Ler através de first passa a ser um use-after-free. Pegar endereços de elementos é seguro enquanto não houver realocação; chame reserve() antes ou guarde índices em vez de ponteiros."
   }
 ]

@@ -64,6 +64,7 @@ public sealed class TechRatFactory : WebApplicationFactory<Program>, IAsyncLifet
         builder.UseSetting("Seed:AdminPassword", AdminPassword);
         builder.UseSetting("RateLimiting:AuthPerMinute", "10000");
         builder.UseSetting("RateLimiting:AnswersPerMinute", "10000");
+        builder.UseSetting("RateLimiting:UploadsPerMinute", "10000");
         builder.UseSetting("Outbox:Enabled", "false"); // tests drive the dispatcher explicitly for determinism
     }
 

@@ -14,6 +14,8 @@ public sealed class User
     public required string Email { get; set; }
     public string? AvatarUrl { get; set; }
     public string? Bio { get; set; }
+    /// <summary>False when the learner opted out of every leaderboard (Settings). Progress and XP are unaffected.</summary>
+    public bool ShowOnLeaderboard { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? LastLoginAt { get; set; }
 
@@ -70,4 +72,18 @@ public sealed class UserTopicProgress
         }
         LastActivityAt = at;
     }
+}
+
+/// <summary>
+/// A profile photo uploaded by the user, already cropped to a square and compressed by the client. Kept apart from
+/// <see cref="User"/> so profile queries never load image bytes; <see cref="User.AvatarUrl"/> points at it.
+/// </summary>
+public sealed class UserAvatar
+{
+    public Guid UserId { get; set; }
+    public required byte[] Content { get; set; }
+    /// <summary>Detected from the file signature (image/jpeg, image/png or image/webp), never taken from the request.</summary>
+    public required string ContentType { get; set; }
+    /// <summary>Also the cache-busting version in the public URL, so a new photo never reuses a cached one.</summary>
+    public DateTimeOffset UpdatedAt { get; set; }
 }

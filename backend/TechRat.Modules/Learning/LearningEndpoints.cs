@@ -8,6 +8,7 @@ using TechRat.Application.Common;
 using TechRat.Application.Leaderboards;
 using TechRat.Application.Notifications;
 using TechRat.Application.Practice;
+using TechRat.Application.Resources;
 using TechRat.Application.Roadmaps;
 using TechRat.Application.Users;
 using TechRat.Domain.Common;
@@ -27,6 +28,32 @@ public sealed class UsersEndpoints : IEndpointModule
 
         users.MapPatch("/me", async (UpdateProfileRequest request, ProfileService profiles, ICurrentUser me, CancellationToken ct) =>
             TypedResults.Ok(await profiles.UpdateAsync(me.RequireUserId(), me.IsAdmin, request, ct))).RequireAuthorization();
+
+        users.MapPut("/me/avatar", async (IFormFile? file, AvatarService avatars, ICurrentUser me, CancellationToken ct) =>
+        {
+            await using var stream = file?.OpenReadStream();
+            return TypedResults.Ok(await avatars.SetAsync(me.RequireUserId(), me.IsAdmin, stream, file?.Length ?? 0, ct));
+        })
+            .RequireAuthorization().RequireRateLimiting("uploads")
+            // Cookie sessions are SameSite=Strict, so a cross-site form post never carries them; no antiforgery token needed.
+            .DisableAntiforgery()
+            .WithMetadata(new RequestSizeLimit(2 * AvatarService.MaxBytes))
+            .WithSummary("Upload a profile photo (multipart field `file`)")
+            .WithDescription("The client crops the photo to a square and compresses it (512×512 recommended). JPG, PNG or WEBP up to 1 MB, " +
+                             "detected from the file signature. Replaces the previous photo and returns the updated user.");
+
+        users.MapDelete("/me/avatar", async (AvatarService avatars, ICurrentUser me, CancellationToken ct) =>
+            TypedResults.Ok(await avatars.RemoveAsync(me.RequireUserId(), me.IsAdmin, ct))).RequireAuthorization()
+            .WithSummary("Remove the profile photo and go back to the default avatar");
+
+        users.MapGet("/{id:guid}/avatar", async Task<Results<FileContentHttpResult, NotFound>> (Guid id, AvatarService avatars, HttpContext http, CancellationToken ct) =>
+        {
+            if (await avatars.GetAsync(id, ct) is not { } image) return TypedResults.NotFound();
+            // The URL carries a version (?v=), so a new photo always has a new URL and this one can be cached forever.
+            http.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+            return TypedResults.File(image.Content, image.ContentType, lastModified: image.UpdatedAt);
+        })
+            .WithSummary("A user's uploaded profile photo (public, cacheable; the avatarUrl of a user points here)");
 
         users.MapGet("/me/dashboard", async (ProfileService profiles, ICurrentUser me, CancellationToken ct) =>
             TypedResults.Ok(await profiles.GetDashboardAsync(me.RequireUserId(), me.IsAdmin, ct))).RequireAuthorization()
@@ -96,6 +123,9 @@ public sealed class RoadmapsEndpoints : IEndpointModule
             TypedResults.Ok(await svc.ListAsync(me.UserId, category, ct)));
         roadmaps.MapGet("/{slug}", async (string slug, RoadmapService svc, ICurrentUser me, CancellationToken ct) =>
             TypedResults.Ok(await svc.GetAsync(slug, me.UserId, ct)));
+        roadmaps.MapGet("/{slug}/resources", async (string slug, StudyResourceService svc, CancellationToken ct) =>
+            TypedResults.Ok(await svc.ForRoadmapAsync(slug, ct)))
+            .WithSummary("Study resources: general overview reading for the roadmap (books, official docs, courses), in the request language");
         roadmaps.MapPost("/{slug}/start", async (string slug, RoadmapService svc, ICurrentUser me, CancellationToken ct) =>
             TypedResults.Ok(await svc.StartAsync(me.RequireUserId(), slug, ct))).RequireAuthorization()
             .WithSummary("Enrol in a roadmap (fails with 403 while prerequisites are not met)");
@@ -110,6 +140,9 @@ public sealed class ModulesEndpoints : IEndpointModule
         modules.MapGet("/", async (ModuleKind? kind, string? category, ModuleService svc, ICurrentUser me, CancellationToken ct) =>
             TypedResults.Ok(await svc.ListAsync(me.UserId, kind, category, ct)))
             .WithSummary("Module catalog: reusable modules shared by roadmaps, with the learner's progress when signed in");
+        modules.MapGet("/{slug}/resources", async (string slug, StudyResourceService svc, CancellationToken ct) =>
+            TypedResults.Ok(await svc.ForModuleAsync(slug, ct)))
+            .WithSummary("Study resources: the topics to master in the module and the sources to learn each from");
         modules.MapGet("/{slug}", async (string slug, ModuleService svc, ICurrentUser me, CancellationToken ct) =>
             TypedResults.Ok(await svc.GetAsync(slug, me.UserId, ct)));
     }

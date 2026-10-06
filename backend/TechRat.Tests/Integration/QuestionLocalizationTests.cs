@@ -71,6 +71,27 @@ public class QuestionLocalizationTests(TechRatFactory api)
     }
 
     [Fact]
+    public async Task Seed_moves_an_unedited_question_to_the_topic_and_subtopic_of_the_seed_file()
+    {
+        // A seeded question that still sits in an older scope, e.g. before it moved from a fundamentals topic to its language.
+        var (question, otherTopicId, otherSubtopicId) = await api.WithDbAsync(async db =>
+        {
+            var q = await db.Questions.Where(x => x.ExternalKey != null && x.CreatedAt == x.UpdatedAt).OrderBy(x => x.ExternalKey).FirstAsync();
+            var other = await db.Subtopics.Where(s => s.TopicId != q.TopicId).OrderBy(s => s.Slug).FirstAsync();
+            return (q, other.TopicId, other.Id);
+        });
+        await api.WithDbAsync(db => db.Questions.Where(q => q.Id == question.Id).ExecuteUpdateAsync(u => u
+            .SetProperty(q => q.TopicId, otherTopicId).SetProperty(q => q.SubtopicId, otherSubtopicId)));
+
+        using (var scope = api.Services.CreateScope())
+            await scope.ServiceProvider.GetRequiredService<DatabaseSeeder>().SeedAsync();
+
+        var now = await api.WithDbAsync(db => db.Questions.Where(q => q.Id == question.Id).Select(q => new { q.TopicId, q.SubtopicId }).SingleAsync());
+        Assert.Equal(question.TopicId, now.TopicId);
+        Assert.Equal(question.SubtopicId, now.SubtopicId);
+    }
+
+    [Fact]
     public async Task Seed_refreshes_unedited_seed_content_but_keeps_admin_edits()
     {
         // Two seeded questions: one untouched since seeding, one edited by an admin (UpdatedAt moved forward).

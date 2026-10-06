@@ -1,0 +1,146 @@
+[
+  {
+    "id": "git-jr-basics-add-patch",
+    "title": "Fazendo commit de só parte das mudanças de um arquivo",
+    "question": "No app.js você corrigiu um bug e, bem mais abaixo no mesmo arquivo, adicionou logs de debug que ainda não quer commitar. Como você coloca no stage só a correção do bug?",
+    "options": [
+      "`git add -u app.js`, que coloca no stage só as linhas alteradas",
+      "`git add -A app.js`, que pergunta quais linhas incluir",
+      "`git add -p app.js`, respondendo y ou n para cada hunk",
+      "`git add -N app.js`, que coloca no stage só o hunk mais novo"
+    ],
+    "explanation": "`git add -p` (--patch) percorre as diferenças entre o index e a working tree hunk por hunk e deixa você colocar cada um no stage (y), pular (n) ou dividir em hunks menores (s); os logs de debug continuam como mudança fora do stage. `-u` coloca no stage todas as modificações em arquivos rastreados, `-A` coloca todas as mudanças, incluindo arquivos novos e removidos, e `-N` só registra a intenção de adicionar um arquivo não rastreado. Nenhum deles escolhe hunks individuais."
+  },
+  {
+    "id": "git-jr-basics-amend-forgotten-file",
+    "title": "Adicionando um arquivo esquecido ao último commit",
+    "question": "Você acabou de commitar uma feature, mas esqueceu de colocar no stage o arquivo novo validator.js. O commit ainda não foi enviado com push. Qual é a forma mais limpa de fazer esse mesmo commit incluir o arquivo?",
+    "options": [
+      "`git add validator.js`, depois `git commit --amend --no-edit`",
+      "`git add validator.js`, depois `git push`, que o adiciona ao commit",
+      "`git commit -a`, que reescreve o último commit com todos os arquivos",
+      "`git revert HEAD`, depois `git add validator.js` e commitar de novo"
+    ],
+    "explanation": "`git commit --amend` substitui a ponta da branch atual por um novo commit montado a partir do index atual, e `--no-edit` mantém a mensagem anterior; então, colocando validator.js no stage antes, você fica com um único commit com tudo. Aqui é seguro porque o commit nunca foi enviado (o amend gera um novo hash). `git push` só envia commits que já existem, `git commit -a` cria um commit novo a partir dos arquivos rastreados modificados (e nem incluiria um arquivo não rastreado), e `git revert` adiciona um commit que desfaz a feature."
+  },
+  {
+    "id": "git-jr-basics-gitignore-negate-in-ignored-dir",
+    "title": "Incluindo de volta um arquivo dentro de uma pasta ignorada",
+    "question": "O .gitignore contém:\nlogs/\n!logs/.gitkeep\nVocê quer a pasta logs, que fora isso está vazia, no repositório, mas o `git status` nunca mostra logs/.gitkeep como não rastreado. Por quê, e o que resolve?",
+    "options": [
+      "Negações devem vir antes do padrão que negam; inverta as duas linhas",
+      "Dotfiles só podem ser incluídos de volta com um padrão como `!**/.gitkeep`",
+      "O `!` só inclui de volta arquivos já rastreados, então adicione com -f uma vez",
+      "O Git não olha dentro de uma pasta excluída; ignore `logs/*` em vez disso"
+    ],
+    "explanation": "A documentação do gitignore diz que não é possível incluir de volta um arquivo se um dos diretórios pais dele estiver excluído: por desempenho, o Git não lista o conteúdo de um diretório excluído, então padrões sobre arquivos dentro dele não têm efeito. Escrever `logs/*` ignora o conteúdo da pasta, e não a pasta em si, e aí o `!logs/.gitkeep` passa a valer. A ordem importa no sentido contrário (vale o último padrão que casa, então a negação tem que vir depois), dotfiles não precisam de sintaxe especial, e a negação funciona para arquivos não rastreados."
+  },
+  {
+    "id": "git-jr-merge-conflict-markers",
+    "title": "Lendo os marcadores de conflito",
+    "question": "Você está na `main` e roda `git merge feature`. O app.js agora contém:\n<<<<<<< HEAD\nconst timeout = 30;\n=======\nconst timeout = 60;\n>>>>>>> feature\nDe onde vem `const timeout = 30;`?",
+    "options": [
+      "Da feature, a branch que está sendo mesclada",
+      "Da main, a branch em que você está agora",
+      "Do ancestral comum das duas branches",
+      "Do lado que o Git julgou ser o mais novo"
+    ],
+    "explanation": "Em um trecho de conflito, a parte entre `<<<<<<< HEAD` e `=======` é o seu lado, o commit para onde HEAD aponta (aqui, a main), e a parte entre `=======` e `>>>>>>> feature` vem da branch que está sendo mesclada. O texto do ancestral comum só aparece em uma seção extra `|||||||` se você usar o estilo de conflito diff3 ou zdiff3. O Git nunca escolhe um lado sozinho em um conflito: você edita o arquivo até o resultado desejado, remove os marcadores e coloca o arquivo no stage."
+  },
+  {
+    "id": "git-jr-merge-commits-on-wrong-branch",
+    "title": "Commits feitos na main por engano",
+    "question": "Você fez dois commits na sua main local que deveriam ter ido para uma nova branch de feature. Nada foi enviado com push e a sua working tree está limpa. Como você tira esses commits da main?",
+    "options": [
+      "`git switch -c feature`; os dois commits então saem da main sozinhos",
+      "`git reset --hard HEAD~2` na main, depois criar a `feature` a partir dali",
+      "`git revert HEAD~2..HEAD` na main, depois rodar `git switch -c feature`",
+      "`git branch feature`, `git reset --hard HEAD~2`, `git switch feature`"
+    ],
+    "explanation": "`git branch feature` cria uma branch apontando para o commit atual, então os dois commits ficam guardados nela; `git reset --hard HEAD~2` depois volta a main para onde estava, e `git switch feature` deixa você continuar o trabalho (essa receita está na documentação do git reset). Criar uma branch nunca tira commits da main, fazer o reset primeiro deixa os commits sem nenhuma branch apontando para eles (só o reflog se lembra deles), e o revert adiciona commits de desfazer que a nova branch também teria."
+  },
+  {
+    "id": "git-jr-merge-switch-blocked-by-local-changes",
+    "title": "Por que o git switch se recusa a trocar de branch",
+    "question": "Ontem você trocou de branch com edições não commitadas e elas simplesmente vieram junto. Hoje, com edições não commitadas no app.js, `git switch release` aborta com 'Your local changes to the following files would be overwritten by checkout: app.js'. O que mudou?",
+    "options": [
+      "O app.js é diferente nas duas branches, então a troca perderia suas edições",
+      "Edições não commitadas só podem ir para branches que existem no remoto",
+      "A release é uma branch protegida, então o Git bloqueia a troca com edições",
+      "Suas edições no app.js são grandes demais para o Git levá-las sozinho"
+    ],
+    "explanation": "Trocar de branch não exige uma working tree limpa: edições em arquivos que são idênticos nas duas branches simplesmente vêm junto. Quando um arquivo modificado também é diferente entre a branch atual e a de destino, a troca teria que sobrescrever a sua versão, então o Git aborta em vez de perder alterações locais. Faça commit ou stash das edições antes (ou use `git switch --merge`). Se a branch existe no remoto, proteção de branch (um recurso da hospedagem) e o tamanho das edições não têm nada a ver."
+  },
+  {
+    "id": "git-jr-remotes-push-set-upstream",
+    "title": "Primeiro push de uma branch nova",
+    "question": "Você criou `feature/login` localmente e fez commits nela. `git push` falha com 'fatal: The current branch feature/login has no upstream branch.' O que você deve rodar?",
+    "options": [
+      "`git pull` antes, para o Git baixar a branch antes do push",
+      "`git remote add origin feature/login`, depois `git push`",
+      "`git push -u origin feature/login`",
+      "`git fetch --all`, depois `git push` de novo"
+    ],
+    "explanation": "Uma branch local nova ainda não tem upstream, então um `git push` sem argumentos não sabe para onde enviá-la (a menos que push.autoSetupRemote esteja ativado). `git push -u origin feature/login` (--set-upstream) cria a branch no origin e a registra como upstream, e daí em diante `git push` e `git pull` funcionam sem argumentos. Pull ou fetch não ajudam porque a branch ainda não existe no remoto, e `git remote add` registra um novo repositório remoto, não uma branch."
+  },
+  {
+    "id": "git-jr-remotes-status-stale-tracking",
+    "title": "'Up to date' enquanto o GitHub mostra commits novos",
+    "question": "Um colega fez merge de um pull request na main há uma hora e o GitHub mostra o commit novo. Na sua máquina, na main, `git status` ainda diz \"Your branch is up to date with 'origin/main'\". Por quê?",
+    "options": [
+      "O GitHub leva algumas horas para replicar commits novos em cada clone",
+      "O status compara com a sua cópia de origin/main do último fetch",
+      "O status só conta commits criados na sua máquina e com a sua conta",
+      "Commits mesclados só chegam aos clones depois que a branch do PR é apagada"
+    ],
+    "explanation": "`git status` não fala com o servidor: ele compara a sua branch com a branch de rastreamento remoto origin/main, que só muda quando você roda `git fetch` (ou `git pull`). Depois de um fetch, o status informa que a sua branch está atrás pelo commit novo. O GitHub nunca empurra nada para os clones (eles baixam sob demanda), e o status não filtra por autor nem depende de apagar branches."
+  },
+  {
+    "id": "git-jr-wf-update-pull-request",
+    "title": "Atendendo aos comentários de review em um pull request",
+    "question": "Você abriu um pull request a partir da sua branch `fix/typo`, e quem está revisando pede duas mudanças. Como você atualiza o pull request?",
+    "options": [
+      "Fechar e abrir um novo pull request com o código corrigido",
+      "Colar o código corrigido como resposta na thread do review",
+      "Fazer push das correções direto na main para o pull request pegá-las",
+      "Commitar as correções na `fix/typo` e fazer push dessa mesma branch"
+    ],
+    "explanation": "Um pull request acompanha a sua branch de origem (head), e não uma cópia congelada dela: commits novos enviados para `fix/typo` aparecem no pull request automaticamente (a aba Commits mostra como a branch mudou ao longo do tempo) e as verificações rodam de novo. Abrir um novo pull request joga fora o histórico do review, um comentário não muda o código, e fazer push na main pula o review por completo (e a proteção de branch costuma proibir isso)."
+  },
+  {
+    "id": "git-jr-wf-closing-keyword-default-branch",
+    "title": "Quando 'Fixes #42' não fecha a issue",
+    "question": "A descrição do seu pull request diz 'Fixes #42'. O pull request tem como destino a `develop`, enquanto a branch padrão do repositório é a `main`. O que acontece com a issue #42 quando o pull request é mesclado?",
+    "options": [
+      "Nada; a palavra-chave é ignorada porque o PR não tem a main como destino",
+      "Ela é fechada assim que o pull request é mesclado na develop",
+      "Ela é fechada assim que alguém aprova o pull request no review",
+      "Ela já tinha sido fechada no momento em que o pull request foi aberto"
+    ],
+    "explanation": "O GitHub só interpreta palavras-chave de fechamento como Fixes, Closes ou Resolves na descrição de um pull request quando ele tem como destino a branch padrão do repositório; para qualquer outra branch base elas são ignoradas, nenhum vínculo é criado e o merge não afeta a issue. Se o destino fosse a main, a issue seria fechada quando o pull request fosse mesclado, e não quando foi aberto ou aprovado."
+  },
+  {
+    "id": "git-jr-undo-restore-from-index",
+    "title": "Descartando edições novas, mas mantendo a versão no stage",
+    "question": "Você colocou no stage uma versão funcionando do app.js com `git add` e depois fez mais edições que o quebraram. Você quer jogar fora só essas edições mais novas e manter a versão do stage. Qual comando faz isso?",
+    "options": [
+      "`git restore --staged app.js`",
+      "`git checkout HEAD -- app.js`",
+      "`git restore app.js`",
+      "`git reset --hard`"
+    ],
+    "explanation": "Sem --staged, `git restore` reescreve o arquivo da working tree a partir do index, então a versão do stage volta e só as edições mais novas são perdidas. `git restore --staged` faz o trabalho oposto: restaura a entrada do index a partir de HEAD e deixa suas edições quebradas no lugar. `git checkout HEAD -- app.js` e `git reset --hard` restauram a partir do último commit, sobrescrevendo index e working tree, então o trabalho no stage também se perde (o reset --hard faz isso com todos os arquivos)."
+  },
+  {
+    "id": "git-jr-rebase-drops-cherry-picked-commit",
+    "title": "Um commit some durante o rebase",
+    "question": "Sua branch tem 4 commits. Um colega fez cherry-pick de um deles, 'Fix null check', na main sem alterações. Depois de `git rebase main`, sua branch tem só 3 commits em cima da main, mas a correção continua no código. O que aconteceu?",
+    "options": [
+      "O commit foi perdido e precisa ser recuperado pelo reflog",
+      "O rebase o descartou porque a main já contém a mesma mudança",
+      "O rebase junta em um só os commits que têm a mesma mensagem",
+      "O rebase pula todo commit que mexe em arquivos alterados na main"
+    ],
+    "explanation": "Antes de reaplicar, o git rebase detecta commits que já estão no upstream como cherry-picks limpos (comparando os patches, como faz o `git log --cherry-mark`) e os descarta, então a correção aparece uma vez só, pela cópia da main; `--reapply-cherry-picks` desliga isso. Nada foi perdido, então não há o que recuperar. O rebase não junta commits pela mensagem (isso só acontece com squash ou fixup em um rebase interativo), e commits que mexem em arquivos alterados na main são reaplicados normalmente, possivelmente com conflitos."
+  }
+]

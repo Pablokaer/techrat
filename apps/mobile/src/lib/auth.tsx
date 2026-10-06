@@ -11,6 +11,8 @@ interface AuthValue {
   signIn(email: string, password: string): Promise<void>;
   register(input: RegisterInput): Promise<void>;
   signOut(): Promise<void>;
+  /** Changes (or sets, with no current password) the password; other sessions are signed out, this one keeps going. */
+  changePassword(currentPassword: string | null, newPassword: string): Promise<void>;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -48,7 +50,10 @@ export function AuthProvider({ session, children }: { session: BearerSession; ch
 
   const signOut = useCallback(() => session.logout(), [session]);
 
-  const value = useMemo(() => ({ status, signIn, register, signOut }), [status, signIn, register, signOut]);
+  const changePassword = useCallback((currentPassword: string | null, newPassword: string) =>
+    session.changePassword(currentPassword, newPassword), [session]);
+
+  const value = useMemo(() => ({ status, signIn, register, signOut, changePassword }), [status, signIn, register, signOut, changePassword]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

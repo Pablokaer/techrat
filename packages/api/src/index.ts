@@ -77,3 +77,13 @@ export async function unwrap<T>(
 export function isApiError(e: unknown, status?: number): e is ApiError {
   return e instanceof ApiError && (status === undefined || e.status === status);
 }
+
+/**
+ * Turns a media URL from the API into one a client can load. Uploaded files (e.g. profile photos) come back as
+ * API-relative paths ("/api/v1/users/{id}/avatar?v=…"): the web app resolves them against its own origin, while the
+ * desktop and mobile apps resolve them against the API base URL. Absolute URLs are returned unchanged.
+ */
+export function resolveMediaUrl(url: string | null | undefined, baseUrl: string): string | null {
+  if (!url) return null;
+  return url.startsWith("/") ? `${baseUrl.replace(/\/+$/, "")}${url}` : url;
+}

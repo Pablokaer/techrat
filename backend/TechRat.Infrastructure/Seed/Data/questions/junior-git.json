@@ -1,0 +1,206 @@
+[
+  {
+    "id": "git-jr-basics-add-patch",
+    "topic": "git",
+    "subtopic": "basics",
+    "difficulty": "Easy",
+    "title": "Committing only part of a file's changes",
+    "question": "In app.js you fixed a bug and, much further down the same file, added debug logging you are not ready to commit. How do you stage only the bug fix?",
+    "options": [
+      "`git add -u app.js`, which stages only the updated lines",
+      "`git add -A app.js`, which asks which lines to include",
+      "`git add -p app.js`, then answer y or n for each hunk",
+      "`git add -N app.js`, which stages only the newest hunk"
+    ],
+    "correctIndex": 2,
+    "explanation": "`git add -p` (--patch) walks through the differences between the index and the working tree hunk by hunk and lets you stage each one (y), skip it (n) or split it into smaller hunks (s); the debug logging stays as an unstaged change. `-u` stages every modification to tracked files, `-A` stages all changes including new and deleted files, and `-N` only records the intent to add an untracked file. None of them picks individual hunks.",
+    "referenceUrl": "https://git-scm.com/docs/git-add"
+  },
+  {
+    "id": "git-jr-basics-amend-forgotten-file",
+    "topic": "git",
+    "subtopic": "basics",
+    "difficulty": "Easy",
+    "title": "Adding a forgotten file to the last commit",
+    "question": "You just committed a feature but forgot to stage the new file validator.js. The commit has not been pushed yet. What is the cleanest way to make that same commit include the file?",
+    "options": [
+      "`git add validator.js`, then `git commit --amend --no-edit`",
+      "`git add validator.js`, then `git push`, which adds it to the commit",
+      "`git commit -a`, which rewrites the last commit with every file",
+      "`git revert HEAD`, then `git add validator.js` and commit again"
+    ],
+    "correctIndex": 0,
+    "explanation": "`git commit --amend` replaces the tip of the current branch with a new commit built from the current index, and `--no-edit` keeps the previous message, so staging validator.js first gives you a single commit with everything. It is safe here because the commit was never pushed (amending gives it a new hash). `git push` only uploads existing commits, `git commit -a` creates a new commit from modified tracked files (it would not even include an untracked file), and `git revert` adds a commit that undoes the feature.",
+    "referenceUrl": "https://git-scm.com/docs/git-commit"
+  },
+  {
+    "id": "git-jr-basics-gitignore-negate-in-ignored-dir",
+    "topic": "git",
+    "subtopic": "basics",
+    "difficulty": "Hard",
+    "title": "Re-including a file inside an ignored folder",
+    "question": ".gitignore contains:\nlogs/\n!logs/.gitkeep\nYou want the otherwise empty logs folder in the repository, but `git status` never shows logs/.gitkeep as untracked. Why, and what fixes it?",
+    "options": [
+      "Negations must come before the pattern they negate; swap the two lines",
+      "Dotfiles can only be re-included with a pattern like `!**/.gitkeep`",
+      "`!` only re-includes files Git already tracks, so add it with -f once",
+      "Git does not look inside an excluded folder; ignore `logs/*` instead"
+    ],
+    "correctIndex": 3,
+    "explanation": "The gitignore docs state that a file cannot be re-included if one of its parent directories is excluded: for performance Git does not list the contents of an excluded directory, so patterns about files inside it have no effect. Writing `logs/*` ignores the folder's contents rather than the folder itself, and `!logs/.gitkeep` then applies. Order matters the other way round (the last matching pattern wins, so the negation must come after), dotfiles need no special syntax, and negation works for untracked files.",
+    "referenceUrl": "https://git-scm.com/docs/gitignore"
+  },
+  {
+    "id": "git-jr-merge-conflict-markers",
+    "topic": "git",
+    "subtopic": "branching-merging",
+    "difficulty": "Easy",
+    "title": "Reading conflict markers",
+    "question": "You are on `main` and run `git merge feature`. app.js now contains:\n<<<<<<< HEAD\nconst timeout = 30;\n=======\nconst timeout = 60;\n>>>>>>> feature\nWhere does `const timeout = 30;` come from?",
+    "options": [
+      "From feature, the branch being merged in",
+      "From main, the branch you are currently on",
+      "From the common ancestor of both branches",
+      "From whichever side Git judged to be newer"
+    ],
+    "correctIndex": 1,
+    "explanation": "In a conflict hunk, the part between `<<<<<<< HEAD` and `=======` is your side, the commit HEAD points to (main here), and the part between `=======` and `>>>>>>> feature` comes from the branch being merged in. The common ancestor's text only appears in an extra `|||||||` section if you use the diff3 or zdiff3 conflict style. Git never picks a side by itself in a conflict: you edit the file to the result you want, remove the markers and stage it.",
+    "referenceUrl": "https://git-scm.com/docs/git-merge"
+  },
+  {
+    "id": "git-jr-merge-commits-on-wrong-branch",
+    "topic": "git",
+    "subtopic": "branching-merging",
+    "difficulty": "Medium",
+    "title": "Commits made on main by mistake",
+    "question": "You made two commits on your local main that should have gone to a new feature branch. Nothing has been pushed and your working tree is clean. How do you move them off main?",
+    "options": [
+      "`git switch -c feature`; the two commits then leave main on their own",
+      "`git reset --hard HEAD~2` on main, then create `feature` from there",
+      "`git revert HEAD~2..HEAD` on main, then run `git switch -c feature`",
+      "`git branch feature`, `git reset --hard HEAD~2`, `git switch feature`"
+    ],
+    "correctIndex": 3,
+    "explanation": "`git branch feature` creates a branch pointing at the current commit, so the two commits are kept there; `git reset --hard HEAD~2` then moves main back to where it was, and `git switch feature` lets you carry on (this is a recipe in the git reset docs). Creating a branch never takes commits away from main, resetting first leaves no branch pointing at the commits (only the reflog remembers them), and reverting adds undo commits that the new branch would contain too.",
+    "referenceUrl": "https://git-scm.com/docs/git-reset"
+  },
+  {
+    "id": "git-jr-merge-switch-blocked-by-local-changes",
+    "topic": "git",
+    "subtopic": "branching-merging",
+    "difficulty": "Medium",
+    "title": "Why git switch refuses to change branch",
+    "question": "Yesterday you switched branches with uncommitted edits and they simply came along. Today, with uncommitted edits to app.js, `git switch release` aborts with 'Your local changes to the following files would be overwritten by checkout: app.js'. What is different?",
+    "options": [
+      "app.js differs between the two branches, so switching would lose your edits",
+      "Uncommitted edits can only be carried to branches that exist on the remote",
+      "release is a protected branch, so Git blocks switching to it with edits",
+      "Your edits to app.js are too large for Git to carry over automatically"
+    ],
+    "correctIndex": 0,
+    "explanation": "Switching does not require a clean working tree: edits to files that are identical in both branches are simply carried over. When a modified file also differs between the current branch and the target, switching would have to overwrite your version, so Git aborts rather than lose local changes. Commit or stash the edits first (or use `git switch --merge`). Whether the branch exists on a remote, branch protection (a hosting feature) and the size of the edits play no role.",
+    "referenceUrl": "https://git-scm.com/docs/git-switch"
+  },
+  {
+    "id": "git-jr-remotes-push-set-upstream",
+    "topic": "git",
+    "subtopic": "remotes",
+    "difficulty": "Easy",
+    "title": "First push of a new branch",
+    "question": "You created `feature/login` locally and committed to it. `git push` fails with 'fatal: The current branch feature/login has no upstream branch.' What should you run?",
+    "options": [
+      "`git pull` first, so Git downloads the branch before pushing",
+      "`git remote add origin feature/login`, then `git push`",
+      "`git push -u origin feature/login`",
+      "`git fetch --all`, then `git push` again"
+    ],
+    "correctIndex": 2,
+    "explanation": "A new local branch has no upstream yet, so a bare `git push` does not know where to send it (unless push.autoSetupRemote is enabled). `git push -u origin feature/login` (--set-upstream) creates the branch on origin and records it as the upstream, so later `git push` and `git pull` work without arguments. Pulling or fetching cannot help because the branch does not exist on the remote yet, and `git remote add` registers a new remote repository, not a branch.",
+    "referenceUrl": "https://git-scm.com/docs/git-push"
+  },
+  {
+    "id": "git-jr-remotes-status-stale-tracking",
+    "topic": "git",
+    "subtopic": "remotes",
+    "difficulty": "Medium",
+    "title": "'Up to date' while GitHub shows new commits",
+    "question": "A teammate merged a pull request into main an hour ago and GitHub shows the new commit. On your machine, on main, `git status` still says \"Your branch is up to date with 'origin/main'\". Why?",
+    "options": [
+      "GitHub takes a few hours to replicate new commits to every clone",
+      "status compares with your copy of origin/main from your last fetch",
+      "status only counts commits created from your own machine and account",
+      "Merged commits reach clones only after the PR branch is deleted"
+    ],
+    "correctIndex": 1,
+    "explanation": "`git status` does not contact the server: it compares your branch with the remote-tracking branch origin/main, which only changes when you run `git fetch` (or `git pull`). After a fetch, status reports that your branch is behind by the new commit. GitHub never pushes anything into clones (they download on request), and status is neither filtered by author nor tied to deleting branches.",
+    "referenceUrl": "https://git-scm.com/docs/git-status"
+  },
+  {
+    "id": "git-jr-wf-update-pull-request",
+    "topic": "git",
+    "subtopic": "workflows",
+    "difficulty": "Easy",
+    "title": "Addressing review comments on a pull request",
+    "question": "You opened a pull request from your branch `fix/typo`, and a reviewer asks for two changes. How do you update the pull request?",
+    "options": [
+      "Close it and open a new pull request with the corrected code",
+      "Paste the corrected code as a reply in the review thread",
+      "Push the fixes straight to main so the pull request picks them up",
+      "Commit the fixes on `fix/typo` and push that same branch"
+    ],
+    "correctIndex": 3,
+    "explanation": "A pull request tracks its head branch rather than a frozen copy of it: new commits pushed to `fix/typo` show up in the pull request automatically (the Commits tab shows how the branch changed over time) and checks run again. Opening a new pull request throws away the review history, a comment does not change the code, and pushing to main skips the review altogether (branch protection often forbids it).",
+    "referenceUrl": "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests"
+  },
+  {
+    "id": "git-jr-wf-closing-keyword-default-branch",
+    "topic": "git",
+    "subtopic": "workflows",
+    "difficulty": "Medium",
+    "title": "When 'Fixes #42' does not close the issue",
+    "question": "Your pull request description says 'Fixes #42'. The pull request targets `develop`, while the repository's default branch is `main`. What happens to issue #42 when the pull request is merged?",
+    "options": [
+      "Nothing; the keyword is ignored because the PR does not target main",
+      "It is closed as soon as the pull request is merged into develop",
+      "It is closed as soon as a reviewer approves the pull request",
+      "It was already closed at the moment the pull request was opened"
+    ],
+    "correctIndex": 0,
+    "explanation": "GitHub only interprets closing keywords such as Fixes, Closes or Resolves in a pull request description when the pull request targets the repository's default branch; for any other base branch they are ignored, no link is created and merging has no effect on the issue. Had it targeted main, the issue would close when the pull request was merged, not when it was opened or approved.",
+    "referenceUrl": "https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue"
+  },
+  {
+    "id": "git-jr-undo-restore-from-index",
+    "topic": "git",
+    "subtopic": "undoing",
+    "difficulty": "Medium",
+    "title": "Discarding new edits but keeping the staged version",
+    "question": "You staged a working version of app.js with `git add`, then made more edits that broke it. You want to throw away only those newer edits and keep the staged version. Which command does that?",
+    "options": [
+      "`git restore --staged app.js`",
+      "`git checkout HEAD -- app.js`",
+      "`git restore app.js`",
+      "`git reset --hard`"
+    ],
+    "correctIndex": 2,
+    "explanation": "Without --staged, `git restore` rewrites the working-tree file from the index, so the staged version comes back and only the newer edits are lost. `git restore --staged` does the opposite job: it resets the index entry from HEAD and leaves your broken edits in place. `git checkout HEAD -- app.js` and `git reset --hard` both restore from the last commit, overwriting index and working tree, so the staged work is lost as well (reset --hard does it for every file).",
+    "referenceUrl": "https://git-scm.com/docs/git-restore"
+  },
+  {
+    "id": "git-jr-rebase-drops-cherry-picked-commit",
+    "topic": "git",
+    "subtopic": "rebase",
+    "difficulty": "Hard",
+    "title": "A commit vanishes during a rebase",
+    "question": "Your branch has 4 commits. A teammate cherry-picked one of them, 'Fix null check', onto main without changes. After `git rebase main`, your branch has only 3 commits on top of main, yet the fix is still in the code. What happened?",
+    "options": [
+      "The commit was lost and has to be recovered from the reflog",
+      "Rebase dropped it because main already contains the same change",
+      "Rebase merges commits that share a commit message into a single one",
+      "Rebase skips any commit that touches files main has changed"
+    ],
+    "correctIndex": 1,
+    "explanation": "Before replaying, git rebase detects commits that are already upstream as clean cherry-picks (comparing the patches, as `git log --cherry-mark` does) and drops them, so the fix is present once, via main's copy; `--reapply-cherry-picks` turns this off. Nothing was lost, so there is nothing to recover. Rebase does not combine commits by message (that only happens with squash or fixup in an interactive rebase), and commits touching files changed on main are replayed normally, possibly with conflicts.",
+    "referenceUrl": "https://git-scm.com/docs/git-rebase"
+  }
+]

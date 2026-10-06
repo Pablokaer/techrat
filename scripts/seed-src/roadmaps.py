@@ -226,7 +226,9 @@ roadmap("junior-software-engineer", "Junior Software Engineer", "Career", "Begin
         "Everything you need for your first developer job: fundamentals, Git, OOP, SQL, HTTP, testing and interviews.",
         ["programming-basics", "problem-solving-and-complexity", "git-essentials", "arrays-strings-hashing",
          "searching-and-sorting", "csharp-fundamentals", "sql-foundations", "dns-and-http", "http-and-apis",
-         "testing-essentials", "incident-response", "security-foundations", "docker-essentials", "ci-cd", "array-patterns"])
+         "testing-essentials", "incident-response", "security-foundations", "docker-essentials", "ci-cd", "array-patterns",
+         # Optional: the beginner modules of the other junior roadmaps (ADR-0015), so the path reaches their questions.
+         "git-collaboration?", "javascript-core?", "linear-data-structures?", "how-computers-work?"])
 
 roadmap("senior-software-engineer", "Senior Software Engineer", "Career", "Expert", "crown", "Role",
         "Beyond technology: architecture, distributed systems, reliability, technical decisions and leadership.",
@@ -263,6 +265,19 @@ roadmap("aws-best-practices", "AWS Best Practices", "Cloud & DevOps", "Advanced"
         ["aws-foundations", "aws-core-services", "aws-best-practices", "cloud-security?"],
         new=True)
 
+# ---------------------------------------------------------------- recommended for juniors
+# The platform's top roadmaps for a junior software developer, most recommended first (the "Recommended for juniors"
+# filter shows them in this order). Language-neutral foundations first, then the daily tools (Git, SQL), the most
+# used language for a first job (JavaScript) and the data structures and algorithms that junior interviews test.
+JUNIOR_TOP = [
+    "junior-software-engineer",
+    "computer-science-fundamentals",
+    "git-and-collaboration",
+    "javascript-developer",
+    "sql",
+    "data-structures-and-algorithms",
+]
+
 # ---------------------------------------------------------------- emit
 LEVEL_RANK = {"Beginner": 0, "Intermediate": 1, "Advanced": 2, "Expert": 3}
 
@@ -292,6 +307,7 @@ def build():
     mods = {m["slug"]: m for m in MODULES}
     slugs = {r["slug"] for r in R}
     assert len(slugs) == len(R), "duplicate roadmap slug"
+    assert len(set(JUNIOR_TOP)) == len(JUNIOR_TOP) and set(JUNIOR_TOP) <= slugs, "JUNIOR_TOP: unknown or repeated slug"
     used_by = collections.defaultdict(list)
     out = []
     for r in R:
@@ -308,6 +324,7 @@ def build():
                 minutes += len(mods[slug]["steps"]) * MINUTES[mods[slug]["level"]]
         out.append({**{k: r[k] for k in ("slug", "name", "category", "difficulty", "icon", "type", "new", "description")},
                     "estimatedHours": max(1, round(minutes / 60)),
+                    "juniorRank": JUNIOR_TOP.index(r["slug"]) + 1 if r["slug"] in JUNIOR_TOP else None,
                     "prerequisites": [{"slug": p, "minimumPercent": pct} for p, pct in r["prerequisites"]],
                     "modules": refs})
     for slug, m in mods.items():

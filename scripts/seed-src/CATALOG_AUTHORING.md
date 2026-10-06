@@ -42,11 +42,21 @@ python3 scripts/seed-src/readme_catalog.py       # README "Catalog" section (CI 
 - Prerequisites are soft (`minimumPercent` of another roadmap). Never lock beginner paths.
 - Keep existing slugs: they are referenced by learner progress, links and achievements.
 - Existing roadmaps carry `"new": false` (exempt from the Context/Capstone rule).
+- `JUNIOR_TOP` in `roadmaps.py` ranks the platform's top roadmaps for junior developers (most recommended first); it becomes `juniorRank` in `roadmaps.json` and feeds the "Recommended for juniors" filter (ADR-0015). Keep it short and keep its roadmaps well stocked with Easy/Medium questions.
 
 ## Naming
 
 - Slugs: kebab-case, stable, descriptive (`api-security-best-practices`, `cpp-memory-and-raii`). Capstones end in `-capstone`.
 - Names in English in `modules.py`/`roadmaps.py`; Portuguese in `Seed/Data/i18n/pt-BR.json` (`topics`, `modules` with step titles keyed by `topic/subtopic`, `roadmaps`). Every learner-facing text exists in both languages (CLAUDE.md).
+
+## Study resources
+
+Each roadmap and module can list recommended reading in `backend/TechRat.Infrastructure/Seed/Data/resources.json` (ADR-0020): a roadmap has overview `sources`; a module has `topics` to master, each with `sources`. A source is `{title, url, type, language, note?}`.
+
+- `type`: `official-docs`, `spec`, `book`, `course`, `video` or `article`. Prefer official docs, specs (RFCs, ECMA, W3C), MDN and vendor docs, then free books and courses readable online. `language` is the language of the source (`en` or `pt-BR`); topic names and notes carry both `en` and `pt-BR`.
+- **Never invent a URL.** Open every link (`python3 scripts/seed-src/validate_resources.py --check-urls` requests each one) and keep only those that answer 2xx. Prefer stable deep links (a chapter, a man page); otherwise use the documentation root. Anything you cannot verify stays out and goes in the report as "needs verification".
+- Topics name what the learner must know (one or two sittings of reading), not the step titles. 3–6 sources per topic, official first, a Portuguese source when a good one exists.
+- `python3 scripts/seed-src/validate_resources.py` (offline, run by CI through the unit tests) checks slugs, types, https, bilingual texts and duplicates, and fails when a roadmap or module has none: every new roadmap or module needs its resources in the same change.
 
 ## Questions
 

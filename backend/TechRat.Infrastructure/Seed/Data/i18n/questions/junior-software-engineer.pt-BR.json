@@ -1,0 +1,146 @@
+[
+  {
+    "id": "be-jr-http-malformed-json-400",
+    "title": "JSON malformado no corpo da requisição",
+    "question": "Um cliente envia `POST /api/users` com o corpo `{\"name\": \"Ana\",}` (repare na vírgula sobrando no final). O endpoint do júnior faz o parse do corpo na mão e deixa a exceção do parser subir, então a API responde 500. Qual status ela deveria retornar?",
+    "options": [
+      "500 Internal Server Error, porque a exceção foi lançada no servidor",
+      "422 Unprocessable Content, porque o JSON é válido, mas os seus valores estão errados",
+      "400 Bad Request, porque o cliente enviou um corpo que o servidor não consegue ler",
+      "503 Service Unavailable, porque o servidor não conseguiu atender naquele momento"
+    ],
+    "explanation": "Um status 4xx diz a quem chamou que o problema está na requisição dele, e sintaxe malformada é o caso clássico de 400 Bad Request. Um 500 diz que o próprio servidor falhou, o que faz as pessoas procurarem um bug no lugar errado e infla os alertas de erro de servidor. O 422 é para um corpo que é lido corretamente mas tem conteúdo inválido, o que não é o caso de uma vírgula sobrando, e o 503 indica sobrecarga temporária ou manutenção."
+  },
+  {
+    "id": "be-jr-http-get-must-be-safe",
+    "title": "Pedidos cancelados pela prévia de link do chat",
+    "question": "Um júnior cria `GET /orders/{id}/cancel`, que cancela o pedido, e cola alguns desses links no chat do time para pedir review. Minutos depois esses pedidos estão cancelados, embora ninguém tenha clicado. Os logs mostram requisições do bot de prévia de links do app de chat. Qual é o problema de fundo?",
+    "options": [
+      "GET deve ser seguro; bots e navegadores acessam URLs GET livremente: use POST",
+      "O bot está atacando a API, então o user agent dele deveria ser bloqueado",
+      "O link precisa de um token CSRF na query string para que o bot não consiga usá-lo",
+      "O endpoint retorna 200; um 204 impediria o bot de seguir o link"
+    ],
+    "explanation": "O HTTP define GET como um método seguro: ele só deve ler dados, então crawlers, prévias de link e o prefetch do navegador fazem requisições GET sem pedir permissão a ninguém. Colocar uma mudança de estado atrás de um GET deixa qualquer um deles dispará-la, então o cancelamento deve ser um POST enviado por um botão ou formulário. Bloquear um bot deixa todos os outros crawlers, um token na URL vai junto com o link que o bot acessa, e o status code não influencia se a URL será requisitada."
+  },
+  {
+    "id": "be-jr-api-nouns-not-verbs",
+    "title": "Nomeando endpoints em uma API REST",
+    "question": "O PR de um júnior adiciona estes endpoints:\n\nPOST /createOrder\nGET  /getOrder?id=42\nPOST /deleteOrder?id=42\n\nO revisor pede URIs REST orientadas a recursos. Qual conjunto atende?",
+    "options": [
+      "GET /orders/create, GET /orders/get/42, GET /orders/delete/42",
+      "POST /order/create, POST /order/get/42, POST /order/delete/42",
+      "POST /orders/new, GET /orders/read/42, POST /orders/remove/42",
+      "POST /orders, GET /orders/42, DELETE /orders/42"
+    ],
+    "explanation": "URIs REST nomeiam recursos com substantivos, geralmente no plural para coleções, e deixam o método HTTP carregar a ação: POST em /orders cria um pedido, GET /orders/42 lê o pedido e DELETE /orders/42 o remove. As outras opções só movem os verbos para o caminho, e algumas usam GET para ações que alteram dados, o que quebra a regra de que GET deve ser seguro."
+  },
+  {
+    "id": "be-jr-api-200-for-errors",
+    "title": "Toda resposta é 200, até os erros",
+    "question": "A API de um júnior responde toda requisição com HTTP 200 e informa falhas só no corpo, por exemplo `{\"success\": false, \"error\": \"Order not found\"}`. Por que um revisor vai questionar isso?",
+    "options": [
+      "A especificação HTTP proíbe uma resposta 200 de levar um campo de erro",
+      "Clientes, retries e monitoramento leem o status, então falhas parecem sucesso",
+      "Navegadores repetem sozinhos respostas 200 cujo corpo tem um campo de erro",
+      "Uma resposta 200 nunca pode ir para cache, então toda busca que falha é repetida"
+    ],
+    "explanation": "O status code é o que clientes HTTP, proxies, políticas de retry, logs e dashboards de taxa de erro observam. Se um pedido inexistente volta como 200, a biblioteca cliente trata como sucesso e o monitoramento mostra 0% de erros durante uma pane. Retorne o status adequado, aqui 404 Not Found, junto com um corpo de erro. O HTTP não restringe o que um corpo 200 contém, navegadores não fazem retry com base no corpo, e respostas 200 podem ir para cache."
+  },
+  {
+    "id": "test-jr-unit-try-catch-no-assert",
+    "title": "Um teste que não consegue falhar",
+    "question": "[Fact]\npublic void Withdraw_NegativeAmount_Throws()\n{\n    var account = new Account(100);\n    try\n    {\n        account.Withdraw(-5);\n    }\n    catch (ArgumentOutOfRangeException)\n    {\n    }\n}\n\nUm bug faz `Withdraw(-5)` ter sucesso sem lançar exceção. Qual resultado este teste xUnit mostra?",
+    "options": [
+      "Passa, porque nada no teste falha quando nenhuma exceção é lançada",
+      "Falha, porque o xUnit reprova um teste cujo bloco catch nunca executa",
+      "Falha, porque um teste sem nenhuma chamada a Assert é reprovado",
+      "É ignorado, porque o xUnit pula testes que não têm asserções"
+    ],
+    "explanation": "Um teste xUnit passa a menos que algo lance exceção, então se Withdraw parar de lançar, o bloco catch é simplesmente pulado e o teste continua verde. O xUnit não olha para blocos catch e não reprova nem pula um teste por não ter Assert. Escreva `Assert.Throws<ArgumentOutOfRangeException>(() => account.Withdraw(-5));`, que falha quando a exceção esperada não é lançada."
+  },
+  {
+    "id": "test-jr-unit-private-via-public",
+    "title": "Testando um método auxiliar privado",
+    "question": "`CsvImporter` tem um método público `Import(string csvText)` e um privado `ParseLine(string line)` com regras de parsing complicadas. Um júnior quer testes de unidade para `ParseLine`. O que a recomendação usual diz?",
+    "options": [
+      "Tornar ParseLine público para que os testes possam chamá-lo direto",
+      "Chamar ParseLine via reflection para que ele possa continuar privado",
+      "Testar as regras de parsing via Import, o método público que o usa",
+      "Deixar sem teste, já que testes não conseguem alcançar código privado"
+    ],
+    "explanation": "Métodos privados são detalhes de implementação que existem para servir a um método público, então teste-os através desse método: passe para Import entradas que exercitem cada regra de parsing. Assim os testes verificam comportamento observável, e ParseLine pode ser renomeado ou dividido sem quebrá-los. Torná-lo público só para testes amplia a API, reflection amarra os testes a nomes privados, e o código privado é claramente alcançável pelo método público que o chama."
+  },
+  {
+    "id": "test-jr-e2e-reuse-login-state",
+    "title": "Fazendo login antes de cada teste E2E",
+    "question": "Os 60 testes Playwright de uma suíte começam preenchendo o formulário de login. A suíte é lenta, e uma pequena mudança na página de login quebrou todos os testes de uma vez. O que o Playwright recomenda?",
+    "options": [
+      "Juntar os 60 testes em um único teste longo para o login rodar uma vez só",
+      "Desligar a autenticação da aplicação sempre que ela rodar em testes",
+      "Aumentar o timeout e adicionar workers para os logins se sobreporem",
+      "Fazer login uma vez em um setup project e reusar o storageState salvo"
+    ],
+    "explanation": "A recomendação do Playwright é autenticar uma vez em um setup project, salvar o estado do navegador (cookies e local storage) em um arquivo com storageState e carregar esse arquivo nos outros testes, que já começam logados. Um teste dedicado continua cobrindo a própria página de login. Um único teste gigante perde isolamento e clareza nas falhas, desligar a autenticação testa uma aplicação diferente da de produção, e mais tempo ou workers ainda repetem o login 60 vezes."
+  },
+  {
+    "id": "sec-jr-sqli-stored-proc-dynamic",
+    "title": "Uma stored procedure é à prova de injeção?",
+    "question": "Para corrigir uma SQL injection, um júnior move a busca para uma stored procedure e a chama com um parâmetro:\n\nCREATE PROCEDURE SearchProducts @name NVARCHAR(100) AS\nEXEC('SELECT * FROM Products WHERE Name LIKE ''%' + @name + '%''')\n\nA busca agora está segura?",
+    "options": [
+      "Sim: um valor passado como parâmetro de procedure nunca roda como SQL",
+      "Não: o EXEC roda @name colado em SQL dinâmico, então ainda há injeção",
+      "Sim: NVARCHAR(100) trunca a entrada, então nenhum payload nocivo cabe",
+      "Não, mas só porque % e _ dentro de @name funcionam como curingas do LIKE"
+    ],
+    "explanation": "Um parâmetro só protege se o valor continuar sendo um valor até o fim. Aqui a procedure concatena @name em uma string e o EXEC a executa como SQL, então uma entrada como `x' OR 1=1 --` muda a consulta exatamente como antes. Use SQL estático (`WHERE Name LIKE '%' + @name + '%'`) ou sp_executesql com parâmetros. Payloads curtos cabem facilmente em 100 caracteres, e os curingas do LIKE podem ampliar os resultados, mas não executam SQL."
+  },
+  {
+    "id": "sec-jr-authz-hidden-admin-button",
+    "title": "Escondendo o botão de admin",
+    "question": "Um júnior esconde o botão \"Excluir usuário\" no app React a menos que o usuário seja admin. O endpoint da API `DELETE /api/users/{id}` só verifica se quem chama está logado. A exclusão de usuários está protegida?",
+    "options": [
+      "Sim: sem o botão, um usuário comum não tem como montar a requisição",
+      "Sim, desde que o bundle JavaScript seja minificado para esconder a URL",
+      "Não: qualquer usuário logado chama a API direto; ela deve checar o papel",
+      "Não: o botão deveria aparecer desabilitado em vez de ficar escondido"
+    ],
+    "explanation": "A interface não é uma barreira de segurança: qualquer um pode enviar a requisição com curl, Postman ou as ferramentas de desenvolvedor do navegador, e URLs são fáceis de achar no tráfego de rede ou no bundle. A API deve verificar em toda requisição se quem chama é admin. Esconder ou desabilitar o botão é boa experiência de uso, mas não protege nada, e a minificação não esconde strings como URLs."
+  },
+  {
+    "id": "devops-jr-ci-push-main-only",
+    "title": "Nenhum check de CI no pull request",
+    "question": "Um júnior faz push da branch `feature/login` e abre um pull request para `main`, mas nenhum check de CI aparece. O workflow do GitHub Actions começa com:\n\non:\n  push:\n    branches: [main]\n\nPor que ele não rodou?",
+    "options": [
+      "Os checks só começam depois que um revisor aprova o pull request aberto",
+      "Só roda em pushes para main; adicione também um trigger pull_request",
+      "runs-on precisa ser pull-request para o workflow rodar em PRs",
+      "Os triggers ignoram nomes de branch com barra, como feature/login"
+    ],
+    "explanation": "Um trigger push com filtro de branches só roda quando há push de commits para uma branch correspondente, então pushes para feature/login nunca casam e o PR fica sem execução até ser mergeado. Adicionar `pull_request:` (opcionalmente com `branches: [main]`, que filtra pela branch base do PR) roda o workflow para PRs que têm main como destino. Branches do mesmo repositório não precisam de aprovação para rodar checks, runs-on escolhe a máquina runner, e barras em nomes de branch funcionam normalmente."
+  },
+  {
+    "id": "nw-jr-https-padlock-meaning",
+    "title": "O que o cadeado do HTTPS prova e o que não prova",
+    "question": "Um usuário denuncia um site de phishing em `examp1e-bank-login.com` que copia a página de login do Example Bank e mostra o ícone de cadeado do navegador. O que o cadeado (HTTPS) garante de fato?",
+    "options": [
+      "Que o dono do site foi verificado como uma empresa legítima e confiável",
+      "Que o navegador analisou o conteúdo da página atrás de phishing e malware",
+      "Que o site é o banco verdadeiro, já que só bancos recebem esses certificados",
+      "Que o tráfego é criptografado e o certificado é válido para aquele domínio"
+    ],
+    "explanation": "O HTTPS criptografa a conexão e prova que o servidor tem um certificado válido para o nome na barra de endereço, que aqui é o próprio domínio do atacante. Certificados validados por domínio podem ser obtidos rapidamente e de graça por qualquer pessoa que controle um domínio, então não dizem nada sobre quem mantém o site nem se o conteúdo é honesto. Filtros de phishing são um recurso separado do navegador, então o usuário ainda precisa conferir o próprio domínio."
+  },
+  {
+    "id": "nw-jr-cookie-host-only",
+    "title": "Cookie de sessão ausente em outro subdomínio",
+    "question": "Depois do login em `https://auth.example.com`, a resposta define:\n\nSet-Cookie: session=abc123; Path=/; Secure; HttpOnly\n\nAs requisições seguintes do navegador para `https://app.example.com` não incluem o cookie. Por quê?",
+    "options": [
+      "Sem o atributo Domain ele é host-only e só volta para auth.example.com",
+      "Cookies Secure só são enviados de volta ao host exato que os definiu",
+      "HttpOnly impede que o cookie seja enviado a qualquer outro subdomínio",
+      "Path=/ limita o cookie ao caminho raiz do site que o definiu"
+    ],
+    "explanation": "Quando o Set-Cookie não tem o atributo Domain, o navegador guarda um cookie host-only e o devolve apenas ao host exato que o definiu, auth.example.com. Definir `Domain=example.com` o compartilharia com example.com e todos os seus subdomínios, o que também amplia quem recebe a sessão, então faça isso de forma deliberada. Secure só exige HTTPS, HttpOnly esconde o cookie do JavaScript, e Path=/ casa com todos os caminhos daquele host."
+  }
+]

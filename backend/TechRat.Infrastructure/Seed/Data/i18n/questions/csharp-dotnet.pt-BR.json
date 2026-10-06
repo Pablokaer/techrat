@@ -886,5 +886,77 @@
       "dotnet ef database drop, depois dotnet ef migrations list"
     ],
     "explanation": "migrations add compara o modelo com o último snapshot e gera o código Up/Down; database update aplica as migrations pendentes. dbcontext scaffold faz engenharia reversa de código a partir de um banco existente, e apenas fazer o build nunca altera o schema."
+  },
+  {
+    "id": "pf-vt-decimal-money",
+    "title": "Escolhendo um tipo para dinheiro",
+    "question": "Um serviço de cobrança em C# guarda preços como double. Somar 0.10 dez vezes dá 0.9999999999999999 em vez de 1.0, e as faturas saem com um centavo de diferença. Qual tipo deve guardar os valores monetários?",
+    "options": [
+      "float, já que o tamanho menor reduz o erro de arredondamento acumulado",
+      "decimal, já que representa frações de base 10 como 0.10 de forma exata",
+      "double, arredondado com Math.Round após cada soma para corrigir o desvio",
+      "BigInteger, já que só precisão arbitrária elimina todo o arredondamento"
+    ],
+    "explanation": "double é um tipo de ponto flutuante binário, então 0.10 não tem representação exata e os erros se acumulam. decimal é um tipo de ponto flutuante de base 10 com 28-29 dígitos significativos, então valores como 0.10 são exatos, e é por isso que ele é recomendado para valores financeiros. float é ainda menos preciso, arredondar a cada passo só esconde o sintoma, e BigInteger nem consegue guardar frações."
+  },
+  {
+    "id": "pf-cf-switch-expression-unmatched",
+    "title": "Switch expression sem correspondência em C#",
+    "question": "Um método C# usa uma switch expression sem braço de descarte:\n\nstring Label(int code) => code switch\n{\n    1 => \"low\",\n    2 => \"high\"\n};\n\nO que acontece quando Label(3) é chamado em runtime?",
+    "options": [
+      "Lança uma SwitchExpressionException porque nenhum braço casou",
+      "Retorna null, porque nenhum braço casou com o valor",
+      "Retorna string.Empty, o padrão para resultados string",
+      "Nada; o compilador rejeita o switch não exaustivo com um erro"
+    ],
+    "explanation": "O compilador só emite o warning CS8509 para uma switch expression não exaustiva, então o código compila. Em runtime, quando nenhum padrão casa, o .NET lança System.Runtime.CompilerServices.SwitchExpressionException em vez de retornar null ou um valor padrão. Adicione um braço de descarte (_ => ...) que retorne um fallback ou lance uma exceção significativa."
+  },
+  {
+    "id": "pf-jr-fn-ref-parameter",
+    "title": "Passando um int por valor e por ref",
+    "question": "Dados estes dois métodos C#:\n\nstatic void AddTen(int x) { x += 10; }\nstatic void AddTenRef(ref int x) { x += 10; }\n\nO que isto imprime?\n\nint n = 5;\nAddTen(n);\nAddTenRef(ref n);\nConsole.WriteLine(n);",
+    "options": [
+      "5",
+      "25",
+      "15",
+      "10"
+    ],
+    "explanation": "Por padrão, o C# passa argumentos por valor: AddTen recebe uma cópia de n e altera só essa cópia, então n continua 5 depois da chamada. Com ref, AddTenRef trabalha na própria variável de quem chamou, então n vira 15. 25 exigiria que as duas chamadas alterassem n, e 5 significaria que o ref não fez diferença."
+  },
+  {
+    "id": "ds-str-turkish-i",
+    "title": "Conversão de maiúsculas dependente de cultura",
+    "question": "Uma checagem em C# usa ext.ToUpper() == \"FILE\". Ela passa nos testes, mas falha em servidores cuja cultura atual é tr-TR. Por quê, e qual é a correção?",
+    "options": [
+      "Em turco, i vira o I com ponto (U+0130); compare com OrdinalIgnoreCase",
+      "tr-TR guarda strings internamente em UTF-32; converta os dois lados para UTF-8",
+      "ToUpper é avaliado de forma lazy em algumas culturas; chame ToString() para forçar",
+      "tr-TR ordena maiúsculas depois de minúsculas; use String.Compare com CurrentCulture"
+    ],
+    "explanation": "ToUpper() usa a cultura atual, e em turco o i minúsculo com ponto vira U+0130 (I maiúsculo com ponto), então \"file\" vira \"FİLE\" e a comparação falha. Identificadores, extensões de arquivo e tokens de protocolo devem usar string.Equals(a, b, StringComparison.OrdinalIgnoreCase) ou conversão invariante. Strings .NET são sempre UTF-16 e ToUpper não é lazy."
+  },
+  {
+    "id": "ds-str-concat-loop",
+    "title": "Concatenação de strings em loop",
+    "question": "Um gerador de relatórios em C# executa result += line; para 100.000 linhas e fica muito lento. Qual é o principal motivo?",
+    "options": [
+      "Strings são imutáveis, então cada += copia tudo: O(n^2) no total",
+      "Strings são guardadas como listas ligadas, então += percorre cada caractere",
+      "+= pega um lock global no intern pool de strings",
+      "O garbage collector roda uma coleta completa após cada concatenação"
+    ],
+    "explanation": "Cada concatenação aloca uma nova string e copia todos os caracteres anteriores, então o trabalho total cresce quadraticamente com o tamanho da saída. O StringBuilder adiciona em um buffer expansível com custo O(1) amortizado por caractere e produz a string final uma única vez. Não existe lock por concatenação nem GC forçado."
+  },
+  {
+    "id": "pf-bool-non-short-circuit",
+    "title": "& versus && em C#",
+    "question": "Este código C# lança uma NullReferenceException quando list é null:\n\nif (list != null & list.Count > 0) { ... }\n\nPor quê?",
+    "options": [
+      "& tem precedência maior que !=, então a comparação é agrupada errado",
+      "& converte os bools em inteiros e Count é avaliado primeiro",
+      "& em bools avalia os dois operandos, então list.Count roda com list null",
+      "O compilador reordena os operandos do & para avaliar primeiro o mais barato"
+    ],
+    "explanation": "Para operandos bool, & é o AND lógico sem curto-circuito: ele sempre avalia o operando da direita. O && pula o operando da direita quando o da esquerda é false, e é isso que protege a checagem de null. A precedência de operadores não é o problema aqui, porque != tem precedência maior que &."
   }
 ]

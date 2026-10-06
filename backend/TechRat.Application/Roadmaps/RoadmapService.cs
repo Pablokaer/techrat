@@ -5,10 +5,14 @@ using TechRat.Domain.Roadmaps;
 
 namespace TechRat.Application.Roadmaps;
 
+/// <param name="JuniorRank">
+/// Position among the platform's top roadmaps for junior developers (1 = most recommended), or null when the roadmap is
+/// not one of them. Clients use it for the "Recommended for juniors" filter.
+/// </param>
 public sealed record RoadmapSummaryDto(
     Guid Id, string Slug, string Name, string Description, string Category, string Difficulty, int EstimatedHours,
     int StepsCount, int ModulesCount, string Icon, int XpReward, IReadOnlyList<string> Prerequisites,
-    RoadmapUserStateDto? Progress);
+    RoadmapUserStateDto? Progress, int? JuniorRank);
 
 /// <summary>
 /// The learner's state in a roadmap. <see cref="AlreadyCompletedModules"/>/<see cref="AlreadyCompletedSteps"/> count work done
@@ -53,13 +57,13 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
 {
     private sealed record LinkRow(Guid ModuleId, int Order, bool IsRequired);
     private sealed record CatalogRow(Guid Id, string Slug, string Name, string Description, string Category, RoadmapDifficulty Difficulty,
-        int EstimatedHours, int StepsCount, string Icon, int XpReward, int DisplayOrder, List<string> Prerequisites, List<LinkRow> Links);
+        int EstimatedHours, int StepsCount, string Icon, int XpReward, int DisplayOrder, int? JuniorRank, List<string> Prerequisites, List<LinkRow> Links);
 
     private Task<List<CatalogRow>> CatalogAsync(CancellationToken ct) =>
         cache.GetOrCreateAsync(CacheKeys.Roadmaps, TimeSpan.FromMinutes(10), async c =>
             await db.Roadmaps.AsNoTracking().Where(r => r.IsPublished).OrderBy(r => r.DisplayOrder)
                 .Select(r => new CatalogRow(r.Id, r.Slug, r.Name, r.Description, r.Category, r.Difficulty, r.EstimatedHours,
-                    r.StepsCount, r.Icon, r.XPReward, r.DisplayOrder,
+                    r.StepsCount, r.Icon, r.XPReward, r.DisplayOrder, r.JuniorRank,
                     r.Dependencies.Select(d => d.RequiredRoadmap!.Slug).ToList(),
                     r.Links.OrderBy(l => l.Order).Select(l => new LinkRow(l.ModuleId, l.Order, l.IsRequired)).ToList()))
                 .ToListAsync(c), ct);
@@ -82,7 +86,7 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
 
     private static RoadmapSummaryDto ToSummary(CatalogRow r, RoadmapUserStateDto? state, ContentTranslations tr) =>
         new(r.Id, r.Slug, tr.RoadmapName(r.Id, r.Name), tr.RoadmapDescription(r.Id, r.Description), tr.RoadmapCategory(r.Id, r.Category),
-            r.Difficulty.ToString(), r.EstimatedHours, r.StepsCount, r.Links.Count, r.Icon, r.XpReward, r.Prerequisites, state);
+            r.Difficulty.ToString(), r.EstimatedHours, r.StepsCount, r.Links.Count, r.Icon, r.XpReward, r.Prerequisites, state, r.JuniorRank);
 
     private async Task<Dictionary<Guid, RoadmapUserStateDto>> UserStatesAsync(Guid userId, List<CatalogRow> rows, CancellationToken ct)
     {

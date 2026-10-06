@@ -8,9 +8,13 @@ This repository holds a working MVP: an ASP.NET Core 10 API, a responsive Next.j
 |---|---|
 | Knowledge tree | Topics and subtopics from programming fundamentals to AI, cloud and leadership (see [Catalog](#catalog)) |
 | Question bank | Multiple-choice questions in four difficulties (counts in [Catalog](#catalog)). Every subtopic used by a roadmap has at least 6 questions. Every question has 4 options, exactly 1 correct answer, an explanation and an official reference URL. |
-| Practice & Learn | **Practice** (Practice, Challenge, Random, Adaptive) draws from the whole question bank, every question the roadmaps use, or from one topic/subtopic and difficulty: Practice, Challenge and Random draw new random questions in random order every session (never-shown questions first, then older ones, the last 3 sessions only when the pool runs out). **Learn** lists a topic's questions with the learner's result on each (new / right / wrong), filters them by difficulty and subtopic, and answers exactly the ones picked. |
+| Practice & Learn | **Practice** (Practice, Challenge, Random, Adaptive) draws from the whole question bank, every question the roadmaps use, or from one topic/subtopic and difficulty: Every session shows each question's answer options in its own random order, stable for that session and its review (ADR-0019). Practice, Challenge and Random draw new random questions in random order every session (never-shown questions first, then older ones, the last 3 sessions only when the pool runs out). **Learn** lists a topic's questions with the learner's result on each (new / right / wrong), filters them by difficulty and subtopic, and answers exactly the ones picked. |
 | Roadmap structure | The structured path: modules go from easier to harder levels with the capstone last (`validate_catalog.py` enforces it), steps inside a module ramp up one difficulty (e.g. Easy → Medium in a Beginner module), and step sessions present questions easiest first while retrying wrong answers (ADR-0014). |
-| Roadmaps | Career, language, skill and best-practice paths composed from a shared module catalog: a step proven once counts in every roadmap (full list in [Catalog](#catalog)). |
+| Roadmaps | Career, language, skill and best-practice paths composed from a shared module catalog: a step proven once counts in every roadmap (full list in [Catalog](#catalog)). A **Recommended for juniors** filter shows the platform's top 6 roadmaps for a junior developer, most recommended first, and their cards carry a "#N for juniors" badge (ADR-0015). |
+| Profile photo | Pick a JPG, PNG, WEBP or HEIC photo (up to 5 MB) from the device, or take one with the camera on mobile, adjust it inside a circle (drag, pinch/wheel/slider zoom, live preview) and save it. The client exports a compressed 512×512 square; the API stores it in PostgreSQL and serves it from a versioned, cacheable URL. Replacing or removing the photo updates every avatar without a reload (ADR-0017). |
+| Password | Change the password from Settings (web, desktop) or the profile (mobile): the current password is checked on the server, the sign-up rules apply, other sessions are signed out while this one continues, and the owner gets an email. Accounts without a password (external sign-in, when enabled) set one instead (ADR-0018). |
+| Study resources | Each roadmap has overview reading and each module lists the topics to master with sources to learn them from (official docs, specs, books, courses, articles), each tagged with its type and language and opened in a new tab. Curated and bilingual in `resources.json`, link-checked by `validate_resources.py --check-urls` (ADR-0020). |
+| Leaderboard privacy | A checkbox in Settings ("Show me on the leaderboards") removes the learner from the global, weekly, monthly and topic leaderboards at once; progress, XP and achievements are kept, and the rank shows as "—". Opting back in returns them (within the 30 s page cache). Set in the web app; the mobile app only shows the state. |
 | Gamification | XP ledger, progressive levels (global + per topic), streaks, 24 achievements/badges, daily challenge, Global/Weekly/Monthly/Topic leaderboards |
 | Languages | English and Brazilian Portuguese (web + desktop): the whole UI, every question (text, options, explanation), topic, module, roadmap and achievement names, server messages and emails. |
 
@@ -21,107 +25,109 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 
 ### Questions
 
-**2,263** multiple-choice questions: Easy 613 · Medium 778 · Hard 614 · Expert 258.
+**2,396** multiple-choice questions: Easy 671 · Medium 828 · Hard 638 · Expert 259.
 
 <details><summary>Questions per topic</summary>
 
 | Topic | Category | Subtopics | Questions |
 |---|---|---:|---:|
-| Programming Fundamentals | Computer Science | 11 | 66 |
-| Data Structures | Computer Science | 13 | 78 |
-| Algorithms | Computer Science | 16 | 96 |
-| System Design | Architecture | 16 | 102 |
-| Backend Engineering | Engineering | 8 | 48 |
-| Databases | Data | 10 | 60 |
-| C# | Languages | 12 | 72 |
-| .NET | Frameworks | 9 | 54 |
-| JavaScript | Languages | 9 | 54 |
+| Programming Fundamentals | Computer Science | 11 | 82 |
+| Data Structures | Computer Science | 13 | 87 |
+| Algorithms | Computer Science | 16 | 100 |
+| System Design | Architecture | 16 | 104 |
+| Backend Engineering | Engineering | 8 | 53 |
+| Databases | Data | 10 | 74 |
+| C# | Languages | 12 | 79 |
+| .NET | Frameworks | 9 | 55 |
+| JavaScript | Languages | 9 | 72 |
 | TypeScript | Languages | 7 | 42 |
 | Frontend Engineering | Engineering | 9 | 54 |
 | React | Frameworks | 11 | 66 |
-| Python | Languages | 10 | 60 |
-| Java | Languages | 8 | 48 |
-| Git | Tools | 7 | 42 |
-| Operating Systems | Computer Science | 6 | 36 |
-| Computer Networking | Computer Science | 9 | 54 |
-| Security | Security | 10 | 60 |
-| Testing & Quality | Engineering | 7 | 42 |
+| Python | Languages | 10 | 74 |
+| Java | Languages | 9 | 59 |
+| Git | Tools | 7 | 54 |
+| Operating Systems | Computer Science | 6 | 37 |
+| Computer Networking | Computer Science | 9 | 57 |
+| Security | Security | 10 | 65 |
+| Testing & Quality | Engineering | 7 | 46 |
 | Clean Code & Software Design | Engineering | 6 | 29 |
 | Design Patterns | Engineering | 5 | 27 |
 | Software Architecture | Architecture | 9 | 54 |
-| DevOps | Cloud & DevOps | 6 | 36 |
+| DevOps | Cloud & DevOps | 6 | 37 |
 | Docker | Cloud & DevOps | 7 | 42 |
-| Kubernetes | Cloud & DevOps | 8 | 48 |
+| Kubernetes | Cloud & DevOps | 8 | 50 |
 | Cloud Engineering | Cloud & DevOps | 9 | 54 |
 | Azure | Cloud & DevOps | 6 | 36 |
 | AI Engineering | AI & Data | 10 | 60 |
 | Machine Learning | AI & Data | 9 | 54 |
 | Data Engineering | AI & Data | 7 | 42 |
-| Observability | Cloud & DevOps | 5 | 30 |
-| Performance Engineering | Engineering | 11 | 60 |
+| Observability | Cloud & DevOps | 5 | 31 |
+| Performance Engineering | Engineering | 11 | 61 |
 | Engineering Leadership | Career | 6 | 36 |
 | Statistics | AI & Data | 9 | 45 |
 | Data Analysis with Python | AI & Data | 8 | 48 |
 | Data Visualization & BI | AI & Data | 6 | 30 |
 | Spreadsheets | AI & Data | 6 | 30 |
 | AI-Assisted Development | AI & Data | 10 | 50 |
-| C++ | Languages | 12 | 60 |
+| C++ | Languages | 12 | 61 |
 | AWS | Cloud & DevOps | 10 | 62 |
 | Offensive & Defensive Security | Security | 10 | 50 |
 | API Security | Security | 7 | 35 |
-| Code Review | Engineering | 6 | 36 |
+| Code Review | Engineering | 6 | 37 |
 | Capstones | Career | 5 | 75 |
 
 </details>
 
 ### Roadmaps
 
-**43** roadmaps built from **140** modules (69 shared by 2+ roadmaps) · 373 module steps.
+**43** roadmaps built from **140** modules (72 shared by 2+ roadmaps) · 374 module steps.
+
+**Recommended for juniors** (top 6): 1. Junior Software Engineer · 2. Computer Science Fundamentals · 3. Git and Collaboration · 4. JavaScript Developer · 5. SQL · 6. Data Structures and Algorithms
 
 | # | Roadmap | Português | Type | Category | Difficulty | Modules | Steps | Estimate | Questions | Prerequisites |
 |---:|---|---|---|---|---|---:|---:|---:|---:|---|
-| 1 | Computer Science Fundamentals | Fundamentos de Ciência da Computação | SkillTrack | Computer Science | Beginner | 6 | 16 | 9 h | 96 | — |
-| 2 | Data Structures and Algorithms | Estruturas de Dados e Algoritmos | SkillTrack | Computer Science | Intermediate | 12 | 29 | 22 h | 174 | Computer Science Fundamentals (50%) |
-| 3 | Operating Systems | Sistemas Operacionais | SkillTrack | Computer Science | Intermediate | 4 | 9 | 8 h | 54 | — |
-| 4 | Computer Networking | Redes de Computadores | SkillTrack | Computer Science | Intermediate | 4 | 9 | 6 h | 54 | — |
-| 5 | Git and Collaboration | Git e Colaboração | SkillTrack | Tools | Beginner | 4 | 9 | 6 h | 54 | — |
-| 6 | C# Developer | Desenvolvedor C# | Language | Languages | Intermediate | 5 | 12 | 10 h | 72 | — |
-| 7 | Python Developer | Desenvolvedor Python | Language | Languages | Beginner | 3 | 10 | 7 h | 60 | — |
-| 8 | Java Developer | Desenvolvedor Java | Language | Languages | Intermediate | 2 | 8 | 7 h | 48 | — |
-| 9 | JavaScript Developer | Desenvolvedor JavaScript | Language | Languages | Beginner | 3 | 9 | 6 h | 54 | — |
+| 1 | Computer Science Fundamentals | Fundamentos de Ciência da Computação | SkillTrack | Computer Science | Beginner | 6 | 16 | 9 h | 116 | — |
+| 2 | Data Structures and Algorithms | Estruturas de Dados e Algoritmos | SkillTrack | Computer Science | Intermediate | 12 | 29 | 22 h | 187 | Computer Science Fundamentals (50%) |
+| 3 | Operating Systems | Sistemas Operacionais | SkillTrack | Computer Science | Intermediate | 4 | 9 | 8 h | 55 | — |
+| 4 | Computer Networking | Redes de Computadores | SkillTrack | Computer Science | Intermediate | 4 | 9 | 6 h | 57 | — |
+| 5 | Git and Collaboration | Git e Colaboração | SkillTrack | Tools | Beginner | 4 | 9 | 6 h | 66 | — |
+| 6 | C# Developer | Desenvolvedor C# | Language | Languages | Intermediate | 5 | 12 | 10 h | 79 | — |
+| 7 | Python Developer | Desenvolvedor Python | Language | Languages | Beginner | 3 | 10 | 7 h | 74 | — |
+| 8 | Java Developer | Desenvolvedor Java | Language | Languages | Intermediate | 2 | 9 | 8 h | 59 | — |
+| 9 | JavaScript Developer | Desenvolvedor JavaScript | Language | Languages | Beginner | 3 | 9 | 6 h | 72 | — |
 | 10 | TypeScript Developer | Desenvolvedor TypeScript | Language | Languages | Intermediate | 3 | 7 | 5 h | 42 | JavaScript Developer (50%) |
-| 11 | C++ Developer | Desenvolvedor C++ | Language | Languages | Intermediate | 6 (1 optional) | 13 | 10 h | 87 | — |
-| 12 | Frontend Developer | Desenvolvedor Frontend | Role | Web Development | Intermediate | 9 | 19 | 12 h | 114 | — |
+| 11 | C++ Developer | Desenvolvedor C++ | Language | Languages | Intermediate | 6 (1 optional) | 13 | 10 h | 88 | — |
+| 12 | Frontend Developer | Desenvolvedor Frontend | Role | Web Development | Intermediate | 9 | 19 | 12 h | 121 | — |
 | 13 | React Developer | Desenvolvedor React | SkillTrack | Web Development | Intermediate | 5 | 12 | 9 h | 72 | JavaScript Developer (50%) |
-| 14 | Backend Developer | Desenvolvedor Backend | Role | Web Development | Intermediate | 16 (4 optional) | 25 | 17 h | 245 | — |
-| 15 | .NET Backend Developer | Desenvolvedor Backend .NET | Role | Web Development | Intermediate | 7 | 15 | 12 h | 90 | C# Developer (50%) |
-| 16 | Full Stack Developer | Desenvolvedor Full Stack | Role | Web Development | Intermediate | 12 (3 optional) | 19 | 12 h | 194 | JavaScript Developer (30%) |
-| 17 | Database Engineering | Engenharia de Bancos de Dados | SkillTrack | Data | Intermediate | 5 | 11 | 9 h | 66 | — |
-| 18 | SQL | SQL | SkillTrack | Data | Beginner | 4 | 8 | 6 h | 48 | — |
-| 19 | System Design | System Design | SkillTrack | Architecture | Advanced | 11 | 28 | 26 h | 174 | Data Structures and Algorithms (30%), Backend Developer (30%) |
+| 14 | Backend Developer | Desenvolvedor Backend | Role | Web Development | Intermediate | 16 (4 optional) | 25 | 17 h | 269 | — |
+| 15 | .NET Backend Developer | Desenvolvedor Backend .NET | Role | Web Development | Intermediate | 7 | 15 | 12 h | 93 | C# Developer (50%) |
+| 16 | Full Stack Developer | Desenvolvedor Full Stack | Role | Web Development | Intermediate | 12 (3 optional) | 19 | 12 h | 213 | JavaScript Developer (30%) |
+| 17 | Database Engineering | Engenharia de Bancos de Dados | SkillTrack | Data | Intermediate | 5 | 11 | 9 h | 80 | — |
+| 18 | SQL | SQL | SkillTrack | Data | Beginner | 4 | 8 | 6 h | 62 | — |
+| 19 | System Design | System Design | SkillTrack | Architecture | Advanced | 11 | 28 | 26 h | 184 | Data Structures and Algorithms (30%), Backend Developer (30%) |
 | 20 | Software Architecture | Arquitetura de Software | SkillTrack | Architecture | Advanced | 5 | 16 | 15 h | 96 | — |
-| 21 | Testing and Quality Engineering | Engenharia de Testes e Qualidade | SkillTrack | Engineering | Intermediate | 4 | 8 | 6 h | 48 | — |
-| 22 | Security Fundamentals | Fundamentos de Segurança | SkillTrack | Security | Intermediate | 5 | 11 | 9 h | 66 | — |
-| 23 | Cyber Security | Cibersegurança | Role | Security | Intermediate | 11 (1 optional) | 27 | 23 h | 166 | — |
+| 21 | Testing and Quality Engineering | Engenharia de Testes e Qualidade | SkillTrack | Engineering | Intermediate | 4 | 8 | 6 h | 52 | — |
+| 22 | Security Fundamentals | Fundamentos de Segurança | SkillTrack | Security | Intermediate | 5 | 11 | 9 h | 71 | — |
+| 23 | Cyber Security | Cibersegurança | Role | Security | Intermediate | 11 (1 optional) | 27 | 23 h | 169 | — |
 | 24 | Docker | Docker | SkillTrack | Cloud & DevOps | Beginner | 3 | 7 | 5 h | 42 | — |
-| 25 | Kubernetes | Kubernetes | SkillTrack | Cloud & DevOps | Advanced | 3 | 8 | 8 h | 48 | Docker (50%) |
-| 26 | DevOps Engineer | Engenheiro DevOps | Role | Cloud & DevOps | Intermediate | 11 (3 optional) | 16 | 11 h | 171 | — |
+| 25 | Kubernetes | Kubernetes | SkillTrack | Cloud & DevOps | Advanced | 3 | 8 | 8 h | 50 | Docker (50%) |
+| 26 | DevOps Engineer | Engenheiro DevOps | Role | Cloud & DevOps | Intermediate | 11 (3 optional) | 16 | 11 h | 178 | — |
 | 27 | Cloud Engineering | Engenharia de Cloud | Role | Cloud & DevOps | Intermediate | 6 (2 optional) | 10 | 7 h | 110 | — |
 | 28 | Azure Developer | Desenvolvedor Azure | SkillTrack | Cloud & DevOps | Intermediate | 2 | 6 | 4 h | 36 | Cloud Engineering (30%) |
 | 29 | AWS Fundamentals | Fundamentos de AWS | SkillTrack | Cloud & DevOps | Beginner | 4 (1 optional) | 7 | 4 h | 72 | — |
 | 30 | AI Engineering | Engenharia de IA | Role | AI & Data | Advanced | 6 (1 optional) | 13 | 12 h | 103 | Python Developer (30%) |
 | 31 | Machine Learning | Machine Learning | SkillTrack | AI & Data | Advanced | 3 | 9 | 8 h | 54 | — |
-| 32 | Data Engineering | Engenharia de Dados | Role | AI & Data | Intermediate | 7 (3 optional) | 9 | 7 h | 119 | — |
-| 33 | Data Analyst | Analista de Dados | Role | AI & Data | Beginner | 11 | 37 | 24 h | 210 | — |
-| 34 | Python for Data Analysis | Python para Análise de Dados | SkillTrack | AI & Data | Beginner | 4 | 17 | 10 h | 96 | — |
-| 35 | AI & Data Scientist | Cientista de Dados e IA | Role | AI & Data | Advanced | 13 (4 optional) | 29 | 23 h | 226 | Python for Data Analysis (30%) |
-| 36 | AI-Assisted Development (Claude Code) | Desenvolvimento Assistido por IA (Claude Code) | SkillTrack | AI & Data | Intermediate | 4 | 17 | 16 h | 101 | — |
-| 37 | Junior Software Engineer | Engenheiro de Software Júnior | Role | Career | Beginner | 15 | 32 | 17 h | 192 | — |
-| 38 | Senior Software Engineer | Engenheiro de Software Sênior | Role | Career | Expert | 18 (1 optional) | 47 | 46 h | 311 | System Design (30%) |
-| 39 | Technical Interview Preparation | Preparação para Entrevistas Técnicas | SkillTrack | Career | Advanced | 9 | 21 | 16 h | 132 | — |
-| 40 | API Security Best Practices | Boas Práticas de Segurança de APIs | BestPractices | Security | Advanced | 3 (1 optional) | 7 | 7 h | 47 | — |
-| 41 | Backend Performance Best Practices | Boas Práticas de Performance no Backend | BestPractices | Engineering | Advanced | 4 (1 optional) | 9 | 8 h | 71 | — |
-| 42 | Code Review Best Practices | Boas Práticas de Code Review | BestPractices | Engineering | Intermediate | 2 (1 optional) | 6 | 6 h | 48 | — |
+| 32 | Data Engineering | Engenharia de Dados | Role | AI & Data | Intermediate | 7 (3 optional) | 9 | 7 h | 123 | — |
+| 33 | Data Analyst | Analista de Dados | Role | AI & Data | Beginner | 11 | 37 | 24 h | 231 | — |
+| 34 | Python for Data Analysis | Python para Análise de Dados | SkillTrack | AI & Data | Beginner | 4 | 17 | 10 h | 107 | — |
+| 35 | AI & Data Scientist | Cientista de Dados e IA | Role | AI & Data | Advanced | 13 (4 optional) | 29 | 23 h | 236 | Python for Data Analysis (30%) |
+| 36 | AI-Assisted Development (Claude Code) | Desenvolvimento Assistido por IA (Claude Code) | SkillTrack | AI & Data | Intermediate | 4 | 17 | 16 h | 102 | — |
+| 37 | Junior Software Engineer | Engenheiro de Software Júnior | Role | Career | Beginner | 19 (4 optional) | 32 | 17 h | 344 | — |
+| 38 | Senior Software Engineer | Engenheiro de Software Sênior | Role | Career | Expert | 18 (1 optional) | 47 | 46 h | 316 | System Design (30%) |
+| 39 | Technical Interview Preparation | Preparação para Entrevistas Técnicas | SkillTrack | Career | Advanced | 9 | 21 | 16 h | 142 | — |
+| 40 | API Security Best Practices | Boas Práticas de Segurança de APIs | BestPractices | Security | Advanced | 3 (1 optional) | 7 | 7 h | 48 | — |
+| 41 | Backend Performance Best Practices | Boas Práticas de Performance no Backend | BestPractices | Engineering | Advanced | 4 (1 optional) | 9 | 8 h | 73 | — |
+| 42 | Code Review Best Practices | Boas Práticas de Code Review | BestPractices | Engineering | Intermediate | 2 (1 optional) | 6 | 6 h | 49 | — |
 | 43 | AWS Best Practices | Boas Práticas na AWS | BestPractices | Cloud & DevOps | Advanced | 4 (1 optional) | 12 | 10 h | 94 | — |
 
 <details><summary>Module catalog</summary>
@@ -131,12 +137,12 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | Programming Basics | Core | 3 | Computer Science Fundamentals, Junior Software Engineer |
 | Problem Solving & Complexity | Core | 2 | Computer Science Fundamentals, Junior Software Engineer |
 | Recursion & Discrete Math | Context | 2 | Computer Science Fundamentals |
-| How Computers Work | Context | 4 | Computer Science Fundamentals |
+| How Computers Work | Core | 4 | Computer Science Fundamentals, Junior Software Engineer |
 | Processes & Memory | Core | 2 | Computer Science Fundamentals, Operating Systems, C++ Developer |
 | Scheduling, System Calls & Synchronization | Context | 3 | Operating Systems |
 | Linux & Shell | Core | 2 | Operating Systems, Cyber Security, DevOps Engineer |
 | Arrays, Strings & Hashing | Core | 3 | Computer Science Fundamentals, Data Structures and Algorithms, Junior Software Engineer, Technical Interview Preparation |
-| Linked Lists, Stacks & Queues | Context | 3 | Data Structures and Algorithms |
+| Linked Lists, Stacks & Queues | Core | 3 | Data Structures and Algorithms, Junior Software Engineer |
 | Trees & Heaps | Core | 2 | Data Structures and Algorithms, Technical Interview Preparation |
 | Search Trees, Tries & String Algorithms | Context | 3 | Data Structures and Algorithms |
 | Graphs & Traversal | Core | 2 | Data Structures and Algorithms, Technical Interview Preparation |
@@ -180,9 +186,9 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | Python Core | Core | 5 | Python Developer, Data Analyst, Python for Data Analysis |
 | Python Tooling & Testing | Context | 3 | Python Developer |
 | Python Concurrency & Performance | Context | 2 | Python Developer |
-| Java Core | Context | 4 | Java Developer |
+| Java Core | Context | 5 | Java Developer |
 | JVM, Concurrency & Spring | Context | 4 | Java Developer |
-| JavaScript Core | Context | 4 | JavaScript Developer |
+| JavaScript Core | Core | 4 | JavaScript Developer, Junior Software Engineer |
 | Async JavaScript & the DOM | Core | 2 | JavaScript Developer, Frontend Developer |
 | Modules, Errors & Performance | Context | 3 | JavaScript Developer |
 | TypeScript Basics | Core | 2 | TypeScript Developer, Frontend Developer |
@@ -236,7 +242,7 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | Monoliths, Microservices & DDD | Core | 3 | Software Architecture, Senior Software Engineer |
 | Event-Driven, CQRS & Serverless | Context | 4 | Software Architecture |
 | Git Essentials | Core | 2 | Git and Collaboration, Junior Software Engineer |
-| Git Collaboration | Core | 2 | Git and Collaboration, DevOps Engineer |
+| Git Collaboration | Core | 2 | Git and Collaboration, DevOps Engineer, Junior Software Engineer |
 | Rewriting & Recovering History | Context | 3 | Git and Collaboration |
 | Code Review & Mentoring | Core | 2 | Git and Collaboration, Senior Software Engineer, Code Review Best Practices |
 | Incidents & Reliability | Core | 2 | Junior Software Engineer, Senior Software Engineer |
@@ -365,7 +371,7 @@ If you build behind a TLS-inspecting corporate proxy, set `EXTRA_CA_CERT=/path/t
 | `Smtp__Host`, `Smtp__Port`, `Smtp__Security`, `Smtp__Username`, `Smtp__Password`, `Smtp__From`, `Smtp__ReplyTo` | API | Email delivery (Compose: `SMTP_*`; Mailpit locally). TLS is required unless `Security=None`. Setup per provider, DNS and testing: [docs/email.md](docs/email.md) |
 | `App__PublicWebUrl` | API | Base URL for password-reset links |
 | `Gamification__*` | API | XP values, level curve, step criteria, daily challenge (see `appsettings.json`) |
-| `RateLimiting__AuthPerMinute` / `RateLimiting__AnswersPerMinute` | API | Rate limits (Compose: `AUTH_RATE_LIMIT_PER_MINUTE`) |
+| `RateLimiting__AuthPerMinute` / `RateLimiting__AnswersPerMinute` / `RateLimiting__UploadsPerMinute` | API | Rate limits per user or IP (uploads default to 10/min; Compose: `AUTH_RATE_LIMIT_PER_MINUTE`) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | API | Enables OTLP export of traces and metrics |
 | `API_INTERNAL_URL` | web (build) | Backend URL the Next.js proxy forwards to |
 | `NEXT_PUBLIC_AUTH_MODE`, `NEXT_PUBLIC_API_URL` | desktop build | `bearer` mode and API URL for the static export |
@@ -408,7 +414,7 @@ python3 scripts/seed-src/readme_catalog.py       # regenerates the README "Catal
 
 **Adding a module or roadmap:** add the subtopics (and at least 5 bilingual questions each) first, then the module in `modules.py` (kind, steps over the new scopes), then compose it into roadmaps in `roadmaps.py`, add the Portuguese names to `Seed/Data/i18n/pt-BR.json`, regenerate and run the validators.
 
-The seed inserts missing records (matched by slug, external key, code or scope) and never duplicates data. Content it owns (seeded questions never edited by an admin, seed-managed modules and roadmap compositions, seed-managed translations) follows the seed files; anything edited in the admin area is kept.
+The seed inserts missing records (matched by slug, external key, code or scope) and never duplicates data. Content it owns (seeded questions never edited by an admin, including their topic and subtopic, seed-managed modules and roadmap compositions, seed-managed translations) follows the seed files; anything edited in the admin area is kept. Moving a question to another topic in the seed file therefore moves it in existing databases too.
 
 ### Regenerating API contracts
 
@@ -477,6 +483,9 @@ CI (`.github/workflows/ci.yml`) runs the backend build (warnings as errors) and 
 * **Question types:** only MultipleChoice is playable. The other types are modeled for future use.
 * On the very first startup, EF logs one expected `fail:` line while it probes for the migrations history table.
 * Social features (duels, friends, teams, community) and AI recommendations are P2 and not implemented. The Community page says so.
+* **Profile photos:** HEIC can be picked on iOS and in Safari; other browsers cannot decode it and ask for a JPG or PNG. Leaderboards cache rows for a few minutes, so other learners may see a new photo with that delay. The mobile photo screens are English-only, like the rest of the mobile app.
+* **Study resources** cover every roadmap and module, but links rot: re-run `python3 scripts/seed-src/validate_resources.py --check-urls` before releases. Microsoft Learn rate-limits scripts (HTTP 429), so check it slowly. The mobile app does not show them yet.
+* **Junior recommendations** are curated in `scripts/seed-src/roadmaps.py` (`JUNIOR_TOP`) and have no admin screen. The mobile app receives `juniorRank` but has no "Recommended for juniors" filter yet (ADR-0015).
 * **Portuguese coverage:** the mobile app is not translated yet, and translations of questions and catalog texts can only be changed through the seed files (the admin area edits the English text).
 
 ## Next steps

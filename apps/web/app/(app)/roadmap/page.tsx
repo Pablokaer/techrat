@@ -10,6 +10,7 @@ import { useRoadmap, useStartPractice, useStartRoadmap } from "@/lib/queries";
 import { routes } from "@/lib/routes";
 import { TopicIcon } from "@/components/icons";
 import { ErrorState, PageHeader, Skeleton } from "@/components/widgets";
+import { StudyResources } from "@/components/study-resources";
 import { ModuleKindBadge, ModuleStatus, OptionalTag, SharedBadge, StepCard } from "@/components/modules";
 import { useToast } from "@/components/providers";
 import { useT } from "@/i18n";
@@ -93,6 +94,8 @@ function RoadmapView() {
           </ul>
         </Card>
       )}
+
+      <StudyResources roadmap={summary.slug} />
 
       <ol className="mt-8 space-y-6">
         {modules.map((m) => {

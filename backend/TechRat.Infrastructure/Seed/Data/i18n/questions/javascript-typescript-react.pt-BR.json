@@ -1030,5 +1030,77 @@
       "expect(screen.getAllByRole(\"alert\")).toHaveLength(0)"
     ],
     "explanation": "queryBy retorna null quando nada corresponde em vez de lançar erro, o que o torna a ferramenta certa para asserções de ausência. getBy e getAllBy lançam erro quando não há correspondência, então a asserção nunca roda, e findBy rejeita após o timeout."
+  },
+  {
+    "id": "pf-vt-js-safe-integer",
+    "title": "Precisão de inteiros em números JavaScript",
+    "question": "Um serviço Node.js converte IDs de banco de dados de 64 bits em números JavaScript comuns. Por que 9007199254740993 === 9007199254740992 resulta em true?",
+    "options": [
+      "O operador === converte os dois operandos para inteiros de 32 bits antes de comparar",
+      "O JavaScript trunca literais numéricos com mais de 15 dígitos durante o parse",
+      "Numbers são doubles IEEE 754, então nem todo inteiro acima de 2^53 é exato",
+      "Inteiros grandes são guardados como strings e comparados pelos 16 primeiros caracteres"
+    ],
+    "explanation": "Um number em JavaScript é um double de 64 bits com significando de 53 bits, então só inteiros até Number.MAX_SAFE_INTEGER (2^53 - 1) têm garantia de exatidão; 2^53 + 1 é arredondado para 2^53. O === não converte para inteiros de 32 bits e numbers não são strings. Mantenha esses IDs como strings ou BigInt."
+  },
+  {
+    "id": "pf-cf-foreach-return",
+    "title": "return dentro do forEach",
+    "question": "Um desenvolvedor quer parar o processamento no primeiro valor maior que 2:\n\n[1, 3, 2].forEach(x => {\n  if (x > 2) return;\n  console.log(x);\n});\n\nO que é registrado?",
+    "options": [
+      "Só 1, porque o return sai do loop forEach inteiro",
+      "Nada, porque return dentro do forEach é um SyntaxError",
+      "1, 3 e 2, porque o forEach ignora o retorno dos callbacks",
+      "1 e depois 2, porque o return só encerra aquele callback"
+    ],
+    "explanation": "O return dentro da arrow function só encerra aquela invocação do callback; o forEach continua chamando o callback para cada elemento restante. Então o 3 é pulado (o return vem antes do console.log) e o 2 é registrado. Não dá para parar um forEach antes do fim a não ser lançando uma exceção; use for...of com break, ou some()/find() quando precisar de saída antecipada."
+  },
+  {
+    "id": "pf-cf-switch-fallthrough",
+    "title": "Fall-through no switch",
+    "question": "Qual é o valor de out depois que este JavaScript executa?\n\nlet x = 1, out = '';\nswitch (x) {\n  case 1: out += 'a';\n  case 2: out += 'b'; break;\n  case 3: out += 'c';\n}",
+    "options": [
+      "'ab'",
+      "'abc'",
+      "'b'",
+      "'a'"
+    ],
+    "explanation": "Quando um case casa, a execução continua nos cases seguintes até encontrar um break (fall-through). O case 1 concatena 'a', cai no case 2, que concatena 'b', e então o break sai do switch, de modo que o case 3 nunca executa. Esquecer o break é um bug clássico; por isso o C# proíbe fall-through implícito em cases não vazios."
+  },
+  {
+    "id": "pf-fn-closure-loop",
+    "title": "var e let no nível superior e o objeto global",
+    "question": "Em um script clássico (não módulo), o que este JavaScript registra no console?\n\nvar a = 1;\nlet b = 2;\nconsole.log(globalThis.a, globalThis.b);",
+    "options": [
+      "1 2",
+      "undefined undefined",
+      "1 undefined",
+      "undefined 2"
+    ],
+    "explanation": "No nível superior de um script clássico, declarações var (e function) viram propriedades do objeto global, enquanto declarações let, const e class ficam em uma parte declarativa separada do escopo global: b é visível em todo lugar como variável global, mas globalThis.b é undefined. Em um módulo ES nenhuma das declarações mexe no objeto global, porque o var de nível superior tem escopo de módulo, então os dois seriam undefined."
+  },
+  {
+    "id": "ds-str-utf16-length",
+    "title": "Tamanho de string e emoji",
+    "question": "Um validador de formulário limita nomes de usuário com value.length <= 10 em JavaScript. Por que '😀'.length retorna 2?",
+    "options": [
+      "Emojis são armazenados junto com um variation selector invisível",
+      "length conta code units UTF-16, e o emoji é um surrogate pair",
+      "length retorna a largura de exibição em colunas do terminal",
+      "length conta bytes, e o emoji ocupa 2 bytes quando codificado em UTF-8"
+    ],
+    "explanation": "Strings JavaScript são sequências de code units UTF-16; caracteres fora do Basic Multilingual Plane, como U+1F600, precisam de duas unidades (um surrogate pair). Em UTF-8 esse emoji tem 4 bytes, não 2. Para contar code points use [...value].length; para caracteres percebidos pelo usuário use Intl.Segmenter."
+  },
+  {
+    "id": "pf-bool-short-circuit-js",
+    "title": "Resultado da avaliação de curto-circuito",
+    "question": "Em JavaScript, user é null. Qual é o resultado de user && user.profile && user.profile.name?",
+    "options": [
+      "false",
+      "undefined",
+      "null",
+      "Lança um TypeError"
+    ],
+    "explanation": "O && avalia da esquerda para a direita e retorna o primeiro operando falsy sem avaliar o resto, então retorna o próprio user, que é null. Ele não converte o resultado para booleano, e user.profile nunca é acessado, então não há TypeError. Optional chaining (user?.profile?.name) retornaria undefined."
   }
 ]

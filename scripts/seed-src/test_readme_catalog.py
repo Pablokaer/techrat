@@ -32,8 +32,9 @@ class FakeSeed:
         ])
         self.write("roadmaps.json", [
             {"slug": "git-path", "name": "Git Path", "category": "Tools", "difficulty": "Beginner", "type": "SkillTrack", "estimatedHours": 4,
-             "prerequisites": [], "modules": [{"slug": "git-basics", "required": True}]},
+             "juniorRank": 2, "prerequisites": [], "modules": [{"slug": "git-basics", "required": True}]},
             {"slug": "sql-path", "name": "SQL Path", "category": "Data", "difficulty": "Advanced", "type": "Role", "estimatedHours": 6,
+             "juniorRank": 1,
              "prerequisites": [{"slug": "git-path", "minimumPercent": 50}],
              "modules": [{"slug": "sql-joins", "required": True}, {"slug": "git-basics", "required": True}, {"slug": "git-extra", "required": False}]},
         ])
@@ -68,6 +69,9 @@ class CatalogMarkdownTests(unittest.TestCase):
         # Steps = steps of required modules; questions = distinct questions across all of the roadmap's module scopes.
         self.assertIn("| 1 | Git Path | Trilha Git | SkillTrack | Tools | Beginner | 1 | 2 | 4 h | 3 | — |", self.md)
         self.assertIn("| 2 | SQL Path | SQL Path | Role | Data | Advanced | 3 (1 optional) | 3 | 6 h | 5 | Git Path (50%) |", self.md)
+
+    def test_lists_the_roadmaps_recommended_for_juniors_in_rank_order(self):
+        self.assertIn("**Recommended for juniors** (top 2): 1. SQL Path · 2. Git Path", self.md)
 
     def test_lists_modules_with_kind_and_usage(self):
         self.assertIn("| Git Basics | Core | 2 | Git Path, SQL Path |", self.md)

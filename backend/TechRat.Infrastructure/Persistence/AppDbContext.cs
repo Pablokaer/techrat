@@ -18,6 +18,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options), IAppDbContext, IDataProtectionKeyContext
 {
     public DbSet<User> UserProfiles => Set<User>();
+    public DbSet<UserAvatar> UserAvatars => Set<UserAvatar>();
     public DbSet<Topic> Topics => Set<Topic>();
     public DbSet<Subtopic> Subtopics => Set<Subtopic>();
     public DbSet<ContentTranslation> ContentTranslations => Set<ContentTranslation>();

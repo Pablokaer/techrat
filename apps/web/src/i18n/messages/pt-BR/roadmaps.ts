@@ -15,6 +15,8 @@ export const roadmaps: Messages["roadmaps"] = {
     titleAfter: " de aprendizado",
     subtitle: "Siga trilhas de aprendizado estruturadas e práticas. As etapas são desbloqueadas conforme você prova o que sabe — só abrir uma etapa nunca basta.",
     allPaths: "Todas as trilhas",
+    juniorPaths: "Recomendadas para júniors",
+    juniorRank: (rank: number) => `#${rank} para júniors`,
     categoriesLabel: "Categorias de roadmaps",
     inProgress: "Em andamento",
     exploreMore: "Explore mais",

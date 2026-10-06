@@ -1,0 +1,98 @@
+[
+  {
+    "id": "pf-jr-cf-off-by-one-array",
+    "title": "Percorrendo um array com <=",
+    "question": "prices = [10, 20, 30], os índices começam em 0 e a linguagem verifica todo acesso ao array. O que acontece quando isto roda?\n\nsum ← 0\ni ← 0\nwhile i <= length(prices)\n    sum ← sum + prices[i]\n    i ← i + 1",
+    "options": [
+      "sum termina em 60 e o laço sai normalmente",
+      "sum termina em 50, porque o primeiro preço é pulado",
+      "O laço roda para sempre, porque <= nunca fica falso",
+      "Um erro de índice fora do intervalo ocorre quando i é 3"
+    ],
+    "explanation": "Um array de 3 elementos tem os índices válidos 0, 1 e 2. Com i <= length(prices), o laço também roda para i = 3, e ler prices[3] gera um erro de índice fora do intervalo depois que sum já chegou a 60. A correção é i < length(prices), ou um laço for-each que nem precisa de índice. Todo acesso é verificado, então nenhum elemento é pulado e o laço não roda para sempre; sem verificação de limites, a leitura acessaria silenciosamente a memória depois do array."
+  },
+  {
+    "id": "pf-jr-cf-break-inner-loop",
+    "title": "break dentro de um laço aninhado",
+    "question": "O que este código imprime?\n\nfor i from 0 to 2\n    for j from 0 to 2\n        if j = 1 then break\n        print(i, j)",
+    "options": [
+      "0 0, depois 1 0, depois 2 0 (um par por linha)",
+      "Só 0 0, porque o break sai dos dois laços",
+      "0 0, 0 2, 1 0, 1 2, 2 0 e 2 2",
+      "Nada, porque o break roda antes de qualquer print"
+    ],
+    "explanation": "break encerra só o laço mais interno que o contém. Para cada i, o laço interno imprime i 0, chega a j = 1 e sai, e o laço externo passa para o próximo i, então a saída é 0 0, 1 0 e 2 0. Pular j = 1 e seguir em frente exigiria continue, e sair dos dois laços de uma vez exige uma flag, um break com rótulo quando a linguagem tem isso, ou um return de dentro de uma função."
+  },
+  {
+    "id": "pf-jr-ps-max-start-zero",
+    "title": "Achando o maior valor a partir de 0",
+    "question": "Um helper retorna o maior número de uma lista não vazia:\n\nfunction largest(nums)\n    best = 0\n    for i from 0 to length(nums) - 1\n        if nums[i] > best then best = nums[i]\n    return best\n\nO que largest([-8, -3, -5]) retorna, e qual é a correção?",
+    "options": [
+      "0; começar best em nums[0] em vez de 0",
+      "-3; a função já trata números negativos",
+      "-8; comparar com >= best em vez de > best",
+      "-5; o loop guarda o último valor que vê"
+    ],
+    "explanation": "Nenhum elemento é maior que o valor inicial 0, então best nunca é atualizado e a função retorna 0, um número que nem está na lista. Começar pelo primeiro elemento (best = nums[0]) faz a resposta vir dos dados. Trocar > por >= não ajuda, já que nenhum número negativo é >= 0. Teste casos de borda como valores todos negativos, um único elemento e uma lista vazia."
+  },
+  {
+    "id": "pf-jr-bigo-sequential-loops",
+    "title": "Dois loops, um depois do outro",
+    "question": "users tem n itens e orders tem m itens. Qual é o Big O mais justo desta função, supondo que cada print leva tempo constante?\n\nfunction report(users, orders)\n    for i from 0 to length(users) - 1\n        print(users[i].name)\n    for j from 0 to length(orders) - 1\n        print(orders[j].total)",
+    "options": [
+      "O(n × m), um passo por par usuário-pedido",
+      "O(n + m), uma passada por cada lista",
+      "O(n²), já que há dois loops",
+      "O(log(n + m)), já que o print é barato"
+    ],
+    "explanation": "Os loops rodam um depois do outro, não aninhados: o primeiro faz n passos de tempo constante e o segundo faz m, então o total é n + m passos, ou seja, O(n + m). Multiplicar para n × m só é correto quando um loop roda dentro do outro. O(n²) ignora m e ainda supõe aninhamento, e nada aqui divide a entrada pela metade, então não há logaritmo."
+  },
+  {
+    "id": "pf-jr-bool-and-or-precedence",
+    "title": "Misturando AND e OR sem parênteses",
+    "question": "Um checkout concede um desconto com:\n\ndiscount = isMember OR total > 100 AND NOT isBanned\n\nUm membro banido (isMember = true, isBanned = true) com total = 50 ainda recebe o desconto. Pelas regras de precedência usadas por quase todas as linguagens, por quê?",
+    "options": [
+      "OR tem precedência maior: (isMember OR total > 100) AND NOT isBanned",
+      "AND e OR misturados são sempre agrupados da esquerda para a direita",
+      "> tem a menor precedência, então lê (isMember OR total) > (100 AND NOT isBanned)",
+      "AND tem precedência maior: isMember OR (total > 100 AND NOT isBanned)"
+    ],
+    "explanation": "Na álgebra booleana e em praticamente toda linguagem popular, o AND tem precedência maior que o OR, assim como a multiplicação tem precedência sobre a adição, então a expressão significa isMember OR (total > 100 AND NOT isBanned). Como isMember é true, o OR inteiro é true e o banimento nunca importa. A regra pretendida precisa de parênteses: (isMember OR total > 100) AND NOT isBanned. Agrupar da esquerda para a direita, ou com o OR mais forte, daria exatamente esse resultado pretendido (false), e operadores de comparação como > têm precedência maior que AND e OR."
+  },
+  {
+    "id": "pf-jr-num-bit-flags",
+    "title": "Combinando bit flags com |",
+    "question": "Um sistema de permissões usa bit flags:\n\nREAD = 1    (binary 001)\nWRITE = 2   (binary 010)\nEXEC = 4    (binary 100)\n\nperms = READ | EXEC\n\nQual é o valor de perms, e WRITE está ligado?",
+    "options": [
+      "true, já que | é um OR lógico de dois valores diferentes de zero",
+      "5, e perms & WRITE é 2, então WRITE está ligado",
+      "5, e perms & WRITE é 0, então WRITE não está ligado",
+      "4, já que | mantém só a maior das duas flags"
+    ],
+    "explanation": "| é o OR bit a bit: 001 | 100 liga os dois bits e dá 101, que é 5. Uma flag é testada com o AND bit a bit: 101 & 010 é 0, então WRITE não está ligado. Um OR lógico trabalha com valores verdade inteiros em vez de combinar bits, e o | nunca desliga um bit que esteja ligado em algum dos operandos."
+  },
+  {
+    "id": "pf-jr-mem-class-reference-alias",
+    "title": "Duas variáveis, um objeto",
+    "question": "Account é uma classe, e variáveis de objeto guardam referências para objetos, como na maioria das linguagens orientadas a objetos:\n\na = new Account(balance: 100)\nb = a\nb.balance = 50\nb = new Account(balance: 10)\nprint(a.balance)\n\nO que é impresso?",
+    "options": [
+      "50: b mudou o objeto compartilhado e depois apontou para outro",
+      "100: b = a copiou o objeto, então a nunca mudou",
+      "10: a e b continuam ligados, então a segue b até o novo objeto",
+      "0: o primeiro objeto é coletado quando b aponta para outro"
+    ],
+    "explanation": "Uma variável de objeto guarda uma referência, então b = a copia a referência e as duas variáveis apontam para o mesmo objeto; por isso b.balance = 50 aparece também em a. Atribuir um novo objeto a b só muda para onde b aponta; não mexe em a nem no objeto que a referencia. Esse objeto continua alcançável por a, então não pode ser recolhido. Só um tipo de valor, copiado na atribuição, faria de b uma cópia independente."
+  },
+  {
+    "id": "pf-jr-rec-missing-return",
+    "title": "Uma busca recursiva que não retorna nada",
+    "question": "Esta busca binária recursiva em um array ordenado (índices começam em 0) deveria retornar 3 para find([1, 3, 5, 7, 9], 7, 0, 4), mas quem chama não recebe valor nenhum:\n\nfunction find(a, target, lo, hi)\n    if lo > hi then return -1\n    mid = floor((lo + hi) / 2)\n    if a[mid] == target then return mid\n    if a[mid] < target then\n        find(a, target, mid + 1, hi)\n    else\n        find(a, target, lo, mid - 1)\n\nQual é o bug?",
+    "options": [
+      "mid é calculado errado, então o índice 3 nunca é examinado",
+      "Os resultados recursivos são descartados; falta return nas duas",
+      "O caso base dispara cedo demais e o -1 dele se perde no caminho",
+      "O ramo else deveria buscar de lo a mid, e não de lo a mid - 1"
+    ],
+    "explanation": "A primeira chamada vê a[2] = 5 < 7 e faz a recursão; a chamada interna acha o 7 no índice 3 e retorna 3, mas a chamada externa ignora esse valor e chega ao fim da função sem retornar nada. Todo ramo recursivo precisa devolver o resultado para cima: return find(a, target, mid + 1, hi), e o mesmo no ramo else. O índice 3 é examinado, o caso base nunca é atingido aqui, e buscar de lo a mid - 1 está certo porque a[mid] já foi verificado."
+  }
+]

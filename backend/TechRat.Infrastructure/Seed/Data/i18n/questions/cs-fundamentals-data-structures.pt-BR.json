@@ -1,159 +1,75 @@
 [
   {
     "id": "pf-vt-float-equality",
-    "title": "Igualdade de ponto flutuante",
-    "question": "Em Python, qual é o resultado da expressão 0.1 + 0.2 == 0.3?",
+    "title": "Igualdade em ponto flutuante",
+    "question": "Em uma linguagem cujos números de ponto flutuante são doubles binários padrão (IEEE 754), qual é o resultado da expressão 0.1 + 0.2 == 0.3?",
     "options": [
-      "True, mas só quando os valores estão armazenados em variáveis",
-      "Lança um TypeError ao comparar floats calculados",
-      "True, porque o Python arredonda floats para 15 dígitos",
-      "False, porque nem 0.1 nem 0.2 são exatos em binário"
+      "true, mas só quando os valores estão guardados em variáveis",
+      "Gera um erro ao comparar floats calculados",
+      "true, porque os resultados são arredondados para 15 dígitos antes",
+      "false, porque nem 0.1 nem 0.2 são exatos em binário"
     ],
-    "explanation": "Floats são doubles binários IEEE 754, e frações decimais como 0.1 não podem ser representadas exatamente em base 2, então 0.1 + 0.2 resulta em 0.30000000000000004. O Python não arredonda comparações silenciosamente. Compare com math.isclose() ou use decimal.Decimal quando a aritmética decimal exata importar."
+    "explanation": "O ponto flutuante binário monta frações a partir de potências de dois, e frações decimais como 0.1 e 0.2 não têm representação binária exata, então 0.1 + 0.2 resulta em 0.30000000000000004. A comparação não arredonda silenciosamente para 15 dígitos, e comparar floats nunca é um erro. Compare com uma tolerância (|a - b| < epsilon) ou use um tipo decimal quando a aritmética decimal exata importar."
   },
   {
     "id": "pf-vt-struct-copy",
-    "title": "Atribuição de value type copia o valor",
-    "question": "Em C#, Point é uma struct com um campo público int X.\n\nvar a = new Point { X = 1 };\nvar b = a;\nb.X = 5;\nConsole.WriteLine(a.X);\n\nO que é impresso?",
+    "title": "Atribuição de tipo por valor copia",
+    "question": "Point é um tipo por valor (como uma struct), não um tipo por referência, com um campo x:\n\na ← Point(x = 1)\nb ← a\nb.x ← 5\nprint(a.x)\n\nO que é impresso?",
     "options": [
       "5",
-      "Não compila porque structs são imutáveis",
+      "Um erro, porque tipos por valor são imutáveis",
       "1",
       "0"
     ],
-    "explanation": "Structs são value types, então atribuir a a b copia o valor inteiro; b é uma cópia independente e alterar b.X não afeta a.X. Se Point fosse uma classe, as duas variáveis referenciariam o mesmo objeto e 5 seria impresso. Structs só são imutáveis se você as declarar como readonly."
+    "explanation": "Atribuir um tipo por valor copia o valor inteiro, então b é uma cópia independente e alterar b.x não mexe em a.x. Se Point fosse um tipo por referência (uma instância de classe), a e b apontariam para o mesmo objeto e 5 seria impresso. Tipos por valor só são imutáveis quando declarados assim."
   },
   {
     "id": "pf-vt-int-overflow",
-    "title": "Overflow silencioso de inteiro em C#",
-    "question": "Um contador em C# é declarado como int e o projeto usa a configuração padrão de overflow (unchecked).\n\nint x = int.MaxValue;\nx = x + 1;\n\nQual é o valor de x depois disso?",
+    "title": "Overflow silencioso de inteiro",
+    "question": "Um contador é um inteiro com sinal de 32 bits em complemento de dois, e a linguagem não faz verificação de overflow, então a aritmética dá a volta. x começa em 2147483647, o maior valor de 32 bits com sinal:\n\nx ← x + 1\n\nQual é o valor de x depois disso?",
     "options": [
-      "Uma OverflowException é lançada em runtime",
-      "-2147483648 (int.MinValue)",
-      "2147483648, promovido para long automaticamente",
-      "0, porque o valor é limitado e reiniciado"
+      "2147483647, porque o valor fica saturado no valor máximo",
+      "-2147483648, o menor valor de 32 bits com sinal",
+      "2147483648, porque x é ampliado para 64 bits",
+      "0, porque o contador volta para zero"
     ],
-    "explanation": "Em um contexto unchecked, a aritmética de inteiros com operandos não constantes dá a volta silenciosamente usando complemento de dois, então int.MaxValue + 1 vira int.MinValue. O C# nunca amplia o tipo da variável automaticamente. Uma OverflowException só é lançada dentro de um bloco/expressão checked ou quando o projeto habilita CheckForOverflowUnderflow."
-  },
-  {
-    "id": "pf-vt-js-safe-integer",
-    "title": "Precisão de inteiros em números JavaScript",
-    "question": "Um serviço Node.js converte IDs de banco de dados de 64 bits em números JavaScript comuns. Por que 9007199254740993 === 9007199254740992 resulta em true?",
-    "options": [
-      "O operador === converte os dois operandos para inteiros de 32 bits antes de comparar",
-      "O JavaScript trunca literais numéricos com mais de 15 dígitos durante o parse",
-      "Numbers são doubles IEEE 754, então nem todo inteiro acima de 2^53 é exato",
-      "Inteiros grandes são guardados como strings e comparados pelos 16 primeiros caracteres"
-    ],
-    "explanation": "Um number em JavaScript é um double de 64 bits com significando de 53 bits, então só inteiros até Number.MAX_SAFE_INTEGER (2^53 - 1) têm garantia de exatidão; 2^53 + 1 é arredondado para 2^53. O === não converte para inteiros de 32 bits e numbers não são strings. Mantenha esses IDs como strings ou BigInt."
-  },
-  {
-    "id": "pf-cf-switch-fallthrough",
-    "title": "Fall-through no switch",
-    "question": "Qual é o valor de out depois que este JavaScript executa?\n\nlet x = 1, out = '';\nswitch (x) {\n  case 1: out += 'a';\n  case 2: out += 'b'; break;\n  case 3: out += 'c';\n}",
-    "options": [
-      "'ab'",
-      "'abc'",
-      "'b'",
-      "'a'"
-    ],
-    "explanation": "Quando um case casa, a execução continua nos cases seguintes até encontrar um break (fall-through). O case 1 concatena 'a', cai no case 2, que concatena 'b', e então o break sai do switch, de modo que o case 3 nunca executa. Esquecer o break é um bug clássico; por isso o C# proíbe fall-through implícito em cases não vazios."
-  },
-  {
-    "id": "pf-cf-for-else",
-    "title": "Semântica do for...else em Python",
-    "question": "O que este código Python imprime?\n\nfor n in [3, 5, 7]:\n    if n % 2 == 0:\n        break\nelse:\n    print('none even')",
-    "options": [
-      "Um SyntaxError, já que loops não podem ter cláusula else",
-      "none even (impresso três vezes)",
-      "Nada, porque o else só executa depois de um if",
-      "none even (impresso uma vez)"
-    ],
-    "explanation": "A cláusula else de um loop executa uma vez quando o loop termina sem passar por um break. Nenhum elemento é par, então o break nunca executa e o bloco else imprime uma vez. Ela não está ligada ao if dentro do loop e é sintaxe válida tanto para for quanto para while."
-  },
-  {
-    "id": "pf-cf-finally-return",
-    "title": "Return dentro do finally",
-    "question": "O que f() retorna em Python?\n\ndef f():\n    try:\n        return 1\n    finally:\n        return 2",
-    "options": [
-      "2, porque o return no finally sobrescreve o return pendente",
-      "1, porque o primeiro return sempre prevalece",
-      "Lança um RuntimeError por returns conflitantes",
-      "None, porque os dois returns se anulam"
-    ],
-    "explanation": "O bloco finally sempre executa antes de a função realmente sair, e um return executado no finally substitui o valor de retorno pendente (e também engoliria uma exceção em andamento). Por isso esse padrão é considerado propenso a bugs; desde o Python 3.14 o compilador emite um SyntaxWarning para return, break ou continue que saia de um bloco finally."
+    "explanation": "Em complemento de dois, 2147483647 é 0111...1; somar 1 dá 1000...0, o padrão de bits de -2147483648, então a aritmética sem verificação dá a volta do máximo para o mínimo. Saturar no máximo é outro tipo de aritmética, explícito, o tipo da variável nunca é ampliado sozinho, e voltar para 0 é o que um contador sem sinal faz depois do seu máximo. O padrão varia entre linguagens (dar a volta, lançar erro ou comportamento indefinido), então use um tipo maior ou aritmética verificada quando o overflow for possível."
   },
   {
     "id": "pf-fn-pass-by-sharing",
     "title": "Passando uma lista para uma função",
-    "question": "O que este código Python imprime?\n\ndef f(lst):\n    lst.append(4)\n    lst = [9]\n\na = [1, 2, 3]\nf(a)\nprint(a)",
+    "question": "Uma variável de lista guarda uma referência para um objeto lista, e os argumentos são passados por valor, então a função recebe uma cópia dessa referência. O que é impresso?\n\nfunction f(lst)\n    append(lst, 4)\n    lst ← [9]\n\na ← [1, 2, 3]\nf(a)\nprint(a)",
     "options": [
       "[1, 2, 3]",
       "[9, 4]",
       "[9]",
       "[1, 2, 3, 4]"
     ],
-    "explanation": "O Python passa referências de objetos por valor: lst inicialmente aponta para a mesma lista que a, então append altera a lista de quem chamou. Reatribuir lst a uma nova lista só muda o nome local e não afeta a. Por isso a termina como [1, 2, 3, 4], e não [9] nem inalterada."
-  },
-  {
-    "id": "pf-fn-mutable-default",
-    "title": "Argumento padrão mutável",
-    "question": "Um helper é definido como def add(item, acc=[]): acc.append(item); return acc. O que add(1) e depois add(2) retornam?",
-    "options": [
-      "[1] e depois [2]",
-      "[1] e depois [1, 2]",
-      "[1] e depois um TypeError",
-      "[] e depois [2]"
-    ],
-    "explanation": "Valores padrão de argumentos são avaliados uma única vez, quando a instrução def executa, então toda chamada que omite acc compartilha o mesmo objeto lista. A segunda chamada adiciona à lista que já contém 1. A correção idiomática é usar acc=None e criar uma nova lista dentro da função."
-  },
-  {
-    "id": "pf-fn-closure-loop",
-    "title": "Closures capturando a variável do loop",
-    "question": "O que este JavaScript registra no console?\n\nfor (var i = 0; i < 3; i++) {\n  setTimeout(() => console.log(i), 0);\n}",
-    "options": [
-      "0, 0, 0",
-      "undefined três vezes",
-      "3, 3, 3",
-      "0, 1, 2"
-    ],
-    "explanation": "var tem escopo de função, então as três arrow functions capturam o mesmo binding i, que vale 3 quando os timers disparam. Declarar a variável do loop com let cria um binding novo a cada iteração e registraria 0, 1, 2. Os callbacks não executam de forma síncrona, então nunca veem os valores intermediários."
+    "explanation": "lst começa como uma cópia da referência guardada em a, então as duas apontam para a mesma lista e o append altera a lista de quem chamou. Atribuir uma nova lista a lst só muda a cópia local da referência dentro da função e não afeta a. Por isso a termina como [1, 2, 3, 4], e não [9] nem inalterada. Esse modelo, muitas vezes chamado de chamada por compartilhamento (call by sharing), é como muitas linguagens populares passam objetos."
   },
   {
     "id": "pf-rec-base-case",
     "title": "Caso base ausente",
-    "question": "Um desenvolvedor escreve def fact(n): return n * fact(n - 1) em CPython e chama fact(5). O que acontece?",
+    "question": "Um desenvolvedor escreve esta função e chama fact(5):\n\nfunction fact(n)\n    return n * fact(n - 1)\n\nO que acontece?",
     "options": [
-      "Retorna 0, porque a recursão para quando n chega a 0",
-      "Retorna 120 porque o Python infere o caso base",
-      "RecursionError, ao exceder o limite de recursão",
-      "Fica em loop para sempre sem nenhum erro"
+      "Retorna 0, porque as chamadas param quando n chega a 0",
+      "Retorna 120, porque fact(1) multiplica por 1 e para ali",
+      "Chama a si mesma até estourar a pilha de chamadas",
+      "Fica em loop para sempre sem usar nenhuma memória extra"
     ],
-    "explanation": "Sem caso base, a função continua chamando a si mesma (5, 4, ... 0, -1, ...). Chegar a 0 multiplica, mas não interrompe a recursão. O CPython protege a pilha C com um limite de recursão (padrão 1000, veja sys.getrecursionlimit()) e lança RecursionError em vez de ficar em loop para sempre."
+    "explanation": "Sem caso base, nada interrompe a recursão: fact(5) chama fact(4), ..., fact(0), fact(-1) e assim por diante. Chegar a 1 ou 0 só muda o valor multiplicado; não encerra as chamadas. Cada chamada pendente mantém um frame na pilha de chamadas, porque a sua multiplicação ainda precisa ser feita, então a memória cresce até o runtime acusar estouro de pilha (stack overflow) ou erro de profundidade de recursão. Um caso base como \"if n <= 1 then return 1\" resolve."
   },
   {
     "id": "pf-rec-naive-fib",
     "title": "Fibonacci recursivo ingênuo",
-    "question": "def fib(n): return n if n < 2 else fib(n-1) + fib(n-2) fica lento demais por volta de n = 40. Qual é a sua complexidade de tempo e a correção mais simples?",
+    "question": "Esta função fica lenta demais por volta de n = 40:\n\nfunction fib(n)\n    if n < 2 then return n\n    return fib(n - 1) + fib(n - 2)\n\nQual é a sua complexidade de tempo e a correção mais simples?",
     "options": [
-      "Exponencial; faça cache com @functools.cache para torná-la linear",
-      "Linear; a lentidão vem do overhead de chamadas de função do Python",
-      "O(n log n); aumente o limite de recursão",
-      "Quadrática; converta para um loop while para torná-la linear"
+      "Exponencial; memoize fib(k) para calcular cada valor uma vez",
+      "Linear; a lentidão vem do custo fixo de cada chamada de função",
+      "O(n log n); dê ao programa uma pilha de chamadas maior para usar",
+      "Quadrática; transforme em um loop para torná-la linear de novo"
     ],
-    "explanation": "Cada chamada gera mais duas e os subproblemas são recalculados repetidamente, resultando em aproximadamente O(phi^n) chamadas. Memoizar com functools.cache calcula cada fib(k) uma única vez, então o tempo de execução passa a ser O(n). Aumentar o limite de recursão não ajuda na velocidade, e o overhead de chamadas não é o fator dominante."
-  },
-  {
-    "id": "pf-rec-tail-call-python",
-    "title": "Recursão de cauda no CPython",
-    "question": "Um desenvolvedor reescreve uma soma recursiva na forma de recursão de cauda (def s(n, acc=0): return acc if n == 0 else s(n-1, acc+n)) esperando somar 1..100000 no CPython. O que acontece?",
-    "options": [
-      "Funciona, mas usa memória O(n) na heap em vez da pilha",
-      "Falha com SyntaxError porque argumentos padrão não são permitidos em recursão",
-      "Funciona, porque o CPython reutiliza o frame em chamadas na posição de cauda",
-      "Ainda lança RecursionError, porque o CPython não elimina tail calls"
-    ],
-    "explanation": "O CPython não faz eliminação de tail calls, então cada chamada ainda empilha um novo frame, e 100000 frames excedem o limite padrão de recursão. Linguagens como Scheme garantem tail calls adequadas, mas o Python mantém tracebacks completos de propósito. A correção é um loop explícito (ou acumulação iterativa), não um formato recursivo diferente."
+    "explanation": "Cada chamada gera mais duas e os mesmos subproblemas são recalculados repetidamente, então o número de chamadas cresce aproximadamente como phi^n (cerca de 1,6^n). Memoizar, isto é, guardar cada fib(k) na primeira vez em que é calculado e reaproveitá-lo, deixa o tempo de execução O(n). O custo de chamada é só um fator constante, e uma pilha de chamadas maior permite recursão mais profunda, mas aqui a profundidade é só n, então não ajuda na velocidade."
   },
   {
     "id": "pf-rec-quicksort-stack",
@@ -177,36 +93,36 @@
       "Um ponteiro cujo tipo não corresponde ao valor apontado",
       "Um ponteiro que ainda aponta para memória já liberada"
     ],
-    "explanation": "Um dangling pointer sobrevive ao objeto para o qual apontava, por exemplo depois de free() ou ao retornar o endereço de uma variável local; usá-lo é comportamento indefinido. Um ponteiro null é um valor sabidamente inválido, não pendente. O borrow checker do Rust rejeita em tempo de compilação o código que criaria dangling references."
+    "explanation": "Um dangling pointer sobrevive ao objeto para o qual apontava, por exemplo depois que essa memória é liberada explicitamente ou quando uma função retorna o endereço de sua própria variável local; desreferenciá-lo é um bug de use-after-free com resultado indefinido. Um ponteiro null é um valor sabidamente inválido, não pendente. Linguagens memory-safe impedem dangling references com garbage collection ou com checagens de tempo de vida em tempo de compilação."
   },
   {
     "id": "pf-mem-gc-leak",
     "title": "Vazamento de memória em runtime com garbage collector",
-    "question": "A memória de um serviço ASP.NET Core de longa duração cresce continuamente até ele ser reciclado. O profiling mostra milhões de objetos mantidos por um Dictionary estático usado como cache sem eviction. Por que o garbage collector não os libera?",
+    "question": "A memória de um serviço web de longa duração, escrito em uma linguagem com garbage collector, cresce continuamente até ele ser reiniciado. O profiling mostra milhões de objetos mantidos por um dicionário global (estático) usado como cache sem eviction. Por que o garbage collector não os libera?",
     "options": [
-      "Eles ainda são alcançáveis a partir de uma GC root, então o GC os trata como vivos",
-      "O GC só libera objetos alocados na pilha",
-      "Objetos em um Dictionary ficam fixados e nunca são movidos nem coletados",
-      "O GC pula coletas enquanto o processo está atendendo requisições"
+      "Continuam alcançáveis a partir de uma GC root, então o GC os trata como vivos",
+      "O GC só libera objetos que foram alocados na pilha de chamadas da thread",
+      "Objetos guardados em um dicionário ficam fixados, nunca movidos nem coletados",
+      "O GC pula todas as coletas enquanto o processo está atendendo requisições"
     ],
-    "explanation": "O GC do .NET só recupera objetos inalcançáveis a partir de roots como campos estáticos, variáveis na pilha e handles. Um dicionário estático é uma root, então tudo o que ele referencia permanece vivo para sempre. A correção é um cache limitado (por exemplo, limites de tamanho e expiração), não forçar GC.Collect()."
+    "explanation": "Um garbage collector de rastreamento só recupera objetos inalcançáveis a partir de roots como variáveis globais ou estáticas, variáveis na pilha e handles. Um dicionário global é alcançável a partir de uma root, então tudo o que ele referencia permanece vivo para sempre. A correção é um cache limitado (limites de tamanho e expiração), não forçar coletas; o GC não gerencia a memória da pilha, não fixa entradas de dicionário e continua rodando sob carga."
   },
   {
     "id": "pf-mem-rc-cycle",
     "title": "Ciclos de referência com contagem de referências",
-    "question": "Em Rust, um nó pai guarda filhos Rc<Node> e cada filho guarda um Rc<Node> de volta para o pai. Quando a árvore sai de escopo, o que acontece e qual é a correção idiomática?",
+    "question": "Um runtime gerencia memória só por contagem de referências. Um nó pai guarda referências fortes para os filhos e cada filho guarda uma referência forte de volta para o pai. Quando a última referência externa para a árvore é descartada, o que acontece e qual é a correção usual?",
     "options": [
-      "O programa entra em panic em runtime quando o ciclo é detectado",
-      "Os nós vazam, pois os strong counts nunca zeram; use Weak para os pais",
-      "O compilador rejeita o código porque Rc não pode formar ciclos",
-      "Tudo é liberado, já que o Rc roda um coletor de ciclos no drop; nada a corrigir"
+      "O runtime lança um erro quando detecta o ciclo de referências",
+      "Os nós vazam, pois as contagens nunca zeram; torne fracos os links ao pai",
+      "O compilador rejeita o código porque referências contadas não formam ciclos",
+      "Tudo é liberado quando a contagem da raiz chega a zero; nada a corrigir"
     ],
-    "explanation": "Rc só libera um valor quando seu strong count chega a zero; um ciclo pai-filho mantém ambas as contagens em pelo menos 1, então a memória vaza mesmo que nada consiga alcançá-la. O Rust não detecta esses ciclos em tempo de compilação e o Rc não tem coletor de ciclos. Tornar as referências de volta Weak<Node> quebra o ciclo, porque referências fracas não mantêm o valor vivo."
+    "explanation": "Com contagem de referências, um objeto só é liberado quando sua contagem chega a zero; um ciclo pai-filho mantém todas as contagens em pelo menos 1, então a memória vaza mesmo que nada de fora consiga alcançá-la. A contagem de referências pura não detecta ciclos em tempo de execução nem os rejeita em tempo de compilação, e a contagem da raiz nunca chega a zero porque os filhos ainda a referenciam. Tornar fracas as referências de volta quebra o ciclo, porque referências fracas não somam na contagem."
   },
   {
     "id": "pf-bigo-nested-loop",
     "title": "Loop aninhado triangular",
-    "question": "Qual é a complexidade de tempo deste código?\n\nfor i in range(n):\n    for j in range(i, n):\n        count += 1",
+    "question": "Qual é a complexidade de tempo deste código?\n\nfor i from 0 to n - 1\n    for j from i to n - 1\n        count = count + 1",
     "options": [
       "O(n^2)",
       "O(n^3)",
@@ -225,24 +141,12 @@
       "Cerca de 1.000",
       "Cerca de 20"
     ],
-    "explanation": "A busca binária corta o intervalo restante pela metade a cada comparação, então precisa de cerca de log2(n) passos; log2(1.000.000) é pouco menos de 20. 500.000 é a média da busca linear, e 1.000 seria sqrt(n). Esse crescimento logarítmico é o motivo de dados ordenados com bisect serem tão eficientes."
-  },
-  {
-    "id": "pf-bigo-list-membership",
-    "title": "Testes de pertinência dentro de um loop",
-    "question": "Um job remove duplicatas de 200.000 IDs com: for x in ids: if x not in seen: seen.append(x), onde seen é uma lista. Leva minutos. Qual é a causa e a correção?",
-    "options": [
-      "O loop é O(n log n) porque listas são mantidas ordenadas; use um deque",
-      "in em lista é O(n), então o loop é O(n^2); use um set no lugar",
-      "Loops em Python são sempre O(n^2); use recursão",
-      "list.append é O(n), tornando o loop O(n^2); pré-aloque a lista"
-    ],
-    "explanation": "x in list percorre linearmente, então n iterações fazendo até n comparações cada é quadrático. Um set é baseado em hash, com pertinência O(1) em média, o que leva o job inteiro a O(n). list.append é O(1) amortizado, listas não são mantidas ordenadas e recursão não mudaria a complexidade."
+    "explanation": "A busca binária corta o intervalo restante pela metade a cada comparação, então precisa de cerca de log2(n) passos; log2(1.000.000) é pouco menos de 20. 500.000 é a média da busca linear, e 1.000 seria sqrt(n). Esse crescimento logarítmico é o motivo de valer a pena manter os dados ordenados quando eles são buscados muitas vezes."
   },
   {
     "id": "pf-bigo-amortized-append",
     "title": "Append amortizado em array dinâmico",
-    "question": "Um array dinâmico (como List<T> ou uma lista Python) dobra sua capacidade quando fica cheio, copiando todos os elementos. Qual é o custo total de fazer append de n itens, partindo do vazio?",
+    "question": "Um array dinâmico (uma lista que cresce, guardada em um único bloco contíguo) dobra sua capacidade quando fica cheio, copiando todos os elementos para o novo bloco. Qual é o custo total de fazer append de n itens, partindo do vazio?",
     "options": [
       "O(n log n) no total, porque há log n redimensionamentos",
       "O(n^2) no total, porque cada redimensionamento copia tudo",
@@ -288,30 +192,6 @@
     "explanation": "A lei de De Morgan diz que NOT (A AND B) é igual a (NOT A) OR (NOT B): a negação inverte o operador e cada operando. (NOT isAdmin) AND (NOT isActive) é a negação de um OR, não de um AND. No código, !(a && b) vira !a || !b, o que ajuda a simplificar guard clauses."
   },
   {
-    "id": "pf-bool-short-circuit-js",
-    "title": "Resultado da avaliação de curto-circuito",
-    "question": "Em JavaScript, user é null. Qual é o resultado de user && user.profile && user.profile.name?",
-    "options": [
-      "false",
-      "undefined",
-      "null",
-      "Lança um TypeError"
-    ],
-    "explanation": "O && avalia da esquerda para a direita e retorna o primeiro operando falsy sem avaliar o resto, então retorna o próprio user, que é null. Ele não converte o resultado para booleano, e user.profile nunca é acessado, então não há TypeError. Optional chaining (user?.profile?.name) retornaria undefined."
-  },
-  {
-    "id": "pf-bool-non-short-circuit",
-    "title": "& versus && em C#",
-    "question": "Este código C# lança uma NullReferenceException quando list é null:\n\nif (list != null & list.Count > 0) { ... }\n\nPor quê?",
-    "options": [
-      "& tem precedência maior que !=, então a comparação é agrupada errado",
-      "& converte os bools em inteiros e Count é avaliado primeiro",
-      "& em bools avalia os dois operandos, então list.Count roda com list null",
-      "O compilador reordena os operandos do & para avaliar primeiro o mais barato"
-    ],
-    "explanation": "Para operandos bool, & é o AND lógico sem curto-circuito: ele sempre avalia o operando da direita. O && pula o operando da direita quando o da esquerda é false, e é isso que protege a checagem de null. A precedência de operadores não é o problema aqui, porque != tem precedência maior que &."
-  },
-  {
     "id": "pf-num-hex-to-decimal",
     "title": "Hexadecimal para decimal",
     "question": "Qual é o valor decimal de 0x2F?",
@@ -326,7 +206,7 @@
   {
     "id": "pf-num-twos-complement",
     "title": "Interpretação em complemento de dois",
-    "question": "Um sensor envia o byte 0xFF, que seu código lê como um inteiro de 8 bits com sinal (sbyte / byte do Java). Que valor ele contém?",
+    "question": "Um sensor envia o byte 0xFF, que seu código lê como um inteiro de 8 bits com sinal. Que valor ele contém?",
     "options": [
       "-1",
       "-127",
@@ -369,15 +249,15 @@
       "0x78",
       "0x12"
     ],
-    "explanation": "Little-endian armazena o byte menos significativo no endereço mais baixo, então a memória contém 78 56 34 12. Big-endian (a ordem de bytes da rede) colocaria 0x12 primeiro. Ao serializar dados binários, especifique a ordem de bytes explicitamente, por exemplo '<' ou '>' nas format strings do struct do Python."
+    "explanation": "Little-endian armazena o byte menos significativo no endereço mais baixo, então a memória contém 78 56 34 12. Big-endian (a ordem de bytes da rede) colocaria 0x12 primeiro. Ao serializar dados binários, declare a ordem de bytes explicitamente no formato do arquivo ou do protocolo em vez de depender da ordem nativa da máquina."
   },
   {
     "id": "pf-arch-false-sharing",
     "title": "False sharing entre threads",
-    "question": "Duas threads incrementam cada uma o seu próprio contador em um loop apertado. Os contadores são longs adjacentes no mesmo array, mas a vazão é bem menor do que com uma thread só. Qual é a causa mais provável?",
+    "question": "Duas threads incrementam cada uma o seu próprio contador em um loop apertado. Os contadores são inteiros de 64 bits adjacentes no mesmo array, mas a vazão é bem menor do que com uma thread só. Qual é a causa mais provável?",
     "options": [
       "O escalonador do SO fixa as duas threads no mesmo núcleo",
-      "O JIT serializa o acesso de threads diferentes a elementos de um mesmo array",
+      "O runtime serializa o acesso de threads diferentes a elementos de um mesmo array",
       "False sharing: os contadores dividem uma linha de cache que pula entre núcleos",
       "Incrementos de inteiros são atômicos e travam o barramento de memória global"
     ],
@@ -468,40 +348,28 @@
     "explanation": "Os elementos ficam armazenados lado a lado com tamanho fixo, então a posição do elemento i é uma única multiplicação e soma a partir do endereço base, independente de n. Não há hashing nem busca envolvidos. O cache ajuda na velocidade na prática, mas não é o que torna a operação O(1)."
   },
   {
-    "id": "ds-arr-modify-while-iterating",
-    "title": "Removendo elementos durante a iteração",
-    "question": "Este código Java lança uma exceção em runtime:\n\nfor (String s : names) {\n  if (s.isEmpty()) names.remove(s);\n}\n\nonde names é um ArrayList. Qual exceção e por quê?",
-    "options": [
-      "NullPointerException, porque remove() deixa uma posição null",
-      "UnsupportedOperationException, porque o ArrayList fica imutável durante a iteração",
-      "ConcurrentModificationException, pois a lista mudou fora do seu iterator",
-      "IndexOutOfBoundsException, porque o índice do loop passa do novo tamanho"
-    ],
-    "explanation": "Os iterators de ArrayList são fail-fast: eles acompanham um contador de modificações e lançam ConcurrentModificationException quando a lista é alterada por outro meio que não o próprio iterator. Use Iterator.remove() ou names.removeIf(String::isEmpty). Apesar do nome, a exceção não tem nada a ver com threads."
-  },
-  {
     "id": "ds-arr-prefix-sums",
     "title": "Muitas consultas de soma em intervalo",
     "question": "Um dashboard faz milhões de consultas pedindo a soma dos valores entre os índices l e r de um array estático de 1.000.000 de números. Qual é a melhor preparação?",
     "options": [
-      "Ordenar o array uma vez para somar cada intervalo com busca binária",
+      "Ordenar o array uma vez para depois somar cada intervalo com busca binária",
       "Pré-calcular somas de prefixo e responder com prefix[r+1] - prefix[l]",
       "Guardar o array em um hash set para buscas O(1)",
       "Somar o intervalo a cada consulta, já que somar uma fatia já é O(1)"
     ],
-    "explanation": "Um array de somas de prefixo custa O(n) para construir (por exemplo, com itertools.accumulate) e responde qualquer soma de intervalo em O(1). Percorrer cada intervalo é O(r - l) por consulta, e ordenar ou usar hash destrói a informação de posição. Se o array fosse atualizado com frequência, uma Fenwick tree ou segment tree seria o próximo passo."
+    "explanation": "Um array de somas de prefixo, em que prefix[i] guarda a soma dos i primeiros valores, custa uma passada O(n) para ser construído e responde qualquer soma de intervalo em O(1). Percorrer cada intervalo é O(r - l) por consulta, e ordenar ou usar hash destrói a informação de posição de que a consulta precisa. Se o array fosse atualizado com frequência, uma Fenwick tree (binary indexed tree) ou uma segment tree seria o próximo passo."
   },
   {
     "id": "ds-arr-go-slice-aliasing",
-    "title": "Slices compartilhando o array subjacente",
-    "question": "O que este programa Go imprime?\n\na := []int{1, 2, 3, 4}\nb := a[:2]\nb = append(b, 99)\nfmt.Println(a)",
+    "title": "Escrevendo por meio de uma view de array",
+    "question": "Um array a contém [1, 2, 3, 4]. v é uma view de a que começa no índice 1 e tem tamanho 2: ela compartilha a memória de a em vez de copiá-la. w é uma cópia independente de v. Em seguida o código executa:\n\nv[1] = 99\nw[0] = 50\nprint(a)\n\nO que é impresso?",
     "options": [
-      "[1 2 3 4 99]",
-      "[1 2 3 4]",
-      "[1 2 99 4]",
-      "[1 2 99 3 4]"
+      "[1, 50, 99, 4]",
+      "[1, 2, 3, 4]",
+      "[1, 2, 99, 4]",
+      "[1, 50, 3, 4]"
     ],
-    "explanation": "b compartilha o array subjacente de a e tem comprimento 2, mas capacidade 4, então o append escreve 99 no índice 2 do array compartilhado em vez de alocar um novo. Por isso a enxerga a mudança. Use uma full slice expression a[:2:2] ou copy para forçar uma nova alocação quando precisar de independência."
+    "explanation": "Uma view guarda uma referência à memória original mais um deslocamento e um tamanho, então v[1] é o mesmo slot que a[1 + 1] = a[2], e escrever 99 por meio de v altera a. A cópia w tem memória própria, então escrever 50 nela não afeta a. Esquecer que slices ou sub-arrays podem compartilhar armazenamento com a origem é um bug clássico de aliasing; copie explicitamente quando as partes precisarem mudar de forma independente."
   },
   {
     "id": "ds-str-utf8-bytes",
@@ -514,30 +382,6 @@
       "1"
     ],
     "explanation": "O UTF-8 usa 1 byte para U+0000..U+007F (ASCII), 2 bytes para U+0080..U+07FF, 3 bytes até U+FFFF e 4 bytes acima disso. U+00E9 cai na faixa de 2 bytes, codificado como C3 A9. É por isso que o tamanho em bytes e a contagem de caracteres diferem em textos não ASCII."
-  },
-  {
-    "id": "ds-str-concat-loop",
-    "title": "Concatenação de strings em loop",
-    "question": "Um gerador de relatórios em C# executa result += line; para 100.000 linhas e fica muito lento. Qual é o principal motivo?",
-    "options": [
-      "Strings são imutáveis, então cada += copia tudo: O(n^2) no total",
-      "Strings são guardadas como listas ligadas, então += percorre cada caractere",
-      "+= pega um lock global no intern pool de strings",
-      "O garbage collector roda uma coleta completa após cada concatenação"
-    ],
-    "explanation": "Cada concatenação aloca uma nova string e copia todos os caracteres anteriores, então o trabalho total cresce quadraticamente com o tamanho da saída. O StringBuilder adiciona em um buffer expansível com custo O(1) amortizado por caractere e produz a string final uma única vez. Não existe lock por concatenação nem GC forçado."
-  },
-  {
-    "id": "ds-str-utf16-length",
-    "title": "Tamanho de string e emoji",
-    "question": "Um validador de formulário limita nomes de usuário com value.length <= 10 em JavaScript. Por que '😀'.length retorna 2?",
-    "options": [
-      "Emojis são armazenados junto com um variation selector invisível",
-      "length conta code units UTF-16, e o emoji é um surrogate pair",
-      "length retorna a largura de exibição em colunas do terminal",
-      "length conta bytes, e o emoji ocupa 2 bytes quando codificado em UTF-8"
-    ],
-    "explanation": "Strings JavaScript são sequências de code units UTF-16; caracteres fora do Basic Multilingual Plane, como U+1F600, precisam de duas unidades (um surrogate pair). Em UTF-8 esse emoji tem 4 bytes, não 2. Para contar code points use [...value].length; para caracteres percebidos pelo usuário use Intl.Segmenter."
   },
   {
     "id": "ds-ll-insert-at-node",
@@ -637,63 +481,27 @@
   },
   {
     "id": "ds-hash-average-lookup",
-    "title": "HashSet versus List na busca",
-    "question": "Você verifica se cada um de 1 milhão de e-mails recebidos está em uma blocklist de 100.000 endereços. Por que HashSet<string> é muito mais rápido que List<string> para isso?",
+    "title": "Hash set versus lista na busca",
+    "question": "Você verifica se cada um de 1 milhão de e-mails recebidos está em uma blocklist de 100.000 endereços. Por que manter a blocklist em um hash set é muito mais rápido do que mantê-la em uma lista simples?",
     "options": [
-      "O HashSet mantém as strings ordenadas para busca binária",
-      "O HashSet guarda os dados na pilha, evitando acesso à heap",
-      "HashSet.Contains é O(1) em média, enquanto List.Contains é O(n)",
-      "List.Contains compara strings byte a byte; o HashSet nem chega a comparar"
+      "O hash set mantém as strings ordenadas para busca binária",
+      "O hash set guarda os dados na pilha, evitando acesso à heap",
+      "Pertinência em um hash set é O(1) em média; na lista é O(n)",
+      "A lista compara strings byte a byte; o hash set nem chega a comparar"
     ],
-    "explanation": "Um hash set calcula o hash da chave e verifica um único bucket, resultando em buscas de tempo constante em média, enquanto uma lista percorre linearmente. Hash sets não têm ordem, não são ordenados. Eles ainda comparam os candidatos com Equals depois de casar o hash, para tratar colisões."
-  },
-  {
-    "id": "ds-hash-equals-hashcode",
-    "title": "Sobrescrevendo equals sem hashCode",
-    "question": "Uma classe Java Money sobrescreve equals() mas não hashCode(). Depois de map.put(new Money(5, \"EUR\"), x), map.get(new Money(5, \"EUR\")) retorna null. Por quê?",
-    "options": [
-      "O HashMap usa == em vez de equals() para comparar chaves",
-      "get() precisa ser chamado com exatamente a mesma instância usada no put()",
-      "Instâncias iguais têm hash codes diferentes; o get() olha outro bucket",
-      "O HashMap exige que as chaves implementem Comparable"
-    ],
-    "explanation": "O contrato de Object.hashCode exige que objetos iguais tenham hash codes iguais. Sem sobrescrever, cada instância normalmente recebe um identity hash diferente, então o HashMap procura em outro bucket e nunca chama equals(). Sobrescrever hashCode de forma consistente com equals resolve."
-  },
-  {
-    "id": "ds-hash-load-factor",
-    "title": "Pré-dimensionando um hash map",
-    "question": "Um job Java insere 10 milhões de entradas em um new HashMap() e o profiling mostra tempo gasto em resize(). O que explica isso e o que ajuda?",
-    "options": [
-      "Ele faz rehash sempre que size passa de capacity x 0.75; defina uma capacidade inicial",
-      "O load factor é 1.0, então os buckets transbordam; defina-o como 2.0",
-      "O redimensionamento é causado por colisões; sobrescreva hashCode para retornar uma constante",
-      "O HashMap redimensiona a cada put; troque por TreeMap"
-    ],
-    "explanation": "Com o load factor padrão de 0.75, o HashMap dobra de tamanho e faz rehash de todas as entradas sempre que o tamanho passa de capacity x load factor. Criá-lo com uma capacidade inicial adequada (ou usar HashMap.newHashMap(n) no Java 19+) evita rehashes repetidos. Um hashCode constante faria todas as operações degradarem drasticamente."
+    "explanation": "Um hash set calcula o hash da chave e verifica um único bucket, então um teste de pertinência leva tempo constante em média, enquanto uma lista precisa ser percorrida elemento por elemento. Hash sets não têm ordem, não são ordenados, e guardar na pilha ou na heap não é o que os torna rápidos. Depois de os hashes coincidirem, eles ainda comparam as chaves candidatas por igualdade, para tratar colisões."
   },
   {
     "id": "ds-hash-mutable-key",
     "title": "Alterando uma chave depois da inserção",
-    "question": "Um objeto Order em C#, cujo GetHashCode usa o campo Status, é adicionado a um HashSet<Order>. Depois, order.Status muda. O que set.Contains(order) mais provavelmente retorna, com a mesma instância?",
+    "question": "Um objeto de pedido é adicionado a um hash set, e o hash dele é calculado a partir do campo status. Depois, o programa altera o status desse mesmo objeto no lugar. O que um teste de pertinência para esse mesmo objeto mais provavelmente retorna?",
     "options": [
-      "false, porque agora o objeto é procurado em um bucket diferente daquele onde foi armazenado",
-      "Lança InvalidOperationException porque o set foi modificado",
-      "true, porque o HashSet recalcula os hashes quando campos mudam",
-      "true, porque o set guarda uma referência para a mesma instância"
+      "false, pois a busca agora vai a um bucket diferente de onde ele está",
+      "Um erro, já que o set recusa buscar chaves alteradas depois da inserção",
+      "true, já que o set recalcula os hashes guardados quando um campo muda",
+      "true, já que o set guarda uma referência para esse mesmo objeto"
     ],
-    "explanation": "O set posicionou o objeto de acordo com o hash no momento da inserção; o novo hash aponta para um bucket diferente, então Contains não o encontra, e o set fica efetivamente corrompido. Coleções não conseguem observar mudanças em campos. Hash codes não podem mudar enquanto o objeto é usado como chave, então baseie-os em dados imutáveis."
-  },
-  {
-    "id": "ds-hash-flooding",
-    "title": "Mitigação de hash flooding",
-    "question": "Um atacante envia um JSON com 100.000 chaves criadas para ter hash codes idênticos, travando a CPU de um servidor web. Qual mitigação embutida o HashMap do Java 8+ usa nessa situação?",
-    "options": [
-      "O HashMap troca o salt dos hash codes com uma seed aleatória a cada resize",
-      "O HashMap rejeita chaves após um número fixo de colisões por bucket",
-      "O HashMap passa para open addressing com linear probing quando as colisões disparam",
-      "Buckets lotados viram árvores red-black, deixando as buscas em O(log n)"
-    ],
-    "explanation": "Desde o Java 8, quando um bin cresce demais o HashMap o converte de lista ligada em árvore red-black (ordenando chaves Comparable quando possível), então as operações no pior caso passam a ser O(log n) e o ataque cai para O(n log n) no total, em vez de O(n^2). Ele não rejeita chaves nem muda para open addressing. Outros runtimes, como o hashing de str do Python, usam hashes aleatorizados com chave."
+    "explanation": "O set colocou o objeto no bucket escolhido pelo hash no momento da inserção; o status alterado gera um hash diferente, então a busca verifica outro bucket e não o encontra, embora o mesmo objeto continue guardado lá. Uma tabela hash não consegue observar mudanças em campos e não refaz o hash sozinha. Uma chave não pode mudar de nenhuma forma que afete seu hash ou sua igualdade enquanto está guardada, então baseie os hashes em dados imutáveis."
   },
   {
     "id": "ds-tree-preorder",

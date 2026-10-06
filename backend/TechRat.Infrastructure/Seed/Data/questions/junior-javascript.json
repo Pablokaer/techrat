@@ -1,0 +1,206 @@
+[
+  {
+    "id": "js-jr-types-input-value-strict-equality",
+    "topic": "javascript",
+    "subtopic": "types",
+    "difficulty": "Easy",
+    "title": "Comparing an input's value with ===",
+    "question": "The user typed 2 in the quantity field, but the discount never applies:\n\nconst qty = document.querySelector(\"#qty\").value;\nif (qty === 2) applyDiscount();\n\nWhy?",
+    "options": [
+      "`===` compares references, so two numbers are never equal",
+      "`value` is the string \"2\", and `===` never converts types",
+      "`value` stays `undefined` until the form is submitted",
+      "`querySelector` returns a copy, so its `value` is empty"
+    ],
+    "correctIndex": 1,
+    "explanation": "An input's `value` is always a string, so `qty` is \"2\". Strict equality (`===`) never converts types, and a string is never strictly equal to a number; `Number(qty) === 2` fixes it. Numbers are compared by value, not by reference, the value is available as soon as the user types, and querySelector returns the real element, not a copy.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Strict_equality"
+  },
+  {
+    "id": "js-jr-types-or-default-zero-nullish",
+    "topic": "javascript",
+    "subtopic": "types",
+    "difficulty": "Medium",
+    "title": "|| replaces a valid 0 with the default",
+    "question": "function getVolume(options) {\n  return options.volume || 50;\n}\nconsole.log(getVolume({ volume: 0 })); // 50\n\nThe user really chose 0 (muted). Which change returns 0 here and still returns 50 when `volume` is missing?",
+    "options": [
+      "Use `options.volume && 50`, which keeps any value that is already set",
+      "Use `Number(options.volume) || 50`, so 0 is read as a number",
+      "Use `options.volume === 0 || 50`, so 0 is checked on its own",
+      "Use `options.volume ?? 50`, which falls back on null/undefined only"
+    ],
+    "correctIndex": 3,
+    "explanation": "`||` falls back whenever the left side is falsy, and 0 is falsy, so a real 0 becomes 50. The nullish coalescing operator `??` falls back only when the left side is null or undefined, so 0 is kept and a missing volume still gives 50. `&&` returns 50 for any truthy volume and undefined when it is missing, `Number(0) || 50` is still 50, and `options.volume === 0 || 50` returns the boolean true.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing"
+  },
+  {
+    "id": "js-jr-scope-const-object-mutation",
+    "topic": "javascript",
+    "subtopic": "scope-closures",
+    "difficulty": "Easy",
+    "title": "Changing a property of a const object",
+    "question": "What does this log?\n\nconst user = { name: \"Ana\" };\nuser.name = \"Bia\";\nconsole.log(user.name);",
+    "options": [
+      "\"Bia\": const stops reassigning `user`, not changing the object",
+      "\"Ana\": a const object silently ignores property changes",
+      "Nothing: line 2 throws a TypeError for changing a constant",
+      "Nothing: line 2 is a SyntaxError, so the script never runs"
+    ],
+    "correctIndex": 0,
+    "explanation": "`const` makes the binding constant: `user` can never point to another value, so `user = {}` would throw a TypeError. The object it points to is still mutable, so changing `user.name` works and logs \"Bia\". Nothing is ignored and there is no syntax error; to make the object itself read-only you would need something like Object.freeze.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/const"
+  },
+  {
+    "id": "js-jr-scope-var-let-if-block",
+    "topic": "javascript",
+    "subtopic": "scope-closures",
+    "difficulty": "Medium",
+    "title": "var vs let inside an if block",
+    "question": "What happens when this runs?\n\nfunction check(isAdmin) {\n  if (isAdmin) {\n    var role = \"admin\";\n    let level = 10;\n  }\n  console.log(role);\n  console.log(level);\n}\ncheck(false);",
+    "options": [
+      "It logs \"admin\" and then 10, since var and let are both visible",
+      "It throws a ReferenceError on `role`, before logging anything",
+      "It logs undefined, then throws a ReferenceError on `level`",
+      "It logs undefined twice, since both are hoisted to the function"
+    ],
+    "correctIndex": 2,
+    "explanation": "`var` is function-scoped: `role` exists in the whole function and is hoisted with the value undefined, and since the if block never runs it stays undefined. `let` is block-scoped: `level` only exists inside the if block, so reading it outside throws \"ReferenceError: level is not defined\". Nothing inside the block runs with `false`, so \"admin\" and 10 are never assigned.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/var"
+  },
+  {
+    "id": "js-jr-functions-arrow-return-object-literal",
+    "topic": "javascript",
+    "subtopic": "functions-this",
+    "difficulty": "Medium",
+    "title": "Returning an object from an arrow function",
+    "question": "This should build a list of user objects, but logs `[undefined, undefined]`. Why?\n\nconst users = [\"Ana\", \"Bia\"].map(name => { name: name });\nconsole.log(users);",
+    "options": [
+      "The braces are read as a function body, so nothing is returned",
+      "map skips the return value of arrows with a `name` parameter",
+      "An object literal cannot use the same name for key and value",
+      "Arrow functions cannot return objects, so use a regular function"
+    ],
+    "correctIndex": 0,
+    "explanation": "After `=>`, a `{` starts a block body, not an object literal: `name:` is parsed as a label and `name` as an expression statement, and a block body without `return` returns undefined. Wrapping the literal in parentheses fixes it: `name => ({ name })`. Arrow functions can return objects this way, map uses every return value, and `{ name: name }` is a valid object literal.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions"
+  },
+  {
+    "id": "js-jr-functions-listener-called-not-passed",
+    "topic": "javascript",
+    "subtopic": "functions-this",
+    "difficulty": "Easy",
+    "title": "Passing a function vs calling it",
+    "question": "`save` runs once when the page loads and then never again when the button is clicked. Why?\n\nbutton.addEventListener(\"click\", save());",
+    "options": [
+      "addEventListener runs a listener once unless `{ once: false }` is set",
+      "The event name must be \"onclick\", so clicks are never matched",
+      "`save` must be declared after the button in the HTML file",
+      "`save()` runs it right away and passes its return value instead"
+    ],
+    "correctIndex": 3,
+    "explanation": "The parentheses call `save` immediately while the listener is being registered, and its return value (usually undefined) is what gets passed to addEventListener, so no function is attached to the click. Pass the function itself: `addEventListener(\"click\", save)`. Listeners run on every event by default, the event name is \"click\" (\"onclick\" is the property and attribute name), and declaration order in the HTML is not the issue.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener"
+  },
+  {
+    "id": "js-jr-objects-spread-shallow-copy",
+    "topic": "javascript",
+    "subtopic": "objects-prototypes",
+    "difficulty": "Medium",
+    "title": "Spread makes a shallow copy",
+    "question": "A form edits a copy of the user, but the original changes too. What does this log?\n\nconst original = { name: \"Ana\", address: { city: \"Recife\" } };\nconst copy = { ...original };\ncopy.name = \"Bia\";\ncopy.address.city = \"Natal\";\nconsole.log(original.name, original.address.city);",
+    "options": [
+      "Bia Natal",
+      "Ana Recife",
+      "Ana Natal",
+      "Bia Recife"
+    ],
+    "correctIndex": 2,
+    "explanation": "Object spread makes a shallow copy: `copy` gets its own `name` property, so changing it leaves `original.name` as \"Ana\", but `copy.address` holds a reference to the same nested object as `original.address`. Changing the city through the copy therefore changes the original too. Copy the nested object as well (`{ ...original, address: { ...original.address } }`) or use structuredClone for a deep copy.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Shallow_copy"
+  },
+  {
+    "id": "js-jr-async-missing-await-promise",
+    "topic": "javascript",
+    "subtopic": "async",
+    "difficulty": "Easy",
+    "title": "Forgetting await on an async function",
+    "question": "What does this log?\n\nasync function getUser() {\n  return { name: \"Ana\" };\n}\nconst user = getUser();\nconsole.log(user.name);",
+    "options": [
+      "\"Ana\", since the function does no real asynchronous work",
+      "undefined, because `user` is a Promise, not the object",
+      "It throws a TypeError, because `user` is still null",
+      "It waits for getUser to finish, and then logs \"Ana\""
+    ],
+    "correctIndex": 1,
+    "explanation": "An async function always returns a Promise, even when it returns a plain value without awaiting anything. `user` is that Promise, and a Promise has no `name` property, so the log is undefined. Nothing waits unless you use `await getUser()` (or `.then`), and `user` is never null, so no TypeError is thrown.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function"
+  },
+  {
+    "id": "js-jr-async-sequential-vs-promise-all",
+    "topic": "javascript",
+    "subtopic": "async",
+    "difficulty": "Medium",
+    "title": "Independent awaits run one after another",
+    "question": "getOrders() and getInvoices() are independent and each take about 1 s. The page needs both:\n\nconst orders = await getOrders();\nconst invoices = await getInvoices();\n\nHow long does this take, and how can it be faster?",
+    "options": [
+      "About 1 s already, since `await` runs both requests in parallel",
+      "About 2 s; wrapping each `await` in try/catch runs them in parallel",
+      "About 1 s; Promise.all would only make the code shorter, not faster",
+      "About 2 s; use `await Promise.all([getOrders(), getInvoices()])`"
+    ],
+    "correctIndex": 3,
+    "explanation": "Each `await` pauses until its promise settles, and getInvoices() is not even called until getOrders() has finished, so the total is about 2 s. Calling both first and awaiting `Promise.all` lets the two requests run at the same time, so the total is about the slower one, about 1 s. try/catch only handles errors and does not change timing.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all"
+  },
+  {
+    "id": "js-jr-dom-script-in-head-null-element",
+    "topic": "javascript",
+    "subtopic": "dom-browser",
+    "difficulty": "Easy",
+    "title": "querySelector returns null from a script in head",
+    "question": "app.js is loaded with `<script src=\"app.js\"></script>` inside `<head>`, and the button with id `save` is in the body. The first line fails with \"Cannot read properties of null (reading 'addEventListener')\":\n\ndocument.querySelector(\"#save\").addEventListener(\"click\", save);\n\nWhat is the fix?",
+    "options": [
+      "Add `defer` to the script tag, so it runs after the HTML is parsed",
+      "Use the selector `.save` instead, since querySelector cannot find ids",
+      "Attach the listener to `window`, since buttons cannot have one",
+      "Move the script tag above `<head>`, so it loads even earlier"
+    ],
+    "correctIndex": 0,
+    "explanation": "A classic script in `<head>` runs as soon as it is reached, before the browser has parsed the body, so querySelector finds no `#save` element and returns null. `defer` (or placing the script at the end of the body) runs it after the document is parsed. `#save` is a valid id selector, buttons accept listeners, and loading the script even earlier makes the problem worse.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script"
+  },
+  {
+    "id": "js-jr-modules-inline-handler-not-global",
+    "topic": "javascript",
+    "subtopic": "modules",
+    "difficulty": "Hard",
+    "title": "Inline onclick cannot see module functions",
+    "question": "A page loads `<script type=\"module\" src=\"app.js\"></script>`. app.js declares `function handleClick() { ... }` at the top level, and the HTML has `<button onclick=\"handleClick()\">Save</button>`. Clicking throws \"ReferenceError: handleClick is not defined\". Why?",
+    "options": [
+      "Strict mode, which modules use, forbids top-level function declarations",
+      "Inline handlers can call arrow functions only, not function declarations",
+      "Top-level declarations in a module are module-scoped, not global",
+      "The `onclick` attribute needs `this.handleClick()` to reach module code"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each module has its own scope: its top-level declarations do not become globals or properties of `window`, unlike in a classic script. An inline `onclick` attribute looks names up in the global scope, so it cannot find handleClick. Attach the listener from the module with addEventListener (or, as a stopgap, assign `window.handleClick = handleClick`). Strict mode allows top-level function declarations, and inline handlers can call any global function.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules"
+  },
+  {
+    "id": "js-jr-errors-try-catch-unawaited-promise",
+    "topic": "javascript",
+    "subtopic": "errors",
+    "difficulty": "Hard",
+    "title": "try/catch around a promise that is not awaited",
+    "question": "The app shows \"Saved\" even when saving fails, and the console reports an unhandled promise rejection:\n\nasync function onSave() {\n  try {\n    saveDraft(); // returns a promise that rejects\n    showToast(\"Saved\");\n  } catch (e) {\n    showToast(\"Could not save\");\n  }\n}\n\nWhy does the catch block not run?",
+    "options": [
+      "A catch block handles errors from `throw` only, never rejections",
+      "saveDraft() is not awaited, so its rejection never throws in the try",
+      "showToast runs first and clears the error before catch can see it",
+      "An async function cannot use try/catch, so `.catch()` is required"
+    ],
+    "correctIndex": 1,
+    "explanation": "A rejected promise only becomes a thrown error where it is awaited. Without `await`, saveDraft() just returns a promise, the try block finishes normally and shows \"Saved\", and the rejection later has no handler, so it is reported as unhandled. Writing `await saveDraft();` makes the rejection throw inside the try, so catch runs. try/catch does catch awaited rejections, including inside async functions, and showToast has no effect on the error.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/await"
+  }
+]

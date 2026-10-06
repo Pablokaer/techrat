@@ -1,0 +1,291 @@
+[
+  {
+    "id": "pf-cs-vt-static-typing-check",
+    "topic": "programming-fundamentals",
+    "subtopic": "variables-types",
+    "difficulty": "Easy",
+    "title": "When a static type error is caught",
+    "question": "In a statically typed language, a function declares its parameter quantity as an integer. A new line of code calls it with the text \"ten\". When is this mistake reported?",
+    "options": [
+      "At run time, and only if execution actually reaches that call",
+      "Before the program runs, when the code is compiled or type-checked",
+      "Never, because the text is silently converted to the number 10",
+      "Only later, when the function tries to do arithmetic with the value"
+    ],
+    "correctIndex": 1,
+    "explanation": "Static typing means the types of variables and parameters are known and checked before the program runs, so passing text where an integer is declared is rejected at compile (or type-check) time. Reporting it only when the call executes, or when the value is first used in arithmetic, describes dynamic typing. A type checker does not silently turn \"ten\" into 10.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Static_typing"
+  },
+  {
+    "id": "pf-cs-vt-local-shadows-global",
+    "topic": "programming-fundamentals",
+    "subtopic": "variables-types",
+    "difficulty": "Medium",
+    "title": "A local variable with the same name as a global",
+    "question": "Here `declare` always creates a new variable in the current scope:\n\ndeclare total ← 1\n\nfunction report()\n    declare total ← 2\n    print(total)\n\nreport()\nprint(total)\n\nWhat is printed?",
+    "options": [
+      "2, then 2, because report overwrote the global total",
+      "1, then 1, because the global total is used inside report",
+      "An error, because total is declared in two places",
+      "2, then 1, because the local total hides the global one"
+    ],
+    "correctIndex": 3,
+    "explanation": "The declaration inside report creates a separate local variable that shadows the global one within the function, so the first print shows 2. When report returns, its local disappears, and the global total, which was never assigned, still holds 1. Overwriting the global would require assigning to it without declaring a new variable, and reusing a global's name for a local is legal, although easy to misread.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Scope"
+  },
+  {
+    "id": "pf-cs-vt-exact-binary-fraction",
+    "topic": "programming-fundamentals",
+    "subtopic": "variables-types",
+    "difficulty": "Medium",
+    "title": "Which fraction a binary float stores exactly",
+    "question": "A test compares floating-point results with ==. Which of these decimal values can a standard binary floating-point type (IEEE 754 double) store exactly, with no rounding error?",
+    "options": [
+      "0.375",
+      "0.001",
+      "0.35",
+      "0.6"
+    ],
+    "correctIndex": 0,
+    "explanation": "A binary float stores a fraction exactly only when it can be written as an integer divided by a power of two (within its precision). 0.375 is 3/8, so it is exact. 0.001 (1/1000), 0.35 (7/20) and 0.6 (3/5) have a factor of 5 in the denominator, so their binary expansions repeat forever and are rounded to the nearest representable value, just as 1/3 cannot be written exactly in decimal.",
+    "referenceUrl": "https://docs.python.org/3/tutorial/floatingpoint.html"
+  },
+  {
+    "id": "pf-cs-vt-float-addition-order",
+    "topic": "programming-fundamentals",
+    "subtopic": "variables-types",
+    "difficulty": "Hard",
+    "title": "Order of floating-point additions",
+    "question": "Using 64-bit binary floating-point numbers (IEEE 754 double, about 15 to 17 significant decimal digits):\n\na ← (1e16 + 1) + 1\nb ← 1e16 + (1 + 1)\n\nHow do a and b compare?",
+    "options": [
+      "They are equal, because addition is associative for any numeric type",
+      "a is 1e16 + 2 and b is 1e16, because the right grouping drops the ones",
+      "a stays 1e16 and b is 1e16 + 2, because each lone 1 is lost to rounding",
+      "Both overflow, because 1e16 is beyond the range a double can store"
+    ],
+    "correctIndex": 2,
+    "explanation": "Near 1e16, adjacent doubles are 2 apart, so 1e16 + 1 is exactly halfway and rounds (to even) back to 1e16; the second + 1 is lost the same way, leaving a = 1e16. In b the ones are added first, and 1e16 + 2 is representable, so b = 10000000000000002. Floating-point addition is commutative but not associative, which is why summation order matters (adding small values first or using compensated summation reduces error). Doubles reach about 1.8e308, so nothing overflows.",
+    "referenceUrl": "https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html"
+  },
+  {
+    "id": "pf-cs-vt-ms-counter-wrap",
+    "topic": "programming-fundamentals",
+    "subtopic": "variables-types",
+    "difficulty": "Hard",
+    "title": "An uptime counter that fails after weeks",
+    "question": "Device firmware keeps the milliseconds since boot in a signed 32-bit integer. Field reports say timers misbehave only on units that have run without a restart for several weeks. After roughly how long does this counter overflow?",
+    "options": [
+      "About 12.4 days",
+      "About 24.9 days",
+      "About 49.7 days",
+      "About 68 years"
+    ],
+    "correctIndex": 1,
+    "explanation": "A signed 32-bit integer tops out at 2^31 - 1 = 2,147,483,647; counted in milliseconds that is about 2,147,484 seconds, or 24.9 days, after which the counter overflows (typically wrapping to a large negative value). 49.7 days is the limit of an unsigned 32-bit millisecond counter, the documented wrap of the Windows GetTickCount API, and about 68 years is the signed 32-bit limit when counting seconds. Use a 64-bit counter instead.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount"
+  },
+  {
+    "id": "pf-cs-cf-do-while-runs-once",
+    "topic": "programming-fundamentals",
+    "subtopic": "control-flow",
+    "difficulty": "Easy",
+    "title": "A do ... while loop with a false condition",
+    "question": "What does this do ... while loop print?\n\nx ← 10\ndo\n    print(x)\n    x ← x + 1\nwhile x < 5",
+    "options": [
+      "10, printed exactly once",
+      "Nothing, since 10 < 5 is false from the start",
+      "10, 11, 12 and so on, without ever stopping",
+      "10 to 14, five numbers in total"
+    ],
+    "correctIndex": 0,
+    "explanation": "A do ... while (post-test) loop runs its body first and evaluates the condition afterwards, so the body always executes at least once. It prints 10, sets x to 11, then 11 < 5 is false and the loop ends. A pre-test while loop with the same condition would print nothing, and the loop cannot run forever because the condition is false after the first pass.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/do...while"
+  },
+  {
+    "id": "pf-cs-cf-else-if-order",
+    "topic": "programming-fundamentals",
+    "subtopic": "control-flow",
+    "difficulty": "Medium",
+    "title": "Grading rules checked in the wrong order",
+    "question": "A grading function returns the wrong letter for top students:\n\nfunction grade(score)\n    if score >= 60 then return 'D'\n    else if score >= 70 then return 'C'\n    else if score >= 80 then return 'B'\n    else if score >= 90 then return 'A'\n    else return 'F'\n\nWhat does grade(95) return?",
+    "options": [
+      "'A', because 95 meets the most specific condition",
+      "'F', because the conditions overlap each other",
+      "'D', because only the first true branch runs",
+      "An error, because more than one condition is true"
+    ],
+    "correctIndex": 2,
+    "explanation": "An if / else-if chain tests its conditions from top to bottom and runs only the first branch whose condition is true; the rest are skipped. 95 >= 60 is true, so the function returns 'D' and the more specific checks are never reached. Overlapping conditions are legal, not an error. Order the checks from most to least restrictive (>= 90 first) or make each range explicit.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/if...else"
+  },
+  {
+    "id": "pf-cs-cf-guard-before-index",
+    "topic": "programming-fundamentals",
+    "subtopic": "control-flow",
+    "difficulty": "Medium",
+    "title": "Bounds check on the wrong side of and",
+    "question": "A linear search fails with an index-out-of-range error whenever target is not in the array. The language checks array bounds and evaluates and with short-circuiting:\n\ni ← 0\nwhile a[i] ≠ target and i < length(a)\n    i ← i + 1\n\nWhat is the fix?",
+    "options": [
+      "Replace and with or, so either test alone can end the loop",
+      "Start i at 1, so the loop never reads past the last element",
+      "Use an and that always evaluates both sides on each pass",
+      "Swap the operands: i < length(a) and a[i] ≠ target"
+    ],
+    "correctIndex": 3,
+    "explanation": "With short-circuit and, the right operand is evaluated only when the left one is true, so the guard must come first. When target is missing, i reaches length(a) and a[i] is read before the bounds test runs. Writing i < length(a) first stops evaluation before the invalid access. Evaluating both sides every time would still read a[i], using or would keep looping past a match, and starting at 1 skips the first element without fixing the overrun.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Logical_AND"
+  },
+  {
+    "id": "pf-cs-cf-unsigned-countdown",
+    "topic": "programming-fundamentals",
+    "subtopic": "control-flow",
+    "difficulty": "Hard",
+    "title": "A countdown loop with an unsigned counter",
+    "question": "To process a non-empty array backwards, a developer writes this loop, where i is an unsigned 32-bit integer whose arithmetic wraps around:\n\ni ← length(a) - 1\nwhile i >= 0\n    process(a[i])\n    i ← i - 1\n\nWhat goes wrong?",
+    "options": [
+      "Nothing: i drops to -1 after a[0], the test fails and the loop ends",
+      "i >= 0 is always true, so after 0 the counter wraps to 4,294,967,295",
+      "a[0] is skipped, because the loop stops as soon as i reaches 0",
+      "The decrement below 0 is refused, so the loop stalls with i at 0"
+    ],
+    "correctIndex": 1,
+    "explanation": "An unsigned value can never be negative, so i >= 0 is always true and the condition can never end the loop. Decrementing 0 wraps around to the largest 32-bit value, 4,294,967,295, and the next iteration indexes far past the end of the array (an error with bounds checking, memory corruption without it). Use a signed index, or test before decrementing, for example loop while i > 0 and process a[i - 1].",
+    "referenceUrl": "https://cmu-sei.github.io/secure-coding-standards/sei-cert-c-coding-standard/rules/integers-int/int30-c/"
+  },
+  {
+    "id": "pf-cs-cf-loop-variant-gcd",
+    "topic": "programming-fundamentals",
+    "subtopic": "control-flow",
+    "difficulty": "Hard",
+    "title": "Proving that a loop terminates",
+    "question": "A reviewer asks why this greatest-common-divisor loop always stops for non-negative integers a and b:\n\nwhile b ≠ 0\n    r ← a mod b\n    a ← b\n    b ← r\nreturn a\n\nWhich argument proves that it terminates?",
+    "options": [
+      "b is a non-negative integer that shrinks every pass, as a mod b < b",
+      "a strictly decreases on every pass, so it must eventually reach zero",
+      "Each pass halves the larger value, so at most log2(a) passes run",
+      "The loop has an exit condition, and such a loop must eventually exit"
+    ],
+    "correctIndex": 0,
+    "explanation": "A termination proof needs a variant: a quantity from a well-ordered set, here the non-negative integers, that strictly decreases on every iteration. Since 0 ≤ a mod b < b, the new b is always smaller than the old one, and a strictly decreasing sequence of non-negative integers must reach 0, which ends the loop. a can grow on the first pass (when a < b), halving on every single pass is not guaranteed, and having a condition proves nothing: while x > 0 with x never changing has one too.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/euclidalgo.html"
+  },
+  {
+    "id": "pf-cs-fn-return-exits-loop",
+    "topic": "programming-fundamentals",
+    "subtopic": "functions",
+    "difficulty": "Easy",
+    "title": "return inside a loop",
+    "question": "function firstNegative(values)\n    for each v in values\n        if v < 0 then return v\n    return 0\n\nWhat does firstNegative([4, -2, 7, -9]) return?",
+    "options": [
+      "-9, the last negative value the loop checks",
+      "0, since the final return statement always runs",
+      "-2, since return ends the function at once",
+      "-11, the sum of all the negative values"
+    ],
+    "correctIndex": 2,
+    "explanation": "return immediately ends the whole function, including any loop it is inside, and hands the value back to the caller. The loop reaches -2 on its second pass and returns it, so -9 is never examined, and the final return 0 only runs when no negative value exists. Nothing in the function accumulates a sum.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/return"
+  },
+  {
+    "id": "pf-cs-fn-fresh-locals-per-call",
+    "topic": "programming-fundamentals",
+    "subtopic": "functions",
+    "difficulty": "Easy",
+    "title": "Local variables on each call",
+    "question": "function nextTicket()\n    declare count ← 0\n    count ← count + 1\n    return count\n\nnextTicket() is called three times in a row. What do the three calls return?",
+    "options": [
+      "1, 2 and 3, since count keeps growing between calls",
+      "0, 0 and 0, since the increment happens after return",
+      "1, then an error, since count is already declared",
+      "1, 1 and 1, since each call gets a fresh count"
+    ],
+    "correctIndex": 3,
+    "explanation": "A local variable belongs to a single call: each invocation gets its own copy (in its own stack frame), initialises it to 0 and discards it when the function returns, so every call returns 1. Keeping a value between calls needs state that outlives the call, such as a field, a closure variable or a global. Declaring count again is fine because each declaration happens in a new call, and the increment runs before return.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Scope"
+  },
+  {
+    "id": "pf-cs-fn-spot-pure-function",
+    "topic": "programming-fundamentals",
+    "subtopic": "functions",
+    "difficulty": "Medium",
+    "title": "Spotting a pure function",
+    "question": "Which of these functions is pure, meaning it always returns the same result for the same arguments and has no side effects?",
+    "options": [
+      "applyDiscount(price), which reads today's promo rate from a global setting",
+      "lineTotal(price, qty), which returns price * qty and touches nothing else",
+      "addItem(cart, item), which appends item to the cart it was given",
+      "rollDice(sides), which returns a random whole number from 1 to sides"
+    ],
+    "correctIndex": 1,
+    "explanation": "A pure function's result depends only on its arguments and it changes nothing outside itself, so lineTotal qualifies. Reading a global rate makes applyDiscount depend on hidden state, appending to the caller's cart is a side effect (it mutates an argument), and a random result differs between calls with the same input. Pure functions are easy to test, cache and run in parallel.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/linq/refactor-pure-functions"
+  },
+  {
+    "id": "pf-cs-fn-compose-order",
+    "topic": "programming-fundamentals",
+    "subtopic": "functions",
+    "difficulty": "Medium",
+    "title": "Composing two functions",
+    "question": "Functions can be passed and returned like any other value:\n\nfunction compose(f, g)\n    return a new function that, given x, returns f(g(x))\n\nfunction double(x)\n    return x * 2\n\nfunction addOne(x)\n    return x + 1\n\nh ← compose(double, addOne)\n\nWhat is h(5)?",
+    "options": [
+      "12, since addOne runs first and double second",
+      "11, since double runs first and addOne second",
+      "10, since only the outer function double runs",
+      "6, since only the inner function addOne runs"
+    ],
+    "correctIndex": 0,
+    "explanation": "compose returns a new function that applies g first and then f to its result, so h(5) = double(addOne(5)) = double(6) = 12. 11 would be addOne(double(5)), the opposite order. This works because functions are first-class values: they can be passed as arguments and returned from other functions, and the returned function keeps access to f and g.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/First-class_Function"
+  },
+  {
+    "id": "pf-cs-fn-eager-argument-cost",
+    "topic": "programming-fundamentals",
+    "subtopic": "functions",
+    "difficulty": "Medium",
+    "title": "An expensive argument to a disabled logger",
+    "question": "A service calls debugLog(buildFullReport(order)) on every request. debugLog writes nothing when debug logging is off, yet with debug off, profiling still shows most CPU time inside buildFullReport. Why?",
+    "options": [
+      "The logger builds the report internally to check whether it is empty",
+      "debugLog cannot be inlined, so its body still runs in full every time",
+      "Disabled loggers still format each message before they discard it",
+      "Arguments are evaluated before the call, so the report is always built"
+    ],
+    "correctIndex": 3,
+    "explanation": "Most languages use eager (strict) evaluation: every argument expression is fully evaluated before the function body runs, so buildFullReport executes even though debugLog then throws the result away. Check whether debug logging is enabled before building the report, or pass a function that builds it only on demand (lazy evaluation). The time is spent computing the argument, not in the logger's formatting or in a missed inlining.",
+    "referenceUrl": "https://docs.python.org/3/howto/logging.html#optimization"
+  },
+  {
+    "id": "pf-cs-fn-lexical-scope-lookup",
+    "topic": "programming-fundamentals",
+    "subtopic": "functions",
+    "difficulty": "Hard",
+    "title": "Which variable a function sees",
+    "question": "declare level ← 'global'\n\nfunction show()\n    return level\n\nfunction run()\n    declare level ← 'local'\n    return show()\n\nprint(run())\n\nUnder lexical (static) scoping, the rule used by most modern languages, what is printed?",
+    "options": [
+      "'local', because show is called from inside run",
+      "An error, because show declares no level of its own",
+      "'global', because show resolves level where it is defined",
+      "'local', because the newest declaration of level wins"
+    ],
+    "correctIndex": 2,
+    "explanation": "With lexical scoping, a free variable in a function is resolved by where the function is written in the source, not by who calls it. show is defined at the top level, so its level is the global one and run's local level is invisible to it. Printing 'local' is what dynamic scoping (used by early Lisps and by shell local variables) would do. show needs no declaration of its own because it can read the enclosing global.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Closures#lexical_scoping"
+  },
+  {
+    "id": "pf-cs-fn-memoize-impure",
+    "topic": "programming-fundamentals",
+    "subtopic": "functions",
+    "difficulty": "Hard",
+    "title": "Memoizing a function that is not pure",
+    "question": "To cut database load, a team memoizes getStockLevel(productId): the first result for each productId is cached and returned on every later call. After the release, the shop keeps showing items as in stock long after they sell out. What is the root cause?",
+    "options": [
+      "The cache key should combine productId with a hash of the call stack",
+      "Memoization is only safe for pure functions, and this result changes",
+      "Memoized functions must be recursive, or cached values are not reused",
+      "The cache stores a copy of each result, so later updates never reach it"
+    ],
+    "correctIndex": 1,
+    "explanation": "Memoization replaces a call with a previously computed result, which is correct only when the function is pure: the same arguments must always produce the same answer. Stock levels depend on database state that changes over time, so the cached value goes stale. Use a cache with expiry or explicit invalidation instead. Memoization also works for non-recursive functions, and neither copies nor call-stack keys address the stale data.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/memoize.html"
+  }
+]

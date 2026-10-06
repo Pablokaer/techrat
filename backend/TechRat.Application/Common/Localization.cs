@@ -42,10 +42,16 @@ public static class Text
         public const string UsernameInvalid = "auth.usernameInvalid";
         public const string DisplayNameLength = "auth.displayNameLength";
         public const string PasswordRequired = "auth.passwordRequired";
+        public const string CurrentPasswordRequired = "auth.currentPasswordRequired";
+        public const string CurrentPasswordIncorrect = "auth.currentPasswordIncorrect";
+        public const string NewPasswordSameAsCurrent = "auth.newPasswordSameAsCurrent";
         public const string UsernameTaken = "auth.usernameTaken";
         public const string EmailTaken = "auth.emailTaken";
         public const string BioTooLong = "profile.bioTooLong";
         public const string AvatarHttps = "profile.avatarHttps";
+        public const string AvatarMissing = "profile.avatarMissing";
+        public const string AvatarFormat = "profile.avatarFormat";
+        public const string AvatarTooLarge = "profile.avatarTooLarge";
 
         public const string TopicLeaderboardNeedsTopic = "leaderboard.topicRequired";
         public const string UseDailyChallengeEndpoint = "practice.useDailyEndpoint";
@@ -72,6 +78,8 @@ public static class Text
         public const string EmailResetBody = "email.reset.body";
         public const string EmailResetCodeSubject = "email.resetCode.subject";
         public const string EmailResetCodeBody = "email.resetCode.body";
+        public const string EmailPasswordChangedSubject = "email.passwordChanged.subject";
+        public const string EmailPasswordChangedBody = "email.passwordChanged.body";
         public const string EmailTestSubject = "email.test.subject";
         public const string EmailTestBody = "email.test.body";
         public const string EmailNotConfigured = "email.notConfigured";
@@ -136,10 +144,16 @@ public static class Text
         [Keys.UsernameInvalid] = "Username must be 3-32 characters: letters, numbers or underscore.",
         [Keys.DisplayNameLength] = "Display name must have 2-40 characters.",
         [Keys.PasswordRequired] = "Password is required.",
+        [Keys.CurrentPasswordRequired] = "Enter your current password.",
+        [Keys.CurrentPasswordIncorrect] = "The current password is incorrect.",
+        [Keys.NewPasswordSameAsCurrent] = "The new password must be different from the current one.",
         [Keys.UsernameTaken] = "This username is taken.",
         [Keys.EmailTaken] = "An account with this email already exists.",
         [Keys.BioTooLong] = "Bio must have at most 280 characters.",
         [Keys.AvatarHttps] = "Avatar must be an https URL.",
+        [Keys.AvatarMissing] = "Choose an image to upload.",
+        [Keys.AvatarFormat] = "Use a JPG, PNG or WEBP image.",
+        [Keys.AvatarTooLarge] = "The photo must be at most 1 MB after cropping.",
 
         [Keys.TopicLeaderboardNeedsTopic] = "Topic leaderboards require a topic.",
         [Keys.UseDailyChallengeEndpoint] = "Use the daily challenge endpoint to start the daily challenge.",
@@ -166,6 +180,8 @@ public static class Text
         [Keys.EmailResetBody] = "<p>Someone requested a password reset for your TechRat account.</p><p><a href=\"{0}\">Choose a new password</a></p><p>If this wasn't you, ignore this email.</p>",
         [Keys.EmailResetCodeSubject] = "Your TechRat password reset code",
         [Keys.EmailResetCodeBody] = "<p>Your reset code is:</p><pre>{0}</pre>",
+        [Keys.EmailPasswordChangedSubject] = "Your TechRat password was changed",
+        [Keys.EmailPasswordChangedBody] = "<p>The password of your TechRat account was changed on {0} (UTC), and your other sessions were signed out.</p><p>If this wasn't you, <a href=\"{1}\">reset your password</a> right away.</p>",
         [Keys.EmailTestSubject] = "TechRat SMTP test",
         [Keys.EmailTestBody] = "<p>This is a test email from TechRat.</p><p>If you can read it, email delivery works ({0}:{1}, {2}).</p>",
         [Keys.EmailNotConfigured] = "SMTP is not configured. Set Smtp__Host (and the other Smtp__ settings) and restart the API.",
@@ -216,10 +232,16 @@ public static class Text
         [Keys.UsernameInvalid] = "O nome de usuário deve ter de 3 a 32 caracteres: letras, números ou sublinhado.",
         [Keys.DisplayNameLength] = "O nome de exibição deve ter de 2 a 40 caracteres.",
         [Keys.PasswordRequired] = "A senha é obrigatória.",
+        [Keys.CurrentPasswordRequired] = "Digite sua senha atual.",
+        [Keys.CurrentPasswordIncorrect] = "A senha atual está incorreta.",
+        [Keys.NewPasswordSameAsCurrent] = "A nova senha deve ser diferente da atual.",
         [Keys.UsernameTaken] = "Este nome de usuário já está em uso.",
         [Keys.EmailTaken] = "Já existe uma conta com este e-mail.",
         [Keys.BioTooLong] = "A bio deve ter no máximo 280 caracteres.",
         [Keys.AvatarHttps] = "O avatar deve ser uma URL https.",
+        [Keys.AvatarMissing] = "Escolha uma imagem para enviar.",
+        [Keys.AvatarFormat] = "Use uma imagem JPG, PNG ou WEBP.",
+        [Keys.AvatarTooLarge] = "A foto deve ter no máximo 1 MB depois do recorte.",
 
         [Keys.TopicLeaderboardNeedsTopic] = "O ranking por tópico precisa de um tópico.",
         [Keys.UseDailyChallengeEndpoint] = "Use o endpoint do desafio diário para iniciar o desafio diário.",
@@ -246,6 +268,8 @@ public static class Text
         [Keys.EmailResetBody] = "<p>Alguém pediu para redefinir a senha da sua conta no TechRat.</p><p><a href=\"{0}\">Escolha uma nova senha</a></p><p>Se não foi você, ignore este e-mail.</p>",
         [Keys.EmailResetCodeSubject] = "Seu código para redefinir a senha do TechRat",
         [Keys.EmailResetCodeBody] = "<p>Seu código de redefinição é:</p><pre>{0}</pre>",
+        [Keys.EmailPasswordChangedSubject] = "Sua senha do TechRat foi alterada",
+        [Keys.EmailPasswordChangedBody] = "<p>A senha da sua conta TechRat foi alterada em {0} (UTC), e suas outras sessões foram encerradas.</p><p>Se não foi você, <a href=\"{1}\">redefina sua senha</a> agora mesmo.</p>",
         [Keys.EmailTestSubject] = "Teste de SMTP do TechRat",
         [Keys.EmailTestBody] = "<p>Este é um e-mail de teste do TechRat.</p><p>Se você está lendo, o envio de e-mails funciona ({0}:{1}, {2}).</p>",
         [Keys.EmailNotConfigured] = "O SMTP não está configurado. Defina Smtp__Host (e as demais configurações Smtp__) e reinicie a API.",

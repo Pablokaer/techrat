@@ -56,7 +56,7 @@ function Stats({ data: { user } }: { data: Dashboard }) {
       <StatCard icon="star-outline" value={formatNumber(user.level.totalXp)} label="Total XP" />
       <StatCard icon="code-slash-outline" value={formatNumber(user.questionsAnswered)} label="Questions solved" />
       <StatCard icon="locate-outline" value={`${percent(user.accuracy)}%`} label="Accuracy" />
-      <StatCard icon="trophy-outline" value={`#${user.globalRank}`} label="Global rank" tone="warning" onPress={() => router.push("/leaderboard")} />
+      <StatCard icon="trophy-outline" value={user.showOnLeaderboard ? `#${user.globalRank}` : "—"} label="Global rank" tone="warning" onPress={() => router.push("/leaderboard")} />
     </View>
   );
 }

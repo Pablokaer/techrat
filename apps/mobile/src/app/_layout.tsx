@@ -50,6 +50,8 @@ function RootNavigator() {
         <Stack.Screen name="roadmap/[slug]" options={{ title: "Roadmap" }} />
         <Stack.Screen name="session/[id]" options={{ title: "Practice" }} />
         <Stack.Screen name="leaderboard" options={{ title: "Leaderboard" }} />
+        <Stack.Screen name="avatar-crop" options={{ title: "Adjust photo", presentation: "modal" }} />
+        <Stack.Screen name="change-password" options={{ title: "Password" }} />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />

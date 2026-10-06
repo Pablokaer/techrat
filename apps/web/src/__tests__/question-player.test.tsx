@@ -61,6 +61,25 @@ describe("QuestionPlayer", () => {
     expect(screen.getAllByRole("radio")[0]).toHaveTextContent("Correct answer");
   });
 
+  it("shows options in the order the server chose and keeps it after answering, finding the answer by id", async () => {
+    // The API shuffles options per session (ADR-0019); the client must neither reorder nor rely on positions.
+    const session = makeSession(1);
+    const [a, b, c, d] = session.questions[0].options;
+    session.questions[0].options = [c, a, d, b];
+    const submit = vi.fn(async (q: string, o: string) => result(q, o, a.id, 0));
+    renderApp(<QuestionPlayer session={session} onSubmitAnswer={submit} />);
+    // Which option each radio shows, in screen order.
+    const shown = () => screen.getAllByRole("radio").map((r) => [a, b, c, d].find((o) => r.textContent?.includes(o.text))?.id);
+    expect(shown()).toEqual([c.id, a.id, d.id, b.id]);
+
+    await userEvent.keyboard("1");   // the first option as displayed, i.e. c
+    await userEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+    expect(submit).toHaveBeenCalledWith("q1", c.id, expect.any(Number));
+    expect(await screen.findByText("Incorrect")).toBeInTheDocument();
+    expect(screen.getAllByRole("radio")[1]).toHaveTextContent("Correct answer");   // a is shown second
+    expect(shown()).toEqual([c.id, a.id, d.id, b.id]);
+  });
+
   it("advances to the next question and finally shows the session summary", async () => {
     const submit = vi.fn(async (q: string, o: string) => result(q, o, `${q}o0`, o === `${q}o0` ? 25 : 0));
     renderApp(<QuestionPlayer session={makeSession(2)} onSubmitAnswer={submit} />);

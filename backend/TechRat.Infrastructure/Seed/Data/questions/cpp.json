@@ -1018,5 +1018,22 @@
     "correctIndex": 3,
     "explanation": "consteval declares an immediate function: every call must be a constant expression evaluated at compile time, and `square(k)` depends on a value read at run time, so the program is ill-formed. A constexpr function would silently fall back to run-time evaluation here, which is exactly the difference between the two. Optimization levels never change whether a program is well-formed.",
     "referenceUrl": "https://en.cppreference.com/w/cpp/language/consteval"
+  },
+  {
+    "id": "pf-mem-vector-invalidation",
+    "topic": "cpp",
+    "subtopic": "stl",
+    "difficulty": "Hard",
+    "title": "Pointer into a growing vector",
+    "question": "This C++ code sometimes prints garbage or crashes:\n\nstd::vector<int> v{1, 2, 3};\nint* first = &v[0];\nv.push_back(4);\nstd::cout << *first;\n\nWhat is the cause?",
+    "options": [
+      "push_back may reallocate the buffer, leaving first dangling",
+      "Taking the address of a vector element is undefined behavior",
+      "std::cout cannot print a value that is read through a raw pointer",
+      "push_back shifts existing elements one slot to the right"
+    ],
+    "correctIndex": 0,
+    "explanation": "When push_back exceeds the current capacity, the vector allocates a new buffer, moves the elements and frees the old one, invalidating all pointers, references and iterators to elements. Reading through first is then a use-after-free. Taking element addresses is fine while no reallocation happens; call reserve() up front or keep indices instead of pointers.",
+    "referenceUrl": "https://en.cppreference.com/w/cpp/container/vector/push_back"
   }
 ]

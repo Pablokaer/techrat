@@ -115,6 +115,50 @@ class ValidateQuestionsTests(unittest.TestCase):
         self.seed.group("git", qs, translations=tr)
         self.assertError(self.run_all(), "git.pt-BR.json: correct option is the longest in 2/4 questions (50%)")
 
+    def test_fundamentals_questions_must_not_depend_on_a_programming_language(self):
+        self.seed.write("topics.json", [{"slug": "programming-fundamentals", "subtopics": [{"slug": "functions"}]},
+                                        {"slug": "data-structures", "subtopics": [{"slug": "strings"}, {"slug": "trees"}]},
+                                        {"slug": "python", "subtopics": [{"slug": "classes"}]}])
+        qs = [question("pf-0", 0, topic="programming-fundamentals", subtopic="functions"),
+              question("ds-1", 1, topic="data-structures", subtopic="strings"),
+              question("py-2", 2, topic="python", subtopic="classes"),
+              question("pf-3", 3, topic="programming-fundamentals", subtopic="functions"),
+              question("ds-4", 0, topic="data-structures", subtopic="trees")]
+        qs[0]["question"] = "What does this Python function return when called twice?"
+        qs[1]["options"][2] = "Use Java's equals instead of =="
+        qs[2]["question"] = "What does this Python class print when created?"   # language topics may name the language
+        qs[3]["explanation"] = "Most languages, C# and Java included, evaluate AND before OR."  # explanations may cite examples
+        qs[4]["question"] = "Why is this C# tree traversal slow on deep trees?"  # only the fundamentals scopes are neutral
+        tr = [translation(q) for q in qs]
+        tr[3]["title"] = "Precedência em JavaScript"
+        self.seed.group("mixed", qs, translations=tr)
+        errors = [e for e in self.run_all().errors if "programming language" in e]
+        self.assertEqual(3, len(errors), errors)
+        self.assertError(self.run_all(), "pf-0: names a programming language (Python)")
+        self.assertError(self.run_all(), "ds-1: names a programming language (Java)")
+        self.assertError(self.run_all(), "pf-3: pt-BR translation names a programming language (JavaScript)")
+
+    def test_texts_must_not_point_at_options_by_position_since_options_are_shuffled(self):
+        qs = balanced("git")
+        qs[0]["explanation"] = "Option B is wrong because it confuses merge and rebase."
+        qs[1]["explanation"] = "The last option describes a fast-forward, which is not what happens here."
+        qs[2]["question"] = "Which is true? The first two options mention rebase."
+        tr = [translation(q) for q in qs]
+        tr[3]["explanation"] = "A alternativa C descreve um merge, não um rebase."
+        self.seed.group("git", qs, translations=tr)
+        result = self.run_all()
+        self.assertError(result, "git-0: refers to an option by its position")
+        self.assertError(result, "git-1: refers to an option by its position")
+        self.assertError(result, "git-2: refers to an option by its position")
+        self.assertError(result, "git-3: pt-BR translation refers to an option by its position")
+
+    def test_ordinary_words_near_option_are_fine(self):
+        qs = balanced("git")
+        qs[0]["explanation"] = ("The --force option rewrites history; a better option is --force-with-lease, the safest of the four tools here. "
+                                "A dashboard answers a different question.")
+        self.seed.group("git", qs)
+        self.assertEqual([], self.run_all().errors)
+
     def test_reports_the_global_longest_ratio(self):
         self.seed.group("git", balanced("git"))
         result = self.run_all()

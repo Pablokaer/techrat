@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldErrors, loginSchema, registerSchema, resetPasswordSchema } from "../src";
+import { VALIDATION_MESSAGES, changePasswordSchema, fieldErrors, loginSchema, registerSchema, resetPasswordSchema } from "../src";
 
 describe("validation", () => {
   it("accepts a valid registration", () => {
@@ -20,5 +20,32 @@ describe("validation", () => {
   });
   it("login needs both fields", () => {
     expect(loginSchema.safeParse({ email: "a@b.io", password: "" }).success).toBe(false);
+  });
+});
+
+describe("changePasswordSchema", () => {
+  const ok = { current: "OldPassw0rd", password: "N3wPassword", confirm: "N3wPassword" };
+  const messages = (schema: ReturnType<typeof changePasswordSchema>, value: object) => {
+    const r = schema.safeParse(value);
+    // First message per field, like fieldErrors.
+    return r.success ? {} : Object.fromEntries([...r.error.issues].reverse().map((i) => [i.path.join("."), i.message]));
+  };
+
+  it("accepts a valid change", () => {
+    expect(changePasswordSchema(true).safeParse(ok).success).toBe(true);
+  });
+
+  it("requires the current password and reuses the sign-up rules for the new one", () => {
+    expect(messages(changePasswordSchema(true), { ...ok, current: "" })).toMatchObject({ current: VALIDATION_MESSAGES.currentPasswordRequired });
+    expect(messages(changePasswordSchema(true), { ...ok, password: "weak", confirm: "weak" })).toMatchObject({ password: VALIDATION_MESSAGES.passwordMin });
+  });
+
+  it("checks the confirmation and that the new password differs from the current one", () => {
+    expect(messages(changePasswordSchema(true), { ...ok, confirm: "Other1234" })).toMatchObject({ confirm: VALIDATION_MESSAGES.passwordsMismatch });
+    expect(messages(changePasswordSchema(true), { ...ok, password: ok.current, confirm: ok.current })).toMatchObject({ password: VALIDATION_MESSAGES.passwordSameAsCurrent });
+  });
+
+  it("needs no current password when the account has none (external sign-in)", () => {
+    expect(changePasswordSchema(false).safeParse({ ...ok, current: "" }).success).toBe(true);
   });
 });

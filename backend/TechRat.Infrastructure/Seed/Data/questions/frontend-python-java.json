@@ -1341,5 +1341,430 @@
     "correctIndex": 2,
     "explanation": "Spring's default rollback rules roll back on unchecked exceptions (RuntimeException and Error) and commit on checked ones; use rollbackFor = PaymentDeclinedException.class or throw an unchecked exception. The exception is propagated, return types are irrelevant, and flushed changes are still part of the uncommitted transaction.",
     "referenceUrl": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html"
+  },
+  {
+    "id": "pf-vt-integer-cache-identity",
+    "topic": "java",
+    "subtopic": "language-basics",
+    "difficulty": "Hard",
+    "title": "Boxed Integer identity",
+    "question": "With default JVM settings, what does this Java code print?\n\nInteger a = 127, b = 127;\nInteger c = 128, d = 128;\nSystem.out.println(a == b);\nSystem.out.println(c == d);",
+    "options": [
+      "true, then true",
+      "false, then false",
+      "false, then true",
+      "true, then false"
+    ],
+    "correctIndex": 3,
+    "explanation": "Autoboxing goes through Integer.valueOf, and JLS 5.1.7 requires boxed values in the range -128 to 127 to be cached, so a and b refer to the same object. 128 is outside the guaranteed cache, so c and d are normally distinct objects and == (a reference comparison) is false. Compare boxed numbers with equals() or unbox them to int.",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html"
+  },
+  {
+    "id": "pf-jr-vt-integer-division",
+    "topic": "java",
+    "subtopic": "language-basics",
+    "difficulty": "Easy",
+    "title": "Integer division before widening",
+    "question": "What does this Java code print?\n\nint total = 7;\nint count = 2;\ndouble average = total / count;\nSystem.out.println(average);",
+    "options": [
+      "3.5",
+      "3.0",
+      "4.0",
+      "3"
+    ],
+    "correctIndex": 1,
+    "explanation": "Both operands are int, so total / count is integer division: the fractional part is discarded and the result is 3. Only then is that int widened to the double 3.0 for the assignment, and println prints a double with its decimal part, as 3.0. To get 3.5, make one operand a double before dividing, e.g. (double) total / count; integer division never rounds up to 4.",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.2"
+  },
+  {
+    "id": "pf-jr-vt-negative-remainder",
+    "topic": "java",
+    "subtopic": "language-basics",
+    "difficulty": "Hard",
+    "title": "An isOdd check that fails for negative numbers",
+    "question": "A Java helper is meant to detect odd numbers:\n\nstatic boolean isOdd(int n) {\n    return n % 2 == 1;\n}\n\nisOdd(3) returns true, but isOdd(-3) returns false. Why?",
+    "options": [
+      "% is not defined for negative operands, so the JVM returns 0",
+      "Dividing -3 by 2 overflows the int, so the remainder is lost",
+      "In Java, % keeps the sign of the dividend, so -3 % 2 is -1",
+      "Precedence makes it parse as n % (2 == 1), using a boolean"
+    ],
+    "correctIndex": 2,
+    "explanation": "Java's % is the remainder of truncating division, defined so that (a / b) * b + a % b == a; the result therefore takes the sign of the dividend. -3 / 2 is -1, which leaves -3 % 2 == -1, and -1 is not 1. Test n % 2 != 0 instead, or use Math.floorMod(n, 2) == 1. % works on negative ints without any overflow, and == binds more loosely than %, so the expression already is (n % 2) == 1.",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.17.3"
+  },
+  {
+    "id": "pf-cf-for-else",
+    "topic": "python",
+    "subtopic": "syntax-collections",
+    "difficulty": "Medium",
+    "title": "Python for...else semantics",
+    "question": "What does this Python code print?\n\nfor n in [3, 5, 7]:\n    if n % 2 == 0:\n        break\nelse:\n    print('none even')",
+    "options": [
+      "A SyntaxError, since loops cannot have an else clause",
+      "none even (printed three times)",
+      "Nothing, because else only runs after an if",
+      "none even (printed once)"
+    ],
+    "correctIndex": 3,
+    "explanation": "A loop's else clause runs once when the loop finishes without hitting break. No element is even, so break never executes and the else block prints once. It is not tied to the if inside the loop, and it is valid syntax for both for and while loops.",
+    "referenceUrl": "https://docs.python.org/3/tutorial/controlflow.html"
+  },
+  {
+    "id": "pf-cf-finally-return",
+    "topic": "python",
+    "subtopic": "exceptions-context",
+    "difficulty": "Hard",
+    "title": "Return inside finally",
+    "question": "What does f() return in Python?\n\ndef f():\n    try:\n        return 1\n    finally:\n        return 2",
+    "options": [
+      "2, because the return in finally overrides the pending return",
+      "1, because the first return statement always wins",
+      "It raises a RuntimeError for conflicting returns",
+      "None, because the two returns cancel each other"
+    ],
+    "correctIndex": 0,
+    "explanation": "The finally block always runs before the function actually exits, and a return executed in finally replaces the pending return value (and would also swallow an in-flight exception). That is why it is considered a bug-prone pattern; since Python 3.14 the compiler emits a SyntaxWarning for return, break or continue that exits a finally block.",
+    "referenceUrl": "https://docs.python.org/3/reference/compound_stmts.html"
+  },
+  {
+    "id": "pf-fn-implicit-none",
+    "topic": "python",
+    "subtopic": "functions-decorators",
+    "difficulty": "Easy",
+    "title": "Function without return",
+    "question": "What is the value of result after this Python code runs?\n\ndef greet(name):\n    print('Hi', name)\n\nresult = greet('Ana')",
+    "options": [
+      "'Hi Ana', the text that the function printed",
+      "An empty string, which is what print() returns",
+      "None, since the function has no return statement",
+      "Nothing; it raises an error since greet returns nothing"
+    ],
+    "correctIndex": 2,
+    "explanation": "A Python function that finishes without executing a return statement returns None. Printing writes to standard output but is not the function's return value, and print() itself also returns None, not an empty string. Assigning the None result is perfectly legal.",
+    "referenceUrl": "https://docs.python.org/3/tutorial/controlflow.html"
+  },
+  {
+    "id": "pf-fn-keyword-only-args",
+    "topic": "python",
+    "subtopic": "functions-decorators",
+    "difficulty": "Medium",
+    "title": "Keyword-only parameters",
+    "question": "A Python helper is declared as def connect(host, *, timeout=5). What happens when it is called as connect('db.local', 10)?",
+    "options": [
+      "timeout is set to 10, since it is the second parameter",
+      "10 is silently ignored and timeout keeps its default of 5",
+      "10 is collected into a tuple bound to the bare * marker",
+      "A TypeError is raised, because timeout is keyword-only"
+    ],
+    "correctIndex": 3,
+    "explanation": "Parameters after a bare * are keyword-only, so the function accepts only one positional argument and the call fails with TypeError (takes 1 positional argument but 2 were given). The bare * does not collect anything, unlike *args. The caller must write connect('db.local', timeout=10), which makes call sites self-documenting.",
+    "referenceUrl": "https://docs.python.org/3/tutorial/controlflow.html"
+  },
+  {
+    "id": "pf-fn-lru-cache-method-leak",
+    "topic": "python",
+    "subtopic": "functions-decorators",
+    "difficulty": "Hard",
+    "title": "lru_cache on instance methods",
+    "question": "A long-running Python service decorates an instance method with @functools.lru_cache(maxsize=None). Memory keeps growing even after Report objects are no longer used. Why?",
+    "options": [
+      "lru_cache keeps results in a weak-keyed dictionary that the garbage collector never sweeps",
+      "The decorator copies the method into each instance, so every object owns a full cache",
+      "self is part of every cache key, so the cache keeps each instance alive",
+      "lru_cache turns off reference counting for any argument object passed to the method"
+    ],
+    "correctIndex": 2,
+    "explanation": "The cache lives on the function object shared by the class, and its keys include self, so it holds strong references to every instance it has seen; with maxsize=None nothing is ever evicted. The Python FAQ notes that this approach keeps instances alive until they age out or the cache is cleared. Use a bounded cache, functools.cached_property, or a per-instance cache instead.",
+    "referenceUrl": "https://docs.python.org/3/faq/programming.html"
+  },
+  {
+    "id": "pf-fn-mutable-default",
+    "topic": "python",
+    "subtopic": "functions-decorators",
+    "difficulty": "Medium",
+    "title": "Order of stacked decorators",
+    "question": "What does this Python code print?\n\ndef bold(fn):\n    def wrapper():\n        return '<b>' + fn() + '</b>'\n    return wrapper\n\ndef italic(fn):\n    def wrapper():\n        return '<i>' + fn() + '</i>'\n    return wrapper\n\n@bold\n@italic\ndef greet():\n    return 'hi'\n\nprint(greet())",
+    "options": [
+      "<i><b>hi</b></i>, since decorators are applied from top to bottom",
+      "<b><i>hi</i></b>, since greet becomes bold(italic(greet))",
+      "<b>hi</b>, since only the top decorator takes effect",
+      "<i>hi</i>, since the lower decorator replaces the upper one"
+    ],
+    "correctIndex": 1,
+    "explanation": "Stacked decorators are applied bottom-up: the one nearest the def wraps the function first, so the code is equivalent to greet = bold(italic(greet)). Calling greet() runs bold's wrapper, which calls italic's wrapper, which calls the original, giving <b><i>hi</i></b>. Every decorator takes effect, and the order matters in real code too, for example whether an authorization check runs outside or inside a caching decorator.",
+    "referenceUrl": "https://docs.python.org/3/reference/compound_stmts.html#function-definitions"
+  },
+  {
+    "id": "pf-jr-fn-unbound-local",
+    "topic": "python",
+    "subtopic": "functions-decorators",
+    "difficulty": "Medium",
+    "title": "Updating a global variable inside a function",
+    "question": "What happens when this Python code runs?\n\ncount = 0\n\ndef increment():\n    count += 1\n\nincrement()",
+    "options": [
+      "count becomes 1, since functions can update module variables",
+      "count stays 0, because the function changed its own copy",
+      "A SyntaxError is raised as soon as the module is loaded",
+      "UnboundLocalError, since the assignment makes count local"
+    ],
+    "correctIndex": 3,
+    "explanation": "Python decides a name's scope when it compiles the function: because count is assigned inside increment, it is a local name throughout that function. count += 1 must read that local before it has a value, so the call raises UnboundLocalError (a subclass of NameError) at runtime, not when the module loads. Declaring global count inside the function fixes it, though passing the value in and returning the result is usually cleaner.",
+    "referenceUrl": "https://docs.python.org/3/faq/programming.html#why-am-i-getting-an-unboundlocalerror-when-the-variable-has-a-value"
+  },
+  {
+    "id": "ds-arr-covariance-store",
+    "topic": "java",
+    "subtopic": "generics-collections",
+    "difficulty": "Hard",
+    "title": "Java array covariance",
+    "question": "This Java code compiles. What happens when it runs?\n\nObject[] items = new String[2];\nitems[0] = 42;",
+    "options": [
+      "It throws ArrayStoreException, as the runtime array is String[]",
+      "It stores \"42\" as a string through an implicit conversion",
+      "It succeeds, since the declared element type is Object",
+      "It throws ClassCastException only when items[0] is read"
+    ],
+    "correctIndex": 0,
+    "explanation": "Java arrays are covariant, so a String[] can be assigned to an Object[] variable, but every store is checked against the array's runtime component type (JLS 10.5) and storing an Integer throws ArrayStoreException. Java never converts 42 to a string here. Generic collections avoid the problem at compile time because List<String> is not a List<Object>.",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-10.html"
+  },
+  {
+    "id": "ds-arr-modify-while-iterating",
+    "topic": "java",
+    "subtopic": "generics-collections",
+    "difficulty": "Medium",
+    "title": "Changing a list returned by Arrays.asList",
+    "question": "What happens when this Java code runs?\n\nString[] arr = {\"a\", \"b\", \"c\"};\nList<String> names = Arrays.asList(arr);\nnames.set(0, \"z\");\nnames.add(\"d\");",
+    "options": [
+      "It succeeds: names holds [z, b, c, d] and arr is unchanged",
+      "set throws UnsupportedOperationException, as the list is read-only",
+      "arr[0] becomes \"z\", then add throws UnsupportedOperationException",
+      "add grows arr to four elements, since the list writes through to it"
+    ],
+    "correctIndex": 2,
+    "explanation": "Arrays.asList returns a fixed-size list backed by the given array: set is allowed and writes through, so arr[0] becomes \"z\", but add and remove would change the size and throw UnsupportedOperationException. A Java array can never grow, so nothing is appended to arr, and the list is not read-only like List.of. Copy it, as in new ArrayList<>(Arrays.asList(arr)), when you need a resizable list.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html"
+  },
+  {
+    "id": "ds-jr-arr-java-fixed-length",
+    "topic": "java",
+    "subtopic": "language-basics",
+    "difficulty": "Easy",
+    "title": "A Java array that needs one more slot",
+    "question": "A Java sign-up form stores names in:\n\nString[] names = new String[3];\n\nAll three slots are filled and a fourth person signs up. What is the right way to store the new name?",
+    "options": [
+      "Assign names[3] = name; the array grows by one slot",
+      "Call names.add(name), which appends it after the last used slot",
+      "Copy into a bigger array, or switch to an ArrayList<String>",
+      "Set names.length = 4 first, then assign names[3] = name"
+    ],
+    "correctIndex": 2,
+    "explanation": "A Java array's length is fixed when the array is created. length is a final field, so it cannot be assigned, and arrays have no add method, so both of those lines fail to compile. names[3] = name compiles but throws ArrayIndexOutOfBoundsException at run time, since the valid indices are 0 to 2. To grow, allocate a larger array and copy the elements (for example Arrays.copyOf(names, 6)), or use ArrayList<String>, a resizable list that grows its backing array for you.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/java/nutsandbolts/arrays.html"
+  },
+  {
+    "id": "ds-str-java-equals",
+    "topic": "java",
+    "subtopic": "language-basics",
+    "difficulty": "Medium",
+    "title": "Comparing strings with ==",
+    "question": "A Java login check uses if (input == \"admin\"), where input comes from request.getParameter(). It fails even when the user types admin. Why?",
+    "options": [
+      "== compares lengths first, and the request adds a hidden trailing newline",
+      "String literals are stored as UTF-16 but request parameters stay UTF-8",
+      "== is case-sensitive, and request parameters are upper-cased by default",
+      "== compares references, and a runtime-built string is a distinct object"
+    ],
+    "correctIndex": 3,
+    "explanation": "For objects, == checks whether both operands are the same instance. The literal \"admin\" is interned, but a string parsed from a request is a new object with the same characters, so == is false. Use \"admin\".equals(input), which compares contents and is also null-safe in that order.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html"
+  },
+  {
+    "id": "ds-hash-equals-hashcode",
+    "topic": "java",
+    "subtopic": "generics-collections",
+    "difficulty": "Medium",
+    "title": "Looking up a Long key with an int literal",
+    "question": "What does this Java code print?\n\nMap<Long, String> names = new HashMap<>();\nnames.put(1L, \"Ana\");\nSystem.out.println(names.get(1));",
+    "options": [
+      "Ana, since 1 is widened to 1L before the lookup",
+      "It does not compile, since get expects a Long argument",
+      "null, since an Integer key never equals a Long key",
+      "It throws ClassCastException when Integer is cast to Long"
+    ],
+    "correctIndex": 2,
+    "explanation": "Map.get takes an Object parameter, so the literal 1 is autoboxed to Integer rather than widened to long, and the call compiles. Integer 1 and Long 1 have the same hash code, but Long.equals returns true only for another Long, so the lookup finds no matching key and returns null; HashMap never casts keys. Pass the right type, as in names.get(1L).",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Long.html"
+  },
+  {
+    "id": "ds-hash-load-factor",
+    "topic": "java",
+    "subtopic": "generics-collections",
+    "difficulty": "Medium",
+    "title": "Pre-sizing a hash map",
+    "question": "A Java job inserts 10 million entries into a new HashMap() and profiling shows time spent in resize(). What explains it and what helps?",
+    "options": [
+      "It rehashes whenever size exceeds capacity x 0.75; set an initial capacity",
+      "The load factor is 1.0 so buckets overflow; set it to 2.0",
+      "Resizing is caused by hash collisions; override hashCode to return a constant",
+      "HashMap resizes on every put; switch to TreeMap"
+    ],
+    "correctIndex": 0,
+    "explanation": "With the default load factor of 0.75, HashMap doubles and rehashes all entries whenever its size exceeds capacity x load factor. Constructing it with a suitable initial capacity (or using HashMap.newHashMap(n) in Java 19+) avoids repeated rehashing. A constant hashCode would make every operation degrade dramatically.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html"
+  },
+  {
+    "id": "ds-hash-flooding",
+    "topic": "java",
+    "subtopic": "generics-collections",
+    "difficulty": "Expert",
+    "title": "Hash flooding mitigation",
+    "question": "An attacker posts JSON with 100,000 keys crafted to have identical hash codes, pinning a web server's CPU. Which built-in mitigation does Java 8+ HashMap use for this situation?",
+    "options": [
+      "HashMap re-salts hash codes with a random seed on every resize",
+      "HashMap rejects keys after a fixed number of collisions per bucket",
+      "HashMap switches to open addressing with linear probing when collisions spike",
+      "Overfull buckets turn into red-black trees, making lookups O(log n)"
+    ],
+    "correctIndex": 3,
+    "explanation": "Since Java 8, when a bin grows large HashMap converts it from a linked list to a red-black tree (ordering Comparable keys where possible), so worst-case operations become O(log n) and the attack degrades to O(n log n) total rather than O(n^2). It does not reject keys or switch to open addressing. Other runtimes, such as Python's str hashing, use randomized keyed hashes instead.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html"
+  },
+  {
+    "id": "ds-jr-hash-count-keyerror",
+    "topic": "python",
+    "subtopic": "syntax-collections",
+    "difficulty": "Easy",
+    "title": "Counting words with a plain dict",
+    "question": "words = ['a', 'b', 'a']\ncounts = {}\nfor w in words:\n    counts[w] += 1\n\nWhat happens when this runs?",
+    "options": [
+      "counts ends as {'a': 2, 'b': 1}",
+      "counts ends as {'a': 1, 'b': 1}",
+      "counts stays empty, as += on a missing key does nothing",
+      "KeyError on the first word, as 'a' is not a key yet"
+    ],
+    "correctIndex": 3,
+    "explanation": "counts[w] += 1 first reads counts[w], and reading a missing key from a dict raises KeyError, so the loop fails on 'a' before anything is stored. A plain dict never creates keys with a default value on its own. Use counts[w] = counts.get(w, 0) + 1, a collections.defaultdict(int), or simply collections.Counter(words), which counts 'a' twice and 'b' once.",
+    "referenceUrl": "https://docs.python.org/3/library/collections.html#collections.Counter"
+  },
+  {
+    "id": "ds-jr-hash-list-unhashable",
+    "topic": "python",
+    "subtopic": "syntax-collections",
+    "difficulty": "Medium",
+    "title": "Storing grid coordinates in a set",
+    "question": "A grid search tracks the cells it has visited:\n\nvisited = set()\nvisited.add([row, col])\n\nIt fails with TypeError: unhashable type: 'list'. What is the right fix?",
+    "options": [
+      "Keep cells in a list instead, since sets accept only strings and numbers",
+      "Add the tuple (row, col), which is immutable and therefore hashable",
+      "Add hash([row, col]) instead, so the set stores a plain integer",
+      "Add frozenset([row, col]), which is hashable and keeps both values"
+    ],
+    "correctIndex": 1,
+    "explanation": "Set elements and dict keys must be hashable, and mutable built-ins such as list are not: a hash that changed after a later append would leave the element in the wrong bucket. A tuple of immutable values is hashable and keeps its order, so (2, 3) and (3, 2) stay distinct. hash() on a list raises the same TypeError, a frozenset would treat (2, 3) and (3, 2) as the same cell, and sets hold tuples fine, so falling back to a list only makes every lookup O(n).",
+    "referenceUrl": "https://docs.python.org/3/glossary.html#term-hashable"
+  },
+  {
+    "id": "pf-bool-or-default-zero",
+    "topic": "python",
+    "subtopic": "syntax-collections",
+    "difficulty": "Medium",
+    "title": "Falsy values with or-defaults",
+    "question": "A Python config loader uses timeout = settings.get('timeout') or 30. A user sets timeout to 0 to disable it, but the service still uses 30. Why?",
+    "options": [
+      "dict.get() turns stored integer zero values into None when returning them",
+      "or always evaluates both operands and returns the larger of the two values",
+      "Python caches the first value an or-expression yields within each module",
+      "or returns its right operand when the left is falsy, and 0 is falsy"
+    ],
+    "correctIndex": 3,
+    "explanation": "x or y returns x if x is truthy, otherwise y, and 0, empty strings and empty collections are all falsy, so an explicit 0 is replaced by the default. dict.get returns the stored 0 unchanged and or short-circuits rather than comparing magnitudes. Use an explicit check such as 30 if value is None else value.",
+    "referenceUrl": "https://docs.python.org/3/library/stdtypes.html"
+  },
+  {
+    "id": "pf-rec-slicing-cost",
+    "topic": "python",
+    "subtopic": "performance-python",
+    "difficulty": "Medium",
+    "title": "Hidden cost of slicing in recursion",
+    "question": "What is the time complexity of this recursive Python sum for a list of n numbers?\n\ndef total(xs):\n    return 0 if not xs else xs[0] + total(xs[1:])",
+    "options": [
+      "O(n), since each element is added exactly once",
+      "O(n log n), since the list halves on every call",
+      "O(n^2), since each xs[1:] slice copies the rest",
+      "O(log n), since a slice is a constant-time view"
+    ],
+    "correctIndex": 2,
+    "explanation": "A list slice creates a new list and costs O(k) for k copied elements, so the calls copy n-1, n-2, ... elements for O(n^2) total. The list shrinks by one per call, not by half, and Python list slices are copies, not views. Passing an index instead of slicing makes it O(n), though large n will still hit the recursion limit.",
+    "referenceUrl": "https://wiki.python.org/moin/TimeComplexity"
+  },
+  {
+    "id": "pf-rec-tail-call-python",
+    "topic": "python",
+    "subtopic": "functions-decorators",
+    "difficulty": "Hard",
+    "title": "Tail recursion in CPython",
+    "question": "A developer rewrites a recursive sum into tail-recursive form (def s(n, acc=0): return acc if n == 0 else s(n-1, acc+n)) hoping to sum 1..100000 in CPython. What happens?",
+    "options": [
+      "It succeeds, but uses O(n) heap memory instead of stack",
+      "It fails with a SyntaxError because default arguments are not allowed in recursion",
+      "It succeeds, because CPython reuses the frame for calls in tail position",
+      "It still raises RecursionError, because CPython does not eliminate tail calls"
+    ],
+    "correctIndex": 3,
+    "explanation": "CPython does not perform tail-call elimination, so every call still pushes a new frame and 100000 frames exceeds the default recursion limit. Languages such as Scheme guarantee proper tail calls, but Python deliberately keeps full tracebacks. The fix is an explicit loop (or iterative accumulation), not a different recursive shape.",
+    "referenceUrl": "https://docs.python.org/3/library/sys.html"
+  },
+  {
+    "id": "pf-bigo-list-membership",
+    "topic": "python",
+    "subtopic": "performance-python",
+    "difficulty": "Medium",
+    "title": "Membership tests in a loop",
+    "question": "A job dedupes 200,000 IDs with: for x in ids: if x not in seen: seen.append(x), where seen is a list. It takes minutes. What is the cause and fix?",
+    "options": [
+      "The loop is O(n log n) because lists are kept sorted; use a deque",
+      "in on a list is O(n), so the loop is O(n^2); use a set instead",
+      "Python loops are always O(n^2); use recursion instead",
+      "list.append is O(n), making the loop O(n^2); preallocate the list"
+    ],
+    "correctIndex": 1,
+    "explanation": "x in list scans linearly, so n iterations each doing up to n comparisons is quadratic. A set is hash-based with average O(1) membership, bringing the whole job to O(n). list.append is amortized O(1), lists are not kept sorted, and recursion would not change the complexity.",
+    "referenceUrl": "https://wiki.python.org/moin/TimeComplexity"
+  },
+  {
+    "id": "pf-dm-floor-mod",
+    "topic": "java",
+    "subtopic": "language-basics",
+    "difficulty": "Medium",
+    "title": "Negative modulo in Java",
+    "question": "A Java ring buffer steps backwards with idx = (idx - 1) % size. When idx is 0 it throws ArrayIndexOutOfBoundsException. Why, and what is the fix?",
+    "options": [
+      "% keeps the dividend's sign, giving -1; use Math.floorMod(idx - 1, size)",
+      "% overflows to Integer.MIN_VALUE for negatives; cast both operands to long first",
+      "% rounds toward positive infinity and returns size; subtract one from the result",
+      "% is undefined for negative operands in Java; wrap the computation in a try/catch"
+    ],
+    "correctIndex": 0,
+    "explanation": "Java's integer division truncates toward zero, and the remainder satisfies (a / b) * b + a % b == a, so -1 % size is -1, an invalid index. Math.floorMod returns a result with the sign of the divisor, giving size - 1 as intended. Python's % already floors, which is why the same code works there.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Math.html"
+  },
+  {
+    "id": "pf-dm-modular-exponentiation",
+    "topic": "python",
+    "subtopic": "performance-python",
+    "difficulty": "Hard",
+    "title": "Fast modular exponentiation",
+    "question": "An exercise needs 7^(10^18) mod 1,000,000,007 in Python. Why does pow(7, 10**18, 1_000_000_007) return instantly while (7 ** 10**18) % 1_000_000_007 never finishes?",
+    "options": [
+      "Three-argument pow memoises earlier calls, so repeated exponents cost nothing",
+      "The ** operator converts both operands to float and then has to retry exactly",
+      "pow offloads the work to native threads while ** runs on one interpreter thread",
+      "Three-argument pow does square-and-multiply mod m, needing only ~60 squarings"
+    ],
+    "correctIndex": 3,
+    "explanation": "7 ** 10**18 tries to build an exact integer with roughly 8.5e17 decimal digits, which can never fit in memory. pow(base, exp, mod) reduces modulo m after every step of binary exponentiation, so it needs O(log exp) multiplications of small numbers; since 10^18 < 2^60 that is about 60 squarings. Python ints stay exact (no float conversion) and pow does not cache or use threads.",
+    "referenceUrl": "https://docs.python.org/3/library/functions.html"
   }
 ]

@@ -88,6 +88,10 @@ public sealed class LeaderboardService(IAppDbContext db, ICacheService cache, Ti
         var cached = await cache.GetOrCreateAsync(CacheKeys.Leaderboard(scope.ToString(), topicSlug, p, size), Ttl,
             async c => await LoadPageAsync(scope, topicId, periodStart, p, size, c), ct);
         var (rows, total) = (cached.Rows, cached.Total);
+        // A page may be cached for 30 s: learners who opted out meanwhile disappear at once (coming back takes the TTL).
+        var ids = rows.Select(r => r.UserId).ToList();
+        var hidden = await db.UserProfiles.AsNoTracking().Where(u => ids.Contains(u.Id) && !u.ShowOnLeaderboard).Select(u => u.Id).ToListAsync(ct);
+        if (hidden.Count > 0) rows = rows.Where(r => !hidden.Contains(r.UserId)).ToList();
 
         long? prevScore = null; var prevRank = 0;
         if (p > 1 && rows.Count > 0)
@@ -106,13 +110,13 @@ public sealed class LeaderboardService(IAppDbContext db, ICacheService cache, Ti
 
     private IQueryable<Row> Query(LeaderboardScope scope, Guid? topicId, DateTimeOffset? periodStart) => scope switch
     {
-        LeaderboardScope.Global => db.UserProfiles.AsNoTracking().Where(u => u.CurrentGlobalXP > 0)
+        LeaderboardScope.Global => db.UserProfiles.AsNoTracking().Where(u => u.ShowOnLeaderboard && u.CurrentGlobalXP > 0)
             .Select(u => new Row { UserId = u.Id, Username = u.Username, DisplayName = u.DisplayName, AvatarUrl = u.AvatarUrl, Level = u.CurrentGlobalLevel, Xp = u.CurrentGlobalXP, Questions = u.QuestionsAnswered, Accuracy = u.GlobalAccuracy }),
         LeaderboardScope.Topic => db.UserTopicProgress.AsNoTracking().Where(t => t.TopicId == topicId && t.XP > 0)
-            .Join(db.UserProfiles, t => t.UserId, u => u.Id, (t, u) => new Row { UserId = u.Id, Username = u.Username, DisplayName = u.DisplayName, AvatarUrl = u.AvatarUrl, Level = t.Level, Xp = t.XP, Questions = t.QuestionsAnswered, Accuracy = t.Accuracy }),
+            .Join(db.UserProfiles.Where(u => u.ShowOnLeaderboard), t => t.UserId, u => u.Id, (t, u) => new Row { UserId = u.Id, Username = u.Username, DisplayName = u.DisplayName, AvatarUrl = u.AvatarUrl, Level = t.Level, Xp = t.XP, Questions = t.QuestionsAnswered, Accuracy = t.Accuracy }),
         _ => db.XPTransactions.AsNoTracking().Where(x => x.CreatedAt >= periodStart)
             .GroupBy(x => x.UserId).Select(g => new { UserId = g.Key, Xp = g.Sum(x => (long)x.Amount) })
-            .Join(db.UserProfiles, g => g.UserId, u => u.Id, (g, u) => new Row { UserId = u.Id, Username = u.Username, DisplayName = u.DisplayName, AvatarUrl = u.AvatarUrl, Level = u.CurrentGlobalLevel, Xp = g.Xp, Questions = u.QuestionsAnswered, Accuracy = u.GlobalAccuracy }),
+            .Join(db.UserProfiles.Where(u => u.ShowOnLeaderboard), g => g.UserId, u => u.Id, (g, u) => new Row { UserId = u.Id, Username = u.Username, DisplayName = u.DisplayName, AvatarUrl = u.AvatarUrl, Level = u.CurrentGlobalLevel, Xp = g.Xp, Questions = u.QuestionsAnswered, Accuracy = u.GlobalAccuracy }),
     };
 
     private async Task<Page> LoadPageAsync(LeaderboardScope scope, Guid? topicId, DateTimeOffset? periodStart, int page, int size, CancellationToken ct)
@@ -137,6 +141,7 @@ public sealed class LeaderboardService(IAppDbContext db, ICacheService cache, Ti
     public async Task<int> GlobalRankAsync(Guid userId, CancellationToken ct)
     {
         var xp = await db.UserProfiles.Where(u => u.Id == userId).Select(u => u.CurrentGlobalXP).FirstAsync(ct);
-        return await db.UserProfiles.CountAsync(u => u.CurrentGlobalXP > xp, ct) + 1;
+        // Learners who opted out take no rank from anyone.
+        return await db.UserProfiles.CountAsync(u => u.ShowOnLeaderboard && u.CurrentGlobalXP > xp, ct) + 1;
     }
 }

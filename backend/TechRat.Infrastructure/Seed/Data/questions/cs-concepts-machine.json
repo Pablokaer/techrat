@@ -1,0 +1,70 @@
+[
+  {
+    "id": "pf-cs-bool-short-circuit-side-effect",
+    "topic": "programming-fundamentals",
+    "subtopic": "boolean-logic",
+    "difficulty": "Medium",
+    "title": "A side effect skipped by short-circuit OR",
+    "question": "A login handler runs:\n\nif isTrustedDevice(user) OR recordLoginAttempt(user) then\n    allow()\n\nrecordLoginAttempt writes an audit entry and returns true. Security finds that logins from trusted devices never appear in the audit log, while all other logins do. OR short-circuits. Why are those entries missing?",
+    "options": [
+      "The audit call runs first, but allow() discards the entry it wrote",
+      "Each call inside a condition runs in its own scope and loses its effects",
+      "When the left operand is true, OR skips the audit call on the right",
+      "A call inside a condition runs only when the whole condition is false"
+    ],
+    "correctIndex": 2,
+    "explanation": "OR short-circuits: once isTrustedDevice(user) is true the result is already known, so recordLoginAttempt is never called and its side effect never happens. A side effect that must always run belongs in its own statement before the condition (or store both results in variables first). Nothing is discarded or scoped away, and the right operand runs whenever the left one is false, not only when the whole condition is false.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/boolean-logical-operators"
+  },
+  {
+    "id": "pf-cs-bool-absorption",
+    "topic": "programming-fundamentals",
+    "subtopic": "boolean-logic",
+    "difficulty": "Easy",
+    "title": "Simplifying a redundant condition",
+    "question": "A code review finds this access rule:\n\nif isAdmin OR (isAdmin AND hasMfa) then\n    allowAccess()\n\nWhich simpler condition always gives the same result?",
+    "options": [
+      "hasMfa",
+      "isAdmin AND hasMfa",
+      "isAdmin OR hasMfa",
+      "isAdmin"
+    ],
+    "correctIndex": 3,
+    "explanation": "By the absorption law, A OR (A AND B) equals A: if isAdmin is true the OR is already true, and if it is false the AND is false too, so hasMfa never changes the outcome. isAdmin AND hasMfa would deny admins without MFA, isAdmin OR hasMfa would admit non-admins who have MFA, and hasMfa alone ignores the role. A redundant rule like this often hides a bug: the author probably meant to require MFA for admins.",
+    "referenceUrl": "https://plato.stanford.edu/entries/boolalg-math/"
+  },
+  {
+    "id": "pf-cs-bool-implication",
+    "topic": "programming-fundamentals",
+    "subtopic": "boolean-logic",
+    "difficulty": "Medium",
+    "title": "Turning an if-then rule into a condition",
+    "question": "A validation rule says: \"If an order is international, it must have a customs code.\" Which boolean expression is true for exactly the orders that satisfy the rule?",
+    "options": [
+      "isInternational AND hasCustomsCode",
+      "(NOT isInternational) OR hasCustomsCode",
+      "isInternational OR hasCustomsCode",
+      "(NOT hasCustomsCode) OR isInternational"
+    ],
+    "correctIndex": 1,
+    "explanation": "An implication A → B is false only when A is true and B is false, so it equals (NOT A) OR B: domestic orders pass with or without a code, and international ones pass only with a code. The AND version rejects every domestic order, the plain OR rejects domestic orders without a code and accepts international ones without it, and (NOT hasCustomsCode) OR isInternational encodes the converse rule, which also lets international orders without a code through.",
+    "referenceUrl": "https://plato.stanford.edu/entries/logic-propositional/"
+  },
+  {
+    "id": "pf-cs-mem-external-fragmentation",
+    "topic": "programming-fundamentals",
+    "subtopic": "memory-pointers",
+    "difficulty": "Hard",
+    "title": "Plenty of free memory, but the allocation fails",
+    "question": "A long-running process allocates and frees many blocks of varying sizes from a non-compacting heap. Its allocator reports 900 MB free, yet a request for one contiguous 64 MB block fails. What is the most likely cause?",
+    "options": [
+      "External fragmentation: the free space is scattered in small, separate holes",
+      "Internal fragmentation: blocks are rounded up, wasting space inside each one",
+      "A memory leak: blocks that were never freed are still counted as free space",
+      "Stack overflow: the 64 MB request exceeds the thread's fixed stack size"
+    ],
+    "correctIndex": 0,
+    "explanation": "Without compaction, freeing blocks of mixed sizes leaves holes between live blocks: the total free space is large, but no single hole holds 64 contiguous megabytes. That is external fragmentation. Internal fragmentation is waste inside allocated blocks and is not reported as free, a leak lowers free memory instead of inflating it, and heap requests do not come from a thread's stack. Size-class or pool allocators, reserving large buffers early, or a compacting collector reduce the problem.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/windows/win32/memory/low-fragmentation-heap"
+  }
+]

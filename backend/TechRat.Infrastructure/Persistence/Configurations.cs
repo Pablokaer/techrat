@@ -17,6 +17,17 @@ internal static class ConcurrencyExtensions
         b.Property<uint>("Version").IsRowVersion();
 }
 
+internal sealed class UserAvatarConfig : IEntityTypeConfiguration<UserAvatar>
+{
+    public void Configure(EntityTypeBuilder<UserAvatar> b)
+    {
+        b.ToTable("user_avatars", "learning");
+        b.HasKey(x => x.UserId);
+        b.Property(x => x.ContentType).HasMaxLength(20);
+        b.HasOne<User>().WithOne().HasForeignKey<UserAvatar>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 internal sealed class UserConfig : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> b)
@@ -28,6 +39,7 @@ internal sealed class UserConfig : IEntityTypeConfiguration<User>
         b.Property(x => x.Email).HasMaxLength(256);
         b.Property(x => x.AvatarUrl).HasMaxLength(500);
         b.Property(x => x.Bio).HasMaxLength(280);
+        b.Property(x => x.ShowOnLeaderboard).HasDefaultValue(true);
         b.HasIndex(x => x.Username).IsUnique();
         b.HasIndex(x => x.CurrentGlobalXP);
         b.HasOne<ApplicationUser>().WithOne().HasForeignKey<User>(x => x.Id).OnDelete(DeleteBehavior.Cascade);

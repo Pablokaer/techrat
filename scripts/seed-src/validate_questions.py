@@ -9,7 +9,11 @@ Rules (see QUESTION_AUTHORING.md):
 - every question has a pt-BR translation in Seed/Data/i18n/questions/<group>.pt-BR.json
   (same id, title, question, 4 options in the same order, explanation);
 - answer-length bias: in each file (English and Portuguese) the correct option may be the strictly longest
-  option in at most 35% of the questions.
+  option in at most 35% of the questions;
+- no positional references: options are shown in a random order (ADR-0019), so the title, question and explanation
+  may not point at an option by position ("option B", "the last option", "a alternativa C");
+- language-neutral fundamentals: questions in the computer-science fundamentals scopes may not name a programming
+  language in their title, question or options (English or Portuguese). Language quirks belong to the language's topic.
 """
 import collections
 import glob
@@ -25,6 +29,17 @@ KEYS = {"id", "topic", "subtopic", "difficulty", "title", "question", "options",
 TRANSLATION_KEYS = {"id", "title", "question", "options", "explanation"}
 LOCALE = "pt-BR"
 MAX_LONGEST_RATIO = 0.35
+# Computer-science fundamentals scopes (topic -> subtopics, None = every subtopic): their questions teach concepts that
+# hold in any language, so they may not name one. The explanation may still cite languages as examples.
+NEUTRAL_SCOPES = {"programming-fundamentals": None, "data-structures": {"arrays", "strings", "hash-tables"}}
+# "option B", "option two", "the first/last option(s)", "the first two options" (and the pt-BR forms).
+POSITIONAL_OPTION = re.compile(
+    r"\b(?:options?|alternativas?|op[cç](?:ão|ao|ões|oes))\s+(?:(?-i:[A-D])|[1-4]|one|two|three|four|um|dois|tr[eê]s|quatro)\b"
+    r"|\b(?:first|second|third|fourth|last)(?:\s+(?:two|three))?\s+(?:options?|answers?)\b"
+    r"|\b(?:primeira|segunda|terceira|quarta|[uú]ltima)s?(?:\s+(?:duas|tr[eê]s))?\s+(?:alternativas?|op[cç](?:ão|ao|ões|oes))\b"
+    r"|\b(?:duas|tr[eê]s)\s+primeiras\s+(?:alternativas|op[cç](?:ões|oes))\b",
+    re.IGNORECASE)
+LANGUAGE_NAME = re.compile(r"(?<![\w.])(C#|F#|\.NET|JavaScript|TypeScript|Java|Python|C\+\+|Golang|Rust|Kotlin|Swift|Ruby|PHP)(?![\w+#])")
 
 
 @dataclass
@@ -40,6 +55,21 @@ def question_files(data_dir=DEFAULT_DATA_DIR):
 
 def translation_files(data_dir=DEFAULT_DATA_DIR):
     return sorted(glob.glob(os.path.join(data_dir, "i18n", "questions", f"*.{LOCALE}.json")))
+
+
+def is_neutral_scope(topic, subtopic):
+    return topic in NEUTRAL_SCOPES and (NEUTRAL_SCOPES[topic] is None or subtopic in NEUTRAL_SCOPES[topic])
+
+
+def language_named(item):
+    """First programming language named in the title, question or options, or None."""
+    m = LANGUAGE_NAME.search("\n".join([str(item["title"]), str(item["question"]), *map(str, item["options"])]))
+    return m.group(1) if m else None
+
+
+def positional_reference(item):
+    """True when the title, question or explanation points at an option by its position."""
+    return bool(POSITIONAL_OPTION.search(" | ".join(str(item.get(k, "")) for k in ("title", "question", "explanation"))))
 
 
 def norm(s):
@@ -138,6 +168,11 @@ def validate(files, data_dir=DEFAULT_DATA_DIR):
                 errors.append(f"{where}: explanation too short")
             if len(q["title"]) > 80:
                 errors.append(f"{where}: title longer than 80 chars")
+            if isinstance(opts, list) and is_neutral_scope(q["topic"], q["subtopic"]) and (lang := language_named(q)):
+                errors.append(f"{where}: names a programming language ({lang}); fundamentals questions must be "
+                              f"language-neutral, so move it to the {lang} topic or rewrite it in pseudocode")
+            if positional_reference(q):
+                errors.append(f"{where}: refers to an option by its position; options are shuffled, so name the option's content")
             key = norm(q["question"])
             if key in seen_text:
                 errors.append(f"{where}: duplicate question text (also {seen_text[key]})")
@@ -170,6 +205,10 @@ def validate(files, data_dir=DEFAULT_DATA_DIR):
                 errors.append(f"{q['id']}: {LOCALE} translation has duplicate options")
             if len(t["title"]) > 120:
                 errors.append(f"{q['id']}: {LOCALE} title longer than 120 chars")
+            if is_neutral_scope(q["topic"], q["subtopic"]) and (lang := language_named(t)):
+                errors.append(f"{q['id']}: {LOCALE} translation names a programming language ({lang})")
+            if positional_reference(t):
+                errors.append(f"{q['id']}: {LOCALE} translation refers to an option by its position")
             file_pt_count += 1
             if correct_is_longest(t_opts, q["correctIndex"]):
                 file_pt_longest += 1

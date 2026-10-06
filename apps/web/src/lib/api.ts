@@ -39,6 +39,15 @@ export async function logout() {
   await api.POST("/api/v1/auth/logout");
 }
 
+/**
+ * Changes (or sets, with no current password) the password. The API signs every other session out and keeps this one:
+ * a renewed cookie on the web, new tokens on the desktop (stored by the bearer session).
+ */
+export async function changePassword(currentPassword: string | null, newPassword: string) {
+  if (bearerSession) return bearerSession.changePassword(currentPassword, newPassword);
+  await unwrap(api.POST("/api/v1/auth/change-password", { body: { currentPassword, newPassword } }));
+}
+
 export function hubUrl() {
   return `${API_BASE_URL}/hubs/notifications`;
 }

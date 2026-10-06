@@ -130,6 +130,8 @@ builder.Services.AddRateLimiter(o =>
 
     o.AddPolicy("auth", ctx => RateLimitPartition.GetFixedWindowLimiter(Partition(ctx),
         _ => new FixedWindowRateLimiterOptions { PermitLimit = config.GetValue("RateLimiting:AuthPerMinute", 20), Window = TimeSpan.FromMinutes(1) }));
+    o.AddPolicy("uploads", ctx => RateLimitPartition.GetFixedWindowLimiter(Partition(ctx),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = config.GetValue("RateLimiting:UploadsPerMinute", 10), Window = TimeSpan.FromMinutes(1) }));
     o.AddPolicy("answers", ctx => RateLimitPartition.GetTokenBucketLimiter(Partition(ctx),
         _ => new TokenBucketRateLimiterOptions { TokenLimit = config.GetValue("RateLimiting:AnswersPerMinute", 30), TokensPerPeriod = config.GetValue("RateLimiting:AnswersPerMinute", 30), ReplenishmentPeriod = TimeSpan.FromMinutes(1), AutoReplenishment = true }));
 });

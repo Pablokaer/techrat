@@ -86,7 +86,7 @@ export default function DashboardPage() {
         <StatCard icon={Star} value={f.number(user.level.totalXp)} label={t.dashboard.stats.totalXp} href="/analytics" />
         <StatCard icon={Code2} value={user.questionsAnswered} label={t.dashboard.stats.questionsSolved} href="/analytics" />
         <StatCard icon={Target} value={`${Math.round(user.accuracy)}%`} label={t.dashboard.stats.accuracy} href="/analytics" />
-        <StatCard icon={Trophy} value={`#${user.globalRank}`} label={t.dashboard.stats.globalRank} tone="warning" href="/leaderboard" />
+        <StatCard icon={Trophy} value={user.showOnLeaderboard ? `#${user.globalRank}` : "—"} label={t.dashboard.stats.globalRank} tone="warning" href="/leaderboard" />
       </div>
 
       {/* Continue learning */}

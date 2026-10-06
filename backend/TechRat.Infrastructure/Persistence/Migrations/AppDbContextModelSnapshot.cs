@@ -1239,6 +1239,10 @@ namespace TechRat.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_published");
 
+                    b.Property<int?>("JuniorRank")
+                        .HasColumnType("integer")
+                        .HasColumnName("junior_rank");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -1546,6 +1550,12 @@ namespace TechRat.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("questions_answered");
 
+                    b.Property<bool>("ShowOnLeaderboard")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("show_on_leaderboard");
+
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -1569,6 +1579,33 @@ namespace TechRat.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_users_username");
 
                     b.ToTable("users", "learning");
+                });
+
+            modelBuilder.Entity("TechRat.Domain.Users.UserAvatar", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("UserId")
+                        .HasName("pk_user_avatars");
+
+                    b.ToTable("user_avatars", "learning");
                 });
 
             modelBuilder.Entity("TechRat.Domain.Users.UserTopicProgress", b =>
@@ -1978,6 +2015,16 @@ namespace TechRat.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_users_users_id");
+                });
+
+            modelBuilder.Entity("TechRat.Domain.Users.UserAvatar", b =>
+                {
+                    b.HasOne("TechRat.Domain.Users.User", null)
+                        .WithOne()
+                        .HasForeignKey("TechRat.Domain.Users.UserAvatar", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_avatars_user_profiles_user_id");
                 });
 
             modelBuilder.Entity("TechRat.Domain.Users.UserTopicProgress", b =>

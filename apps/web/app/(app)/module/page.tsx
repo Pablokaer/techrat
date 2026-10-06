@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { StudyResources } from "@/components/study-resources";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { ArrowRight, Clock, Map as MapIcon, Trophy } from "lucide-react";
@@ -113,6 +114,8 @@ function ModuleView() {
           <StepCard key={s.id} step={s} active={s.status === "Current"} onPractice={practiceStep} practicing={startPractice.isPending} />
         ))}
       </div>
+
+      <StudyResources module={summary.slug} />
     </>
   );
 }

@@ -18,6 +18,11 @@ public sealed class Roadmap
     public bool IsPublished { get; set; } = true;
     public int DisplayOrder { get; set; }
     public int XPReward { get; set; }
+    /// <summary>
+    /// Position among the platform's top roadmaps for junior developers (1 = most recommended); null when the roadmap
+    /// is not one of them. Curated in the seed (roadmaps.py JUNIOR_TOP) and drives the "Recommended for juniors" filter.
+    /// </summary>
+    public int? JuniorRank { get; set; }
     /// <summary>True while the composition mirrors the seed file; false once an admin changed it (the seed then leaves it alone).</summary>
     public bool CompositionSeedManaged { get; set; } = true;
     public List<RoadmapModuleLink> Links { get; set; } = [];

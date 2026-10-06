@@ -14,6 +14,10 @@ export const roadmaps = {
     titleAfter: "",
     subtitle: "Follow structured, real-world learning paths. Steps unlock as you prove what you know — opening a step is never enough.",
     allPaths: "All Paths",
+    /** Filter tab: only the platform's top roadmaps for junior developers, most recommended first. */
+    juniorPaths: "Recommended for juniors",
+    /** Card badge with the roadmap's position among the junior recommendations. */
+    juniorRank: (rank: number) => `#${rank} for juniors`,
     categoriesLabel: "Roadmap categories",
     inProgress: "In progress",
     exploreMore: "Explore more",

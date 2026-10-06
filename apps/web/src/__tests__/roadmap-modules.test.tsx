@@ -47,6 +47,7 @@ function summary(overrides: Partial<RoadmapSummary> = {}): RoadmapSummary {
     id: "r1", slug: "backend-developer", name: "Backend Developer", description: "Build APIs", category: "Role", difficulty: "Intermediate",
     estimatedHours: 40, stepsCount: 12, modulesCount: 5, icon: "server", xpReward: 500, prerequisites: [],
     progress: { isUnlocked: true, isStarted: true, isCompleted: false, completedSteps: 4, percentComplete: 33, lastActivityAt: null, alreadyCompletedModules: 0, alreadyCompletedSteps: 0 },
+    juniorRank: null,
     ...overrides,
   };
 }
@@ -131,6 +132,30 @@ describe("Roadmap cards", () => {
     expect(screen.getByText("You already have 2 of 5 modules")).toBeInTheDocument();
     expect(screen.getAllByText(/You already have/)).toHaveLength(1);
   });
+
+  it("filter the roadmaps recommended for juniors, most recommended first", async () => {
+    const idle = { ...summary().progress!, isStarted: false };
+    const git = summary({ slug: "git-and-collaboration", name: "Git and Collaboration", juniorRank: 3, progress: idle });
+    const k8s = summary({ slug: "kubernetes", name: "Kubernetes", progress: idle });
+    const junior = summary({ slug: "junior-software-engineer", name: "Junior Software Engineer", juniorRank: 1, progress: idle });
+    renderApp(<RoadmapsPage />, (client) => client.setQueryData(qk.roadmaps(), [git, k8s, junior]));
+    expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual(["Git and Collaboration", "Kubernetes", "Junior Software Engineer"]);
+
+    await userEvent.click(screen.getByRole("tab", { name: "Recommended for juniors" }));
+
+    expect(screen.getByRole("tab", { name: "Recommended for juniors" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual(["Junior Software Engineer", "Git and Collaboration"]);
+  });
+
+  it("badge the roadmaps recommended for juniors with their rank", () => {
+    const idle = { ...summary().progress!, isStarted: false };
+    renderApp(<RoadmapsPage />, (client) => client.setQueryData(qk.roadmaps(), [
+      summary({ slug: "sql", name: "SQL", juniorRank: 5, progress: idle }),
+      summary({ slug: "kubernetes", name: "Kubernetes", progress: idle }),
+    ]));
+    expect(screen.getByText("#5 for juniors")).toBeInTheDocument();
+    expect(screen.getAllByText(/^#\d+ for juniors$/)).toHaveLength(1);
+  });
 });
 
 describe("Module page", () => {
@@ -173,7 +198,8 @@ describe("Module page", () => {
     expect(buttons).toHaveLength(1);
     await userEvent.click(buttons[0]);
     await waitFor(() => expect(nav.push).toHaveBeenCalledWith(routes.session("s9")));
-    const request = vi.mocked(fetch).mock.calls[0][0] as Request;
+    // The page also asks for the module's study resources; pick the practice request.
+    const request = vi.mocked(fetch).mock.calls.map(([r]) => r as Request).find((r) => r.url.endsWith("/api/v1/practice/sessions"))!;
     expect(await request.clone().json()).toEqual({ mode: "Roadmap", roadmapStepId: "branching", count: 10 });
   });
 });

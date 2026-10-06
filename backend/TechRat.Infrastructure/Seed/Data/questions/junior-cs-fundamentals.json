@@ -1,0 +1,138 @@
+[
+  {
+    "id": "pf-jr-cf-off-by-one-array",
+    "topic": "programming-fundamentals",
+    "subtopic": "control-flow",
+    "difficulty": "Easy",
+    "title": "Looping with <= over an array",
+    "question": "prices = [10, 20, 30], indexes start at 0, and the language checks every array access. What happens when this runs?\n\nsum ← 0\ni ← 0\nwhile i <= length(prices)\n    sum ← sum + prices[i]\n    i ← i + 1",
+    "options": [
+      "sum ends at 60 and the loop exits normally",
+      "sum ends at 50, because the first price is skipped",
+      "The loop runs forever, because <= never becomes false",
+      "An index-out-of-range error is raised when i is 3"
+    ],
+    "correctIndex": 3,
+    "explanation": "A 3-element array has the valid indexes 0, 1 and 2. With i <= length(prices) the loop also runs for i = 3, and reading prices[3] raises an out-of-range error after sum has already reached 60. The fix is i < length(prices), or a for-each loop that needs no index at all. Every access is checked, so no element is skipped and the loop does not run forever; without bounds checks the read would silently access memory past the array instead.",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-10.html#jls-10.4"
+  },
+  {
+    "id": "pf-jr-cf-break-inner-loop",
+    "topic": "programming-fundamentals",
+    "subtopic": "control-flow",
+    "difficulty": "Medium",
+    "title": "break inside a nested loop",
+    "question": "What does this code print?\n\nfor i from 0 to 2\n    for j from 0 to 2\n        if j = 1 then break\n        print(i, j)",
+    "options": [
+      "0 0, then 1 0, then 2 0 (one pair per line)",
+      "Only 0 0, because break leaves both loops",
+      "0 0, 0 2, 1 0, 1 2, 2 0 and 2 2",
+      "Nothing, because break runs before any print"
+    ],
+    "correctIndex": 0,
+    "explanation": "break ends only the innermost loop that contains it. For each i, the inner loop prints i 0, reaches j = 1 and breaks, and the outer loop then moves on to the next i, so the output is 0 0, 1 0 and 2 0. Skipping j = 1 and carrying on would need continue, and leaving both loops at once needs a flag, a labelled break where the language has one, or a return from a function.",
+    "referenceUrl": "https://docs.python.org/3/tutorial/controlflow.html#break-and-continue-statements"
+  },
+  {
+    "id": "pf-jr-ps-max-start-zero",
+    "topic": "programming-fundamentals",
+    "subtopic": "problem-solving",
+    "difficulty": "Easy",
+    "title": "Finding the largest value, starting from 0",
+    "question": "A helper returns the largest number in a non-empty list:\n\nfunction largest(nums)\n    best = 0\n    for i from 0 to length(nums) - 1\n        if nums[i] > best then best = nums[i]\n    return best\n\nWhat does largest([-8, -3, -5]) return, and what is the fix?",
+    "options": [
+      "0; start best at nums[0] instead of 0",
+      "-3; the function already handles negatives",
+      "-8; compare with >= best instead of > best",
+      "-5; the loop keeps the last value it sees"
+    ],
+    "correctIndex": 0,
+    "explanation": "No element is greater than the starting value 0, so best is never updated and the function returns 0, a number that is not even in the list. Starting from the first element (best = nums[0]) makes the answer come from the data. Changing > to >= does not help, since no negative number is >= 0. Test edge cases such as all-negative values, a single element and an empty list.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/resources/lecture-1-algorithms-and-computation/"
+  },
+  {
+    "id": "pf-jr-bigo-sequential-loops",
+    "topic": "programming-fundamentals",
+    "subtopic": "complexity-big-o",
+    "difficulty": "Easy",
+    "title": "Two loops, one after the other",
+    "question": "users has n items and orders has m items. What is the tightest Big O for this function, assuming each print takes constant time?\n\nfunction report(users, orders)\n    for i from 0 to length(users) - 1\n        print(users[i].name)\n    for j from 0 to length(orders) - 1\n        print(orders[j].total)",
+    "options": [
+      "O(n × m), one step per user-order pair",
+      "O(n + m), one pass over each list",
+      "O(n²), since there are two loops",
+      "O(log(n + m)), since print is cheap"
+    ],
+    "correctIndex": 1,
+    "explanation": "The loops run one after the other, not nested: the first does n constant-time steps and the second does m, so the total is n + m steps, which is O(n + m). Multiplying to n × m is only right when one loop runs inside the other. O(n²) both ignores m and assumes nesting, and nothing here halves the input, so there is no logarithm.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/bigOnotation.html"
+  },
+  {
+    "id": "pf-jr-bool-and-or-precedence",
+    "topic": "programming-fundamentals",
+    "subtopic": "boolean-logic",
+    "difficulty": "Medium",
+    "title": "Mixing AND and OR without parentheses",
+    "question": "A checkout grants a discount with:\n\ndiscount = isMember OR total > 100 AND NOT isBanned\n\nA banned member (isMember = true, isBanned = true) with total = 50 still gets the discount. Under the precedence rules used by almost every language, why?",
+    "options": [
+      "OR binds tighter: (isMember OR total > 100) AND NOT isBanned",
+      "Mixed AND and OR are always grouped strictly from left to right",
+      "> binds loosest, so it reads (isMember OR total) > (100 AND NOT isBanned)",
+      "AND binds tighter: isMember OR (total > 100 AND NOT isBanned)"
+    ],
+    "correctIndex": 3,
+    "explanation": "In boolean algebra and in virtually every mainstream language, AND has higher precedence than OR, much as multiplication binds tighter than addition, so the expression means isMember OR (total > 100 AND NOT isBanned). Since isMember is true, the whole OR is true and the ban never matters. The intended rule needs parentheses: (isMember OR total > 100) AND NOT isBanned. Grouping left to right, or with OR binding tighter, would give exactly that intended (false) result, and comparison operators such as > bind tighter than both AND and OR.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/boolean-logical-operators#operator-precedence"
+  },
+  {
+    "id": "pf-jr-num-bit-flags",
+    "topic": "programming-fundamentals",
+    "subtopic": "number-systems",
+    "difficulty": "Medium",
+    "title": "Combining bit flags with |",
+    "question": "A permission system uses bit flags:\n\nREAD = 1    (binary 001)\nWRITE = 2   (binary 010)\nEXEC = 4    (binary 100)\n\nperms = READ | EXEC\n\nWhat is perms, and is WRITE set?",
+    "options": [
+      "true, since | is a logical OR of two non-zero values",
+      "5, and perms & WRITE is 2, so WRITE is set",
+      "5, and perms & WRITE is 0, so WRITE is not set",
+      "4, since | keeps only the higher of the two flags"
+    ],
+    "correctIndex": 2,
+    "explanation": "| is bitwise OR: 001 | 100 sets both bits and gives 101, which is 5. A flag is tested with bitwise AND: 101 & 010 is 0, so WRITE is not set. A logical OR works on whole truth values instead of combining bits, and | never drops a bit that is set in either operand.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Bitwise_flags"
+  },
+  {
+    "id": "pf-jr-mem-class-reference-alias",
+    "topic": "programming-fundamentals",
+    "subtopic": "memory-pointers",
+    "difficulty": "Medium",
+    "title": "Two variables, one object",
+    "question": "Account is a class, and object variables hold references to objects, as in most object-oriented languages:\n\na = new Account(balance: 100)\nb = a\nb.balance = 50\nb = new Account(balance: 10)\nprint(a.balance)\n\nWhat is printed?",
+    "options": [
+      "50: b changed the shared object, then pointed elsewhere",
+      "100: b = a copied the object, so a never changed",
+      "10: a and b stay linked, so a follows b to the new object",
+      "0: the first object is collected once b moves away"
+    ],
+    "correctIndex": 0,
+    "explanation": "An object variable holds a reference, so b = a copies the reference and both variables point to the same object; b.balance = 50 is therefore visible through a. Assigning a new object to b only changes where b points; it does not touch a or the object a refers to. That object is still reachable through a, so it cannot be reclaimed. Only a value type, copied on assignment, would make b an independent copy.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Object_reference"
+  },
+  {
+    "id": "pf-jr-rec-missing-return",
+    "topic": "programming-fundamentals",
+    "subtopic": "recursion",
+    "difficulty": "Hard",
+    "title": "A recursive search that returns nothing",
+    "question": "This recursive binary search over a sorted array (indexes start at 0) should return 3 for find([1, 3, 5, 7, 9], 7, 0, 4), but the caller gets no value back:\n\nfunction find(a, target, lo, hi)\n    if lo > hi then return -1\n    mid = floor((lo + hi) / 2)\n    if a[mid] == target then return mid\n    if a[mid] < target then\n        find(a, target, mid + 1, hi)\n    else\n        find(a, target, lo, mid - 1)\n\nWhat is the bug?",
+    "options": [
+      "mid is computed wrongly, so index 3 is never examined",
+      "The recursive results are discarded; both calls need return",
+      "The base case fires too early, so its -1 is lost on the way",
+      "The else branch should search lo to mid, not lo to mid - 1"
+    ],
+    "correctIndex": 1,
+    "explanation": "The first call sees a[2] = 5 < 7 and recurses; the inner call finds 7 at index 3 and returns 3, but the outer call ignores that value and reaches the end of the function without returning anything. Every recursive branch must pass its result back up: return find(a, target, mid + 1, hi), and the same for the else branch. Index 3 is examined, the base case is never reached here, and searching lo to mid - 1 is right because a[mid] has already been checked.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/recursion.html"
+  }
+]

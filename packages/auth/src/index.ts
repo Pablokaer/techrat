@@ -74,6 +74,15 @@ export class BearerSession {
     return unwrap(this.api.GET("/api/v1/users/me"));
   }
 
+  /**
+   * Changes (or, with no current password, sets) the password. The API signs every other session out and returns
+   * new tokens for this one, which replace the stored ones. Throws ApiError with field errors when refused.
+   */
+  async changePassword(currentPassword: string | null, newPassword: string): Promise<void> {
+    const result = await unwrap(this.api.POST("/api/v1/auth/change-password", { body: { currentPassword, newPassword } }));
+    await this.save(parseTokenResponse(result as unknown as AccessTokenResponse));
+  }
+
   async getAccessToken(): Promise<string | null> {
     if (needsRefresh(this.tokens)) await this.refresh();
     return this.tokens?.accessToken ?? null;

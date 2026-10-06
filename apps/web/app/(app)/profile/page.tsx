@@ -60,7 +60,7 @@ function ProfileView() {
         <StatCard icon={Star} value={f.number(user.level.totalXp)} label={t.profile.stats.totalXp} />
         <StatCard icon={Code2} value={user.questionsAnswered} label={t.profile.stats.questionsSolved} />
         <StatCard icon={Target} value={`${Math.round(user.accuracy)}%`} label={t.profile.stats.accuracyRate} />
-        <StatCard icon={Trophy} value={`#${user.globalRank}`} label={t.profile.stats.globalRank} tone="warning" />
+        <StatCard icon={Trophy} value={user.showOnLeaderboard ? `#${user.globalRank}` : "—"} label={t.profile.stats.globalRank} tone="warning" />
       </div>
 
       <Tabs<Tab> label={t.profile.tabs.label} value={tab} onChange={setTab} items={[

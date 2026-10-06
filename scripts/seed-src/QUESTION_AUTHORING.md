@@ -21,7 +21,9 @@ Each item has EXACTLY these keys:
 
 Rules
 - Exactly one correct option; all four options plausible, similar length and style. No "all of the above"/"none of the above".
+- Options are shown in a random order per session (ADR-0019). Never refer to an option by its position ("option B", "the first option", "a última alternativa") in the title, question or explanation; name its content instead (`validate_questions.py` rejects it). "All/None of the above" would keep its position, but avoid them anyway (rule above).
 - Spread correctIndex evenly across 0,1,2,3 (roughly 25% each). Do not always put the answer first.
+- Computer-science fundamentals are language-neutral (ADR-0016): questions in `programming-fundamentals/*` and `data-structures/{arrays,strings,hash-tables}` teach concepts that hold in any language. Write code as pseudocode (`function f(x)`, `for i from 0 to n - 1`, `if ... then`, `a[i]`, `length(a)`) and never name a language in the title, question or options (`validate_questions.py` rejects it; the explanation may cite languages as examples). A question about one language's behaviour (Java's `%` sign, Python's mutable defaults, C#'s `ref`) belongs to that language's topic.
 - Difficulty mix per topic: ~30% Easy, ~35% Medium, ~25% Hard, ~10% Expert.
   - Easy: fundamentals, terminology, syntax, essential concepts.
   - Medium: practical application, comparisons, implementation choices, simple debugging.

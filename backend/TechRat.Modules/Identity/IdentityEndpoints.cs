@@ -25,6 +25,10 @@ public sealed record LoginRequest(string Email, string Password);
 public sealed record RefreshRequest(string RefreshToken);
 public sealed record ForgotPasswordRequest(string Email);
 public sealed record ResetPasswordRequest(string Email, string ResetCode, string NewPassword);
+/// <param name="CurrentPassword">Required when the account has a password; omitted to set the first one (external sign-in).</param>
+public sealed record ChangePasswordRequest(string? CurrentPassword, string? NewPassword);
+/// <param name="HasPassword">False for accounts created through an external provider: clients offer "set a password".</param>
+public sealed record PasswordStatusDto(bool HasPassword);
 public sealed record AuthProviderDto(string Name, string DisplayName, bool Enabled, bool Featured);
 
 public static partial class AuthValidation
@@ -70,6 +74,18 @@ public sealed class IdentityEndpoints : IEndpointModule
 
         auth.MapPost("/reset-password", ResetPasswordAsync).RequireRateLimiting("auth")
             .WithSummary("Reset the password using the code from the email");
+
+        auth.MapGet("/password", async (UserManager<ApplicationUser> users, ICurrentUser current) =>
+            TypedResults.Ok(new PasswordStatusDto(await users.HasPasswordAsync(await RequireAccountAsync(users, current)))))
+            .RequireAuthorization()
+            .WithSummary("Whether the signed-in account has a password (change it) or not (set one)");
+
+        auth.MapPost("/change-password", ChangePasswordAsync).RequireAuthorization().RequireRateLimiting("auth")
+            .Produces<AccessTokenResponse>(StatusCodes.Status200OK)
+            .WithSummary("Change (or set) the password of the signed-in account")
+            .WithDescription("Checks the current password on the server (failures count towards lockout) and applies the sign-up rules. " +
+                             "Every other session is signed out. The calling session continues: a cookie session gets a renewed cookie " +
+                             "(204), a bearer session gets new tokens (200). The owner is emailed.");
 
         auth.MapGet("/providers", (IConfiguration config) =>
         {
@@ -164,6 +180,60 @@ public sealed class IdentityEndpoints : IEndpointModule
         // Rotating the security stamp invalidates outstanding refresh tokens (bearer clients).
         if (current.UserId is { } id && await users.FindByIdAsync(id.ToString()) is { } user)
             await users.UpdateSecurityStampAsync(user);
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<ApplicationUser> RequireAccountAsync(UserManager<ApplicationUser> users, ICurrentUser current) =>
+        await users.FindByIdAsync(current.RequireUserId().ToString()) ?? throw new NotFoundException("User", current.RequireUserId());
+
+    private static async Task<Results<NoContent, SignInHttpResult, ValidationProblem>> ChangePasswordAsync(
+        ChangePasswordRequest request, HttpContext http, UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
+        ICurrentUser current, IAccountEmailSender email, ILoggerFactory loggers, CancellationToken ct)
+    {
+        static ValidationProblem Invalid(string field, string key) =>
+            TypedResults.ValidationProblem(new Dictionary<string, string[]> { [field] = [Text.Get(key)] });
+
+        var user = await RequireAccountAsync(users, current);
+        if (string.IsNullOrEmpty(request.NewPassword)) return Invalid("newPassword", Text.Keys.PasswordRequired);
+
+        IdentityResult result;
+        if (await users.HasPasswordAsync(user))
+        {
+            if (string.IsNullOrEmpty(request.CurrentPassword)) return Invalid("currentPassword", Text.Keys.CurrentPasswordRequired);
+            if (await users.IsLockedOutAsync(user)) return Invalid("currentPassword", Text.Keys.LockedOut);
+            if (!await users.CheckPasswordAsync(user, request.CurrentPassword))
+            {
+                // A stolen session must not be a way to guess the password: wrong guesses lock the account like logins do.
+                await users.AccessFailedAsync(user);
+                return Invalid("currentPassword", Text.Keys.CurrentPasswordIncorrect);
+            }
+            if (request.NewPassword == request.CurrentPassword) return Invalid("newPassword", Text.Keys.NewPasswordSameAsCurrent);
+            result = await users.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+        }
+        else
+        {
+            result = await users.AddPasswordAsync(user, request.NewPassword);
+        }
+        if (!result.Succeeded)
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["newPassword"] = [.. result.Errors.Select(e => e.Description)] });
+
+        // Both calls rotated the security stamp: refresh tokens stop working and other cookies fail their next validation.
+        await users.ResetAccessFailedCountAsync(user);
+        var log = loggers.CreateLogger("TechRat.Identity");
+        log.LogInformation("Password changed for user {UserId}", user.Id);
+        try
+        {
+            await email.SendPasswordChangedAsync(user.Email!, ct);
+        }
+        catch (EmailDeliveryException)
+        {
+            log.LogWarning("Password change notice could not be delivered to user {UserId}", user.Id);
+        }
+
+        // Keep the session that made the change, following how it signed in.
+        if (http.Request.Headers.Authorization.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            return TypedResults.SignIn(await signIn.CreateUserPrincipalAsync(user), authenticationScheme: IdentityConstants.BearerScheme);
+        await signIn.RefreshSignInAsync(user);
         return TypedResults.NoContent();
     }
 

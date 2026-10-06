@@ -14,6 +14,8 @@ export const validation: Record<ValidationMessageKey, string> & { invalid: strin
   displayNameMax: "At most 40 characters",
   bioMax: "At most 280 characters",
   passwordsMismatch: "Passwords do not match",
+  currentPasswordRequired: "Enter your current password",
+  passwordSameAsCurrent: "Use a password different from your current one",
   url: "Enter a valid URL",
   httpsUrl: "Use an https URL",
   invalid: "Invalid value",

@@ -78,6 +78,11 @@ def build_catalog_markdown(data_dir):
         "",
         f"**{len(roadmaps)}** roadmaps built from **{len(modules)}** modules ({shared} shared by 2+ roadmaps) · {_n(module_steps)} module steps.",
         "",
+    ]
+    junior = sorted((r for r in roadmaps if r.get("juniorRank")), key=lambda r: r["juniorRank"])
+    if junior:
+        lines += [f"**Recommended for juniors** (top {len(junior)}): " + " · ".join(f"{r['juniorRank']}. {r['name']}" for r in junior), ""]
+    lines += [
         "| # | Roadmap | Português | Type | Category | Difficulty | Modules | Steps | Estimate | Questions | Prerequisites |",
         "|---:|---|---|---|---|---|---:|---:|---:|---:|---|",
     ]

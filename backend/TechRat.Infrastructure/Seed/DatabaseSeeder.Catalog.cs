@@ -17,7 +17,7 @@ public sealed partial class DatabaseSeeder
         bool Standalone, List<string> Requires, List<ModuleStepJson> Steps);
     private sealed record ModuleStepJson(string Topic, string? Subtopic, string Title, string? Difficulty);
     private sealed record RoadmapJson(string Slug, string Name, string Category, string Difficulty, string Icon, string Description,
-        int EstimatedHours, List<PrereqJson> Prerequisites, List<RoadmapModuleRefJson> Modules);
+        int EstimatedHours, List<PrereqJson> Prerequisites, List<RoadmapModuleRefJson> Modules, int? JuniorRank = null);
     private sealed record RoadmapModuleRefJson(string Slug, bool Required = true);
     private sealed record PrereqJson(string Slug, int MinimumPercent);
 
@@ -141,6 +141,8 @@ public sealed partial class DatabaseSeeder
                 roadmaps.Add(roadmap);
                 added++;
             }
+            // The junior recommendation is curated in the seed only, so it follows the file even after admin edits.
+            roadmap.JuniorRank = rj.JuniorRank;
             if (!roadmap.CompositionSeedManaged) continue;
 
             var wanted = rj.Modules.Select((m, i) => (ModuleId: modules[m.Slug].Id, Order: i + 1, m.Required)).ToList();

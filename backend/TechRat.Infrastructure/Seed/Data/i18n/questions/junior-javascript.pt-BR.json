@@ -1,0 +1,146 @@
+[
+  {
+    "id": "js-jr-types-input-value-strict-equality",
+    "title": "Comparando o value de um input com ===",
+    "question": "O usuário digitou 2 no campo de quantidade, mas o desconto nunca é aplicado:\n\nconst qty = document.querySelector(\"#qty\").value;\nif (qty === 2) applyDiscount();\n\nPor quê?",
+    "options": [
+      "`===` compara referências, então dois números nunca são iguais",
+      "`value` é a string \"2\", e `===` nunca converte tipos",
+      "`value` fica `undefined` até o formulário ser enviado",
+      "`querySelector` devolve uma cópia, então o `value` vem vazio"
+    ],
+    "explanation": "O `value` de um input é sempre uma string, então `qty` é \"2\". A igualdade estrita (`===`) nunca converte tipos, e uma string nunca é estritamente igual a um número; `Number(qty) === 2` resolve. Números são comparados por valor, não por referência, o valor já está disponível assim que o usuário digita, e o querySelector devolve o elemento real, não uma cópia."
+  },
+  {
+    "id": "js-jr-types-or-default-zero-nullish",
+    "title": "|| troca um 0 válido pelo valor padrão",
+    "question": "function getVolume(options) {\n  return options.volume || 50;\n}\nconsole.log(getVolume({ volume: 0 })); // 50\n\nO usuário escolheu 0 de verdade (mudo). Qual mudança retorna 0 aqui e continua retornando 50 quando `volume` não é informado?",
+    "options": [
+      "Usar `options.volume && 50`, que mantém qualquer valor já definido",
+      "Usar `Number(options.volume) || 50`, para o 0 ser lido como número",
+      "Usar `options.volume === 0 || 50`, para o 0 ser testado à parte",
+      "Usar `options.volume ?? 50`, que só usa o padrão com null/undefined"
+    ],
+    "explanation": "`||` usa o valor da direita sempre que o da esquerda é falsy, e 0 é falsy, então um 0 de verdade vira 50. O operador de coalescência nula `??` só usa o padrão quando o lado esquerdo é null ou undefined, então o 0 é mantido e um volume ausente continua dando 50. `&&` retorna 50 para qualquer volume truthy e undefined quando ele falta, `Number(0) || 50` continua sendo 50, e `options.volume === 0 || 50` retorna o booleano true."
+  },
+  {
+    "id": "js-jr-scope-const-object-mutation",
+    "title": "Alterando uma propriedade de um objeto const",
+    "question": "O que isto imprime?\n\nconst user = { name: \"Ana\" };\nuser.name = \"Bia\";\nconsole.log(user.name);",
+    "options": [
+      "\"Bia\": const impede reatribuir `user`, não alterar o objeto",
+      "\"Ana\": um objeto const ignora em silêncio as alterações",
+      "Nada: a linha 2 lança um TypeError por alterar uma constante",
+      "Nada: a linha 2 é um SyntaxError, então o script nem roda"
+    ],
+    "explanation": "`const` torna a ligação constante: `user` nunca pode apontar para outro valor, então `user = {}` lançaria um TypeError. O objeto para o qual ele aponta continua mutável, então alterar `user.name` funciona e imprime \"Bia\". Nada é ignorado e não há erro de sintaxe; para deixar o próprio objeto somente leitura seria preciso algo como Object.freeze."
+  },
+  {
+    "id": "js-jr-scope-var-let-if-block",
+    "title": "var vs let dentro de um bloco if",
+    "question": "O que acontece quando isto roda?\n\nfunction check(isAdmin) {\n  if (isAdmin) {\n    var role = \"admin\";\n    let level = 10;\n  }\n  console.log(role);\n  console.log(level);\n}\ncheck(false);",
+    "options": [
+      "Imprime \"admin\" e depois 10, já que var e let são ambos visíveis",
+      "Lança um ReferenceError em `role`, antes de imprimir qualquer coisa",
+      "Imprime undefined e depois lança um ReferenceError em `level`",
+      "Imprime undefined duas vezes, já que os dois sobem para a função"
+    ],
+    "explanation": "`var` tem escopo de função: `role` existe na função inteira e sofre hoisting com o valor undefined, e como o bloco if nunca roda ele continua undefined. `let` tem escopo de bloco: `level` só existe dentro do bloco if, então lê-lo fora lança \"ReferenceError: level is not defined\". Com `false` nada dentro do bloco roda, então \"admin\" e 10 nunca são atribuídos."
+  },
+  {
+    "id": "js-jr-functions-arrow-return-object-literal",
+    "title": "Retornando um objeto de uma arrow function",
+    "question": "Isto deveria montar uma lista de objetos de usuário, mas imprime `[undefined, undefined]`. Por quê?\n\nconst users = [\"Ana\", \"Bia\"].map(name => { name: name });\nconsole.log(users);",
+    "options": [
+      "As chaves são lidas como corpo da função, então nada é retornado",
+      "O map ignora o retorno de arrows com um parâmetro chamado `name`",
+      "Um objeto literal não pode usar o mesmo nome para chave e valor",
+      "Arrow functions não retornam objetos, então use uma função comum"
+    ],
+    "explanation": "Depois de `=>`, um `{` inicia um corpo de bloco, não um objeto literal: `name:` é interpretado como um label e `name` como uma expressão, e um corpo de bloco sem `return` retorna undefined. Envolver o literal em parênteses resolve: `name => ({ name })`. Arrow functions retornam objetos dessa forma, o map usa todo valor retornado, e `{ name: name }` é um objeto literal válido."
+  },
+  {
+    "id": "js-jr-functions-listener-called-not-passed",
+    "title": "Passar uma função vs chamá-la",
+    "question": "`save` roda uma vez quando a página carrega e nunca mais quando o botão é clicado. Por quê?\n\nbutton.addEventListener(\"click\", save());",
+    "options": [
+      "O addEventListener roda o listener uma vez, a menos que haja `{ once: false }`",
+      "O nome do evento precisa ser \"onclick\", então o clique nunca casa",
+      "`save` precisa ser declarada depois do botão no arquivo HTML",
+      "`save()` executa na hora e passa o valor de retorno no lugar dela"
+    ],
+    "explanation": "Os parênteses chamam `save` imediatamente, enquanto o listener está sendo registrado, e o valor de retorno dela (normalmente undefined) é o que vai para o addEventListener, então nenhuma função fica ligada ao clique. Passe a própria função: `addEventListener(\"click\", save)`. Listeners rodam em todo evento por padrão, o nome do evento é \"click\" (\"onclick\" é o nome da propriedade e do atributo), e a ordem de declaração no HTML não é o problema."
+  },
+  {
+    "id": "js-jr-objects-spread-shallow-copy",
+    "title": "Spread faz uma cópia rasa",
+    "question": "Um formulário edita uma cópia do usuário, mas o original também muda. O que isto imprime?\n\nconst original = { name: \"Ana\", address: { city: \"Recife\" } };\nconst copy = { ...original };\ncopy.name = \"Bia\";\ncopy.address.city = \"Natal\";\nconsole.log(original.name, original.address.city);",
+    "options": [
+      "Bia Natal",
+      "Ana Recife",
+      "Ana Natal",
+      "Bia Recife"
+    ],
+    "explanation": "O spread de objeto faz uma cópia rasa (shallow copy): `copy` ganha sua própria propriedade `name`, então alterá-la mantém `original.name` como \"Ana\", mas `copy.address` guarda uma referência para o mesmo objeto aninhado que `original.address`. Por isso, alterar a cidade pela cópia altera também o original. Copie também o objeto aninhado (`{ ...original, address: { ...original.address } }`) ou use structuredClone para uma cópia profunda."
+  },
+  {
+    "id": "js-jr-async-missing-await-promise",
+    "title": "Esquecendo o await em uma função async",
+    "question": "O que isto imprime?\n\nasync function getUser() {\n  return { name: \"Ana\" };\n}\nconst user = getUser();\nconsole.log(user.name);",
+    "options": [
+      "\"Ana\", já que a função não faz nenhum trabalho assíncrono",
+      "undefined, porque `user` é uma Promise, não o objeto",
+      "Lança um TypeError, porque `user` ainda é null",
+      "Espera getUser terminar e depois imprime \"Ana\""
+    ],
+    "explanation": "Uma função async sempre retorna uma Promise, mesmo quando retorna um valor simples sem aguardar nada. `user` é essa Promise, e uma Promise não tem a propriedade `name`, então o resultado é undefined. Nada espera a menos que você use `await getUser()` (ou `.then`), e `user` nunca é null, então nenhum TypeError é lançado."
+  },
+  {
+    "id": "js-jr-async-sequential-vs-promise-all",
+    "title": "awaits independentes rodam um depois do outro",
+    "question": "getOrders() e getInvoices() são independentes e cada uma leva cerca de 1 s. A página precisa das duas:\n\nconst orders = await getOrders();\nconst invoices = await getInvoices();\n\nQuanto tempo isso leva, e como deixar mais rápido?",
+    "options": [
+      "Cerca de 1 s já, pois o `await` roda as duas requisições em paralelo",
+      "Cerca de 2 s; envolver cada `await` em try/catch faz rodarem em paralelo",
+      "Cerca de 1 s; Promise.all só deixaria o código mais curto, não mais rápido",
+      "Cerca de 2 s; use `await Promise.all([getOrders(), getInvoices()])`"
+    ],
+    "explanation": "Cada `await` pausa até sua promise ser resolvida, e getInvoices() nem é chamada antes de getOrders() terminar, então o total fica em cerca de 2 s. Chamar as duas primeiro e aguardar `Promise.all` deixa as duas requisições rodarem ao mesmo tempo, então o total fica perto da mais lenta, cerca de 1 s. try/catch só trata erros e não muda o tempo."
+  },
+  {
+    "id": "js-jr-dom-script-in-head-null-element",
+    "title": "querySelector retorna null a partir de um script no head",
+    "question": "O app.js é carregado com `<script src=\"app.js\"></script>` dentro do `<head>`, e o botão com id `save` está no body. A primeira linha falha com \"Cannot read properties of null (reading 'addEventListener')\":\n\ndocument.querySelector(\"#save\").addEventListener(\"click\", save);\n\nQual é a correção?",
+    "options": [
+      "Adicionar `defer` à tag script, para ela rodar após o parse do HTML",
+      "Usar o seletor `.save`, já que o querySelector não encontra ids",
+      "Ligar o listener ao `window`, já que botões não aceitam listeners",
+      "Mover a tag script para antes do `<head>`, para carregar mais cedo"
+    ],
+    "explanation": "Um script clássico no `<head>` roda assim que é alcançado, antes de o navegador fazer o parse do body, então o querySelector não encontra nenhum elemento `#save` e retorna null. Com `defer` (ou colocando o script no fim do body) ele roda depois que o documento foi processado. `#save` é um seletor de id válido, botões aceitam listeners, e carregar o script ainda mais cedo só piora o problema."
+  },
+  {
+    "id": "js-jr-modules-inline-handler-not-global",
+    "title": "onclick inline não enxerga funções de módulo",
+    "question": "Uma página carrega `<script type=\"module\" src=\"app.js\"></script>`. O app.js declara `function handleClick() { ... }` no nível mais alto, e o HTML tem `<button onclick=\"handleClick()\">Save</button>`. O clique lança \"ReferenceError: handleClick is not defined\". Por quê?",
+    "options": [
+      "O strict mode, usado pelos módulos, proíbe declarar funções no topo",
+      "Handlers inline só chamam arrow functions, não declarações de função",
+      "Declarações no topo de um módulo ficam no escopo dele, não no global",
+      "O atributo `onclick` precisa de `this.handleClick()` para achar o módulo"
+    ],
+    "explanation": "Cada módulo tem seu próprio escopo: suas declarações de nível mais alto não viram globais nem propriedades de `window`, ao contrário de um script clássico. Um atributo `onclick` inline procura os nomes no escopo global, então não encontra handleClick. Ligue o listener a partir do módulo com addEventListener (ou, como paliativo, faça `window.handleClick = handleClick`). O strict mode permite declarar funções no topo, e handlers inline podem chamar qualquer função global."
+  },
+  {
+    "id": "js-jr-errors-try-catch-unawaited-promise",
+    "title": "try/catch em volta de uma promise sem await",
+    "question": "O app mostra \"Saved\" mesmo quando o salvamento falha, e o console mostra uma rejeição de promise não tratada:\n\nasync function onSave() {\n  try {\n    saveDraft(); // returns a promise that rejects\n    showToast(\"Saved\");\n  } catch (e) {\n    showToast(\"Could not save\");\n  }\n}\n\nPor que o bloco catch não roda?",
+    "options": [
+      "Um bloco catch só trata erros de `throw`, nunca rejeições de promise",
+      "saveDraft() não tem await, então a rejeição nunca vira throw no try",
+      "O showToast roda antes e limpa o erro antes de o catch enxergá-lo",
+      "Uma função async não aceita try/catch, então é preciso usar `.catch()`"
+    ],
+    "explanation": "Uma promise rejeitada só vira um erro lançado onde ela é aguardada. Sem `await`, saveDraft() apenas retorna uma promise, o bloco try termina normalmente e mostra \"Saved\", e a rejeição depois fica sem handler, então é reportada como não tratada. Escrever `await saveDraft();` faz a rejeição ser lançada dentro do try, e o catch roda. try/catch captura rejeições aguardadas, inclusive dentro de funções async, e o showToast não tem efeito sobre o erro."
+  }
+]

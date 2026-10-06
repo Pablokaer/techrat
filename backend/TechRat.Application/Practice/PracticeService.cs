@@ -218,7 +218,10 @@ public sealed class PracticeService(
                     qtr.QuestionExplanation(q.Id, q.Explanation), q.ReferenceUrl, a.XpEarned);
             return new SessionQuestionDto(q.Id, index + 1, q.TopicSlug, tr.TopicName(q.TopicId, q.TopicName), q.SubSlug,
                 tr.SubtopicName(q.SubtopicId, q.SubName), q.Difficulty, qtr.QuestionTitle(q.Id, q.Title),
-                qtr.QuestionText(q.Id, q.QuestionText), q.XPReward, q.Options.Select(o => new OptionDto(o.Id, qtr.OptionText(o.Id, o.Text))).ToList(), answer);
+                qtr.QuestionText(q.Id, q.QuestionText), q.XPReward,
+                // Each session shows its own stable random order (ADR-0019); answers are graded by option id.
+                OptionShuffle.Order(q.Options, o => o.Text, OptionShuffle.Seed(s.Id, q.Id))
+                    .Select(o => new OptionDto(o.Id, qtr.OptionText(o.Id, o.Text))).ToList(), answer);
         }).ToList();
 
         string? topicSlug = null, topicName = null, subSlug = null, subName = null;

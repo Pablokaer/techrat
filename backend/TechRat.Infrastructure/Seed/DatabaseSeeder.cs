@@ -111,7 +111,7 @@ public sealed partial class DatabaseSeeder(
         var questionsUpdated = 0;
         foreach (var file in LoadQuestionFiles())
         foreach (var qj in file.Where(q => seeded.ContainsKey(q.Id)))
-            if (RefreshFromSeed(seeded[qj.Id], qj)) questionsUpdated++;
+            if (RefreshFromSeed(seeded[qj.Id], qj, topics)) questionsUpdated++;
         foreach (var file in LoadQuestionFiles())
         foreach (var qj in file.Where(q => !existingKeys.Contains(q.Id)))
         {
@@ -284,21 +284,26 @@ public sealed partial class DatabaseSeeder(
     }
 
     /// <summary>
-    /// Copies the seed file's text into an unedited seeded question. Returns true when something changed.
-    /// The option order and the correct option never change (attempts reference option ids), so a seed entry
-    /// that moves the correct answer is ignored with a warning.
+    /// Copies the seed file's topic, subtopic and text into an unedited seeded question. Returns true when something
+    /// changed. The scope follows the file so a question can move to the topic it belongs to (e.g. a language quirk out
+    /// of the fundamentals). The option order and the correct option never change (attempts reference option ids), so
+    /// a seed entry that moves the correct answer keeps its old text and options, with a warning.
     /// </summary>
-    private bool RefreshFromSeed(Question q, QuestionJson qj)
+    private bool RefreshFromSeed(Question q, QuestionJson qj, List<Topic> topics)
     {
         if (q.UpdatedAt != q.CreatedAt) return false;
+        var topic = topics.First(t => t.Slug == qj.Topic);
+        var subtopicId = topic.Subtopics.First(s => s.Slug == qj.Subtopic).Id;
+        var moved = q.TopicId != topic.Id || q.SubtopicId != subtopicId;
+        (q.TopicId, q.SubtopicId) = (topic.Id, subtopicId);
         var options = q.Options.OrderBy(o => o.DisplayOrder).ToList();
         if (options.Count != qj.Options.Count || options.FindIndex(o => o.IsCorrect) != qj.CorrectIndex)
         {
             logger.LogWarning("Seed question {Id} changed its options or correct answer; refresh skipped", qj.Id);
-            return false;
+            return moved;
         }
 
-        var changed = false;
+        var changed = moved;
         void Set(string current, string value, Action<string> apply)
         {
             if (current == value) return;

@@ -1,0 +1,342 @@
+[
+  {
+    "id": "ds-ll-dotnet-doubly-linked",
+    "topic": "data-structures",
+    "subtopic": "linked-lists",
+    "difficulty": "Easy",
+    "title": "Why LinkedList<T> removes from both ends in O(1)",
+    "question": "A .NET `LinkedList<T>` holds a million items, and you keep a reference to one of its nodes. Why can `RemoveLast()` and `AddBefore(node, x)` both run in O(1)?",
+    "options": [
+      "Each node links to both its Next and its Previous node",
+      "The list stores its items in one contiguous array",
+      "The list keeps a hash index from each value to its node",
+      "Nodes are kept sorted, so positions are found by binary search"
+    ],
+    "correctIndex": 0,
+    "explanation": "LinkedList<T> is a doubly linked list: every LinkedListNode<T> has Next and Previous references, and the list tracks its first and last nodes. Removing the last node or inserting before a known node only rewires the neighbouring references, so both are O(1). There is no backing array, no index from values to nodes (Find is O(n)) and no ordering.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.linkedlist-1"
+  },
+  {
+    "id": "pf-bigo-growth-not-time",
+    "topic": "programming-fundamentals",
+    "subtopic": "complexity-big-o",
+    "difficulty": "Easy",
+    "title": "What Big O does and does not tell you",
+    "question": "Algorithm A is O(n log n) and algorithm B is O(n²). On a 20-item input, B finishes faster in a benchmark. What does that say about the Big O analysis?",
+    "options": [
+      "The analysis must be wrong, since O(n log n) is always faster than O(n²)",
+      "Nothing: Big O describes how cost grows with n, not the time at one size",
+      "Big O measures elapsed milliseconds, so the benchmark machine is faulty",
+      "B's real complexity must be O(n log n), since it ran faster in the test"
+    ],
+    "correctIndex": 1,
+    "explanation": "Big O describes how cost grows as the input size grows, ignoring constant factors and lower-order terms. On small inputs B's smaller constants can win; as n grows, the n² term dominates and A pulls ahead. Big O is not a measure of wall-clock time, and a benchmark at one input size can neither prove nor disprove a growth rate.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/bigOnotation.html"
+  },
+  {
+    "id": "cs-using-dispose-on-exception",
+    "topic": "csharp",
+    "subtopic": "memory-gc",
+    "difficulty": "Easy",
+    "title": "using when the block throws",
+    "question": "using (var conn = new SqlConnection(cs))\n{\n    conn.Open();\n    Import(conn); // throws InvalidDataException\n}\n\nThe caller catches the exception. What happens to `conn`?",
+    "options": [
+      "It stays open until the garbage collector finalizes it",
+      "It is disposed only if a catch inside the block handles it",
+      "It is disposed as control leaves the block, like a finally",
+      "It is never disposed, since Dispose runs only on normal exit"
+    ],
+    "correctIndex": 2,
+    "explanation": "The compiler turns a using statement into try/finally with a Dispose call in the finally block, so the connection is disposed whether the block ends normally or through an exception. That is the main reason to prefer using over calling Dispose at the end of the block yourself. No catch is needed, and relying on finalization would keep the connection open for an unpredictable time.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/using"
+  },
+  {
+    "id": "net-di-transient-per-resolution",
+    "topic": "dotnet",
+    "subtopic": "dependency-injection",
+    "difficulty": "Easy",
+    "title": "Transient services within one request",
+    "question": "`IClock` is registered with `AddTransient<IClock, SystemClock>()`. During one HTTP request, both OrdersController and the PricingService it uses take an IClock in their constructors. How many SystemClock instances are created for that request?",
+    "options": [
+      "One, shared by everything in the request",
+      "Two, one for each constructor that asks for it",
+      "One for the whole application, created on first use",
+      "None until a method on IClock is first called"
+    ],
+    "correctIndex": 1,
+    "explanation": "A transient service gets a new instance every time it is resolved from the container, so each of the two constructor injections receives its own SystemClock. One instance per request is the scoped lifetime, and one for the whole application is singleton. The built-in container creates the instance when it resolves it, not lazily on the first method call.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection/service-lifetimes"
+  },
+  {
+    "id": "be-http-204-delete",
+    "topic": "backend-engineering",
+    "subtopic": "http-rest",
+    "difficulty": "Easy",
+    "title": "Responding to a successful DELETE",
+    "question": "DELETE /carts/7/items/3 removes the item, and the API has nothing useful to send back. Which response fits HTTP semantics best?",
+    "options": [
+      "202 Accepted, with the deleted item in the body",
+      "201 Created, with a Location header for the cart",
+      "404 Not Found, as the item no longer exists",
+      "204 No Content, with no response body"
+    ],
+    "correctIndex": 3,
+    "explanation": "204 No Content tells the client the request succeeded and that the response intentionally has no body, which is the usual reply to a DELETE or PUT with nothing to return. 202 means the request was accepted but not processed yet, and 201 is for creating resources. 404 would wrongly say the target was missing, when the item existed and was deleted.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/204"
+  },
+  {
+    "id": "sec-oauth-delegated-access",
+    "topic": "security",
+    "subtopic": "oauth-oidc-jwt",
+    "difficulty": "Easy",
+    "title": "What OAuth 2.0 gives a third-party app",
+    "question": "A photo-printing site wants to read a user's albums from a cloud photo service without ever learning the user's password. What does OAuth 2.0 give it?",
+    "options": [
+      "An access token the user approved, limited to reading albums",
+      "A copy of the user's password, encrypted with the site's public key",
+      "A signed ID token proving who the user is, which grants album access",
+      "A shared API key for the photo service that works for every user"
+    ],
+    "correctIndex": 0,
+    "explanation": "OAuth 2.0 is a framework for delegated authorization: the user approves the request at the photo service's authorization server, and the client receives an access token limited to the granted scope, so it never handles the password. An ID token comes from OpenID Connect and identifies the user rather than granting API access, and a shared key would expose every user's data.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc6749.html"
+  },
+  {
+    "id": "db-agg-group-by-no-order",
+    "topic": "databases",
+    "subtopic": "aggregation",
+    "difficulty": "Easy",
+    "title": "Row order after GROUP BY",
+    "question": "A report runs `SELECT country, COUNT(*) FROM customers GROUP BY country;` and the countries have always come out in alphabetical order. After a PostgreSQL upgrade, the order changes. What is true?",
+    "options": [
+      "GROUP BY always sorts its groups, so the upgrade has a bug",
+      "Groups follow insertion order, so new customers changed it",
+      "Row order is unspecified without ORDER BY, so add one",
+      "PostgreSQL sorts groups by their count unless told otherwise"
+    ],
+    "correctIndex": 2,
+    "explanation": "GROUP BY only splits rows into groups for aggregation; it does not promise any output order. PostgreSQL can group by sorting, which happens to return sorted rows, or by hashing, which does not, and the planner may switch between them as data or versions change. If the order matters, write ORDER BY country explicitly.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-order.html"
+  },
+  {
+    "id": "db-idx-low-selectivity-seq-scan",
+    "topic": "databases",
+    "subtopic": "indexing",
+    "difficulty": "Medium",
+    "title": "Index ignored for a common value",
+    "question": "A 10M-row orders table has a B-tree index on status. `WHERE status = 'shipped'` matches 85% of the rows, and EXPLAIN shows a sequential scan. Why doesn't the planner use the index?",
+    "options": [
+      "The index is corrupted and has to be rebuilt with REINDEX",
+      "Indexes are used only for range conditions, not for equality",
+      "Fetching 85% of rows via the index costs more than a seq scan",
+      "Text columns cannot use B-tree indexes in PostgreSQL"
+    ],
+    "correctIndex": 2,
+    "explanation": "An index pays off when the condition is selective, matching a small fraction of the rows. For 85% of the table, following index entries means many random page reads, so the planner estimates that a sequential scan is cheaper. A rare value, such as status = 'cancelled' at 0.1%, would still use the index. B-tree indexes support equality and text columns, and nothing points to corruption.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/indexes-examine.html"
+  },
+  {
+    "id": "os-sync-mutex-single-owner",
+    "topic": "operating-systems",
+    "subtopic": "synchronization",
+    "difficulty": "Easy",
+    "title": "What a mutex guarantees",
+    "question": "A teammate proposes replacing the mutex that guards a shared in-memory cache with a semaphore initialised to 3, \"for more throughput\". Which statement about the original mutex is correct?",
+    "options": [
+      "It lets up to three threads in at once, as long as they only read",
+      "It prevents deadlocks automatically by timing out waiting threads",
+      "Any thread may unlock it, so it is a semaphore with a count of 1",
+      "Only one thread holds it at a time, and only that holder unlocks it"
+    ],
+    "correctIndex": 3,
+    "explanation": "A mutex gives mutual exclusion: at most one thread is in the critical section, and the thread that locked it is the one that unlocks it. A semaphore initialised to 3 would let three threads modify the cache at the same time, bringing back the race the mutex prevents. A mutex does not prevent deadlock on its own, and unlike a binary semaphore it has an owner.",
+    "referenceUrl": "https://docs.kernel.org/locking/mutex-design.html"
+  },
+  {
+    "id": "nw-tls-three-guarantees",
+    "topic": "networking",
+    "subtopic": "tls",
+    "difficulty": "Easy",
+    "title": "What TLS protects",
+    "question": "A service calls a payment API over TLS with certificate validation turned on. Which guarantees does TLS give that connection?",
+    "options": [
+      "Confidentiality only; integrity needs a separate checksum",
+      "Server authentication, data integrity and confidentiality",
+      "Protection against bugs like SQL injection in the payment API",
+      "Guaranteed delivery and ordering of messages over UDP"
+    ],
+    "correctIndex": 1,
+    "explanation": "TLS authenticates the server through its certificate (and optionally the client), detects tampering, and keeps the data confidential from eavesdroppers. TLS 1.3 uses only AEAD ciphers, so integrity is built in rather than added separately. TLS protects data in transit only: vulnerabilities in the application behind it are untouched, and reliable, ordered delivery comes from TCP, not TLS.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc8446"
+  },
+  {
+    "id": "test-unit-aaa-act-line",
+    "topic": "testing",
+    "subtopic": "unit-testing",
+    "difficulty": "Easy",
+    "title": "Finding the Act in Arrange-Act-Assert",
+    "question": "var cart = new Cart();\ncart.Add(new Item(\"book\", 20m));\n\nvar total = cart.Total();\n\nAssert.Equal(20m, total);\n\nThis test of Cart.Total follows the Arrange-Act-Assert pattern. Which line is the Act?",
+    "options": [
+      "`var cart = new Cart();`",
+      "`cart.Add(new Item(\"book\", 20m));`",
+      "`var total = cart.Total();`",
+      "`Assert.Equal(20m, total);`"
+    ],
+    "correctIndex": 2,
+    "explanation": "Arrange sets up the objects and state the test needs, here creating the cart and adding an item to it. Act calls the behaviour under test, Total(), and Assert checks the outcome. Keeping the three phases separate, with a single Act, makes it obvious what a test exercises and why it failed.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-best-practices"
+  },
+  {
+    "id": "cr-auto-static-analysis",
+    "topic": "code-review",
+    "subtopic": "review-automation",
+    "difficulty": "Easy",
+    "title": "Static analysis versus running the code",
+    "question": "A team adds a CI step that flags possible null dereferences and SQL built by string concatenation, without running the application or its tests. What kind of tool is this?",
+    "options": [
+      "A static analyzer, which inspects code without running it",
+      "A profiler, which samples the running process to find hotspots",
+      "A fuzzer, which feeds random inputs to the running program",
+      "A load test, which replays production traffic against staging"
+    ],
+    "correctIndex": 0,
+    "explanation": "Static analysis examines source or compiled code without executing it, so it can flag patterns such as possible null dereferences or concatenated SQL on every pull request. Profilers, fuzzers and load tests are dynamic: they need the program running and only see the paths that actually execute. The two kinds complement each other, and neither replaces human review.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/overview"
+  },
+  {
+    "id": "sec-pwd-salt-purpose",
+    "topic": "security",
+    "subtopic": "passwords-authentication",
+    "difficulty": "Easy",
+    "title": "Why each password gets its own salt",
+    "question": "Two users pick the same password, 'Summer2026!'. The system stores Argon2id hashes with a unique random salt per user. What does the salt achieve?",
+    "options": [
+      "The password becomes reversible for admins holding the salt",
+      "The salt is a secret key, so attackers can't hash guesses at all",
+      "Hashing gets slower, which is the main brute-force defence",
+      "The stored hashes differ, defeating precomputed tables"
+    ],
+    "correctIndex": 3,
+    "explanation": "A unique salt is mixed into each hash, so identical passwords produce different stored values. Attackers can't use precomputed (rainbow) tables or spot users who share a password, and must attack each hash separately. Salts aren't secret and are stored next to the hash; the slowness comes from Argon2id's work factor, and a password hash is never reversible.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-csrf-browser-attaches-cookie",
+    "topic": "security",
+    "subtopic": "xss-csrf",
+    "difficulty": "Easy",
+    "title": "How a CSRF attack gets authenticated",
+    "question": "A user is logged in to bank.example with a session cookie set as `SameSite=None; Secure`. In another tab they open evil.example, which silently submits a form that POSTs to bank.example/transfer. Why can this request succeed?",
+    "options": [
+      "evil.example first reads the bank's session cookie with JavaScript",
+      "The browser attaches the bank's cookie to the request on its own",
+      "The attacker has already stolen the user's password by phishing",
+      "The bank's DNS was changed to point to the attacker's server"
+    ],
+    "correctIndex": 1,
+    "explanation": "In CSRF the attacker never sees the cookie: the victim's browser adds the cookies for bank.example to any request to that site, including one triggered from another site, so the forged transfer arrives authenticated. The same-origin policy stops evil.example from reading the cookie or the response, but not from sending the request. Anti-CSRF tokens and SameSite=Lax or Strict cookies are the defences.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "k8s-workloads-pod-shared-network",
+    "topic": "kubernetes",
+    "subtopic": "workloads",
+    "difficulty": "Easy",
+    "title": "Containers in the same Pod",
+    "question": "A Pod runs an app container and a logging sidecar. The app listens on port 8080. How can the sidecar reach it?",
+    "options": [
+      "Only through a Service, since each container gets its own IP",
+      "Through the node's IP, after publishing the port with hostPort",
+      "It can't, because containers in a Pod are fully isolated",
+      "At localhost:8080, as they share the Pod's network"
+    ],
+    "correctIndex": 3,
+    "explanation": "A Pod is the smallest deployable unit in Kubernetes: one or more containers scheduled together that share a network namespace (one IP address and port space) and can share volumes. Containers in the same Pod talk over localhost, so they must not bind the same port. Services and hostPort are for reaching Pods from elsewhere.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/pods/"
+  },
+  {
+    "id": "k8s-config-password-not-in-configmap",
+    "topic": "kubernetes",
+    "subtopic": "config-secrets",
+    "difficulty": "Easy",
+    "title": "Where a database password belongs",
+    "question": "A Deployment needs LOG_LEVEL, FEATURE_FLAGS and DB_PASSWORD. A teammate puts all three in one ConfigMap. What should change?",
+    "options": [
+      "Move DB_PASSWORD to a Secret; ConfigMaps are not for secrets",
+      "Nothing, since ConfigMaps encrypt their values at rest by default",
+      "Bake all three into the image, so nothing is stored in the cluster",
+      "Split them into three ConfigMaps so each holds a single value"
+    ],
+    "correctIndex": 0,
+    "explanation": "ConfigMaps are meant for non-confidential configuration, and the Kubernetes docs say to use a Secret for confidential data. Secrets can be restricted separately with RBAC and encrypted at rest once you enable it, although by default they're only base64-encoded. ConfigMaps are not encrypted, baking a password into an image exposes it to anyone who can pull the image, and splitting the ConfigMap changes nothing.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/configuration/configmap/"
+  },
+  {
+    "id": "sd-fund-non-functional-requirement",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Easy",
+    "title": "Spotting a non-functional requirement",
+    "question": "While scoping a ride-hailing system in a design interview, you list these requirements. Which one is non-functional?",
+    "options": [
+      "Riders can see the assigned driver's location live on a map",
+      "Drivers can accept or decline each incoming ride request",
+      "Driver matching takes under 2 s at p99 at peak load",
+      "Riders can rate the driver and leave a comment after a trip"
+    ],
+    "correctIndex": 2,
+    "explanation": "Non-functional requirements set quality targets such as latency, availability, throughput, durability, security and cost, and they drive the architecture: a 2-second p99 at peak shapes the matching service, its data store and how it scales. The other three describe features the system must offer, which makes them functional requirements. Clarify both kinds before choosing components.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/well-architected/pillars"
+  },
+  {
+    "id": "sd-fund-storage-estimate",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Medium",
+    "title": "Back-of-the-envelope storage estimate",
+    "question": "A photo app has 10 million daily active users. Each uploads 2 photos a day, averaging 500 KB after compression. Roughly how much new storage is needed per day, before replication?",
+    "options": [
+      "About 10 GB",
+      "About 1 TB",
+      "About 10 TB",
+      "About 100 TB"
+    ],
+    "correctIndex": 2,
+    "explanation": "10 million users × 2 photos = 20 million photos a day, and 20 million × 500 KB = 10 million MB, about 10 TB a day, or roughly 3.6 PB a year before replication. An estimate like this decides early whether one database server is enough or you need object storage, partitioning and a CDN. Being off by orders of magnitude, as with 10 GB or 100 TB, leads to the wrong architecture.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/well-architected/performance-efficiency/capacity-planning"
+  },
+  {
+    "id": "perf-fund-p95-meaning",
+    "topic": "performance",
+    "subtopic": "fundamentals",
+    "difficulty": "Easy",
+    "title": "Reading a p95 latency",
+    "question": "A dashboard shows p95 latency = 300 ms for the checkout API over the last hour. What does that mean?",
+    "options": [
+      "About 95% of requests took 300 ms or less",
+      "The 5% slowest requests averaged 300 ms",
+      "The slowest request of the hour took 300 ms",
+      "95% of the requests took longer than 300 ms"
+    ],
+    "correctIndex": 0,
+    "explanation": "The 95th percentile is the value that about 95% of the observations fall at or below, so roughly 1 request in 20 was slower than 300 ms. It is neither the maximum nor an average of the slowest requests; those are separate statistics. Percentiles such as p95 and p99 reveal the tail latency that an average hides.",
+    "referenceUrl": "https://sre.google/sre-book/service-level-objectives/"
+  },
+  {
+    "id": "obs-metrics-saturation-pool",
+    "topic": "observability",
+    "subtopic": "metrics",
+    "difficulty": "Medium",
+    "title": "Recognising saturation",
+    "question": "A service's CPU sits at 40%, but its database connection pool of 50 is always fully in use and requests wait in a queue for a connection. Which golden signal does this describe?",
+    "options": [
+      "Traffic: demand on the service has grown past its usual level",
+      "Saturation: a constrained resource is full and work queues",
+      "Errors: the pool rejects requests, so the error rate is rising",
+      "None: CPU is at 40%, so the service still has headroom"
+    ],
+    "correctIndex": 1,
+    "explanation": "Saturation is how full the service is, measured on its most constrained resource, which here is the connection pool rather than the CPU. A full pool with requests queuing means the service is at its limit even at 40% CPU, and latency will climb as the queue grows. Nothing indicates more traffic or failed requests, and low CPU does not mean headroom when another resource is exhausted.",
+    "referenceUrl": "https://sre.google/sre-book/monitoring-distributed-systems/"
+  }
+]

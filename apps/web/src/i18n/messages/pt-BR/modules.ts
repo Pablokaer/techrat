@@ -21,6 +21,14 @@ export const modules: Messages["modules"] = {
   completedElsewhere: "Concluído em outro roadmap",
   newStep: "Novo",
   newStepHint: "Adicionada na versão mais recente deste módulo",
+  resources: {
+    heading: "Material de estudo",
+    roadmapIntro: "Onde ler sobre tudo o que esta roadmap cobre, além das questões.",
+    moduleIntro: "Tópicos para dominar neste módulo e os melhores lugares para estudar cada um.",
+    opensInNewTab: "(abre em uma nova aba)",
+    type: { "official-docs": "Docs oficiais", article: "Artigo", book: "Livro", course: "Curso", video: "Vídeo", spec: "Especificação" } as Record<string, string>,
+    language: { en: "EN", "pt-BR": "PT-BR" } as Record<string, string>,
+  },
   page: {
     eyebrow: "Módulo",
     notFound: "Módulo não encontrado",

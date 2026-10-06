@@ -14,7 +14,14 @@ export const qk = {
   session: (id: string) => ["session", id] as const,
   profile: (username: string) => ["profile", username] as const,
   leaderboard: (scope: LeaderboardScope) => ["leaderboard", scope] as const,
+  passwordStatus: ["password-status"] as const,
 };
+
+/** Whether the account has a password (change it) or signed up through a provider (set one). */
+export function usePasswordStatus() {
+  const api = useApi();
+  return useQuery({ queryKey: qk.passwordStatus, queryFn: () => unwrap(api.GET("/api/v1/auth/password")), staleTime: 5 * 60_000 });
+}
 
 export function useMe() {
   const api = useApi();

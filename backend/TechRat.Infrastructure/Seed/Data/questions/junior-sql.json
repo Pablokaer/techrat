@@ -1,0 +1,206 @@
+[
+  {
+    "id": "db-jr-sql-update-without-where",
+    "topic": "databases",
+    "subtopic": "sql-basics",
+    "difficulty": "Easy",
+    "title": "An UPDATE with no WHERE clause",
+    "question": "You meant to deactivate user 42, but you ran this in PostgreSQL without BEGIN (autocommit):\n\nUPDATE users SET active = false;\n\nWhat happened?",
+    "options": [
+      "PostgreSQL rejected it, since an UPDATE must have a WHERE clause",
+      "Only the first row stored in the table was changed",
+      "Every row in the users table now has active = false",
+      "Nothing changed yet, since it waits for an explicit COMMIT"
+    ],
+    "correctIndex": 2,
+    "explanation": "Without a WHERE clause, UPDATE changes every row of the table, and in autocommit mode the change is committed as soon as the statement succeeds. SQL has no rule that UPDATE needs a WHERE, and it never stops at the \"first\" row. That is why it is a good habit to write the WHERE first, run the same filter as a SELECT, or wrap risky changes in BEGIN so you can ROLLBACK.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/dml-update.html"
+  },
+  {
+    "id": "db-jr-sql-double-quoted-string",
+    "topic": "databases",
+    "subtopic": "sql-basics",
+    "difficulty": "Easy",
+    "title": "Double quotes around a text value",
+    "question": "In PostgreSQL this query fails with `column \"Alice\" does not exist`:\n\nSELECT * FROM users WHERE name = \"Alice\";\n\nWhy?",
+    "options": [
+      "Double quotes mark identifiers; text values need single quotes",
+      "name is a reserved word, so it has to be written in quotes",
+      "Text columns must be compared with LIKE instead of =",
+      "There is no row whose name is Alice, so the query raises an error"
+    ],
+    "correctIndex": 0,
+    "explanation": "In standard SQL, and in PostgreSQL, double quotes delimit identifiers such as table and column names, so \"Alice\" is read as a column called Alice. A string constant is written in single quotes: WHERE name = 'Alice'. = works fine on text, name is a valid column name here, and a filter that matches no rows simply returns an empty result instead of an error.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/sql-syntax-lexical.html"
+  },
+  {
+    "id": "db-jr-sql-not-equal-skips-null",
+    "topic": "databases",
+    "subtopic": "sql-basics",
+    "difficulty": "Medium",
+    "title": "<> and rows where the column is NULL",
+    "question": "The tickets table has 100 rows: 10 with status 'closed', 5 with status NULL and 85 with other statuses. How many rows does this return?\n\nSELECT * FROM tickets WHERE status <> 'closed';",
+    "options": [
+      "90, because NULL is different from 'closed', so those rows also match",
+      "85, because NULL <> 'closed' is unknown, which WHERE treats as false",
+      "An error, because <> cannot be used on a column that holds NULLs",
+      "It varies between 85 and 90, depending on how the NULLs are stored"
+    ],
+    "correctIndex": 1,
+    "explanation": "Any ordinary comparison with NULL, including <>, yields NULL (unknown), and WHERE keeps only rows where the condition is true, so the 5 NULL rows are dropped along with the 10 closed ones. The result is deterministic and no error is raised. To include them, write WHERE status <> 'closed' OR status IS NULL, or in PostgreSQL WHERE status IS DISTINCT FROM 'closed'.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/functions-comparison.html"
+  },
+  {
+    "id": "db-jr-join-left-join-row-count",
+    "topic": "databases",
+    "subtopic": "joins",
+    "difficulty": "Easy",
+    "title": "How many rows a LEFT JOIN returns",
+    "question": "customers has Ana (2 orders), Bruno (1 order) and Carla (no orders). How many rows does this return?\n\nSELECT c.name, o.id\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.id;",
+    "options": [
+      "3: one row per customer, with the orders merged together",
+      "3: one row per order, since Carla has no orders to show",
+      "9: every customer is paired with every one of the orders",
+      "4: one row per matching order, plus Carla with o.id NULL"
+    ],
+    "correctIndex": 3,
+    "explanation": "A join produces one output row per matching pair, so Ana appears twice and Bruno once. LEFT JOIN additionally keeps every left row that has no match, filling the right side with NULLs, so Carla appears once with o.id NULL: 4 rows. Rows are never merged per customer by a join (that needs GROUP BY), an INNER JOIN would give the 3 order rows without Carla, and 9 rows would be a cross join.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-table-expressions.html"
+  },
+  {
+    "id": "db-jr-join-missing-join-condition",
+    "topic": "databases",
+    "subtopic": "joins",
+    "difficulty": "Medium",
+    "title": "A join that returns far too many rows",
+    "question": "orders has 1,000 rows (300 with total > 100) and customers has 200 rows. This query returns 60,000 rows:\n\nSELECT o.id, c.name\nFROM orders o, customers c\nWHERE o.total > 100;\n\nWhat is wrong?",
+    "options": [
+      "No condition links the tables, so each order pairs with every customer",
+      "A comma join keeps unmatched rows, like a FULL OUTER JOIN does",
+      "The total > 100 filter is applied to the customers table instead of orders",
+      "WHERE runs after the join has removed the duplicate order rows"
+    ],
+    "correctIndex": 0,
+    "explanation": "Listing tables with commas is a cross join: every row of one is combined with every row of the other. The WHERE only filters orders, so 300 orders × 200 customers = 60,000 rows. The fix is the join condition, either WHERE o.customer_id = c.id or, clearer, JOIN customers c ON c.id = o.customer_id. A comma join is not an outer join, and o.total refers only to orders.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-table-expressions.html"
+  },
+  {
+    "id": "db-jr-join-left-filter-in-on",
+    "topic": "databases",
+    "subtopic": "joins",
+    "difficulty": "Hard",
+    "title": "Filtering the left table inside a LEFT JOIN's ON",
+    "question": "This should list only Brazilian customers with their orders, yet customers from every country appear, with o.id NULL for the non-Brazilian ones:\n\nSELECT c.name, o.id\nFROM customers c\nLEFT JOIN orders o\n  ON o.customer_id = c.id AND c.country = 'BR';\n\nWhy?",
+    "options": [
+      "c.country is NULL for those customers, so the ON test passes for them",
+      "ON conditions are ignored in LEFT JOIN; only the first one is applied",
+      "In a LEFT JOIN, ON only decides matches; every left row is kept",
+      "The planner moves conditions on the left table into the SELECT list"
+    ],
+    "correctIndex": 2,
+    "explanation": "For a LEFT JOIN, the ON clause only decides which orders match each customer; a customer whose ON test fails is still returned, with NULLs for the order columns. So c.country = 'BR' just stops non-Brazilian customers from matching any order. A filter on the left table belongs in WHERE: ... ON o.customer_id = c.id WHERE c.country = 'BR'. All ON conditions are applied, and a NULL country would make the test unknown, not true.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-table-expressions.html"
+  },
+  {
+    "id": "db-jr-agg-column-not-in-group-by",
+    "topic": "databases",
+    "subtopic": "aggregation",
+    "difficulty": "Easy",
+    "title": "A selected column missing from GROUP BY",
+    "question": "orders has primary key id. In PostgreSQL this fails with `column \"orders.status\" must appear in the GROUP BY clause or be used in an aggregate function`:\n\nSELECT customer_id, status, COUNT(*)\nFROM orders\nGROUP BY customer_id;\n\nWhy?",
+    "options": [
+      "COUNT(*) cannot be combined with other columns in the same SELECT",
+      "One group can hold many statuses, so status has no single value",
+      "GROUP BY must list every column of the table, not only some",
+      "status has to be filtered in a WHERE clause before grouping"
+    ],
+    "correctIndex": 1,
+    "explanation": "GROUP BY customer_id collapses all of a customer's orders into one output row, and those orders can have different statuses, so the database cannot pick one. Every selected column must be grouped or aggregated: add status to GROUP BY to count per customer and status, or use an aggregate such as MAX(status). Mixing grouped columns with COUNT(*) is normal, and GROUP BY never has to list columns you do not select.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/tutorial-agg.html"
+  },
+  {
+    "id": "db-jr-agg-left-join-count-star",
+    "topic": "databases",
+    "subtopic": "aggregation",
+    "difficulty": "Medium",
+    "title": "Customers with no orders counted as 1",
+    "question": "SELECT c.id, COUNT(*) AS order_count\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.id\nGROUP BY c.id;\n\nCustomers who never ordered show order_count = 1 instead of 0. What is the fix?",
+    "options": [
+      "Switch to INNER JOIN, so those customers get a count of 0",
+      "Subtract one from the result: COUNT(*) - 1 AS order_count",
+      "Add WHERE o.id IS NOT NULL before the GROUP BY clause",
+      "Count a column of orders instead: COUNT(o.id) AS order_count"
+    ],
+    "correctIndex": 3,
+    "explanation": "The LEFT JOIN keeps a customer without orders as one row whose order columns are NULL, and COUNT(*) counts that row. COUNT(o.id) counts only non-NULL values, so it gives 0 for them and the real number for everyone else. An INNER JOIN or a WHERE o.id IS NOT NULL would drop those customers from the result entirely, and subtracting one would undercount every customer who does have orders.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/functions-aggregate.html"
+  },
+  {
+    "id": "db-jr-adv-scalar-subquery-many-rows",
+    "topic": "databases",
+    "subtopic": "advanced-sql",
+    "difficulty": "Medium",
+    "title": "= with a subquery that returns many rows",
+    "question": "This worked in development, where only one customer is from Brazil:\n\nSELECT * FROM orders\nWHERE customer_id = (SELECT id FROM customers WHERE country = 'BR');\n\nIn production PostgreSQL it fails with `more than one row returned by a subquery used as an expression`. How do you get the orders of all Brazilian customers?",
+    "options": [
+      "Add LIMIT 1 to the subquery so it returns a single id",
+      "Add DISTINCT to the subquery to remove the extra rows",
+      "Replace = with IN: customer_id IN (SELECT id FROM ...)",
+      "Replace = with LIKE so it can match several values"
+    ],
+    "correctIndex": 2,
+    "explanation": "With =, the subquery is a scalar subquery, which may return at most one row; with several Brazilian customers it returns several ids and the query errors. IN compares the value against every row the subquery returns, which is what is wanted here (a JOIN would also work). LIMIT 1 silences the error but returns only one customer's orders, DISTINCT does not help because the ids are already distinct, and LIKE is a pattern match on text.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/functions-subquery.html"
+  },
+  {
+    "id": "db-jr-tx-rollback-undoes-all",
+    "topic": "databases",
+    "subtopic": "transactions",
+    "difficulty": "Easy",
+    "title": "What ROLLBACK undoes",
+    "question": "BEGIN;\nUPDATE accounts SET balance = balance - 100 WHERE id = 1;\nUPDATE accounts SET balance = balance + 100 WHERE id = 2;\nROLLBACK;\n\nBoth UPDATEs succeeded, then the application found a problem and sent ROLLBACK. What are the balances now?",
+    "options": [
+      "Both balances are exactly as they were before BEGIN",
+      "Account 1 keeps the debit; only the credit is undone",
+      "Both changes stay, since each UPDATE succeeded",
+      "Account 2 keeps the credit; only the debit is undone"
+    ],
+    "correctIndex": 0,
+    "explanation": "Statements between BEGIN and COMMIT form one transaction, and ROLLBACK discards all of its changes, not just the last statement. Neither update was ever committed, so both balances are unchanged and other sessions never saw the intermediate state. This all-or-nothing behaviour is what keeps a transfer from debiting one account without crediting the other.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/tutorial-transactions.html"
+  },
+  {
+    "id": "db-jr-tx-aborted-after-error",
+    "topic": "databases",
+    "subtopic": "transactions",
+    "difficulty": "Hard",
+    "title": "Continuing a transaction after an error",
+    "question": "A script sends these statements to PostgreSQL one by one and keeps going when one fails. users.email has a UNIQUE constraint and stats has one row.\n\nBEGIN;\nINSERT INTO users (email) VALUES ('ana@x.com');  -- ok\nINSERT INTO users (email) VALUES ('ana@x.com');  -- unique violation\nUPDATE stats SET signups = signups + 1;\nCOMMIT;\n\nWhat ends up saved?",
+    "options": [
+      "The first INSERT and the UPDATE; only the failed INSERT is skipped",
+      "Nothing: the UPDATE is refused and COMMIT ends as a ROLLBACK",
+      "The first INSERT only; statements after the error are discarded",
+      "Both INSERTs, since UNIQUE is only checked when COMMIT runs"
+    ],
+    "correctIndex": 1,
+    "explanation": "In PostgreSQL an error puts the whole transaction block into an aborted state: later statements fail with `current transaction is aborted, commands ignored until end of transaction block`, and the COMMIT performs a rollback, so even the first INSERT is lost. To skip a failing statement but keep the rest, wrap it in a SAVEPOINT and ROLLBACK TO it. UNIQUE constraints are checked immediately by default, not at commit.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/tutorial-transactions.html"
+  },
+  {
+    "id": "db-jr-idx-filter-without-index",
+    "topic": "databases",
+    "subtopic": "indexing",
+    "difficulty": "Medium",
+    "title": "A slow lookup on an unindexed column",
+    "question": "orders has 5 million rows and its only index is the primary key on id. This takes several seconds, and EXPLAIN shows `Seq Scan on orders` with `Filter: (customer_email = ...)`:\n\nSELECT * FROM orders WHERE customer_email = 'ana@example.com';\n\nWhat is the most effective fix?",
+    "options": [
+      "Run ANALYZE so the planner switches to the index on id",
+      "Select only the columns you need instead of SELECT *",
+      "Add ORDER BY id so the primary key index gets used",
+      "Create a B-tree index on orders (customer_email)"
+    ],
+    "correctIndex": 3,
+    "explanation": "Without an index on customer_email, the only way to find matching rows is to read all 5 million and test each one, which is the Seq Scan with a Filter. A B-tree index on that column lets PostgreSQL jump straight to the few matching rows. The index on id cannot help a filter on another column, whatever the statistics or ORDER BY, and selecting fewer columns still scans the whole table.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/indexes-intro.html"
+  }
+]

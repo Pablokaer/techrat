@@ -22,6 +22,15 @@ export const modules = {
   completedElsewhere: "Completed in another roadmap",
   newStep: "New",
   newStepHint: "Added in the latest version of this module",
+  /** "Study resources": recommended reading per roadmap and module. */
+  resources: {
+    heading: "Study resources",
+    roadmapIntro: "Where to read about everything in this roadmap, beyond the questions.",
+    moduleIntro: "Topics to master in this module and the best places to study each.",
+    opensInNewTab: "(opens in a new tab)",
+    type: { "official-docs": "Official docs", article: "Article", book: "Book", course: "Course", video: "Video", spec: "Spec" } as Record<string, string>,
+    language: { en: "EN", "pt-BR": "PT-BR" } as Record<string, string>,
+  },
   page: {
     eyebrow: "Module",
     notFound: "Module not found",

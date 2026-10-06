@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRight, BarChart3, CheckCheck, Clock, Lock, Map as MapIcon } from "lucide-react";
+import { ArrowRight, BarChart3, CheckCheck, Clock, GraduationCap, Lock, Map as MapIcon } from "lucide-react";
 import { Card, ProgressBar, cx } from "@techrat/ui";
 import { useRoadmaps } from "@/lib/queries";
 import { routes } from "@/lib/routes";
@@ -12,13 +12,17 @@ import { PageHeader, Skeleton, Tabs } from "@/components/widgets";
 
 const DIFF_TONE: Record<string, string> = { Beginner: "text-primary-2", Intermediate: "text-warning", Advanced: "text-error", Expert: "text-expert" };
 const ALL = "all";
+/** Filter value for the roadmaps recommended for juniors (the API ranks them in `juniorRank`). */
+const JUNIOR = "junior";
 
 export default function RoadmapsPage() {
   const t = useT();
   const { data, isLoading } = useRoadmaps();
   const [category, setCategory] = useState(ALL);
   const categories = useMemo(() => [...new Set(data?.map((r) => r.category) ?? [])], [data]);
-  const visible = (data ?? []).filter((r) => category === ALL || r.category === category);
+  const visible = category === JUNIOR
+    ? (data ?? []).filter((r) => r.juniorRank != null).sort((a, b) => a.juniorRank! - b.juniorRank!)
+    : (data ?? []).filter((r) => category === ALL || r.category === category);
   const started = visible.filter((r) => r.progress?.isStarted);
   const rest = visible.filter((r) => !r.progress?.isStarted);
 
@@ -33,7 +37,11 @@ export default function RoadmapsPage() {
         label={t.roadmaps.list.categoriesLabel}
         value={category}
         onChange={setCategory}
-        items={[{ value: ALL, label: t.roadmaps.list.allPaths }, ...categories.map((c) => ({ value: c, label: c }))]}
+        items={[
+          { value: ALL, label: t.roadmaps.list.allPaths },
+          { value: JUNIOR, label: t.roadmaps.list.juniorPaths },
+          ...categories.map((c) => ({ value: c, label: c })),
+        ]}
       />
 
       {isLoading && <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-60" />)}</div>}
@@ -63,6 +71,11 @@ function Grid({ items }: { items: NonNullable<ReturnType<typeof useRoadmaps>["da
               </div>
               {locked && <Lock className="ml-auto h-4 w-4 shrink-0 text-text-muted" aria-label={t.roadmaps.list.locked} />}
             </div>
+            {r.juniorRank != null && (
+              <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-primary-2">
+                <GraduationCap className="h-4 w-4" aria-hidden />{t.roadmaps.list.juniorRank(r.juniorRank)}
+              </p>
+            )}
             <p className="mt-3 line-clamp-2 flex-1 text-sm text-text-secondary">{r.description}</p>
             <div className="mt-4 flex items-center gap-3">
               <ProgressBar value={r.progress?.percentComplete ?? 0} size="sm" label={t.roadmaps.list.progressLabel(r.name)} />

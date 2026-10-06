@@ -89,7 +89,7 @@ TOPICS = [
       "testing-python|Testing", "performance-python|Performance"]),
     ("java", "Java", "Languages", "coffee",
      "JVM, collections, streams, concurrency and Spring fundamentals.",
-     ["jvm|JVM", "oop-java|Classes & Interfaces", "generics-collections|Generics & Collections", "streams|Streams",
+     ["language-basics|Language Basics", "jvm|JVM", "oop-java|Classes & Interfaces", "generics-collections|Generics & Collections", "streams|Streams",
       "exceptions-java|Exceptions", "concurrency-java|Threads & Concurrency", "gc-java|Garbage Collection",
       "spring|Spring, REST & DI"]),
     ("git", "Git", "Tools", "git-merge",

@@ -56,6 +56,7 @@ module("how-computers-work", "How Computers Work", CS, "Beginner", "cpu",
        "Boolean logic, binary and hexadecimal, computer architecture and how memory and pointers work.",
        ["programming-fundamentals/boolean-logic", "programming-fundamentals/number-systems",
         "programming-fundamentals/computer-architecture", "programming-fundamentals/memory-pointers"],
+       kind="Core",
        pt=("Como os Computadores Funcionam", "Lógica booleana, binário e hexadecimal, arquitetura de computadores e como funcionam memória e ponteiros."))
 
 module("processes-and-memory", "Processes & Memory", CS, "Intermediate", "cpu",
@@ -87,6 +88,7 @@ module("arrays-strings-hashing", "Arrays, Strings & Hashing", CS, "Beginner", "b
 module("linear-data-structures", "Linked Lists, Stacks & Queues", CS, "Beginner", "boxes",
        "Linear structures and when to reach for a linked list, a stack or a queue.",
        ["data-structures/linked-lists", "data-structures/stacks", "data-structures/queues"],
+       kind="Core",
        pt=("Listas Encadeadas, Pilhas e Filas", "Estruturas lineares e quando usar uma lista encadeada, uma pilha ou uma fila."))
 
 module("trees-and-heaps", "Trees & Heaps", CS, "Intermediate", "boxes",
@@ -362,9 +364,9 @@ module("python-concurrency-and-performance", "Python Concurrency & Performance",
        pt=("Concorrência e Performance em Python", "asyncio, threads e processos, e como deixar código Python mais rápido."))
 
 module("java-core", "Java Core", LANG, "Intermediate", "coffee",
-       "Classes and interfaces, exceptions, generics, collections and streams.",
-       ["java/oop-java", "java/exceptions-java", "java/generics-collections", "java/streams"],
-       pt=("Java Essencial", "Classes e interfaces, exceções, generics, coleções e streams."))
+       "Language basics, classes and interfaces, exceptions, generics, collections and streams.",
+       ["java/language-basics", "java/oop-java", "java/exceptions-java", "java/generics-collections", "java/streams"],
+       pt=("Java Essencial", "Fundamentos da linguagem, classes e interfaces, exceções, generics, coleções e streams."))
 
 module("java-platform", "JVM, Concurrency & Spring", LANG, "Advanced", "coffee",
        "How the JVM and its garbage collector work, threads and concurrency, and Spring fundamentals.",
@@ -375,6 +377,7 @@ module("java-platform", "JVM, Concurrency & Spring", LANG, "Advanced", "coffee",
 module("javascript-core", "JavaScript Core", LANG, "Beginner", "braces",
        "Types and coercion, scope and closures, functions and this, objects, prototypes and classes.",
        ["javascript/types", "javascript/scope-closures", "javascript/functions-this", "javascript/objects-prototypes"],
+       kind="Core",
        pt=("JavaScript Essencial", "Tipos e coerção, escopo e closures, funções e this, objetos, protótipos e classes."))
 
 module("javascript-async-and-browser", "Async JavaScript & the DOM", LANG, "Intermediate", "braces",

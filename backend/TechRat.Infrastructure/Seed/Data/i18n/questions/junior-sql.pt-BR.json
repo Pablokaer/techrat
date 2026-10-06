@@ -1,0 +1,146 @@
+[
+  {
+    "id": "db-jr-sql-update-without-where",
+    "title": "Um UPDATE sem cláusula WHERE",
+    "question": "Você queria desativar o usuário 42, mas rodou isto no PostgreSQL sem BEGIN (autocommit):\n\nUPDATE users SET active = false;\n\nO que aconteceu?",
+    "options": [
+      "O PostgreSQL rejeitou o comando, pois um UPDATE exige uma cláusula WHERE",
+      "Só a primeira linha armazenada na tabela foi alterada",
+      "Todas as linhas da tabela users agora têm active = false",
+      "Nada mudou ainda, pois o comando espera um COMMIT explícito"
+    ],
+    "explanation": "Sem cláusula WHERE, o UPDATE altera todas as linhas da tabela, e em modo autocommit a mudança é confirmada assim que o comando termina com sucesso. O SQL não tem nenhuma regra que obrigue o UPDATE a ter WHERE, e ele nunca para na \"primeira\" linha. Por isso é um bom hábito escrever o WHERE primeiro, rodar o mesmo filtro como SELECT ou envolver mudanças arriscadas em um BEGIN para poder dar ROLLBACK."
+  },
+  {
+    "id": "db-jr-sql-double-quoted-string",
+    "title": "Aspas duplas em volta de um valor de texto",
+    "question": "No PostgreSQL esta query falha com `column \"Alice\" does not exist`:\n\nSELECT * FROM users WHERE name = \"Alice\";\n\nPor quê?",
+    "options": [
+      "Aspas duplas marcam identificadores; valores de texto usam aspas simples",
+      "name é uma palavra reservada, então precisa ser escrita entre aspas",
+      "Colunas de texto precisam ser comparadas com LIKE em vez de =",
+      "Não existe nenhuma linha com o nome Alice, então a query gera um erro"
+    ],
+    "explanation": "No SQL padrão, e no PostgreSQL, aspas duplas delimitam identificadores, como nomes de tabelas e colunas, então \"Alice\" é lido como uma coluna chamada Alice. Uma constante de texto é escrita entre aspas simples: WHERE name = 'Alice'. O = funciona normalmente com texto, name é um nome de coluna válido aqui, e um filtro que não encontra nenhuma linha apenas retorna um resultado vazio, sem erro."
+  },
+  {
+    "id": "db-jr-sql-not-equal-skips-null",
+    "title": "<> e as linhas em que a coluna é NULL",
+    "question": "A tabela tickets tem 100 linhas: 10 com status 'closed', 5 com status NULL e 85 com outros status. Quantas linhas esta query retorna?\n\nSELECT * FROM tickets WHERE status <> 'closed';",
+    "options": [
+      "90, porque NULL é diferente de 'closed', então essas linhas também entram",
+      "85, porque NULL <> 'closed' é desconhecido, e o WHERE trata isso como falso",
+      "Um erro, porque <> não pode ser usado em uma coluna que contém NULLs",
+      "Varia entre 85 e 90, dependendo de como os NULLs estão armazenados no disco"
+    ],
+    "explanation": "Qualquer comparação comum com NULL, inclusive <>, resulta em NULL (desconhecido), e o WHERE só mantém as linhas em que a condição é verdadeira, então as 5 linhas com NULL são descartadas junto com as 10 fechadas. O resultado é determinístico e nenhum erro é gerado. Para incluí-las, escreva WHERE status <> 'closed' OR status IS NULL, ou no PostgreSQL WHERE status IS DISTINCT FROM 'closed'."
+  },
+  {
+    "id": "db-jr-join-left-join-row-count",
+    "title": "Quantas linhas um LEFT JOIN retorna",
+    "question": "Em customers estão Ana (2 pedidos), Bruno (1 pedido) e Carla (nenhum pedido). Quantas linhas esta query retorna?\n\nSELECT c.name, o.id\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.id;",
+    "options": [
+      "3: uma linha por cliente, com os pedidos juntados em uma só",
+      "3: uma linha por pedido, já que Carla não tem pedidos a mostrar",
+      "9: cada cliente é combinado com cada um dos pedidos da tabela",
+      "4: uma linha por pedido correspondente, mais Carla com o.id NULL"
+    ],
+    "explanation": "Um join gera uma linha de saída para cada par correspondente, então Ana aparece duas vezes e Bruno uma. O LEFT JOIN também mantém cada linha da esquerda sem correspondência, preenchendo o lado direito com NULLs, então Carla aparece uma vez com o.id NULL: 4 linhas. Um join nunca junta as linhas por cliente (isso exige GROUP BY), um INNER JOIN daria as 3 linhas de pedidos sem Carla, e 9 linhas seria um cross join."
+  },
+  {
+    "id": "db-jr-join-missing-join-condition",
+    "title": "Um join que retorna linhas demais",
+    "question": "orders tem 1.000 linhas (300 com total > 100) e customers tem 200 linhas. Esta query retorna 60.000 linhas:\n\nSELECT o.id, c.name\nFROM orders o, customers c\nWHERE o.total > 100;\n\nQual é o problema?",
+    "options": [
+      "Nenhuma condição liga as tabelas, então cada pedido se combina com cada cliente",
+      "Um join com vírgula mantém as linhas sem correspondência, como um FULL OUTER JOIN",
+      "O filtro total > 100 é aplicado à tabela customers em vez de orders",
+      "O WHERE roda depois de o join ter removido as linhas de pedido duplicadas"
+    ],
+    "explanation": "Listar tabelas separadas por vírgula é um cross join: cada linha de uma é combinada com cada linha da outra. O WHERE só filtra os pedidos, então 300 pedidos × 200 clientes = 60.000 linhas. A correção é a condição de join, seja WHERE o.customer_id = c.id ou, de forma mais clara, JOIN customers c ON c.id = o.customer_id. Um join com vírgula não é um outer join, e o.total se refere apenas a orders."
+  },
+  {
+    "id": "db-jr-join-left-filter-in-on",
+    "title": "Filtrando a tabela da esquerda no ON de um LEFT JOIN",
+    "question": "Esta query deveria listar só os clientes brasileiros com seus pedidos, mas aparecem clientes de todos os países, com o.id NULL para os que não são brasileiros:\n\nSELECT c.name, o.id\nFROM customers c\nLEFT JOIN orders o\n  ON o.customer_id = c.id AND c.country = 'BR';\n\nPor quê?",
+    "options": [
+      "c.country é NULL para esses clientes, então o teste do ON passa para eles",
+      "Condições no ON são ignoradas no LEFT JOIN; só a primeira é aplicada",
+      "No LEFT JOIN, o ON só decide as correspondências; toda linha da esquerda fica",
+      "O planner move as condições da tabela da esquerda para a lista do SELECT"
+    ],
+    "explanation": "Em um LEFT JOIN, a cláusula ON só decide quais pedidos correspondem a cada cliente; um cliente que falha no teste do ON continua no resultado, com NULLs nas colunas do pedido. Assim, c.country = 'BR' só impede que clientes não brasileiros correspondam a algum pedido. Um filtro na tabela da esquerda deve ficar no WHERE: ... ON o.customer_id = c.id WHERE c.country = 'BR'. Todas as condições do ON são aplicadas, e um country NULL deixaria o teste desconhecido, não verdadeiro."
+  },
+  {
+    "id": "db-jr-agg-column-not-in-group-by",
+    "title": "Uma coluna selecionada que falta no GROUP BY",
+    "question": "orders tem a chave primária id. No PostgreSQL esta query falha com `column \"orders.status\" must appear in the GROUP BY clause or be used in an aggregate function`:\n\nSELECT customer_id, status, COUNT(*)\nFROM orders\nGROUP BY customer_id;\n\nPor quê?",
+    "options": [
+      "COUNT(*) não pode ser combinado com outras colunas no mesmo SELECT",
+      "Um grupo pode ter vários status, então status não tem um valor único",
+      "O GROUP BY precisa listar todas as colunas da tabela, não só algumas",
+      "status precisa ser filtrado em uma cláusula WHERE antes do agrupamento"
+    ],
+    "explanation": "GROUP BY customer_id junta todos os pedidos de um cliente em uma única linha de saída, e esses pedidos podem ter status diferentes, então o banco não tem como escolher um. Toda coluna selecionada precisa estar agrupada ou agregada: adicione status ao GROUP BY para contar por cliente e status, ou use uma agregação como MAX(status). Misturar colunas agrupadas com COUNT(*) é normal, e o GROUP BY nunca precisa listar colunas que você não seleciona."
+  },
+  {
+    "id": "db-jr-agg-left-join-count-star",
+    "title": "Clientes sem pedidos contados como 1",
+    "question": "SELECT c.id, COUNT(*) AS order_count\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.id\nGROUP BY c.id;\n\nClientes que nunca compraram aparecem com order_count = 1 em vez de 0. Qual é a correção?",
+    "options": [
+      "Trocar para INNER JOIN, para esses clientes ficarem com contagem 0",
+      "Subtrair um do resultado: COUNT(*) - 1 AS order_count",
+      "Adicionar WHERE o.id IS NOT NULL antes da cláusula GROUP BY",
+      "Contar uma coluna de orders: COUNT(o.id) AS order_count"
+    ],
+    "explanation": "O LEFT JOIN mantém um cliente sem pedidos como uma linha com as colunas do pedido em NULL, e o COUNT(*) conta essa linha. COUNT(o.id) conta só valores não NULL, então dá 0 para esses clientes e o número real para todos os outros. Um INNER JOIN ou um WHERE o.id IS NOT NULL tirariam esses clientes do resultado, e subtrair um deixaria a contagem abaixo do real para todo cliente que tem pedidos."
+  },
+  {
+    "id": "db-jr-adv-scalar-subquery-many-rows",
+    "title": "= com uma subquery que retorna várias linhas",
+    "question": "Isto funcionava em desenvolvimento, onde só um cliente é do Brasil:\n\nSELECT * FROM orders\nWHERE customer_id = (SELECT id FROM customers WHERE country = 'BR');\n\nNo PostgreSQL de produção falha com `more than one row returned by a subquery used as an expression`. Como obter os pedidos de todos os clientes brasileiros?",
+    "options": [
+      "Adicionar LIMIT 1 à subquery para ela retornar um único id",
+      "Adicionar DISTINCT à subquery para remover as linhas extras",
+      "Trocar = por IN: customer_id IN (SELECT id FROM ...)",
+      "Trocar = por LIKE para poder casar com vários valores"
+    ],
+    "explanation": "Com =, a subquery é uma subquery escalar, que pode retornar no máximo uma linha; com vários clientes brasileiros ela retorna vários ids e a query falha. O IN compara o valor com cada linha que a subquery retorna, que é o que se quer aqui (um JOIN também funcionaria). LIMIT 1 esconde o erro, mas retorna os pedidos de um só cliente, DISTINCT não ajuda porque os ids já são distintos, e LIKE é uma comparação de padrão em texto."
+  },
+  {
+    "id": "db-jr-tx-rollback-undoes-all",
+    "title": "O que o ROLLBACK desfaz",
+    "question": "BEGIN;\nUPDATE accounts SET balance = balance - 100 WHERE id = 1;\nUPDATE accounts SET balance = balance + 100 WHERE id = 2;\nROLLBACK;\n\nOs dois UPDATEs deram certo, depois a aplicação encontrou um problema e enviou ROLLBACK. Como estão os saldos agora?",
+    "options": [
+      "Os dois saldos estão exatamente como antes do BEGIN",
+      "A conta 1 mantém o débito; só o crédito é desfeito",
+      "As duas mudanças ficam, já que cada UPDATE deu certo",
+      "A conta 2 mantém o crédito; só o débito é desfeito"
+    ],
+    "explanation": "Os comandos entre BEGIN e COMMIT formam uma única transação, e o ROLLBACK descarta todas as mudanças dela, não só a do último comando. Nenhum dos updates chegou a ser confirmado, então os dois saldos ficam inalterados e outras sessões nunca viram o estado intermediário. É esse comportamento de tudo ou nada que impede uma transferência de debitar uma conta sem creditar a outra."
+  },
+  {
+    "id": "db-jr-tx-aborted-after-error",
+    "title": "Continuando uma transação depois de um erro",
+    "question": "Um script envia estes comandos ao PostgreSQL um a um e continua quando algum falha. users.email tem uma constraint UNIQUE e stats tem uma linha.\n\nBEGIN;\nINSERT INTO users (email) VALUES ('ana@x.com');  -- ok\nINSERT INTO users (email) VALUES ('ana@x.com');  -- unique violation\nUPDATE stats SET signups = signups + 1;\nCOMMIT;\n\nO que fica salvo?",
+    "options": [
+      "O primeiro INSERT e o UPDATE; só o INSERT que falhou é ignorado",
+      "Nada: o UPDATE é recusado e o COMMIT termina como um ROLLBACK",
+      "Só o primeiro INSERT; os comandos depois do erro são descartados",
+      "Os dois INSERTs, já que o UNIQUE só é verificado quando o COMMIT roda"
+    ],
+    "explanation": "No PostgreSQL, um erro coloca todo o bloco de transação em estado abortado: os comandos seguintes falham com `current transaction is aborted, commands ignored until end of transaction block`, e o COMMIT faz um rollback, então até o primeiro INSERT se perde. Para pular um comando que falha e manter o resto, envolva-o em um SAVEPOINT e faça ROLLBACK TO até ele. Constraints UNIQUE são verificadas imediatamente por padrão, não no commit."
+  },
+  {
+    "id": "db-jr-idx-filter-without-index",
+    "title": "Uma busca lenta em uma coluna sem índice",
+    "question": "orders tem 5 milhões de linhas e seu único índice é o da chave primária id. Esta query leva vários segundos, e o EXPLAIN mostra `Seq Scan on orders` com `Filter: (customer_email = ...)`:\n\nSELECT * FROM orders WHERE customer_email = 'ana@example.com';\n\nQual é a correção mais eficaz?",
+    "options": [
+      "Rodar ANALYZE para o planner passar a usar o índice de id",
+      "Selecionar só as colunas necessárias em vez de SELECT *",
+      "Adicionar ORDER BY id para o índice da chave primária ser usado",
+      "Criar um índice B-tree em orders (customer_email)"
+    ],
+    "explanation": "Sem um índice em customer_email, a única forma de achar as linhas é ler todas as 5 milhões e testar cada uma, que é o Seq Scan com Filter. Um índice B-tree nessa coluna permite ao PostgreSQL ir direto às poucas linhas que correspondem. O índice de id não ajuda em um filtro sobre outra coluna, sejam quais forem as estatísticas ou o ORDER BY, e selecionar menos colunas continua varrendo a tabela inteira."
+  }
+]

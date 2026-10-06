@@ -1,0 +1,110 @@
+[
+  {
+    "id": "ds-jr-str-compare-numeric-text",
+    "title": "Comparando números guardados como strings",
+    "question": "Preços lidos de um arquivo CSV ainda são texto. Um programa escolhe o maior entre \"10\", \"9\" e \"100\" com uma função max que compara os valores como strings, e ela retorna \"9\". Por quê?",
+    "options": [
+      "Strings são comparadas caractere a caractere, e \"9\" > \"1\"",
+      "max retorna o primeiro item quando recebe só strings",
+      "Strings são ordenadas pelo tamanho, e as mais curtas ficam acima",
+      "Cada string é comparada pela soma dos códigos dos seus caracteres"
+    ],
+    "explanation": "A comparação de strings é lexicográfica: os caracteres são comparados um por vez pelo seu código, então \"9\" contra \"10\" é decidido por \"9\" contra \"1\", e \"9\" é maior antes de o tamanho importar. Posição e tamanho não entram na conta, e somar os códigos dos caracteres faria de \"100\" o maior. Converta os valores para números antes de compará-los."
+  },
+  {
+    "id": "ds-jr-ll-singly-remove-tail",
+    "title": "A ponta lenta de uma lista simplesmente encadeada",
+    "question": "Uma lista simplesmente encadeada guarda referências para o nó head e para o nó tail, e cada nó tem apenas um ponteiro next. Qual operação continua custando O(n)?",
+    "options": [
+      "Inserir um novo nó no head",
+      "Adicionar um novo nó depois do tail",
+      "Remover o nó head atual",
+      "Remover o nó tail atual"
+    ],
+    "explanation": "Remover o tail significa tornar o nó anterior a ele o novo tail e limpar o seu next, e com apenas ponteiros next o único jeito de achar esse nó é percorrer a lista a partir do head: O(n). Inserir no head, remover o head e adicionar depois do tail só mexem em referências que você já tem, então cada uma é O(1). Por isso uma lista simplesmente encadeada com ponteiro para o tail funciona bem como fila (adiciona no tail, remove no head), enquanto remover barato nas duas pontas exige uma lista duplamente encadeada."
+  },
+  {
+    "id": "ds-jr-stack-undo-history",
+    "title": "Uma estrutura de dados para desfazer",
+    "question": "Um editor de texto registra cada edição para que cada clique em Desfazer reverta a edição mais recente que ainda não foi desfeita. Qual estrutura de dados serve para o histórico de desfazer?",
+    "options": [
+      "Uma fila: adiciona cada edição no fim e desfaz pelo início",
+      "Uma pilha: push a cada edição, pop a cada Desfazer",
+      "Um hash set de edições indexado pelo ID de cada uma",
+      "Um array ordenado pelo tamanho da edição, maior primeiro"
+    ],
+    "explanation": "Desfazer é último a entrar, primeiro a sair: a última edição feita é a primeira a ser revertida, o que é exatamente push e pop em uma pilha, ambos O(1). Uma fila reverteria primeiro a edição mais antiga. Um hash set não tem ordem nenhuma, e ordenar por tamanho ignora quando cada edição aconteceu. Muitos editores usam uma segunda pilha para Refazer, na qual cada edição desfeita é empilhada."
+  },
+  {
+    "id": "ds-jr-stack-brackets-leftover",
+    "title": "Verificador de parênteses que aceita '(()'",
+    "question": "def balanced(s):\n    stack = []\n    pairs = {')': '(', ']': '[', '}': '{'}\n    for c in s:\n        if c in '([{':\n            stack.append(c)\n        elif c in pairs:\n            if not stack or stack.pop() != pairs[c]:\n                return False\n    return True\n\nbalanced('(()') retorna True. Qual é o bug?",
+    "options": [
+      "Deveria empilhar os fechamentos e desempilhar as aberturas",
+      "Faz pop antes de verificar se a pilha não está vazia",
+      "Ignora as aberturas que sobram na pilha no final",
+      "Compara cada fechamento com a base da pilha, não com o topo"
+    ],
+    "explanation": "Uma string só é balanceada se cada fechamento casa com a abertura mais recente e nada fica aberto no final. Aqui o ')' casa com o segundo '(', mas o primeiro '(' ainda está na pilha quando o loop termina, e a função retorna True sem olhar. A correção é return not stack. A verificação de pilha vazia já roda antes do pop() graças à avaliação em curto-circuito, e list.pop() tira do topo, a última abertura empilhada."
+  },
+  {
+    "id": "ds-jr-queue-print-jobs",
+    "title": "Guardando os trabalhos de uma impressora compartilhada",
+    "question": "Uma impressora do escritório recebe trabalhos de muitas pessoas e precisa imprimi-los na ordem em que chegaram. Como os trabalhos pendentes devem ser guardados?",
+    "options": [
+      "Em uma fila: novos trabalhos entram no fim, o próximo sai do início",
+      "Em uma pilha: push nos novos trabalhos, pop no próximo do topo",
+      "Em uma lista ordenada por páginas, o menor trabalho primeiro",
+      "Em uma fila: novos trabalhos entram no início, o próximo sai do início"
+    ],
+    "explanation": "Quem chega primeiro é atendido primeiro: isso é FIFO, o que uma fila oferece, enfileirando no fim e desenfileirando no início, ambos O(1) com uma fila de verdade como collections.deque. Adicionar e remover pela mesma ponta é LIFO, ou seja, uma pilha, então o último trabalho enviado sairia primeiro e os primeiros poderiam esperar indefinidamente. Ordenar por número de páginas é uma política de agendamento que quebra a ordem de chegada."
+  },
+  {
+    "id": "alg-jr-sorting-comparator-overflow",
+    "title": "Um comparator que subtrai",
+    "question": "Um job Java ordena uma List<Integer> com:\n\nlist.sort((a, b) -> a - b);\n\nEle passa nos testes, mas com os valores de produção, entre cerca de -2.000.000.000 e 2.000.000.000, alguns itens ficam fora de ordem. Qual é a causa e a correção?",
+    "options": [
+      "List.sort não é estável; use Collections.sort para manter a ordem",
+      "a - b pode estourar o int e inverter o sinal; use Integer.compare(a, b)",
+      "Comparators só podem retornar -1, 0 ou 1; limite a - b a essa faixa",
+      "A lambda compara referências de Integer; converta os dois para int antes"
+    ],
+    "explanation": "Um comparator só precisa do sinal do resultado, mas a - b é calculado em int de 32 bits: 2.000.000.000 - (-2.000.000.000) = 4.000.000.000 dá a volta e vira um número negativo, então o comparator afirma que o valor maior é o menor. Integer.compare(a, b), ou Comparator.naturalOrder(), compara sem subtrair e não sofre overflow. Qualquer resultado negativo, zero ou positivo é permitido, então -1/0/1 não é exigido; a subtração faz unboxing dos dois valores, então nenhuma referência é comparada; e List.sort é estável para objetos (Collections.sort apenas delega para ele)."
+  },
+  {
+    "id": "alg-jr-bs-loop-condition",
+    "title": "Busca binária que pula o último candidato",
+    "question": "def search(a, target):\n    lo, hi = 0, len(a) - 1\n    while lo < hi:\n        mid = (lo + hi) // 2\n        if a[mid] == target:\n            return mid\n        if a[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1\n\nEla deve retornar o índice de target, ou -1 quando target não está presente. Tanto search([5], 5) quanto search([1, 3], 3) retornam -1. Qual é a correção?",
+    "options": [
+      "Repetir enquanto lo <= hi, para que um intervalo de um elemento ainda seja testado",
+      "Calcular mid como (lo + hi + 1) // 2, para arredondar mid para cima",
+      "Usar lo = mid em vez de lo = mid + 1 quando a[mid] < target",
+      "Retornar lo em vez de -1 quando o loop termina sem encontrar"
+    ],
+    "explanation": "Com hi = len(a) - 1 o intervalo [lo, hi] é fechado, então quando lo == hi ele ainda tem um elemento não testado; while lo < hi para antes de testá-lo, e um target nessa última posição nunca é comparado. while lo <= hi resolve. Arredondar mid para cima não ajuda quando o loop nem roda, lo = mid pode entrar em loop infinito (search([1, 3], 3) repetiria mid = 0), e retornar lo informa um índice até para valores que não estão no array."
+  },
+  {
+    "id": "alg-jr-bs-first-occurrence",
+    "title": "Primeira ocorrência entre duplicatas",
+    "question": "Um array ordenado de timestamps tem duplicatas, como [1, 2, 4, 4, 4, 7]. Uma busca binária comum por 4 pode parar em qualquer índice que case, mas você precisa do primeiro, em O(log n) mesmo que um valor se repita um milhão de vezes. Qual mudança faz isso?",
+    "options": [
+      "Ao achar, andar para a esquerda um índice por vez até o valor mudar",
+      "Ao achar, guardar mid e continuar à direita (lo = mid + 1)",
+      "Buscar target - 1 e retornar o índice logo depois dele",
+      "Ao achar, guardar mid e continuar à esquerda (hi = mid - 1)"
+    ],
+    "explanation": "Guardar o acerto e continuar com hi = mid - 1 segue dividindo o intervalo ao meio até não poder existir cópia anterior; o último índice guardado é a primeira ocorrência, e o custo continua O(log n). Andar para a esquerda depois de um acerto vira O(n) quando o valor se repete muitas vezes, continuar à direita acha a última ocorrência, e buscar target - 1 falha sempre que esse valor não está no array. O bisect_left do Python retorna a mesma posição mais à esquerda."
+  },
+  {
+    "id": "alg-jr-tp-reverse-full-loop",
+    "title": "Uma inversão que não muda nada",
+    "question": "a = [1, 2, 3, 4]\nfor i in range(len(a)):\n    j = len(a) - 1 - i\n    a[i], a[j] = a[j], a[i]\nprint(a)\n\nO que é impresso, e por quê?",
+    "options": [
+      "[4, 3, 2, 1], já que cada par é trocado exatamente uma vez",
+      "[4, 2, 3, 1], já que só o par das pontas é trocado",
+      "[1, 2, 3, 4], pois os passos finais desfazem as trocas",
+      "IndexError, já que j fica negativo no último passo"
+    ],
+    "explanation": "Os índices i e j andam um em direção ao outro, mas o loop continua depois que eles se cruzam: i = 0 e 1 invertem a lista para [4, 3, 2, 1], e então i = 2 e 3 trocam os mesmos pares de novo e restauram [1, 2, 3, 4]. j só desce até 0, então nada é lançado. Pare quando os ponteiros se encontrarem, com for i in range(len(a) // 2) ou while i < j, ou simplesmente chame a.reverse()."
+  }
+]

@@ -39,3 +39,37 @@ describe("BearerSession", () => {
     expect(await storage.get("techrat.tokens")).toBeNull();
   });
 });
+
+describe("BearerSession.changePassword", () => {
+  const tokens = (a: string, r: string) => ({ tokenType: "Bearer", accessToken: a, refreshToken: r, expiresIn: 1800 });
+
+  async function signedIn(handler: (req: Request) => Response | Promise<Response>) {
+    const fetchMock = vi.fn(async (req: Request) => {
+      if (req.url.endsWith("/auth/login")) return json(tokens("AT", "RT"));
+      if (req.url.endsWith("/users/me")) return json({ id: "u1" });
+      return handler(req);
+    });
+    const storage = new MemoryTokenStorage();
+    const session = new BearerSession("https://api.test", storage, fetchMock as unknown as typeof fetch);
+    await session.login("a@b.io", "OldPassw0rd");
+    return { session, storage, fetchMock };
+  }
+
+  it("sends both passwords and keeps the session with the tokens the API returns", async () => {
+    const { session, storage, fetchMock } = await signedIn(async (req) => {
+      expect(req.headers.get("Authorization")).toBe("Bearer AT");
+      expect(await req.json()).toEqual({ currentPassword: "OldPassw0rd", newPassword: "N3wPassword" });
+      return json(tokens("AT2", "RT2"));
+    });
+    await session.changePassword("OldPassw0rd", "N3wPassword");
+    expect(fetchMock.mock.calls.some(([r]) => r.url.endsWith("/auth/change-password"))).toBe(true);
+    expect(JSON.parse((await storage.get("techrat.tokens"))!)).toMatchObject({ accessToken: "AT2", refreshToken: "RT2" });
+    expect(session.isSignedIn).toBe(true);
+  });
+
+  it("keeps the old tokens and reports field errors when the API refuses", async () => {
+    const { session, storage } = await signedIn(() => json({ title: "Invalid", errors: { currentPassword: ["The current password is incorrect."] } }, 400));
+    await expect(session.changePassword("wrong", "N3wPassword")).rejects.toMatchObject({ status: 400 });
+    expect(JSON.parse((await storage.get("techrat.tokens"))!).accessToken).toBe("AT");
+  });
+});

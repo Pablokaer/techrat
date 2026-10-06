@@ -1,0 +1,98 @@
+[
+  {
+    "id": "pf-cs-rec-print-after-call",
+    "title": "Imprimindo depois da chamada recursiva",
+    "question": "O que este programa imprime quando countdown(3) é chamado?\n\nfunction countdown(n)\n    if n == 0 then return\n    countdown(n - 1)\n    print(n)",
+    "options": [
+      "3 2 1",
+      "0 1 2 3",
+      "1 2 3",
+      "3 2 1 0"
+    ],
+    "explanation": "Cada chamada primeiro faz a recursão e só imprime depois que a chamada interna retorna. countdown(3) espera countdown(2), que espera countdown(1), que espera countdown(0); esse caso base retorna sem imprimir, e então as chamadas pendentes terminam em ordem inversa, imprimindo 1, 2 e 3. Imprimir antes da chamada recursiva daria 3 2 1, e o 0 nunca é impresso porque o caso base retorna antes."
+  },
+  {
+    "id": "pf-cs-rec-hanoi-moves",
+    "title": "Número de movimentos da Torre de Hanói",
+    "question": "Um resolvedor de quebra-cabeças usa o algoritmo recursivo clássico da Torre de Hanói: move os n - 1 discos de cima para o pino auxiliar, move o maior disco para o pino de destino e depois move os n - 1 discos de volta para cima dele. Quantos movimentos de um disco ele faz para 20 discos?",
+    "options": [
+      "400",
+      "1.048.576",
+      "210",
+      "1.048.575"
+    ],
+    "explanation": "Mover n discos custa M(n) = 2M(n - 1) + 1 movimentos com M(1) = 1, porque os n - 1 discos menores são movidos duas vezes, mais um movimento para o maior; isso resulta em 2^n - 1, então cada disco a mais dobra o trabalho. Para 20 discos são 2^20 - 1 = 1.048.575 (1.048.576 é 2^20, um a mais). 400 (n^2) e 210 (n(n + 1) / 2) supõem crescimento polinomial, o que as duas chamadas recursivas sobre n - 1 discos descartam."
+  },
+  {
+    "id": "pf-cs-rec-fib-stack-depth",
+    "title": "Bilhões de chamadas, pilha rasa",
+    "question": "Um fib(n) recursivo ingênuo que retorna fib(n - 1) + fib(n - 2) faz bilhões de chamadas para n = 45 e demora muito, mas nunca estoura a pilha de chamadas. Por quê?",
+    "options": [
+      "Só uns n frames ficam ativos por vez; cada chamada termina antes da irmã começar",
+      "O runtime reaproveita um único frame para as duas chamadas, já que dividem o mesmo return",
+      "Chamadas encerradas mantêm seus frames na pilha, mas cada frame ocupa só alguns bytes",
+      "As duas chamadas recursivas rodam em threads separadas, cada uma com a sua própria pilha"
+    ],
+    "explanation": "As chamadas formam uma árvore com um número exponencial de nós, mas a execução a percorre em profundidade: fib(n - 1) roda até o fim e seus frames são desempilhados antes de fib(n - 2) começar. A pilha só guarda um caminho da raiz até uma folha, com cerca de n frames, então o tempo é exponencial enquanto o espaço de pilha é O(n). Nenhuma das chamadas está em posição de cauda (a soma ainda precisa ser feita), frames de chamadas encerradas são desempilhados em vez de mantidos, e recursão comum não distribui chamadas entre threads."
+  },
+  {
+    "id": "pf-cs-bigo-doubling-counter",
+    "title": "Um loop que dobra o contador",
+    "question": "Qual é a complexidade de tempo deste loop, para n >= 1?\n\ni = 1\nwhile i < n\n    i = i * 2",
+    "options": [
+      "O(n)",
+      "O(log n)",
+      "O(n log n)",
+      "O(sqrt(n))"
+    ],
+    "explanation": "i assume os valores 1, 2, 4, 8, ..., então depois de k iterações i = 2^k, e o loop para quando 2^k >= n, ou seja, depois de cerca de log2(n) iterações: O(log n). O(n) exigiria que i crescesse por uma constante a cada vez (i = i + 1), O(sqrt(n)) vem de loops como while i * i < n com i = i + 1, e nada aqui repete uma passada O(n), então não é O(n log n)."
+  },
+  {
+    "id": "pf-cs-bigo-quadratic-scaling",
+    "title": "Dobrando a entrada de um job quadrático",
+    "question": "Um job noturno de relatório usa um algoritmo O(n^2) e leva 2 segundos para 10.000 registros. Supondo que o termo n^2 domina, quanto tempo ele deve levar, aproximadamente, para 20.000 registros?",
+    "options": [
+      "Cerca de 2 segundos",
+      "Cerca de 4 segundos",
+      "Cerca de 8 segundos",
+      "Cerca de 16 segundos"
+    ],
+    "explanation": "Em um algoritmo quadrático, o trabalho cresce com o quadrado do tamanho da entrada: dobrar n multiplica o termo dominante por 2^2 = 4, então 2 segundos viram cerca de 8. Cerca de 4 segundos é o que um algoritmo linear mostraria, 16 segundos corresponde a crescimento cúbico (2^3 = 8 vezes mais trabalho), e 2 segundos sem mudança significaria tempo constante. Essa estimativa rápida de escala é como o Big O ajuda a prever se um job ainda vai caber na sua janela de tempo conforme os dados crescem."
+  },
+  {
+    "id": "pf-cs-dm-migration-orders",
+    "title": "Todas as ordens possíveis de migrations",
+    "question": "Um harness de testes quer aplicar 6 migrations de banco independentes em todas as ordens possíveis, uma de cada vez, para procurar bugs de ordenação. Quantas ordens diferentes ele precisa testar?",
+    "options": [
+      "720",
+      "36",
+      "46.656",
+      "21"
+    ],
+    "explanation": "Arrumar n itens distintos em sequência dá n! ordens: 6 escolhas para a primeira posição, 5 para a segunda e assim por diante, então 6 * 5 * 4 * 3 * 2 * 1 = 720. 36 é 6^2, 46.656 é 6^6, o que permitiria escolher a mesma migration mais de uma vez, e 21 é 1 + 2 + ... + 6. O crescimento fatorial é o motivo de testar todas as ordens deixar de ser viável depois de poucos itens."
+  },
+  {
+    "id": "pf-cs-dm-contrapositive",
+    "title": "O que uma regra realmente garante",
+    "question": "Uma regra de segurança diz: \"Se uma requisição está autenticada, então ela traz um token válido.\" Supondo que a regra sempre vale, qual afirmação também precisa ser verdadeira?",
+    "options": [
+      "Se uma requisição traz um token válido, então ela está autenticada",
+      "Se uma requisição não está autenticada, então ela não tem token válido",
+      "Uma requisição está autenticada exatamente quando tem um token válido",
+      "Se uma requisição não tem token válido, então ela não está autenticada"
+    ],
+    "explanation": "Uma implicação \"P implica Q\" é logicamente equivalente à sua contrapositiva \"não Q implica não P\": uma requisição sem token válido não pode estar autenticada, senão a regra seria violada. A recíproca (Q implica P) e a inversa (não P implica não Q) não decorrem dela, porque uma requisição pode trazer um token válido e mesmo assim não estar autenticada. A versão \"exatamente quando\" afirma as duas direções, o que a regra nunca disse."
+  },
+  {
+    "id": "pf-cs-dm-probe-step-gcd",
+    "title": "Uma sequência de sondagem que pula a maioria das posições",
+    "question": "Uma tabela hash com endereçamento aberto tem 12 posições e resolve colisões com um passo fixo: slot = (home + i * 8) mod 12 para i = 0, 1, 2, ... As inserções começam a falhar enquanto a maioria das posições ainda está vazia. Qual é a causa?",
+    "options": [
+      "Qualquer passo fixo maior que 1 pula posições; só o passo 1 alcança todas",
+      "mdc(8, 12) = 4, então cada sequência de sondagem visita só 12 / 4 = 3 posições",
+      "Um passo maior que metade da tabela dá a volta e se repete após duas sondagens",
+      "Agrupamento primário: chaves se acumulam em posições vizinhas e travam inserções"
+    ],
+    "explanation": "As posições home + 8i mod 12 se repetem com período 12 / mdc(8, 12) = 3: home, home + 8, home + 4 e de novo home. Quando essas três posições estão ocupadas, a inserção falha embora outras nove estejam vazias. Um passo alcança todas as posições exatamente quando é coprimo com o tamanho da tabela, então os passos 1, 5, 7 ou 11 funcionariam aqui (o passo 7 é maior que metade da tabela e mesmo assim a cobre). Agrupamento só deixa as sequências de sondagem mais longas; nunca faz uma inserção falhar enquanto há uma posição vazia alcançável. Por isso o double hashing costuma usar um tamanho de tabela primo, que torna todo passo de 1 a m - 1 coprimo com m."
+  }
+]

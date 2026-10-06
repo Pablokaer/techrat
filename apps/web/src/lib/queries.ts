@@ -24,7 +24,20 @@ export const qk = {
   notifications: ["notifications"] as const,
   daily: ["daily"] as const,
   search: (q: string) => ["search", q] as const,
+  passwordStatus: ["password-status"] as const,
+  roadmapResources: (slug: string) => ["roadmap-resources", slug] as const,
+  moduleResources: (slug: string) => ["module-resources", slug] as const,
 };
+
+/** Study resources are curated content: they change with deployments, not while the learner studies. */
+export const useRoadmapResources = (slug: string) =>
+  useQuery({ queryKey: qk.roadmapResources(slug), queryFn: () => unwrap(api.GET("/api/v1/roadmaps/{slug}/resources", { params: { path: { slug } } })), enabled: !!slug, staleTime: 30 * 60_000 });
+export const useModuleResources = (slug: string) =>
+  useQuery({ queryKey: qk.moduleResources(slug), queryFn: () => unwrap(api.GET("/api/v1/modules/{slug}/resources", { params: { path: { slug } } })), enabled: !!slug, staleTime: 30 * 60_000 });
+
+/** Whether the account has a password (change it) or signed up through a provider (set one). */
+export const usePasswordStatus = () =>
+  useQuery({ queryKey: qk.passwordStatus, queryFn: () => unwrap(api.GET("/api/v1/auth/password")), staleTime: 5 * 60_000 });
 
 /** Current user, or null when signed out (401). */
 export function useMe() {

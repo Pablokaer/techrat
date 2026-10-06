@@ -8,7 +8,7 @@ import { qk } from "@/lib/queries";
 export const me: UserSummary = {
   id: "u1", username: "alex", displayName: "Alex Dev", email: "alex@example.com", avatarUrl: null, bio: null, isAdmin: false,
   level: { level: 3, totalXp: 300, xpIntoLevel: 50, xpForThisLevel: 200, xpToNextLevel: 150, progressPercent: 25 },
-  currentStreak: 4, longestStreak: 9, questionsAnswered: 20, correctAnswers: 15, accuracy: 75, globalRank: 7, createdAt: "2026-01-01T00:00:00Z",
+  currentStreak: 4, longestStreak: 9, questionsAnswered: 20, correctAnswers: 15, accuracy: 75, globalRank: 7, createdAt: "2026-01-01T00:00:00Z", showOnLeaderboard: true,
 };
 
 export function makeSession(count = 2): PracticeSession {

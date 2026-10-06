@@ -1111,6 +1111,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the signed-in account has a password (change it) or not (set one) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PasswordStatusDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change (or set) the password of the signed-in account
+         * @description Checks the current password on the server (failures count towards lockout) and applies the sign-up rules. Every other session is signed out. The calling session continues: a cookie session gets a renewed cookie (204), a bearer session gets new tokens (200). The owner is emailed.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChangePasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccessTokenResponse"];
+                    };
+                };
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/providers": {
         parameters: {
             query?: never;
@@ -1174,6 +1269,44 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ModuleSummaryDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/modules/{slug}/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Study resources: the topics to master in the module and the sources to learn each from */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ModuleResourcesDto"];
                     };
                 };
             };
@@ -1741,6 +1874,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/roadmaps/{slug}/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Study resources: general overview reading for the roadmap (books, official docs, courses), in the request language */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoadmapResourcesDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/roadmaps/{slug}/start": {
         parameters: {
             query?: never;
@@ -1949,6 +2120,107 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/api/v1/users/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upload a profile photo (multipart field `file`)
+         * @description The client crops the photo to a square and compresses it (512×512 recommended). JPG, PNG or WEBP up to 1 MB, detected from the file signature. Replaces the previous photo and returns the updated user.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        file?: components["schemas"]["IFormFile"];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserSummaryDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Remove the profile photo and go back to the default avatar */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserSummaryDto"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A user's uploaded profile photo (public, cacheable; the avatarUrl of a user points here) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/users/me/dashboard": {
@@ -2366,6 +2638,10 @@ export interface components {
             enabled: boolean;
             featured: boolean;
         };
+        ChangePasswordRequest: {
+            currentPassword: null | string;
+            newPassword: null | string;
+        };
         CompletedStepDto: {
             /** Format: uuid */
             roadmapId: string;
@@ -2459,6 +2735,8 @@ export interface components {
             /** Format: uuid */
             id: string;
         };
+        /** Format: binary */
+        IFormFile: string;
         LeaderboardDto: {
             scope: components["schemas"]["LeaderboardScope"];
             topicSlug: null | string;
@@ -2522,6 +2800,9 @@ export interface components {
         ModuleRefDto: {
             slug: string;
             name: string;
+        };
+        ModuleResourcesDto: {
+            topics: components["schemas"]["StudyTopicDto"][];
         };
         ModuleSummaryDto: {
             /** Format: uuid */
@@ -2589,6 +2870,9 @@ export interface components {
             pageSize: number;
             /** Format: int32 */
             totalCount: number;
+        };
+        PasswordStatusDto: {
+            hasPassword: boolean;
         };
         /** @enum {unknown} */
         PracticeMode: "Practice" | "Challenge" | "Random" | "Adaptive" | "DailyChallenge" | "Roadmap" | "Learn";
@@ -2712,6 +2996,9 @@ export interface components {
             slug: string;
             name: string;
         };
+        RoadmapResourcesDto: {
+            sources: components["schemas"]["StudySourceDto"][];
+        };
         RoadmapStepDto: {
             /** Format: uuid */
             id: string;
@@ -2755,6 +3042,8 @@ export interface components {
             xpReward: number;
             prerequisites: string[];
             progress: null | components["schemas"]["RoadmapUserStateDto"];
+            /** Format: int32 */
+            juniorRank: null | number;
         };
         RoadmapUserStateDto: {
             isUnlocked: boolean;
@@ -2830,6 +3119,18 @@ export interface components {
             /** Format: int32 */
             requiredAccuracy: number;
             isMet: boolean;
+        };
+        StudySourceDto: {
+            title: string;
+            url: string;
+            type: string;
+            language: string;
+            note: null | string;
+        };
+        StudyTopicDto: {
+            key: string;
+            name: string;
+            sources: components["schemas"]["StudySourceDto"][];
         };
         SubmitAnswerRequest: {
             /** Format: uuid */
@@ -2937,6 +3238,7 @@ export interface components {
             displayName: null | string;
             bio: null | string;
             avatarUrl: null | string;
+            showOnLeaderboard?: null | boolean;
         };
         UserSummaryDto: {
             /** Format: uuid */
@@ -2962,6 +3264,7 @@ export interface components {
             globalRank: number;
             /** Format: date-time */
             createdAt: string;
+            showOnLeaderboard: boolean;
         };
     };
     responses: never;

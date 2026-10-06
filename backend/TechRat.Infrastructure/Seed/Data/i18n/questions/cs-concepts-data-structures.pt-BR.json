@@ -1,0 +1,146 @@
+[
+  {
+    "id": "ds-cs-arr-absent-linear-search",
+    "title": "Provando que um valor não está em um array não ordenado",
+    "question": "Um quiosque guarda 10.000 números de crachá em um array, sem nenhuma ordem. Um crachá lido não está no array. Quantos elementos a busca precisa examinar antes de poder informar com segurança \"não encontrado\"?",
+    "options": [
+      "Cerca de 14, dividindo o intervalo restante ao meio a cada passo",
+      "Cerca de 100, a raiz quadrada do tamanho do array",
+      "Cerca de 5.000, já que em média a busca para na metade",
+      "Todos os 10.000, pois qualquer slot não visto pode tê-lo"
+    ],
+    "explanation": "Em um array sem ordem, o valor de uma posição não diz nada sobre as outras, então uma busca linear só pode concluir que um valor está ausente depois de verificar todos os slots: n comparações. Dividir o intervalo ao meio (cerca de 14 passos para 10.000 itens) exige um array ordenado, e parar na metade é o custo médio de uma busca bem-sucedida, não de uma busca sem resultado. Se as buscas forem frequentes, ordene o array uma vez ou monte um hash set."
+  },
+  {
+    "id": "ds-cs-arr-swap-remove",
+    "title": "Removendo de um array quando a ordem não importa",
+    "question": "Um jogo guarda os projéteis ativos em um array dinâmico, e a ordem deles não importa. A cada frame ele remove projéteis em índices arbitrários. Qual técnica de remoção custa O(1) por projétil e não deixa buracos no array?",
+    "options": [
+      "Copiar o último elemento para o slot liberado e descartar o último slot",
+      "Deslocar cada elemento seguinte um slot à esquerda para fechar o buraco",
+      "Marcar o slot como vazio e manter o tamanho do array inalterado",
+      "Reconstruir o array, copiando todos os elementos exceto o removido"
+    ],
+    "explanation": "Mover o último elemento para o buraco e reduzir o tamanho em um mexe em um número constante de slots e mantém o array compacto; só muda a ordem dos elementos, o que este cenário permite. Deslocar os elementos seguintes ou reconstruir o array custa O(n) por remoção. Marcar o slot como vazio é O(1), mas deixa buracos que toda passada posterior precisa pular."
+  },
+  {
+    "id": "ds-cs-arr-shrink-thrash",
+    "title": "Um array dinâmico que encolhe cedo demais",
+    "question": "Um array dinâmico dobra a capacidade quando está cheio e reduz a capacidade pela metade assim que fica com metade ocupada. Uma carga o enche até exatamente a capacidade e depois alterna uma inserção e uma remoção no final, milhões de vezes. O que acontece, e qual é a correção usual?",
+    "options": [
+      "Cada operação continua O(1) amortizado; nada precisa mudar",
+      "Cada operação copia os n elementos; encolha só com 1/4 ocupado",
+      "A capacidade cresce sem parar; limite-a ao dobro do maior tamanho",
+      "Só as inserções copiam, remoções são grátis; pré-aloque mais espaço"
+    ],
+    "explanation": "A inserção no array cheio o dobra, deixando-o pouco acima da metade, a remoção seguinte o deixa exatamente pela metade e o faz encolher, e a próxima inserção o dobra de novo; assim cada operação copia cerca de n elementos e m operações custam O(mn). A correção é histerese: crescer quando estiver cheio, mas encolher só quando cair para um quarto ocupado, de modo que Θ(n) operações baratas aconteçam entre dois redimensionamentos e as duas operações continuem O(1) amortizado. As remoções não são grátis aqui, e a capacidade oscila em vez de crescer."
+  },
+  {
+    "id": "ds-cs-str-code-point",
+    "title": "O que o Unicode atribui a cada caractere",
+    "question": "O Unicode dá a cada caractere, como \"A\" ou \"€\", um número único que continua o mesmo quer o texto seja salvo em UTF-8, UTF-16 ou UTF-32. Como se chama esse número, e como essas codificações o usam?",
+    "options": [
+      "Um glyph ID; cada codificação define seu próprio conjunto de glifos",
+      "Um valor de byte; as três codificações o guardam sem mudança",
+      "Um code point; cada codificação o transforma em code units",
+      "Uma code unit; cada codificação renumera os caracteres"
+    ],
+    "explanation": "O Unicode atribui a cada caractere um code point, escrito U+0041 para \"A\" e U+20AC para \"€\". UTF-8, UTF-16 e UTF-32 são formas de codificação que representam o mesmo code point como uma ou mais code units de 8, 16 ou 32 bits, então o número nunca muda quando a codificação muda. Glifos pertencem às fontes, e code units são os pedaços codificados, não a identidade do caractere."
+  },
+  {
+    "id": "ds-cs-str-normalization",
+    "title": "Dois nomes idênticos na tela que não são iguais",
+    "question": "Uma verificação de cadastro informa que o nome de usuário \"José\" está livre, embora \"José\" já exista. Os dois aparecem iguais na tela, mas um guarda o é como o code point único U+00E9 e o outro como \"e\" seguido de U+0301 (acento agudo combinante). Qual é a correção certa?",
+    "options": [
+      "Comparar os nomes sem diferenciar maiúsculas antes de buscar duplicados",
+      "Remover dos nomes todo caractere fora do ASCII antes de guardá-los",
+      "Comparar primeiro o tamanho em bytes e tratar tamanhos iguais como o mesmo nome",
+      "Normalizar as duas strings para uma forma Unicode, como NFC, antes"
+    ],
+    "explanation": "O Unicode define sequências canonicamente equivalentes: o é pré-composto (U+00E9) e e + U+0301 representam o mesmo texto, mas diferem code point a code point, então uma comparação simples vê dois nomes diferentes. Normalizar para uma única forma (NFC compõe, NFD decompõe) antes de guardar e comparar os torna iguais. Comparar sem diferenciar maiúsculas não junta as duas formas, remover caracteres não ASCII estraga nomes legítimos, e o tamanho em bytes das duas formas é diferente de qualquer jeito."
+  },
+  {
+    "id": "ds-cs-str-collation",
+    "title": "Ordenando nomes por code point",
+    "question": "Uma lista de contatos é ordenada com uma comparação simples de strings que ordena os caracteres pelos seus code points Unicode. Usuários reclamam que \"Zoe\" aparece antes de \"adam\" e que \"Émile\" aparece depois de \"zack\". Qual é a correção adequada?",
+    "options": [
+      "Converter todos os nomes para maiúsculas e manter a ordem por code point",
+      "Usar collation sensível ao locale, como o Unicode Collation Algorithm",
+      "Ordenar os nomes pelos bytes brutos em UTF-8 em vez de pelos code points",
+      "Normalizar todos os nomes para NFC e ordenar por code point de novo"
+    ],
+    "explanation": "A ordem de code points coloca toda letra ASCII maiúscula antes de toda minúscula e as letras acentuadas depois do z, o que não é a ordem que as pessoas esperam. Um algoritmo de collation como o Unicode Collation Algorithm, ajustado ao locale do usuário, compara primeiro as letras base e trata acentos e maiúsculas como diferenças secundárias. Passar para maiúsculas ainda deixa É (U+00C9) depois de Z, a ordem dos bytes em UTF-8 coincide exatamente com a ordem de code points, e a normalização muda a representação, não as regras de ordenação."
+  },
+  {
+    "id": "ds-cs-str-utf8-truncate",
+    "title": "Cortando texto UTF-8 em um limite de bytes",
+    "question": "Um serviço encaixa as biografias dos usuários em uma coluna limitada a 100 bytes de UTF-8 mantendo só os primeiros 100 bytes. Depois, algumas biografias guardadas não conseguem ser decodificadas. O que causa isso, e qual é a abordagem segura?",
+    "options": [
+      "O corte pode partir um caractere multibyte; corte no limite de um caractere",
+      "O UTF-8 exige um byte order mark no início do texto; adicione um antes de cortar",
+      "O corte perde o byte nulo terminador; acrescente um depois de cortar",
+      "Os bytes do UTF-8 vêm em pares; corte sempre em um número par de bytes"
+    ],
+    "explanation": "O UTF-8 codifica todo caractere fora do ASCII em 2 a 4 bytes, então um corte no byte 100 pode manter o byte inicial de um caractere sem os seus bytes de continuação, o que é UTF-8 inválido. Bytes de continuação sempre têm o padrão de bits 10xxxxxx, então a correção é recuar o corte para antes deles, até o início de um caractere (de preferência um limite de grafema, para que marcas combinantes fiquem com sua letra). O UTF-8 não precisa de byte order mark nem de terminador nulo, e suas sequências não vêm em pares."
+  },
+  {
+    "id": "ds-cs-hash-collision-chaining",
+    "title": "Duas chaves no mesmo bucket",
+    "question": "Em uma tabela hash que usa separate chaining, as chaves \"tea\" e \"eat\" caem ambas no bucket 7. O que acontece quando as duas são inseridas?",
+    "options": [
+      "A segunda chave sobrescreve a primeira, pois um bucket guarda uma chave",
+      "As duas ficam na lista do bucket 7; a busca compara as chaves guardadas",
+      "A segunda inserção falha até a tabela ser redimensionada para caber",
+      "A segunda chave vai para o bucket 8, o próximo slot livre do array"
+    ],
+    "explanation": "Duas chaves diferentes caindo no mesmo bucket é uma colisão, e isso é esperado. O separate chaining mantém uma pequena lista (ou outra estrutura) por bucket, então as duas entradas ficam no bucket 7, e uma busca calcula o hash da chave, vai até esse bucket e compara as chaves para achar a entrada certa. Sobrescrever perderia dados, inserções não falham por causa de colisão, e ir para o próximo slot livre é linear probing, um esquema de open addressing."
+  },
+  {
+    "id": "ds-cs-hash-load-factor-chains",
+    "title": "Tamanho das cadeias e o load factor",
+    "question": "Uma tabela hash com separate chaining tem 1.000 buckets e guarda 4.000 chaves, espalhadas de forma uniforme por uma boa função de hash. Com aproximadamente quantas chaves guardadas uma busca por uma chave ausente se compara, e o que reduz esse número?",
+    "options": [
+      "Cerca de 1; o hash faz toda busca comparar uma única entrada",
+      "Cerca de 2.000; uma busca sem resultado varre metade das chaves",
+      "Cerca de 4, o load factor; redimensione para uns 4.000 buckets",
+      "Cerca de 12, o log2 de 4.000; mantenha cada cadeia ordenada"
+    ],
+    "explanation": "O load factor é α = n / m = 4.000 / 1.000 = 4, e com uma distribuição uniforme cada cadeia tem cerca de α chaves, então uma busca sem resultado se compara com umas 4 delas depois de calcular o hash. As implementações aumentam o array de buckets (normalmente dobrando) quando α passa de um limite, o que mantém as cadeias curtas: com uns 4.000 buckets o tamanho esperado da cadeia cai para cerca de 1. Uma busca sem resultado nunca varre a tabela inteira, e o tamanho das cadeias não cresce de forma logarítmica."
+  },
+  {
+    "id": "ds-cs-hash-weak-function",
+    "title": "Uma função de hash que soma códigos de caracteres",
+    "question": "Uma tabela hash de códigos de produto como \"AB12\" e \"BA21\" usa esta função de hash:\n\nfunction h(s)\n  total = 0\n  for each character c in s\n    total = total + code(c)\n  return total mod tableSize\n\nAs buscas ficam cada vez mais lentas conforme a tabela cresce, mesmo depois de redimensionar. Por quê?",
+    "options": [
+      "Somar é lento demais, já que cada caractere é lido de novo em toda busca",
+      "O passo mod perde chaves, e as buscas passam a varrer a tabela",
+      "A soma estoura em códigos longos, e as buscas falham ao acaso",
+      "Anagramas colidem, e as somas caem em uma faixa estreita de buckets"
+    ],
+    "explanation": "A soma ignora a ordem dos caracteres, então toda permutação de um código cai no mesmo bucket, e quatro caracteres de um alfabeto pequeno somam só algumas centenas de valores distintos, não importa quantos buckets existam. As cadeias desses buckets não param de crescer e as buscas degradam para O(n). Uma boa função de hash mistura a posição e o valor de cada caractere (por exemplo, hashing polinomial) para espalhar as chaves de forma uniforme. Todo hash de string lê cada caractere, o mod sozinho não perde chaves, e somas de quatro caracteres são pequenas demais para estourar."
+  },
+  {
+    "id": "ds-cs-hash-linear-probing-clustering",
+    "title": "Linear probing com a tabela quase cheia",
+    "question": "Um índice de cache usa open addressing com linear probing e nunca remove chaves. Conforme ele enche de 50% para 95% dos slots, as buscas por chaves ausentes ficam drasticamente mais lentas, muito além do que a ocupação extra sugere. Qual é a causa principal, e qual é a solução usual?",
+    "options": [
+      "Slots ocupados se juntam em longas sequências; redimensione antes de encher",
+      "A faixa de saída do hash encolhe ao encher; troque por um hash criptográfico",
+      "As sondagens voltam ao slot zero com frequência; dobre o passo a cada sondagem",
+      "Cada sondagem recalcula o hash da chave; guarde o hash dentro de cada slot"
+    ],
+    "explanation": "Com linear probing, uma chave que colide ocupa o próximo slot livre, então os slots ocupados se juntam em clusters, e cada chave que cai dentro de um cluster o aumenta (primary clustering). O número esperado de sondagens em uma busca sem resultado cresce aproximadamente como ½(1 + 1/(1 - α)²): cerca de 2,5 com α = 0,5, mas cerca de 200 com α = 0,95. Por isso as implementações redimensionam com um load factor moderado. Um hash mais forte ou hashes guardados não eliminam o clustering, e a volta ao início não é a causa."
+  },
+  {
+    "id": "ds-cs-hash-incremental-resize",
+    "title": "Picos de latência quando uma tabela hash enorme cresce",
+    "question": "Um servidor chave-valor em memória guarda 50 milhões de chaves em uma única tabela hash. Cada vez que a tabela dobra, todas as requisições travam por centenas de milissegundos enquanto todas as entradas passam por rehash, embora a vazão média esteja boa. Qual design elimina as travadas?",
+    "options": [
+      "Guardar o hash de cada chave para o resize copiar entradas sem rehash",
+      "Crescer 10% em vez de dobrar, para cada resize mover menos chaves",
+      "Rehash gradual: manter as duas tabelas e mover alguns buckets por chamada",
+      "Baixar o limite do load factor para a tabela redimensionar mais cedo e mais vezes"
+    ],
+    "explanation": "Um resize que para tudo faz trabalho O(n) de uma vez, então, embora as inserções sejam O(1) amortizado, a requisição que o dispara espera o rehash inteiro. O rehash incremental aloca a nova tabela, mantém a antiga e migra alguns buckets a cada operação, com as buscas consultando as duas tabelas até a migração terminar; o custo fica diluído e nenhuma requisição sozinha paga por ele (o dicionário principal do Redis e o linear hashing funcionam assim). Guardar os hashes deixa cada movimento mais barato, mas ainda copia todas as entradas de uma vez, passos menores de crescimento redimensionam com muito mais frequência, e um limite mais baixo só antecipa a travada."
+  }
+]
