@@ -80,6 +80,33 @@ describe("QuestionPlayer", () => {
     expect(screen.getByText("+25")).toBeInTheDocument();
   });
 
+  it("brings the next question's title into view instead of keeping the previous scroll position", async () => {
+    const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView);
+    const scrollTo = vi.mocked(window.scrollTo);
+    const submit = vi.fn(async (q: string, o: string) => result(q, o, `${q}o0`, 25));
+    renderApp(<QuestionPlayer session={makeSession(2)} onSubmitAnswer={submit} />);
+    scrollIntoView.mockClear();
+    scrollTo.mockClear();
+
+    await userEvent.click(screen.getAllByRole("radio")[0]);
+    await userEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+    expect(scrollIntoView).not.toHaveBeenCalled(); // feedback stays where the learner is reading
+    await userEvent.click(await screen.findByRole("button", { name: /next question/i }));
+
+    const card = screen.getByRole("region", { name: "Question 2 of 2" });
+    expect(card).toHaveTextContent("What is the complexity of case 2?");
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView.mock.contexts[0]).toBe(card);
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+    expect(card).toHaveFocus();
+
+    await userEvent.click(screen.getAllByRole("radio")[0]);
+    await userEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /see results/i }));
+    expect(await screen.findByText("Session complete")).toBeInTheDocument();
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
+  });
+
   it("supports keyboard: number keys select and Enter submits", async () => {
     const submit = vi.fn(async (q: string, o: string) => result(q, o, "q1o1", 25));
     renderApp(<QuestionPlayer session={makeSession()} onSubmitAnswer={submit} />);

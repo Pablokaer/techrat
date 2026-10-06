@@ -53,6 +53,22 @@ export function QuestionPlayer({ session, onSubmitAnswer }: {
   const result = question ? results[question.id] : undefined;
   const seconds = useTimer(!!question && !feedback, question?.id ?? "done");
   const nextRef = useRef<HTMLButtonElement>(null);
+  const questionRef = useRef<HTMLElement>(null);
+  const shownIndex = useRef(index);
+
+  // "Next question" swaps the content in place (no navigation), so the browser would keep the previous scroll position,
+  // usually down at the feedback. Bring the new question's title under the sticky top bar (or the summary to the top),
+  // and move focus there so screen readers start reading the new question.
+  useEffect(() => {
+    if (shownIndex.current === index) return;
+    shownIndex.current = index;
+    if (questionRef.current) {
+      questionRef.current.scrollIntoView({ block: "start" });
+      questionRef.current.focus({ preventScroll: true });
+    } else {
+      window.scrollTo({ top: 0 });
+    }
+  }, [index]);
 
   const submit = useCallback(async () => {
     if (!question || !selected || feedback || submitting) return;
@@ -140,53 +156,55 @@ export function QuestionPlayer({ session, onSubmitAnswer }: {
 
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         {/* Question */}
-        <Card className="p-5 sm:p-7">
-          <div className="flex flex-wrap items-center gap-2">
-            <DifficultyBadge difficulty={question.difficulty} label={t.common.difficulty[question.difficulty] ?? question.difficulty} />
-            <XpPill xp={question.xpReward} />
-            <span className="ml-auto text-xs text-text-muted">{question.title}</span>
-          </div>
-          <RichText text={question.questionText} className="mt-5 text-lg font-semibold leading-relaxed sm:text-xl" />
-
-          <div role="radiogroup" aria-label={t.practice.player.answerOptions} className="mt-6 space-y-3">
-            {question.options.map((o, i) => {
-              const isSelected = (feedback?.selectedOptionId ?? selected) === o.id;
-              const isCorrect = feedback?.correctOptionId === o.id;
-              const isWrongPick = !!feedback && isSelected && !isCorrect;
-              return (
-                <button
-                  key={o.id}
-                  role="radio"
-                  aria-checked={isSelected}
-                  disabled={!!feedback}
-                  onClick={() => setSelected(o.id)}
-                  className={cx(
-                    "flex w-full items-center gap-4 rounded-2xl border px-4 py-3.5 text-left transition-colors disabled:cursor-default",
-                    !feedback && (isSelected ? "glow-border bg-primary/10" : "border-border bg-bg-2 hover:border-primary/40"),
-                    isCorrect && "glow-border bg-primary/10",
-                    isWrongPick && "border-error/70 bg-error/10",
-                    feedback && !isCorrect && !isWrongPick && "border-border bg-bg-2 opacity-60",
-                  )}
-                >
-                  <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold",
-                    isCorrect ? "bg-primary text-on-primary" : isWrongPick ? "bg-error text-white" : isSelected ? "bg-primary/80 text-on-primary" : "bg-white/10")}>
-                    {LETTERS[i]}
-                  </span>
-                  <span className="flex-1 text-[15px]"><RichText text={o.text} /></span>
-                  {isCorrect && <span className="flex items-center gap-1 text-xs font-semibold text-primary"><Check className="h-5 w-5" aria-hidden /> {t.practice.player.correctAnswer}</span>}
-                  {isWrongPick && <span className="flex items-center gap-1 text-xs font-semibold text-error"><X className="h-5 w-5" aria-hidden /> {t.practice.player.yourAnswer}</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          {!feedback && (
-            <div className="mt-6 flex items-center justify-between gap-3">
-              <p className="hidden text-xs text-text-muted sm:block">{t.practice.player.tip}</p>
-              <button onClick={submit} disabled={!selected || submitting} className="btn-primary w-full px-6 sm:w-auto">{submitting ? t.practice.player.checking : t.practice.player.submit}</button>
+        <section ref={questionRef} tabIndex={-1} aria-label={t.practice.player.questionOf(index + 1, session.totalQuestions)} className="scroll-mt-20 outline-none">
+          <Card className="p-5 sm:p-7">
+            <div className="flex flex-wrap items-center gap-2">
+              <DifficultyBadge difficulty={question.difficulty} label={t.common.difficulty[question.difficulty] ?? question.difficulty} />
+              <XpPill xp={question.xpReward} />
+              <span className="ml-auto text-xs text-text-muted">{question.title}</span>
             </div>
-          )}
-        </Card>
+            <RichText text={question.questionText} className="mt-5 text-lg font-semibold leading-relaxed sm:text-xl" />
+
+            <div role="radiogroup" aria-label={t.practice.player.answerOptions} className="mt-6 space-y-3">
+              {question.options.map((o, i) => {
+                const isSelected = (feedback?.selectedOptionId ?? selected) === o.id;
+                const isCorrect = feedback?.correctOptionId === o.id;
+                const isWrongPick = !!feedback && isSelected && !isCorrect;
+                return (
+                  <button
+                    key={o.id}
+                    role="radio"
+                    aria-checked={isSelected}
+                    disabled={!!feedback}
+                    onClick={() => setSelected(o.id)}
+                    className={cx(
+                      "flex w-full items-center gap-4 rounded-2xl border px-4 py-3.5 text-left transition-colors disabled:cursor-default",
+                      !feedback && (isSelected ? "glow-border bg-primary/10" : "border-border bg-bg-2 hover:border-primary/40"),
+                      isCorrect && "glow-border bg-primary/10",
+                      isWrongPick && "border-error/70 bg-error/10",
+                      feedback && !isCorrect && !isWrongPick && "border-border bg-bg-2 opacity-60",
+                    )}
+                  >
+                    <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold",
+                      isCorrect ? "bg-primary text-on-primary" : isWrongPick ? "bg-error text-white" : isSelected ? "bg-primary/80 text-on-primary" : "bg-white/10")}>
+                      {LETTERS[i]}
+                    </span>
+                    <span className="flex-1 text-[15px]"><RichText text={o.text} /></span>
+                    {isCorrect && <span className="flex items-center gap-1 text-xs font-semibold text-primary"><Check className="h-5 w-5" aria-hidden /> {t.practice.player.correctAnswer}</span>}
+                    {isWrongPick && <span className="flex items-center gap-1 text-xs font-semibold text-error"><X className="h-5 w-5" aria-hidden /> {t.practice.player.yourAnswer}</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {!feedback && (
+              <div className="mt-6 flex items-center justify-between gap-3">
+                <p className="hidden text-xs text-text-muted sm:block">{t.practice.player.tip}</p>
+                <button onClick={submit} disabled={!selected || submitting} className="btn-primary w-full px-6 sm:w-auto">{submitting ? t.practice.player.checking : t.practice.player.submit}</button>
+              </div>
+            )}
+          </Card>
+        </section>
 
         {/* Side panel */}
         <aside className="space-y-4">

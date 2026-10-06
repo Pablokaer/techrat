@@ -10,3 +10,6 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => "/",
 }));
+// jsdom has no layout: scrolling is a no-op that tests can spy on.
+Element.prototype.scrollIntoView = vi.fn();
+window.scrollTo = vi.fn() as typeof window.scrollTo;
