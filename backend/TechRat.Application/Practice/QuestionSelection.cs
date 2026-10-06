@@ -68,6 +68,24 @@ public static class QuestionPicker
             .OrderBy(x => x.bucket).ThenBy(x => x.r)
             .Select(x => x.c).ToList();
 
+    /// <summary>
+    /// Practice, Challenge and Random sessions: a new random draw every time, in random order (no easy-first ramp).
+    /// To avoid repeats, questions never shown to the learner come first, then questions shown in older sessions, and
+    /// questions from the most recent sessions only when the pool runs out. "Shown" counts every question placed in a
+    /// session, answered or not, so abandoning a session does not bring the same questions back.
+    /// </summary>
+    public static List<Guid> PickFresh(IEnumerable<CandidateQuestion> candidates, IReadOnlySet<Guid> shownBefore, IReadOnlySet<Guid> shownRecently, int count, Random rng)
+    {
+        var picked = candidates
+            .Select(c => (c.Id, bucket: shownRecently.Contains(c.Id) ? 2 : shownBefore.Contains(c.Id) ? 1 : 0, r: rng.Next()))
+            .OrderBy(x => x.bucket).ThenBy(x => x.r)
+            .Take(count)
+            .Select(x => x.Id)
+            .ToArray();
+        rng.Shuffle(picked);
+        return [.. picked];
+    }
+
     public static List<Guid> PickByAllocation(List<CandidateQuestion> prioritised, Dictionary<Difficulty, int> allocation, int count)
     {
         var picked = new List<CandidateQuestion>();

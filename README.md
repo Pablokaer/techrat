@@ -8,6 +8,7 @@ This repository holds a working MVP: an ASP.NET Core 10 API, a responsive Next.j
 |---|---|
 | Knowledge tree | Topics and subtopics from programming fundamentals to AI, cloud and leadership (see [Catalog](#catalog)) |
 | Question bank | Multiple-choice questions in four difficulties (counts in [Catalog](#catalog)). Every subtopic used by a roadmap has at least 6 questions. Every question has 4 options, exactly 1 correct answer, an explanation and an official reference URL. |
+| Practice | Practice (one topic), Challenge (Medium–Expert), Random (everything) and Adaptive modes, plus roadmap steps. Practice, Challenge and Random draw new random questions in random order every session: questions never shown to the learner come first, then ones from older sessions, and questions from the last 3 sessions only when the pool runs out (an abandoned session counts as shown). Adaptive and roadmap steps keep an easy-to-hard ramp and retry wrong answers. |
 | Roadmaps | Career, language, skill and best-practice paths composed from a shared module catalog: a step proven once counts in every roadmap (full list in [Catalog](#catalog)). |
 | Gamification | XP ledger, progressive levels (global + per topic), streaks, 24 achievements/badges, daily challenge, Global/Weekly/Monthly/Topic leaderboards |
 | Languages | English and Brazilian Portuguese (web + desktop): the whole UI, every question (text, options, explanation), topic, module, roadmap and achievement names, server messages and emails. |

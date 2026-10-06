@@ -12,7 +12,7 @@ export const practice = {
     Roadmap: "Roadmap",
   } as Record<string, string>,
   modeText: {
-    Practice: "Focus on one topic. Unseen questions first.",
+    Practice: "Focus on one topic. A fresh random draw every session.",
     Challenge: "Medium to Expert only. Prove it.",
     Adaptive: "Difficulty adapts to your accuracy.",
     Random: "Anything from the whole knowledge tree.",

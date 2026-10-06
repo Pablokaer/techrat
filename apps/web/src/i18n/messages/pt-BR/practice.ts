@@ -13,7 +13,7 @@ export const practice: Messages["practice"] = {
     Roadmap: "Roadmap",
   },
   modeText: {
-    Practice: "Foque em um tópico. Questões inéditas primeiro.",
+    Practice: "Foque em um tópico. Questões sorteadas a cada sessão.",
     Challenge: "Só de Média a Expert. Mostre do que é capaz.",
     Adaptive: "A dificuldade se adapta à sua precisão.",
     Random: "Qualquer coisa de toda a árvore de conhecimento.",

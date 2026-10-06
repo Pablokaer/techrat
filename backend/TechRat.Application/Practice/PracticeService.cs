@@ -76,27 +76,24 @@ public sealed class PracticeService(
         if (candidates.Count == 0)
             throw RequestValidationException.For("topicSlug", Text.Get(Text.Keys.NoQuestionsAvailable));
 
-        var candidateIds = candidates.Select(c => c.Id).ToList();
-        var latest = await db.QuestionAttempts.AsNoTracking()
-            .Where(a => a.UserId == userId && candidateIds.Contains(a.QuestionId))
-            .GroupBy(a => a.QuestionId)
-            .Select(g => new { g.Key, IsCorrect = g.OrderByDescending(a => a.AnsweredAt).Select(a => a.IsCorrect).First() })
-            .ToDictionaryAsync(x => x.Key, x => x.IsCorrect, ct);
-
         var rng = Random.Shared;
         List<Guid> chosen;
         if (mode == PracticeMode.Adaptive)
         {
+            var latest = await LatestCorrectnessAsync(userId, candidates, ct);
             var stats = await DifficultyStatsAsync(userId, topicId, ct);
             var allocation = AdaptiveDifficultyPolicy.Allocate(AdaptiveDifficultyPolicy.Weights(stats), count);
             chosen = QuestionPicker.PickByAllocation(QuestionPicker.Prioritise(candidates, latest, rng), allocation, count);
         }
-        else if (mode == PracticeMode.Random)
+        else if (mode is PracticeMode.Practice or PracticeMode.Challenge or PracticeMode.Random)
         {
-            chosen = candidates.OrderBy(_ => rng.Next()).Take(count).Select(c => c.Id).ToList();
+            var (shownBefore, shownRecently) = await ShownQuestionsAsync(userId, ct);
+            chosen = QuestionPicker.PickFresh(candidates, shownBefore, shownRecently, count, rng);
         }
         else
         {
+            // Roadmap steps: unseen first, then the ones answered wrong (they decide the step's accuracy), easy first.
+            var latest = await LatestCorrectnessAsync(userId, candidates, ct);
             var prioritised = QuestionPicker.Prioritise(candidates, latest, rng).Take(count).ToList();
             chosen = prioritised.OrderBy(c => c.Difficulty).Select(c => c.Id).ToList();
         }
@@ -115,6 +112,33 @@ public sealed class PracticeService(
         db.PracticeSessions.Add(session);
         await db.SaveChangesAsync(ct);
         return await GetAsync(userId, session.Id, ct);
+    }
+
+    /// <summary>Whether the learner's latest attempt at each candidate was correct (unanswered candidates are absent).</summary>
+    private async Task<Dictionary<Guid, bool>> LatestCorrectnessAsync(Guid userId, List<CandidateQuestion> candidates, CancellationToken ct)
+    {
+        var candidateIds = candidates.Select(c => c.Id).ToList();
+        return await db.QuestionAttempts.AsNoTracking()
+            .Where(a => a.UserId == userId && candidateIds.Contains(a.QuestionId))
+            .GroupBy(a => a.QuestionId)
+            .Select(g => new { g.Key, IsCorrect = g.OrderByDescending(a => a.AnsweredAt).Select(a => a.IsCorrect).First() })
+            .ToDictionaryAsync(x => x.Key, x => x.IsCorrect, ct);
+    }
+
+    /// <summary>Sessions whose questions count as "recent" and are drawn last (see <see cref="QuestionPicker.PickFresh"/>).</summary>
+    public const int RecentSessions = 3;
+    private const int SessionHistory = 200;
+
+    /// <summary>Questions placed in the learner's latest sessions (answered or not): all of them, and those of the most recent few.</summary>
+    private async Task<(HashSet<Guid> ShownBefore, HashSet<Guid> ShownRecently)> ShownQuestionsAsync(Guid userId, CancellationToken ct)
+    {
+        var sessions = await db.PracticeSessions.AsNoTracking()
+            .Where(s => s.UserId == userId)
+            .OrderByDescending(s => s.StartedAt)
+            .Take(SessionHistory)
+            .Select(s => s.QuestionIds)
+            .ToListAsync(ct);
+        return (sessions.SelectMany(ids => ids).ToHashSet(), sessions.Take(RecentSessions).SelectMany(ids => ids).ToHashSet());
     }
 
     private async Task<Dictionary<Difficulty, DifficultyStats>> DifficultyStatsAsync(Guid userId, Guid? topicId, CancellationToken ct)

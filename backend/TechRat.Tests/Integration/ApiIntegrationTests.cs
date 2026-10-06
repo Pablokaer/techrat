@@ -281,6 +281,23 @@ public class PracticeTests(TechRatFactory api)
     }
 
     [Fact]
+    public async Task Next_session_draws_other_questions_even_when_the_previous_one_was_abandoned()
+    {
+        // Small pool (one subtopic): a session answered only once (wrong) must not bring its questions back first.
+        var (client, _) = await api.CreateUserAsync();
+        var poolSize = await api.WithDbAsync(db => db.Questions.CountAsync(q =>
+            q.IsActive && q.Topic!.Slug == "programming-fundamentals" && q.Subtopic!.Slug == "variables-types"));
+        Assert.True(poolSize >= 6, $"pool has {poolSize} questions");
+        var request = new { mode = "Practice", topicSlug = "programming-fundamentals", subtopicSlug = "variables-types", count = poolSize / 2 };
+
+        var s1 = await Practice.StartAsync(client, request);
+        await Practice.AnswerAsync(api, client, s1, s1.Questions[0], correct: false);
+        var s2 = await Practice.StartAsync(client, request);
+
+        Assert.Empty(s2.Questions.Select(q => q.Id).Intersect(s1.Questions.Select(q => q.Id)));
+    }
+
+    [Fact]
     public async Task Double_submit_and_foreign_options_are_rejected()
     {
         var (client, _) = await api.CreateUserAsync();

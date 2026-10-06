@@ -107,6 +107,52 @@ public class QuestionPickerTests
     }
 
     [Fact]
+    public void Fresh_draw_prefers_never_shown_then_shown_long_ago_then_shown_recently()
+    {
+        var never = Q(1); var longAgo = Q(2); var recent = Q(3);
+        var shown = new HashSet<Guid> { longAgo.Id, recent.Id };
+        var recentlyShown = new HashSet<Guid> { recent.Id };
+        for (var seed = 0; seed < 20; seed++)
+        {
+            Assert.Equal([never.Id], QuestionPicker.PickFresh([recent, longAgo, never], shown, recentlyShown, 1, new Random(seed)));
+            Assert.Equal(
+                new HashSet<Guid> { never.Id, longAgo.Id },
+                QuestionPicker.PickFresh([recent, longAgo, never], shown, recentlyShown, 2, new Random(seed)).ToHashSet());
+        }
+    }
+
+    [Fact]
+    public void Questions_shown_but_never_answered_are_not_drawn_again_while_others_remain()
+    {
+        var pool = Enumerable.Range(1, 6).Select(i => Q(i)).ToList();
+        var shownLastTime = pool.Take(3).Select(q => q.Id).ToHashSet(); // e.g. a session abandoned after one answer
+        var next = QuestionPicker.PickFresh(pool, shownLastTime, shownLastTime, 3, new Random(7));
+        Assert.Equal(pool.Skip(3).Select(q => q.Id).ToHashSet(), next.ToHashSet());
+    }
+
+    [Fact]
+    public void Fresh_draw_is_random_in_choice_and_order_not_easy_first()
+    {
+        var pool = Enumerable.Range(1, 40).Select(i => Q(i, (Difficulty)(i % 4 + 1))).ToList();
+        var draws = Enumerable.Range(0, 10)
+            .Select(seed => QuestionPicker.PickFresh(pool, new HashSet<Guid>(), new HashSet<Guid>(), 10, new Random(seed)))
+            .ToList();
+        Assert.All(draws, d => Assert.Equal(10, d.Distinct().Count()));
+        Assert.True(draws.Select(d => d[0]).Distinct().Count() > 5, "the first question should vary between sessions");
+        Assert.True(draws.Select(d => string.Join(",", d.Order())).Distinct().Count() > 5, "the chosen set should vary between sessions");
+        var difficulty = pool.ToDictionary(q => q.Id, q => q.Difficulty);
+        Assert.Contains(draws, d => !d.Select(id => difficulty[id]).SequenceEqual(d.Select(id => difficulty[id]).Order()));
+    }
+
+    [Fact]
+    public void Fresh_draw_returns_the_whole_pool_when_it_is_smaller_than_the_session()
+    {
+        var pool = Enumerable.Range(1, 4).Select(i => Q(i)).ToList();
+        var picked = QuestionPicker.PickFresh(pool, pool.Select(q => q.Id).ToHashSet(), pool.Select(q => q.Id).ToHashSet(), 10, new Random(1));
+        Assert.Equal(pool.Select(q => q.Id).ToHashSet(), picked.ToHashSet());
+    }
+
+    [Fact]
     public void Allocation_backfills_when_a_difficulty_is_short()
     {
         var pool = new List<CandidateQuestion> { Q(1, Difficulty.Easy), Q(2, Difficulty.Easy), Q(3, Difficulty.Medium) };
