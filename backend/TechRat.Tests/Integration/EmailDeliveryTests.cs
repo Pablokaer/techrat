@@ -114,6 +114,10 @@ public class EmailDeliveryTests(TechRatFactory api) : IAsyncLifetime
         await using var down = WithSmtp("127.0.0.1", 1);
         var downAdmin = down.CreateClient();
         await TechRatFactory.LoginAsync(downAdmin, TechRatFactory.AdminEmail, TechRatFactory.AdminPassword);
-        Assert.Equal(HttpStatusCode.BadGateway, (await downAdmin.PostAsJsonAsync("/api/v1/admin/email/test", new { })).StatusCode);
+        var failed = await downAdmin.PostAsJsonAsync("/api/v1/admin/email/test", new { });
+        Assert.Equal(HttpStatusCode.BadGateway, failed.StatusCode);
+        // The admin needs the provider's reason (e.g. "domain not verified") to fix the settings.
+        var problem = await failed.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.StartsWith("The email could not be sent: ", problem.GetProperty("detail").GetString());
     }
 }

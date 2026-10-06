@@ -28,13 +28,16 @@ public sealed class AppExceptionHandler(IProblemDetailsService problems, ILogger
             _ => (StatusCodes.Status500InternalServerError, Text.Get(Text.Keys.ProblemUnexpected)),
         };
 
-        if (status >= 500) logger.LogError(exception, "Unhandled exception");
+        // Email delivery failures are expected operational errors (already logged by the sender): their message is the
+        // provider's reason, which the admin needs to fix the settings, and contains no internals.
+        var expected = exception is EmailDeliveryException;
+        if (status >= 500 && !expected) logger.LogError(exception, "Unhandled exception");
         else logger.LogInformation("Request failed with {StatusCode}: {Message}", status, exception.Message);
 
         http.Response.StatusCode = status;
         var details = exception is RequestValidationException v
             ? new HttpValidationProblemDetails(v.Errors) { Status = status, Title = title }
-            : new ProblemDetails { Status = status, Title = title, Detail = status >= 500 ? null : exception.Message };
+            : new ProblemDetails { Status = status, Title = title, Detail = status >= 500 && !expected ? null : exception.Message };
         details.Extensions["traceId"] = Activity.Current?.TraceId.ToString() ?? http.TraceIdentifier;
 
         return await problems.TryWriteAsync(new ProblemDetailsContext { HttpContext = http, ProblemDetails = details, Exception = exception });
