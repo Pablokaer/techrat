@@ -10,6 +10,7 @@ using TechRat.Application.Notifications;
 using TechRat.Application.Practice;
 using TechRat.Application.Roadmaps;
 using TechRat.Application.Users;
+using TechRat.Domain.Common;
 using TechRat.Domain.Roadmaps;
 using TechRat.Modules.Common;
 
@@ -49,6 +50,9 @@ public sealed class TopicsEndpoints : IEndpointModule
             .WithSummary("Knowledge tree: topics, subtopics and question counts");
         topics.MapGet("/{slug}", async (string slug, CatalogService catalog, ICurrentUser me, CancellationToken ct) =>
             TypedResults.Ok(await catalog.GetTopicAsync(slug, me.UserId, ct)));
+        topics.MapGet("/{slug}/questions", async (string slug, string? subtopic, Difficulty? difficulty, CatalogService catalog, ICurrentUser me, CancellationToken ct) =>
+            TypedResults.Ok(await catalog.ListTopicQuestionsAsync(slug, subtopic, difficulty, me.RequireUserId(), ct))).RequireAuthorization()
+            .WithSummary("Learn: the topic's questions (filter by subtopic and difficulty) with the learner's latest result on each; answer the chosen ones with a Learn session");
 
         api.MapGet("/search", async (string? q, CatalogService catalog, CancellationToken ct) => TypedResults.Ok(await catalog.SearchAsync(q, ct)))
             .WithTags("Search").WithSummary("Search topics, subtopics and roadmaps");
@@ -65,7 +69,7 @@ public sealed class PracticeEndpoints : IEndpointModule
         {
             var session = await svc.StartAsync(me.RequireUserId(), request, ct);
             return TypedResults.Created($"/api/v1/practice/sessions/{session.Id}", session);
-        }).WithSummary("Start a practice session (Practice, Challenge, Random, Adaptive or a roadmap step)");
+        }).WithSummary("Start a practice session: Practice, Challenge, Random or Adaptive (topic optional: without one, the whole question bank), a roadmap step, or Learn with the chosen questionIds");
 
         practice.MapGet("/sessions/{id:guid}", async (Guid id, PracticeService svc, ICurrentUser me, CancellationToken ct) =>
             TypedResults.Ok(await svc.GetAsync(me.RequireUserId(), id, ct)));

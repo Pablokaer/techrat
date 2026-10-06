@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TechRat.Application.Common;
+using TechRat.Application.Roadmaps;
 using TechRat.Domain.Common;
 using TechRat.Domain.Content;
 using TechRat.Domain.Roadmaps;
@@ -21,12 +22,6 @@ public sealed partial class DatabaseSeeder
     private sealed record PrereqJson(string Slug, int MinimumPercent);
 
     private sealed record CatalogReport(int ModulesAdded, int StepsAdded, int RoadmapsAdded, int CompositionsChanged, int CreditsMapped);
-
-    private static Difficulty StepDifficulty(RoadmapDifficulty level) => level switch
-    {
-        RoadmapDifficulty.Beginner => Difficulty.Easy, RoadmapDifficulty.Intermediate => Difficulty.Medium,
-        RoadmapDifficulty.Advanced => Difficulty.Hard, _ => Difficulty.Expert,
-    };
 
     private static int StepMinutes(RoadmapDifficulty level) => level switch
     {
@@ -96,7 +91,7 @@ public sealed partial class DatabaseSeeder
                 step.Order = order + 1;
                 step.Title = sj.Title;
                 step.Description = DefaultStepDescription(topic.Name, sub?.Name);
-                step.Difficulty = sj.Difficulty is null ? StepDifficulty(level) : Enum.Parse<Difficulty>(sj.Difficulty);
+                step.Difficulty = sj.Difficulty is null ? DifficultyRamp.StepDifficulty(level, order, mj.Steps.Count) : Enum.Parse<Difficulty>(sj.Difficulty);
                 step.EstimatedMinutes = StepMinutes(level);
                 // Never require more questions than exist in the step's scope.
                 step.MinimumQuestions = Math.Min(_o.DefaultStepMinimumQuestions, available);

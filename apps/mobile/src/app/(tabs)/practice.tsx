@@ -10,7 +10,7 @@ import { AppText, Button, Card, ChipGroup, ErrorState, LoadingState, Screen, typ
 type SetupMode = Extract<PracticeMode, "Practice" | "Challenge" | "Adaptive" | "Random">;
 
 const MODES: (ChipOption<SetupMode> & { hint: string })[] = [
-  { value: "Practice", label: "Practice", hint: "Focused questions on one topic." },
+  { value: "Practice", label: "Practice", hint: "Any topic, or the one you pick. A fresh random draw every session." },
   { value: "Challenge", label: "Challenge", hint: "Harder questions only (no Easy), more XP." },
   { value: "Adaptive", label: "Adaptive", hint: "Difficulty adapts to your accuracy." },
   { value: "Random", label: "Random", hint: "A mix from any topic." },
@@ -46,7 +46,6 @@ export default function PracticeScreen() {
     () => [{ value: ANY, label: "All subtopics" }, ...(selectedTopic?.subtopics ?? []).map((s) => ({ value: s.slug, label: s.name }))],
     [selectedTopic],
   );
-  const needsTopic = (mode === "Practice" || mode === "Challenge") && topic === ANY;
 
   if (topics.isLoading) return <LoadingState label="Loading topics" />;
   if (topics.error) return <ErrorState error={topics.error} retry={() => void topics.refetch()} />;
@@ -78,9 +77,8 @@ export default function PracticeScreen() {
         )}
         <ChipGroup label="Questions" options={COUNTS.map((c) => ({ value: c, label: c }))} value={count} onChange={setCount} />
       </Card>
-      {needsTopic && <AppText tone="warning">Choose a topic, or switch to Random or Adaptive mode.</AppText>}
       {error && <AppText tone="error" accessibilityRole="alert">{error}</AppText>}
-      <Button label="Start session" icon="play" onPress={start} loading={pending} disabled={needsTopic} />
+      <Button label="Start session" icon="play" onPress={start} loading={pending} />
     </Screen>
   );
 }

@@ -37,6 +37,7 @@ python3 scripts/seed-src/readme_catalog.py       # README "Catalog" section (CI 
 ## Composing roadmaps
 
 - Roadmap `type`: `Role`, `Language`, `SkillTrack` or `BestPractices`. New `Role`/`Language` roadmaps need ≥ 1 Context module and exactly one Capstone; skill tracks and best-practice roadmaps don't.
+- Order is generated, not hand-tuned: `roadmaps.py` sorts each roadmap's modules from easier to harder levels (stable, so your order decides between modules of the same level), puts a module after the modules it `requires` and the Capstone last. `validate_catalog.py` rejects a roadmap whose levels drop, whose capstone is not last or that lists a module before its requirement. Steps inside a module get their difficulty from the module level (first half at the entry difficulty, second half one above), so list a module's steps from basic to advanced.
 - Order modules so prerequisite knowledge comes first. Prefer **optional** for additions to existing roadmaps (learners' percentage doesn't drop); make a module required only when the path is incomplete without it.
 - Prerequisites are soft (`minimumPercent` of another roadmap). Never lock beginner paths.
 - Keep existing slugs: they are referenced by learner progress, links and achievements.

@@ -32,6 +32,10 @@ public sealed class PracticeService(
     {
         if (request.Mode == PracticeMode.DailyChallenge)
             throw RequestValidationException.For("mode", Text.Get(Text.Keys.UseDailyChallengeEndpoint));
+        if (request.Mode == PracticeMode.Learn)
+            return await StartLearnAsync(userId, request.QuestionIds, ct);
+        if (request.QuestionIds is { Count: > 0 })
+            throw RequestValidationException.For("questionIds", Text.Get(Text.Keys.QuestionIdsOnlyForLearn));
         var count = Math.Clamp(request.Count ?? 10, 1, MaxQuestionsPerSession);
 
         Guid? topicId = null, subtopicId = null;
@@ -50,20 +54,14 @@ public sealed class PracticeService(
             if (!await db.UserModuleProgress.AnyAsync(p => p.UserId == userId && p.ModuleId == step.ModuleId, ct))
                 db.UserModuleProgress.Add(new UserModuleProgress { UserId = userId, ModuleId = step.ModuleId, StartedAt = clock.GetUtcNow() });
         }
-        else
+        else if (!string.IsNullOrWhiteSpace(request.TopicSlug))
         {
-            if (!string.IsNullOrWhiteSpace(request.TopicSlug))
-            {
-                topicId = await db.Topics.Where(t => t.Slug == request.TopicSlug && t.IsActive).Select(t => (Guid?)t.Id).FirstOrDefaultAsync(ct)
-                    ?? throw new NotFoundException("Topic", request.TopicSlug);
-                if (!string.IsNullOrWhiteSpace(request.SubtopicSlug))
-                    subtopicId = await db.Subtopics.Where(s => s.TopicId == topicId && s.Slug == request.SubtopicSlug).Select(s => (Guid?)s.Id).FirstOrDefaultAsync(ct)
-                        ?? throw new NotFoundException("Subtopic", request.SubtopicSlug);
-            }
-            else if (mode is PracticeMode.Practice or PracticeMode.Challenge)
-            {
-                throw RequestValidationException.For("topicSlug", Text.Get(Text.Keys.ChooseTopic));
-            }
+            // Without a topic, every mode draws from the whole question bank (all the questions roadmaps use).
+            topicId = await db.Topics.Where(t => t.Slug == request.TopicSlug && t.IsActive).Select(t => (Guid?)t.Id).FirstOrDefaultAsync(ct)
+                ?? throw new NotFoundException("Topic", request.TopicSlug);
+            if (!string.IsNullOrWhiteSpace(request.SubtopicSlug))
+                subtopicId = await db.Subtopics.Where(s => s.TopicId == topicId && s.Slug == request.SubtopicSlug).Select(s => (Guid?)s.Id).FirstOrDefaultAsync(ct)
+                    ?? throw new NotFoundException("Subtopic", request.SubtopicSlug);
         }
 
         var query = db.Questions.AsNoTracking().Where(q => q.IsActive && q.QuestionType == QuestionType.MultipleChoice);
@@ -107,6 +105,38 @@ public sealed class PracticeService(
             Difficulty = mode == PracticeMode.Adaptive ? null : difficulty,
             RoadmapStepId = request.RoadmapStepId,
             QuestionIds = chosen,
+            StartedAt = clock.GetUtcNow(),
+        };
+        db.PracticeSessions.Add(session);
+        await db.SaveChangesAsync(ct);
+        return await GetAsync(userId, session.Id, ct);
+    }
+
+    /// <summary>
+    /// Learn: a session with exactly the questions the learner picked on a topic's page, in that order (duplicates
+    /// dropped). The session is tagged with the topic/subtopic when all the questions share it.
+    /// </summary>
+    private async Task<PracticeSessionDto> StartLearnAsync(Guid userId, IReadOnlyList<Guid>? questionIds, CancellationToken ct)
+    {
+        var ids = (questionIds ?? []).Distinct().ToList();
+        if (ids.Count is 0 or > MaxQuestionsPerSession)
+            throw RequestValidationException.For("questionIds", Text.Get(Text.Keys.ChooseQuestions));
+        var found = await db.Questions.AsNoTracking()
+            .Where(q => ids.Contains(q.Id) && q.IsActive && q.QuestionType == QuestionType.MultipleChoice)
+            .Select(q => new { q.TopicId, q.SubtopicId })
+            .ToListAsync(ct);
+        if (found.Count != ids.Count)
+            throw RequestValidationException.For("questionIds", Text.Get(Text.Keys.QuestionsUnavailable));
+
+        var topics = found.Select(q => q.TopicId).Distinct().ToList();
+        var subtopics = found.Select(q => q.SubtopicId).Distinct().ToList();
+        var session = new PracticeSession
+        {
+            UserId = userId,
+            Mode = PracticeMode.Learn,
+            TopicId = topics.Count == 1 ? topics[0] : null,
+            SubtopicId = topics.Count == 1 && subtopics.Count == 1 ? subtopics[0] : null,
+            QuestionIds = ids,
             StartedAt = clock.GetUtcNow(),
         };
         db.PracticeSessions.Add(session);

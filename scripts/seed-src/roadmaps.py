@@ -264,6 +264,26 @@ roadmap("aws-best-practices", "AWS Best Practices", "Cloud & DevOps", "Advanced"
         new=True)
 
 # ---------------------------------------------------------------- emit
+LEVEL_RANK = {"Beginner": 0, "Intermediate": 1, "Advanced": 2, "Expert": 3}
+
+
+def order_modules(refs, mods):
+    """Roadmaps are the structured path: modules go from easier to harder levels (stable within a level, so the
+    authored order still decides between peers), a module comes after the modules it `requires`, and the Capstone
+    closes the path. `refs` keep their optional marker ("slug?")."""
+    slug = lambda ref: ref.rstrip("?")
+    pending = sorted(refs, key=lambda ref: (mods[slug(ref)]["kind"] == "Capstone", LEVEL_RANK[mods[slug(ref)]["level"]]))
+    ordered = []
+    while pending:
+        placed = {slug(r) for r in ordered}
+        in_path = {slug(r) for r in pending}
+        # First module (in level order) whose in-path requirements are already placed.
+        nxt = next(r for r in pending if all(d in placed or d not in in_path for d in mods[slug(r)]["requires"]))
+        pending.remove(nxt)
+        ordered.append(nxt)
+    return ordered
+
+
 MINUTES = {"Beginner": 30, "Intermediate": 45, "Advanced": 60, "Expert": 75}
 COMPOSABLE_KINDS = {"Core", "Context"}  # kind follows reuse; Capstone/BestPractices are authored explicitly
 
@@ -278,7 +298,7 @@ def build():
         for p, _ in r["prerequisites"]:
             assert p in slugs, f"{r['slug']}: unknown prerequisite {p}"
         refs, minutes = [], 0
-        for ref in r["modules"]:
+        for ref in order_modules(r["modules"], mods):
             slug, required = ref.rstrip("?"), not ref.endswith("?")
             assert slug in mods, f"{r['slug']}: unknown module {slug}"
             assert slug not in [x["slug"] for x in refs], f"{r['slug']}: module {slug} appears twice"

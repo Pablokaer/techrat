@@ -26,6 +26,12 @@ public sealed record DifficultyBreakdownDto(string Difficulty, int Answered, int
 
 public sealed record TopicDetailDto(TopicDto Topic, TopicProgressDto? Progress, IReadOnlyList<SubtopicProgressDto> SubtopicProgress, IReadOnlyList<DifficultyBreakdownDto> ByDifficulty);
 
+/// <summary>The learner's latest result on a question: never answered, or whether the last attempt was right.</summary>
+public enum LearnQuestionStatus { New, Correct, Wrong }
+
+/// <summary>A question in a topic's Learn list (title only; the text and options load when it is answered).</summary>
+public sealed record TopicQuestionDto(Guid Id, string Title, Difficulty Difficulty, string SubtopicSlug, string SubtopicName, int XpReward, LearnQuestionStatus Status);
+
 public sealed record SearchResultDto(string Type, string Slug, string Title, string Subtitle, string Icon, string Url);
 
 public sealed class CatalogService(IAppDbContext db, ICacheService cache, ContentLocalizer localizer, LevelService levels)
@@ -89,6 +95,40 @@ public sealed class CatalogService(IAppDbContext db, ICacheService cache, Conten
             Breakdown("Hard", tp.HardAnswered, tp.HardCorrect), Breakdown("Expert", tp.ExpertAnswered, tp.ExpertCorrect),
         ];
         return new TopicDetailDto(topic, progress, subs, byDifficulty);
+    }
+
+    /// <summary>
+    /// Learn: the topic's active questions (optionally one subtopic and/or difficulty), easiest first and in catalog
+    /// order, with the learner's latest result on each so they can pick what to answer.
+    /// </summary>
+    public async Task<List<TopicQuestionDto>> ListTopicQuestionsAsync(string slug, string? subtopicSlug, Difficulty? difficulty, Guid userId, CancellationToken ct)
+    {
+        var topic = (await ListTopicsAsync(ct)).FirstOrDefault(t => t.Slug == slug) ?? throw new NotFoundException("Topic", slug);
+        var query = db.Questions.AsNoTracking().Where(q => q.TopicId == topic.Id && q.IsActive && q.QuestionType == QuestionType.MultipleChoice);
+        if (!string.IsNullOrWhiteSpace(subtopicSlug))
+        {
+            var sub = topic.Subtopics.FirstOrDefault(s => s.Slug == subtopicSlug) ?? throw new NotFoundException("Subtopic", subtopicSlug);
+            query = query.Where(q => q.SubtopicId == sub.Id);
+        }
+        if (difficulty is not null) query = query.Where(q => q.Difficulty == difficulty);
+
+        var rows = await query
+            .Select(q => new { q.Id, q.Title, q.Difficulty, q.SubtopicId, q.XPReward, SubOrder = q.Subtopic!.DisplayOrder })
+            .ToListAsync(ct);
+        // Difficulty is stored as text, so the easy→expert order is applied in memory.
+        var questions = rows.OrderBy(q => q.Difficulty).ThenBy(q => q.SubOrder).ThenBy(q => q.Title, StringComparer.Ordinal).ToList();
+        var ids = questions.Select(q => q.Id).ToList();
+        var latest = await db.QuestionAttempts.AsNoTracking()
+            .Where(a => a.UserId == userId && ids.Contains(a.QuestionId))
+            .GroupBy(a => a.QuestionId)
+            .Select(g => new { g.Key, IsCorrect = g.OrderByDescending(a => a.AnsweredAt).Select(a => a.IsCorrect).First() })
+            .ToDictionaryAsync(x => x.Key, x => x.IsCorrect, ct);
+        var qtr = await localizer.LoadQuestionsAsync(ids, [], ct);
+        var subs = topic.Subtopics.ToDictionary(s => s.Id);
+
+        return questions.Select(q => new TopicQuestionDto(q.Id, qtr.QuestionTitle(q.Id, q.Title), q.Difficulty,
+            subs[q.SubtopicId].Slug, subs[q.SubtopicId].Name, q.XPReward,
+            !latest.TryGetValue(q.Id, out var ok) ? LearnQuestionStatus.New : ok ? LearnQuestionStatus.Correct : LearnQuestionStatus.Wrong)).ToList();
     }
 
     public static DifficultyBreakdownDto Breakdown(string d, int answered, int correct) =>

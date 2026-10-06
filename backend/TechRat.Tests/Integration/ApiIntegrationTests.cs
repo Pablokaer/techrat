@@ -315,11 +315,9 @@ public class PracticeTests(TechRatFactory api)
     }
 
     [Fact]
-    public async Task Practice_requires_a_topic_unless_random()
+    public async Task Random_and_adaptive_sessions_start_with_the_requested_size()
     {
         var (client, _) = await api.CreateUserAsync();
-        var res = await client.PostAsJsonAsync("/api/v1/practice/sessions", new { mode = "Practice" });
-        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
         var random = await Practice.StartAsync(client, new { mode = "Random", count = 8 });
         Assert.Equal(8, random.TotalQuestions);
         var adaptive = await Practice.StartAsync(client, new { mode = "Adaptive", topicSlug = "algorithms", count = 10 });

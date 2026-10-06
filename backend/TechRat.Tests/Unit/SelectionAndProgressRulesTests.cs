@@ -38,6 +38,35 @@ public class StepCriteriaTests
     }
 }
 
+public class DifficultyRampTests
+{
+    [Theory]
+    [InlineData(RoadmapDifficulty.Beginner, 3, new[] { Difficulty.Easy, Difficulty.Medium, Difficulty.Medium })]
+    [InlineData(RoadmapDifficulty.Intermediate, 4, new[] { Difficulty.Medium, Difficulty.Medium, Difficulty.Hard, Difficulty.Hard })]
+    [InlineData(RoadmapDifficulty.Advanced, 2, new[] { Difficulty.Hard, Difficulty.Expert })]
+    [InlineData(RoadmapDifficulty.Beginner, 1, new[] { Difficulty.Easy })]
+    [InlineData(RoadmapDifficulty.Expert, 2, new[] { Difficulty.Expert, Difficulty.Expert })]
+    public void Steps_in_a_module_ramp_up_from_the_level_entry_difficulty(RoadmapDifficulty level, int steps, Difficulty[] expected) =>
+        Assert.Equal(expected, Enumerable.Range(0, steps).Select(i => DifficultyRamp.StepDifficulty(level, i, steps)));
+
+    [Fact]
+    public void The_ramp_never_goes_down_within_a_module_or_between_levels()
+    {
+        foreach (var level in Enum.GetValues<RoadmapDifficulty>())
+            for (var count = 1; count <= 8; count++)
+            {
+                var ramp = Enumerable.Range(0, count).Select(i => DifficultyRamp.StepDifficulty(level, i, count)).ToList();
+                Assert.Equal(ramp.Order(), ramp);
+            }
+        var levels = Enum.GetValues<RoadmapDifficulty>().OrderBy(l => l).ToList();
+        foreach (var (easier, harder) in levels.Zip(levels.Skip(1)))
+        {
+            Assert.True(DifficultyRamp.StepDifficulty(easier, 0, 3) <= DifficultyRamp.StepDifficulty(harder, 0, 3));
+            Assert.True(DifficultyRamp.StepDifficulty(easier, 2, 3) <= DifficultyRamp.StepDifficulty(harder, 2, 3));
+        }
+    }
+}
+
 public class AdaptiveDifficultyPolicyTests
 {
     private static Dictionary<Difficulty, DifficultyStats> Stats(params (Difficulty d, int answered, int correct)[] s) =>

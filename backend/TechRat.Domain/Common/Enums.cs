@@ -28,6 +28,8 @@ public enum PracticeMode
     Adaptive = 4,
     DailyChallenge = 5,
     Roadmap = 6,
+    /// <summary>Questions the learner picked on a topic's page (Learn), answered in the order chosen.</summary>
+    Learn = 7,
 }
 
 public enum XpReason

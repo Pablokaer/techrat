@@ -107,6 +107,19 @@ describe("QuestionPlayer", () => {
     expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
   });
 
+  it("shows the right/wrong feedback right after the question, before the session stats", async () => {
+    const submit = vi.fn(async (q: string, o: string) => result(q, o, `${q}o0`, 25));
+    renderApp(<QuestionPlayer session={makeSession(2)} onSubmitAnswer={submit} />);
+    await userEvent.click(screen.getAllByRole("radio")[0]);
+    await userEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+    const feedback = await screen.findByRole("status");
+    const stats = screen.getByText("Session");
+    const question = screen.getByRole("region", { name: "Question 1 of 2" });
+    // Document order is the stacking order on phones: question → feedback → session stats.
+    expect(question.compareDocumentPosition(feedback) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(feedback.compareDocumentPosition(stats) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("supports keyboard: number keys select and Enter submits", async () => {
     const submit = vi.fn(async (q: string, o: string) => result(q, o, "q1o1", 25));
     renderApp(<QuestionPlayer session={makeSession()} onSubmitAnswer={submit} />);

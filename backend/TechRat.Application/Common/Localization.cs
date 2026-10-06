@@ -49,7 +49,9 @@ public static class Text
 
         public const string TopicLeaderboardNeedsTopic = "leaderboard.topicRequired";
         public const string UseDailyChallengeEndpoint = "practice.useDailyEndpoint";
-        public const string ChooseTopic = "practice.chooseTopic";
+        public const string ChooseQuestions = "practice.chooseQuestions";
+        public const string QuestionsUnavailable = "practice.questionsUnavailable";
+        public const string QuestionIdsOnlyForLearn = "practice.questionIdsOnlyForLearn";
         public const string NoQuestionsAvailable = "practice.noQuestions";
         public const string QuestionNotInSession = "practice.questionNotInSession";
         public const string OptionNotInQuestion = "practice.optionNotInQuestion";
@@ -141,7 +143,9 @@ public static class Text
 
         [Keys.TopicLeaderboardNeedsTopic] = "Topic leaderboards require a topic.",
         [Keys.UseDailyChallengeEndpoint] = "Use the daily challenge endpoint to start the daily challenge.",
-        [Keys.ChooseTopic] = "Choose a topic, or use Random or Adaptive mode.",
+        [Keys.ChooseQuestions] = "Choose between 1 and 50 questions to answer.",
+        [Keys.QuestionsUnavailable] = "Some of the chosen questions are not available.",
+        [Keys.QuestionIdsOnlyForLearn] = "Picking questions is only available in Learn sessions.",
         [Keys.NoQuestionsAvailable] = "No questions are available for this selection yet.",
         [Keys.QuestionNotInSession] = "The question does not belong to this session.",
         [Keys.OptionNotInQuestion] = "The option does not belong to this question.",
@@ -219,7 +223,9 @@ public static class Text
 
         [Keys.TopicLeaderboardNeedsTopic] = "O ranking por tópico precisa de um tópico.",
         [Keys.UseDailyChallengeEndpoint] = "Use o endpoint do desafio diário para iniciar o desafio diário.",
-        [Keys.ChooseTopic] = "Escolha um tópico ou use o modo Aleatório ou Adaptativo.",
+        [Keys.ChooseQuestions] = "Escolha de 1 a 50 questões para responder.",
+        [Keys.QuestionsUnavailable] = "Algumas das questões escolhidas não estão disponíveis.",
+        [Keys.QuestionIdsOnlyForLearn] = "Escolher questões só é possível em sessões do Aprender.",
         [Keys.NoQuestionsAvailable] = "Ainda não há questões disponíveis para esta seleção.",
         [Keys.QuestionNotInSession] = "A questão não pertence a esta sessão.",
         [Keys.OptionNotInQuestion] = "A opção não pertence a esta questão.",

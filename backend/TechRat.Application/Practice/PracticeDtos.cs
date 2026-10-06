@@ -10,7 +10,8 @@ public sealed record StartPracticeRequest(
     string? SubtopicSlug = null,
     Difficulty? Difficulty = null,
     int? Count = null,
-    Guid? RoadmapStepId = null);
+    Guid? RoadmapStepId = null,
+    IReadOnlyList<Guid>? QuestionIds = null);
 
 public sealed record OptionDto(Guid Id, string Text);
 

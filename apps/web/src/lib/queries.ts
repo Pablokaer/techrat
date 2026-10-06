@@ -10,6 +10,8 @@ export const qk = {
   dashboard: ["dashboard"] as const,
   topics: ["topics"] as const,
   topic: (slug: string) => ["topic", slug] as const,
+  // Under ["topic"], so answering refreshes the statuses (invalidateProgress).
+  topicQuestions: (slug: string) => ["topic", slug, "questions"] as const,
   roadmaps: (category?: string) => ["roadmaps", category ?? "all"] as const,
   roadmap: (slug: string) => ["roadmap", slug] as const,
   modules: (kind?: ModuleKind) => ["modules", kind ?? "all"] as const,
@@ -45,6 +47,13 @@ export const useDashboard = () => useQuery({ queryKey: qk.dashboard, queryFn: ()
 export const useTopics = () => useQuery({ queryKey: qk.topics, queryFn: () => unwrap(api.GET("/api/v1/topics")), staleTime: 5 * 60_000 });
 export const useTopic = (slug: string) =>
   useQuery({ queryKey: qk.topic(slug), queryFn: () => unwrap(api.GET("/api/v1/topics/{slug}", { params: { path: { slug } } })), enabled: !!slug });
+/** Learn: every question of a topic with the learner's latest result (filtered on the client). */
+export const useTopicQuestions = (slug: string) =>
+  useQuery({
+    queryKey: qk.topicQuestions(slug),
+    queryFn: () => unwrap(api.GET("/api/v1/topics/{slug}/questions", { params: { path: { slug } } })),
+    enabled: !!slug,
+  });
 export const useRoadmaps = (category?: string) =>
   useQuery({
     queryKey: qk.roadmaps(category),

@@ -11,9 +11,9 @@ def step(topic, sub, title=None):
     return {"topic": topic, "subtopic": sub, "title": title or sub.title()}
 
 
-def module(slug, kind="Core", steps=None, requires=(), standalone=False):
+def module(slug, kind="Core", steps=None, requires=(), standalone=False, level="Beginner"):
     return {"slug": slug, "name": slug.replace("-", " ").title(), "description": f"About {slug}.", "kind": kind,
-            "category": "Data", "level": "Beginner", "icon": "layers", "standalone": standalone,
+            "category": "Data", "level": level, "icon": "layers", "standalone": standalone,
             "requires": list(requires), "steps": steps or []}
 
 
@@ -48,14 +48,14 @@ class Seed:
 def good_catalog():
     modules = [
         module("sql-foundations", steps=[step("sql", "basics"), step("sql", "joins")]),
-        module("sql-for-analytics", steps=[step("sql", "windows")], requires=["sql-foundations"]),
+        module("sql-for-analytics", steps=[step("sql", "windows")], requires=["sql-foundations"], level="Intermediate"),
         module("python-core", steps=[step("py", "core")]),
-        module("business-questions", kind="Context", steps=[step("sql", "biz")]),
-        module("analyst-capstone", kind="Capstone", steps=[step("sql", "final")]),
+        module("business-questions", kind="Context", steps=[step("sql", "biz")], level="Intermediate"),
+        module("analyst-capstone", kind="Capstone", steps=[step("sql", "final")], level="Expert"),
         module("pandas-basics", kind="Context", steps=[step("py", "pandas")]),
     ]
     roadmaps = [
-        roadmap("data-analyst", [("sql-foundations", True), ("sql-for-analytics", True), ("python-core", True),
+        roadmap("data-analyst", [("sql-foundations", True), ("python-core", True), ("sql-for-analytics", True),
                                  ("business-questions", True), ("analyst-capstone", True)]),
         roadmap("sql", [("sql-foundations", True), ("sql-for-analytics", True)], rtype="SkillTrack"),
         roadmap("python-data", [("python-core", True), ("pandas-basics", True)], rtype="SkillTrack", prereqs=[("sql", 30)]),
@@ -124,10 +124,29 @@ class ValidateCatalogTests(unittest.TestCase):
         modules[2]["standalone"] = True
         self.assertError(self.seed.write(modules, roadmaps), "python-core: Core module used by 1 roadmap(s)")
 
+    def test_roadmap_modules_never_drop_in_level(self):
+        modules, roadmaps = good_catalog()
+        roadmaps[0]["modules"] = [{"slug": m, "required": True} for m in
+                                  ("sql-foundations", "sql-for-analytics", "python-core", "business-questions", "analyst-capstone")]
+        self.assertError(self.seed.write(modules, roadmaps),
+                         "data-analyst: python-core (Beginner) comes after sql-for-analytics (Intermediate)")
+
+    def test_the_capstone_is_the_last_module(self):
+        modules, roadmaps = good_catalog()
+        refs = roadmaps[0]["modules"]
+        refs[-2], refs[-1] = refs[-1], refs[-2]
+        self.assertError(self.seed.write(modules, roadmaps), "data-analyst: the Capstone analyst-capstone must be the last module")
+
+    def test_a_module_comes_after_the_modules_it_requires(self):
+        modules, roadmaps = good_catalog()
+        modules[1]["level"] = "Beginner"  # isolate the dependency rule from the level rule
+        roadmaps[1]["modules"].reverse()
+        self.assertError(self.seed.write(modules, roadmaps), "sql: sql-for-analytics requires sql-foundations, which comes later")
+
     def test_existing_roadmaps_are_exempt_from_the_new_roadmap_rules(self):
         modules, roadmaps = good_catalog()
         roadmaps[0]["new"] = False
-        roadmaps[0]["modules"] = [{"slug": m, "required": True} for m in ("sql-foundations", "sql-for-analytics", "python-core", "business-questions")]
+        roadmaps[0]["modules"] = [{"slug": m, "required": True} for m in ("sql-foundations", "python-core", "sql-for-analytics", "business-questions")]
         modules = [m for m in modules if m["slug"] != "analyst-capstone"]
         self.assertEqual([], self.seed.write(modules, roadmaps).errors)
 

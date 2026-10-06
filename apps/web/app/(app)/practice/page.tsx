@@ -36,7 +36,6 @@ function PracticeSetup() {
   const [count, setCount] = useState(10);
 
   const selectedTopic = useMemo(() => topics?.find((x) => x.slug === topic), [topics, topic]);
-  const topicRequired = mode === "Practice" || mode === "Challenge";
   const grouped = useMemo(() => {
     const g = new Map<string, NonNullable<typeof topics>>();
     topics?.forEach((x) => g.set(x.category, [...(g.get(x.category) ?? []), x]));
@@ -77,13 +76,13 @@ function PracticeSetup() {
         </Card>
 
         <Card className="p-5">
-          <h2 className="mb-4 font-semibold">{t.practice.setup.topicHeading} {topicRequired ? "" : <span className="text-sm font-normal text-text-muted">{t.practice.setup.optional}</span>}</h2>
+          <h2 className="mb-4 font-semibold">{t.practice.setup.topicHeading} <span className="text-sm font-normal text-text-muted">{t.practice.setup.optional}</span></h2>
           {isLoading ? <Skeleton className="h-12" /> : (
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="topic" className="label">{t.practice.setup.topic}</label>
                 <select id="topic" className="input" value={topic} onChange={(e) => { setTopic(e.target.value); setSubtopic(""); }}>
-                  <option value="">{topicRequired ? t.practice.setup.chooseTopic : t.practice.setup.allTopics}</option>
+                  <option value="">{t.practice.setup.allTopics}</option>
                   {grouped.map(([cat, list]) => (
                     <optgroup key={cat} label={cat}>
                       {list.map((x) => <option key={x.slug} value={x.slug}>{x.name} ({x.questions.easy + x.questions.medium + x.questions.hard + x.questions.expert})</option>)}
@@ -127,7 +126,7 @@ function PracticeSetup() {
       <aside>
         <Card className="matrix-bg sticky top-24 p-6">
           <p className="eyebrow">{t.practice.setup.ready}</p>
-          <p className="mt-3 text-xl font-bold">{selectedTopic?.name ?? (topicRequired ? t.practice.setup.pickTopic : t.practice.setup.mixedTopics)}</p>
+          <p className="mt-3 text-xl font-bold">{selectedTopic?.name ?? t.practice.setup.mixedTopics}</p>
           <p className="mt-1 text-sm text-text-secondary">
             {modeLabel} · {t.practice.setup.questions(count)}{difficulty ? ` · ${t.common.difficulty[difficulty] ?? difficulty}` : ""}
           </p>
@@ -136,7 +135,7 @@ function PracticeSetup() {
             <li>{t.practice.setup.perkExplains}</li>
             <li>{t.practice.setup.perkOnce}</li>
           </ul>
-          <button onClick={onStart} disabled={start.isPending || (topicRequired && !topic)} className="btn-primary mt-6 w-full py-3">
+          <button onClick={onStart} disabled={start.isPending} className="btn-primary mt-6 w-full py-3">
             <Play className="h-4 w-4" aria-hidden /> {start.isPending ? t.practice.setup.starting : t.practice.setup.start}
           </button>
         </Card>

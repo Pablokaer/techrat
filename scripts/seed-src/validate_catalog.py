@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 DEFAULT_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend/TechRat.Infrastructure/Seed/Data"))
 KINDS = {"Core", "Context", "BestPractices", "Capstone"}
 LEVELS = {"Beginner", "Intermediate", "Advanced", "Expert"}
+LEVEL_RANK = {"Beginner": 0, "Intermediate": 1, "Advanced": 2, "Expert": 3}
 ROADMAP_TYPES = {"Role", "Language", "SkillTrack", "BestPractices"}
 TYPES_NEEDING_CAPSTONE = {"Role", "Language"}
 MIN_STEP_QUESTIONS = 5
@@ -141,6 +142,18 @@ def validate(data_dir=DEFAULT_DATA_DIR):
                 errors.append(f"{slug}: unknown module {ref}")
             elif slug not in used_by[ref]:
                 used_by[ref].append(slug)
+        # Structure: levels never drop along the path, prerequisite modules come first, the capstone closes it.
+        known = [x for x in refs if x in by_slug]
+        for prev, cur in zip(known, known[1:]):
+            if LEVEL_RANK.get(by_slug[cur]["level"], 0) < LEVEL_RANK.get(by_slug[prev]["level"], 0) and by_slug[cur]["kind"] != "Capstone":
+                errors.append(f"{slug}: {cur} ({by_slug[cur]['level']}) comes after {prev} ({by_slug[prev]['level']}); "
+                              "order modules from easier to harder levels")
+        for i, ref in enumerate(known):
+            for dep in by_slug[ref]["requires"]:
+                if dep in known[i + 1:]:
+                    errors.append(f"{slug}: {ref} requires {dep}, which comes later")
+            if by_slug[ref]["kind"] == "Capstone" and i != len(known) - 1:
+                errors.append(f"{slug}: the Capstone {ref} must be the last module")
         for p in r["prerequisites"]:
             if p["slug"] not in roadmap_slugs:
                 errors.append(f"{slug}: prerequisite {p['slug']} does not exist")

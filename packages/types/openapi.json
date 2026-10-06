@@ -1070,7 +1070,7 @@
         "tags": [
           "Practice"
         ],
-        "summary": "Start a practice session (Practice, Challenge, Random, Adaptive or a roadmap step)",
+        "summary": "Start a practice session: Practice, Challenge, Random or Adaptive (topic optional: without one, the whole question bank), a roadmap step, or Learn with the chosen questionIds",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1529,6 +1529,53 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TopicDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/topics/{slug}/questions": {
+      "get": {
+        "tags": [
+          "Topics"
+        ],
+        "summary": "Learn: the topic's questions (filter by subtopic and difficulty) with the learner's latest result on each; answer the chosen ones with a Learn session",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subtopic",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "difficulty",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Difficulty"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TopicQuestionDto"
+                  }
                 }
               }
             }
@@ -3140,6 +3187,13 @@
           "Topic"
         ]
       },
+      "LearnQuestionStatus": {
+        "enum": [
+          "New",
+          "Correct",
+          "Wrong"
+        ]
+      },
       "LevelDto": {
         "required": [
           "level",
@@ -3479,7 +3533,8 @@
           "Random",
           "Adaptive",
           "DailyChallenge",
-          "Roadmap"
+          "Roadmap",
+          "Learn"
         ]
       },
       "PracticeSessionDto": {
@@ -4355,6 +4410,16 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "questionIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -4691,6 +4756,43 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "TopicQuestionDto": {
+        "required": [
+          "id",
+          "title",
+          "difficulty",
+          "subtopicSlug",
+          "subtopicName",
+          "xpReward",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "difficulty": {
+            "$ref": "#/components/schemas/Difficulty"
+          },
+          "subtopicSlug": {
+            "type": "string"
+          },
+          "subtopicName": {
+            "type": "string"
+          },
+          "xpReward": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LearnQuestionStatus"
           }
         }
       },

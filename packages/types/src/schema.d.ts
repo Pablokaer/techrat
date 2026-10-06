@@ -1232,7 +1232,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Start a practice session (Practice, Challenge, Random, Adaptive or a roadmap step) */
+        /** Start a practice session: Practice, Challenge, Random or Adaptive (topic optional: without one, the whole question bank), a roadmap step, or Learn with the chosen questionIds */
         post: {
             parameters: {
                 query?: never;
@@ -1852,6 +1852,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/topics/{slug}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Learn: the topic's questions (filter by subtopic and difficulty) with the learner's latest result on each; answer the chosen ones with a Learn session */
+        get: {
+            parameters: {
+                query?: {
+                    subtopic?: string;
+                    difficulty?: components["schemas"]["Difficulty"];
+                };
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TopicQuestionDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me": {
         parameters: {
             query?: never;
@@ -2451,6 +2492,8 @@ export interface components {
         };
         /** @enum {unknown} */
         LeaderboardScope: "Global" | "Weekly" | "Monthly" | "Topic";
+        /** @enum {unknown} */
+        LearnQuestionStatus: "New" | "Correct" | "Wrong";
         LevelDto: {
             /** Format: int32 */
             level: number;
@@ -2548,7 +2591,7 @@ export interface components {
             totalCount: number;
         };
         /** @enum {unknown} */
-        PracticeMode: "Practice" | "Challenge" | "Random" | "Adaptive" | "DailyChallenge" | "Roadmap";
+        PracticeMode: "Practice" | "Challenge" | "Random" | "Adaptive" | "DailyChallenge" | "Roadmap" | "Learn";
         PracticeSessionDto: {
             /** Format: uuid */
             id: string;
@@ -2773,6 +2816,7 @@ export interface components {
             count?: null | number;
             /** Format: uuid */
             roadmapStepId?: null | string;
+            questionIds?: null | string[];
         };
         StepCriteriaResult: {
             /** Format: int32 */
@@ -2877,6 +2921,17 @@ export interface components {
             completionPercent: number;
             /** Format: date-time */
             lastActivityAt: null | string;
+        };
+        TopicQuestionDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            difficulty: components["schemas"]["Difficulty"];
+            subtopicSlug: string;
+            subtopicName: string;
+            /** Format: int32 */
+            xpReward: number;
+            status: components["schemas"]["LearnQuestionStatus"];
         };
         UpdateProfileRequest: {
             displayName: null | string;
