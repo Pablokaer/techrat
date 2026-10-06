@@ -1,0 +1,890 @@
+[
+  {
+    "id": "cs-struct-copy-semantics",
+    "title": "Atribuição de struct copia o valor",
+    "question": "O que isto imprime?\n\nstruct P { public int X; }\nvar a = new P { X = 1 };\nvar b = a;\nb.X = 2;\nConsole.WriteLine(a.X);",
+    "options": [
+      "2",
+      "0",
+      "1",
+      "Erro de compilação: não é possível atribuir uma struct a outra variável"
+    ],
+    "explanation": "Structs são tipos de valor, então `var b = a` copia o valor inteiro; alterar b.X muda apenas a cópia e a.X continua 1. Só imprimiria 2 se P fosse uma classe (tipo de referência), e atribuir structs é perfeitamente válido."
+  },
+  {
+    "id": "cs-record-value-equality",
+    "title": "Igualdade de record vs igualdade de referência",
+    "question": "Dado `record Person(string Name);`, o que isto imprime?\n\nvar a = new Person(\"Ann\");\nvar b = new Person(\"Ann\");\nConsole.WriteLine($\"{a == b} {ReferenceEquals(a, b)}\");",
+    "options": [
+      "True False",
+      "False False",
+      "True True",
+      "False True"
+    ],
+    "explanation": "Records são tipos de referência com igualdade baseada em valor gerada pelo compilador: == compara os membros declarados, então duas Persons chamadas Ann são iguais. Ainda assim são dois objetos distintos no heap, então ReferenceEquals retorna false."
+  },
+  {
+    "id": "cs-primary-constructor-capture",
+    "title": "Parâmetros de primary constructor em classes",
+    "question": "O C# 12 permite que classes usem primary constructors:\n\nclass Greeter(string name)\n{\n    public string Hi() => $\"Hi {name}\";\n}\n\nQual afirmação sobre `name` é verdadeira?",
+    "options": [
+      "O compilador gera uma propriedade pública init-only Name, exatamente como em um record posicional",
+      "É implicitamente readonly, então atribuir `name = \"x\"` dentro de um método é erro de compilação",
+      "Só é visível em inicializadores de campo, então usá-lo em um método como Hi() é erro de compilação",
+      "Está em escopo em todo o corpo da classe; como Hi() o usa, ele é capturado em um campo oculto"
+    ],
+    "explanation": "Diferente de records posicionais, parâmetros de primary constructor em classes não viram propriedades públicas. São parâmetros em escopo em todo o tipo; quando um membro referencia um deles, o compilador o armazena em um campo sem nome. Eles também são mutáveis, por isso muitos times os copiam para campos readonly explícitos."
+  },
+  {
+    "id": "cs-new-vs-override",
+    "title": "Ocultação de método com new vs override",
+    "question": "O que isto imprime?\n\nclass A { public virtual string Name() => \"A\"; }\nclass B : A { public new string Name() => \"B\"; }\n\nA x = new B();\nConsole.WriteLine(x.Name());",
+    "options": [
+      "B",
+      "A",
+      "AB",
+      "Erro de compilação: Name deve ser marcado com override"
+    ],
+    "explanation": "`new` oculta o método base em vez de sobrescrevê-lo, então o slot virtual continua apontando para A.Name. Por isso, chamar por uma variável de tipo estático A executa a implementação de A. Só `override` faria a chamada despachar para B; `new` compila normalmente (apenas suprime o warning de ocultação)."
+  },
+  {
+    "id": "cs-default-interface-method-access",
+    "title": "Chamando um default interface method",
+    "question": "interface IGreeter { string Hello() => \"hi\"; }\nclass G : IGreeter { }\n\nvar g = new G();\nConsole.WriteLine(g.Hello());\n\nO que acontece?",
+    "options": [
+      "Imprime \"hi\" porque G herda a implementação padrão como um método público",
+      "Erro de compilação: G não tem membro Hello; chame-o por uma referência IGreeter",
+      "MissingMethodException em runtime porque G não implementa Hello",
+      "Erro de compilação: classes devem implementar explicitamente todo membro da interface"
+    ],
+    "explanation": "Membros padrão de interface não são herdados na superfície pública da classe; só são acessíveis pelo tipo da interface, por exemplo `((IGreeter)g).Hello()` ou `IGreeter g = new G();`. A classe não é obrigada a implementar o membro, então compila até você chamar Hello no tipo concreto."
+  },
+  {
+    "id": "cs-virtual-call-in-base-ctor",
+    "title": "Chamada virtual a partir de um construtor base",
+    "question": "O que `new Derived();` imprime?\n\nclass Base { public Base() => Print(); public virtual void Print() { } }\nclass Derived : Base\n{\n    string _s = \"init\";\n    string? _t;\n    public Derived() { _t = \"ctor\"; }\n    public override void Print() => Console.WriteLine($\"{_s}|{_t}\");\n}",
+    "options": [
+      "init|ctor",
+      "|",
+      "Uma NullReferenceException é lançada",
+      "init|"
+    ],
+    "explanation": "Em C#, os inicializadores de campo da classe derivada rodam antes do construtor base, mas o corpo do construtor derivado roda depois dele. A chamada virtual no construtor base despacha para Derived.Print, onde _s já é \"init\", mas _t ainda é null (interpolado como vazio). É por isso que chamar membros virtuais em construtores é desaconselhado."
+  },
+  {
+    "id": "cs-generic-variance-assignment",
+    "title": "Regras de covariância em generics",
+    "question": "Qual atribuição compila?",
+    "options": [
+      "IEnumerable<object> xs = new List<string>();",
+      "List<object> xs = new List<string>();",
+      "IList<object> xs = new List<string>();",
+      "IEnumerable<object> xs = new List<int>();"
+    ],
+    "explanation": "IEnumerable<out T> é covariante, então uma sequência de strings pode ser usada como sequência de objects. List<T> e IList<T> são invariantes porque aceitam escrita (adicionar um int a uma List<string> seria inseguro). Variância também só se aplica a argumentos de tipo de referência, então List<int> não pode ser convertida para IEnumerable<object>."
+  },
+  {
+    "id": "cs-generic-static-per-closed-type",
+    "title": "Campos estáticos em tipos genéricos",
+    "question": "O que isto imprime?\n\nclass Counter<T> { public static int Count; }\n\nCounter<int>.Count++;\nCounter<string>.Count++;\nCounter<int>.Count++;\nConsole.WriteLine($\"{Counter<int>.Count},{Counter<string>.Count}\");",
+    "options": [
+      "3,3",
+      "3,0",
+      "2,1",
+      "1,1"
+    ],
+    "explanation": "Cada tipo construído fechado (Counter<int>, Counter<string>) é um tipo distinto com seus próprios campos estáticos. Counter<int>.Count é incrementado duas vezes e Counter<string>.Count uma vez. Isso costuma ser usado de propósito, por exemplo em caches por tipo, mas surpreende quem espera um único static compartilhado."
+  },
+  {
+    "id": "cs-closure-for-loop",
+    "title": "Captura de lambda em um loop for",
+    "question": "O que isto imprime?\n\nvar actions = new List<Action>();\nfor (int i = 0; i < 3; i++)\n    actions.Add(() => Console.Write(i));\nforeach (var a in actions) a();",
+    "options": [
+      "012",
+      "222",
+      "333",
+      "000"
+    ],
+    "explanation": "Lambdas capturam variáveis, não valores. Um loop for declara uma única variável i compartilhada por todas as iterações, então toda lambda vê o valor final 3. (Desde o C# 5, o foreach cria uma variável nova por iteração, então o mesmo código com foreach imprime os valores esperados.) Copiar para uma variável local dentro do loop resolve."
+  },
+  {
+    "id": "cs-event-keyword-encapsulation",
+    "title": "O que a palavra-chave event restringe",
+    "question": "Uma classe declara `public event EventHandler? Changed;`. O que o código FORA dessa classe pode fazer com Changed?",
+    "options": [
+      "Apenas assinar e cancelar a assinatura com += e -=",
+      "Assinar, cancelar a assinatura e disparar com Changed?.Invoke(...)",
+      "Substituir todos os handlers atribuindo Changed = handler",
+      "Ler a invocation list e invocar os handlers um a um"
+    ],
+    "explanation": "A palavra-chave event encapsula um campo delegate para que o código externo tenha apenas os acessores add/remove. Disparar o evento ou atribuir/limpar o delegate inteiro só é permitido dentro do tipo que o declara, e essa é a principal diferença em relação a um campo delegate público."
+  },
+  {
+    "id": "cs-event-subscription-leak",
+    "title": "Assinaturas de eventos mantendo objetos vivos",
+    "question": "View models de vida curta assinam um evento de um singleton no construtor (`clock.Tick += OnTick;`) e nunca cancelam a assinatura. A memória cresce com o tempo. Por quê?",
+    "options": [
+      "Handlers de eventos são fixados (pinned) pelo GC, o que bloqueia a compactação e faz o heap crescer",
+      "Cada += aloca uma thread dedicada que só termina quando o publisher é descartado",
+      "Os view models são coletados, mas seus handlers ficam na fila de finalização para sempre",
+      "A lista de delegates do singleton referencia cada view model, que continua alcançável"
+    ],
+    "explanation": "Um delegate guarda uma referência ao objeto alvo. Enquanto o publisher de vida longa mantém o handler na sua invocation list, todo assinante é alcançável a partir de uma GC root e nunca pode ser coletado. Cancele a assinatura (por exemplo, no Dispose) ou use uma abordagem de weak event quando o publisher vive mais que os assinantes."
+  },
+  {
+    "id": "cs-linq-deferred-execution",
+    "title": "Execução adiada do Where",
+    "question": "O que isto imprime?\n\nvar list = new List<int> { 1, 2, 3 };\nvar q = list.Where(x => x > 1);\nlist.Add(4);\nConsole.WriteLine(q.Count());",
+    "options": [
+      "2",
+      "3",
+      "4",
+      "InvalidOperationException: collection was modified"
+    ],
+    "explanation": "Where retorna uma query avaliada de forma lazy; nada roda até ela ser enumerada. Count() enumera a lista como ela está naquele momento, [1,2,3,4], então 2, 3 e 4 atendem ao filtro. Não há exceção de modificação porque o Add acontece antes de a enumeração começar, não durante."
+  },
+  {
+    "id": "cs-linq-multiple-enumeration",
+    "title": "Enumeração múltipla de uma query lazy",
+    "question": "O que é impresso?\n\nint calls = 0;\nvar q = Enumerable.Range(1, 3).Select(x => { calls++; return x; });\nvar sum = q.Sum();\nvar max = q.Max();\nConsole.WriteLine(calls);",
+    "options": [
+      "3",
+      "6",
+      "0",
+      "9"
+    ],
+    "explanation": "q é uma query, não uma coleção materializada, então cada operador terminal executa o pipeline inteiro de novo: Sum enumera 3 elementos e Max os enumera novamente. Com projeções caras, I/O ou queries de banco, isso dobra o trabalho; chame ToList() uma vez se você precisa dos resultados várias vezes."
+  },
+  {
+    "id": "cs-linq-single-duplicates",
+    "title": "Single com mais de um elemento correspondente",
+    "question": "O que acontece quando isto executa?\n\nvar x = new[] { 1, 2, 2 }.Single(n => n == 2);",
+    "options": [
+      "Retorna 2, o primeiro elemento correspondente",
+      "Retorna 0, o valor padrão de int, porque a correspondência é ambígua",
+      "Retorna 2 e registra um warning sobre duplicatas",
+      "Lança InvalidOperationException: mais de um elemento corresponde"
+    ],
+    "explanation": "Single garante que exatamente um elemento corresponde e lança exceção se houver zero ou vários. First retorna a primeira correspondência, e SingleOrDefault retorna default apenas quando nada corresponde (e ainda lança com múltiplas correspondências). Use Single quando duplicatas indicam um bug."
+  },
+  {
+    "id": "cs-linq-ienumerable-vs-iqueryable",
+    "title": "Variável IEnumerable sobre um DbSet do EF",
+    "question": "IEnumerable<Order> orders = db.Orders;\nvar big = orders.Where(o => o.Total > 1000).ToList();\n\nA tabela Orders tem 5 milhões de linhas. O que acontece?",
+    "options": [
+      "O Where vinculado é Enumerable.Where, então a tabela inteira é carregada e filtrada em memória",
+      "O EF Core traduz o filtro para SQL porque o tipo em runtime ainda é um DbSet<Order>",
+      "Não compila porque DbSet<Order> não pode ser atribuído a IEnumerable<Order>",
+      "O EF Core lança exceção porque a avaliação no cliente está desabilitada para filtros de nível superior"
+    ],
+    "explanation": "Overloads de extension methods são escolhidos pelo tipo estático. Com IEnumerable<Order>, o Where é LINQ to Objects recebendo um delegate, então o EF apenas faz streaming da tabela inteira e o predicado roda em C#. Mantenha a variável tipada como IQueryable<Order> para que Queryable.Where receba uma expression tree que o EF traduz para um WHERE em SQL."
+  },
+  {
+    "id": "cs-throw-vs-throw-ex",
+    "title": "Relançando com throw vs throw ex",
+    "question": "Dentro de `catch (Exception ex) { Log(ex); ... }`, por que `throw;` é preferível a `throw ex;`?",
+    "options": [
+      "`throw ex;` encapsula a exceção capturada em uma AggregateException, ocultando seu tipo",
+      "`throw;` é mais rápido porque pula a execução dos blocos finally envolventes",
+      "`throw;` mantém o stack trace original; `throw ex;` o reinicia no ponto do relançamento",
+      "`throw ex;` não compila dentro de um bloco catch que declara uma variável"
+    ],
+    "explanation": "Um `throw;` simples relança a exceção atual sem alterações, mantendo os frames onde ela se originou. `throw ex;` lança o mesmo objeto como se ele tivesse surgido ali, então o local original da falha some do stack trace, o que dificulta muito a depuração em produção. Nenhuma das formas pula blocos finally ou encapsula a exceção."
+  },
+  {
+    "id": "cs-nullable-reference-runtime",
+    "title": "O que nullable reference types fazem em runtime",
+    "question": "Uma biblioteca com `<Nullable>enable</Nullable>` expõe `public int Len(string s) => s.Length;`. Um projeto mais antigo sem anotações de nulidade chama `Len(null)`. O que acontece?",
+    "options": [
+      "O runtime lança ArgumentNullException antes de entrar em Len, por causa da anotação",
+      "A chamada não compila no projeto chamador porque o parâmetro de Len é non-nullable",
+      "Nada impede; NRT é só de compilação, então s.Length lança NullReferenceException",
+      "Len recebe uma string vazia porque parâmetros non-nullable são convertidos em runtime"
+    ],
+    "explanation": "Nullable reference types só mudam warnings do compilador e metadados; não há verificações injetadas em runtime. Chamadores que ignoram ou não enxergam as anotações ainda podem passar null. APIs públicas devem continuar validando argumentos, por exemplo com ArgumentNullException.ThrowIfNull(s)."
+  },
+  {
+    "id": "cs-finally-after-return",
+    "title": "Valor de retorno quando o finally altera uma variável local",
+    "question": "O que isto imprime?\n\nstatic int F()\n{\n    int x = 1;\n    try { return x; }\n    finally { x = 2; }\n}\nConsole.WriteLine(F());",
+    "options": [
+      "1",
+      "2",
+      "Erro de compilação: não é possível atribuir no finally após return",
+      "0"
+    ],
+    "explanation": "A expressão de retorno é avaliada (e o int, copiado) antes de o bloco finally rodar. Alterar a variável local x depois disso não afeta o valor de retorno já capturado. (Se x fosse uma referência a um objeto mutável, mutações nesse objeto seriam visíveis.)"
+  },
+  {
+    "id": "cs-collection-expression-spread",
+    "title": "Collection expressions com spread",
+    "question": "int[] b = [2, 3];\nint[] a = [1, ..b, 4];\n\nO que é `a`?",
+    "options": [
+      "Um array jagged: 1, [2, 3], 4",
+      "Erro de compilação: o elemento spread só funciona com List<T>",
+      "Um array que compartilha armazenamento com b, então mudar b[0] muda a",
+      "Um novo int[] contendo 1, 2, 3, 4"
+    ],
+    "explanation": "Collection expressions do C# 12 constroem o tipo alvo a partir dos elementos listados, e `..b` espalha (copia) cada elemento de b naquela posição. O resultado é um array novo, sem vínculo com b. Spreads funcionam com qualquer enumerable e com alvos como arrays, List<T>, Span<T> e outros tipos de coleção."
+  },
+  {
+    "id": "cs-dictionary-mutable-key",
+    "title": "Alterando uma chave de dicionário após a inserção",
+    "question": "Uma classe Key sobrescreve Equals/GetHashCode usando sua propriedade mutável Name. Você faz `dict[k] = 1; k.Name = \"changed\";` e então chama `dict.ContainsKey(k)`. Qual é o resultado mais provável?",
+    "options": [
+      "true, porque o dicionário guarda uma referência a k e compara primeiro por referência",
+      "false, porque a busca usa o novo hash code e procura no bucket errado",
+      "true, porque o Dictionary refaz o hash das chaves sozinho quando as propriedades mudam",
+      "Uma InvalidOperationException porque a chave foi modificada após a inserção"
+    ],
+    "explanation": "Dictionary<TKey,TValue> calcula o hash uma vez, na inserção. Se o estado relevante para o hash muda, as buscas calculam um novo hash, sondam o bucket errado e não encontram a entrada, que fica efetivamente perdida. Chaves devem ser imutáveis em relação a Equals/GetHashCode; records ou readonly structs são boas chaves."
+  },
+  {
+    "id": "cs-gc-generations",
+    "title": "Por que o GC usa gerações",
+    "question": "Por que o garbage collector do .NET divide o heap gerenciado nas gerações 0, 1 e 2?",
+    "options": [
+      "Cada geração pertence a uma thread diferente, o que evita locks durante a alocação",
+      "A maioria dos objetos morre cedo, então coletas frequentes da gen 0 liberam muito lixo a baixo custo",
+      "As gerações separam tipos de valor de tipos de referência para que cada um seja coletado de um jeito",
+      "Objetos na gen 2 nunca são coletados, o que evita pausas longas"
+    ],
+    "explanation": "A hipótese geracional diz que objetos novos tendem a virar lixo rapidamente. Coletar a gen 0 com frequência é barato porque ela é pequena; os sobreviventes são promovidos, e a gen 2 (objetos de vida longa) é coletada raramente. A gen 2 também é coletada, e gerações não têm nada a ver com threads ou tipos de valor."
+  },
+  {
+    "id": "cs-dispose-suppress-finalize",
+    "title": "GC.SuppressFinalize no Dispose",
+    "question": "No dispose pattern padrão para uma classe com finalizer, por que Dispose() chama `GC.SuppressFinalize(this)`?",
+    "options": [
+      "Força uma garbage collection imediata para que a memória do objeto seja liberada na hora",
+      "Impede que outro código chame Dispose uma segunda vez na mesma instância",
+      "Libera diretamente a memória não gerenciada do objeto em vez de esperar o GC",
+      "Os recursos já foram liberados, então a finalização é desnecessária e pode ser pulada"
+    ],
+    "explanation": "Objetos com finalizers sobrevivem a pelo menos uma GC extra porque precisam ser enfileirados e finalizados antes. Depois da limpeza determinística no Dispose, suprimir a finalização permite que o GC recupere o objeto normalmente. Isso não dispara uma coleta nem protege contra Dispose duplo; o Dispose precisa ser idempotente por conta própria."
+  },
+  {
+    "id": "cs-large-object-heap-buffers",
+    "title": "Buffers grandes por requisição",
+    "question": "Um serviço aloca `new byte[1_000_000]` a cada requisição. Sob carga, o profiling mostra coletas frequentes da gen 2 e um heap fragmentado. O que explica isso e qual é uma boa correção?",
+    "options": [
+      "Arrays de 85.000+ bytes vão para o LOH, coletado com a gen 2 e não compactado por padrão; use ArrayPool<byte>",
+      "Arrays são tipos de valor, então cada um é copiado para a gen 2 na alocação; troque por List<byte>",
+      "Arrays grandes são fixados (pinned) automaticamente, o que bloqueia coletas da gen 0; chame GC.Collect a cada requisição",
+      "O JIT aloca arrays grandes na stack e os despeja na gen 2; marque o método com [SkipLocalsInit]"
+    ],
+    "explanation": "Objetos a partir do limite de 85.000 bytes são alocados no LOH. Alocações no LOH contam para o orçamento da gen 2, então a rotatividade de buffers grandes dispara coletas completas caras, e como o LOH não é compactado por padrão, ele fragmenta. Reutilizar buffers via ArrayPool<T> elimina essa rotatividade."
+  },
+  {
+    "id": "cs-gc-datas",
+    "title": "DATAS no Server GC do .NET 9",
+    "question": "Depois de migrar um serviço ASP.NET Core em container do .NET 8 para o .NET 9 com Server GC, o heap fica bem menor quando ocioso e cresce com a carga. Qual recurso do GC, habilitado por padrão no .NET 9, explica isso?",
+    "options": [
+      "Concurrent GC, que agora executa toda coleta da gen 2 em uma thread de background",
+      "O modo GC conserve memory, que agora vem configurado como 9 por padrão no Server GC",
+      "DATAS, que adapta o número de heaps e o orçamento de alocação ao tamanho dos dados de vida longa",
+      "Regions, que devolvem cada região de 4 MB ao SO após toda GC da gen 0"
+    ],
+    "explanation": "Dynamic Adaptation To Application Sizes (opt-in no .NET 8, padrão no .NET 9 com Server GC) começa com um heap e aumenta ou reduz a quantidade de heaps e os orçamentos conforme a carga, de modo que o tamanho do heap acompanha os dados vivos em vez da quantidade de núcleos. O Server GC clássico se dimensiona de forma agressiva para throughput, independentemente de quantos dados o app mantém."
+  },
+  {
+    "id": "cs-async-whenall-vs-sequential",
+    "title": "Awaits sequenciais vs Task.WhenAll",
+    "question": "Cada chamada abaixo leva cerca de 1 segundo de I/O. Aproximadamente quanto tempo levam as versões A e B?\n\n// A\nawait GetA(); await GetB(); await GetC();\n// B\nawait Task.WhenAll(GetA(), GetB(), GetC());",
+    "options": [
+      "Ambas levam cerca de 1 s porque o await executa as chamadas em paralelo automaticamente",
+      "Ambas levam cerca de 3 s porque o WhenAll aguarda as tasks uma por uma",
+      "A leva cerca de 3 s e B, cerca de 1 s",
+      "A leva cerca de 1 s e B, cerca de 3 s, porque o WhenAll adiciona overhead de agendamento"
+    ],
+    "explanation": "Em A, cada chamada só começa depois que a anterior termina, então as esperas se somam. Em B, as três tasks são iniciadas primeiro e o WhenAll completa quando a última termina, então o I/O independente se sobrepõe. O await, por si só, nunca inicia outro trabalho em paralelo."
+  },
+  {
+    "id": "cs-async-result-deadlock",
+    "title": "Bloqueando código async em um app de UI",
+    "question": "Um handler de botão WinForms executa `var text = LoadAsync().Result;`. LoadAsync faz `return await httpClient.GetStringAsync(url);`. A janela congela para sempre. Por quê?",
+    "options": [
+      "A thread de UI fica bloqueada no .Result, mas a continuação precisa retomar nessa thread",
+      "O HttpClient não pode ser usado em uma thread de UI, então a requisição nunca completa",
+      ".Result inicia um message loop aninhado que nunca processa a resposta HTTP",
+      "LoadAsync roda de forma síncrona, então GetStringAsync espera o handler do botão retornar"
+    ],
+    "explanation": "O await captura o SynchronizationContext atual e posta a continuação de volta nele. A thread de UI está presa no .Result, então a continuação nunca pode rodar e a task nunca completa. Corrija usando await em toda a cadeia (event handler async) ou use ConfigureAwait(false) em código de biblioteca que não precisa do contexto."
+  },
+  {
+    "id": "cs-async-void-exceptions",
+    "title": "Exceções em async void",
+    "question": "Em um app de console, o que acontece?\n\nasync void Boom() { await Task.Delay(10); throw new Exception(\"x\"); }\n\ntry { Boom(); }\ncatch { Console.WriteLine(\"caught\"); }\nConsole.ReadLine();",
+    "options": [
+      "\"caught\" é impresso porque o bloco try envolve a chamada a Boom()",
+      "A exceção fica armazenada na Task retornada e é ignorada silenciosamente pelo runtime",
+      "Não compila porque métodos async void não podem lançar exceções",
+      "\"caught\" não é impresso; a exceção derruba o processo a partir do thread pool"
+    ],
+    "explanation": "Boom retorna ao chamador no primeiro await, então o bloco try já terminou quando a exceção ocorre. Um método async void não tem Task para guardar a exceção, então ela é relançada no contexto capturado (aqui, o thread pool) como exceção não tratada. Use async Task, exceto em event handlers."
+  },
+  {
+    "id": "cs-configureawait-aspnetcore",
+    "title": "ConfigureAwait(false) no ASP.NET Core",
+    "question": "Qual afirmação sobre ConfigureAwait(false) está correta no .NET moderno?",
+    "options": [
+      "Faz a própria operação aguardada rodar em uma thread do thread pool em vez da thread do chamador",
+      "Código de app ASP.NET Core não precisa dele (sem SynchronizationContext), mas bibliotecas ainda devem usá-lo",
+      "É obrigatório em controllers ASP.NET Core para evitar o clássico deadlock sync-over-async de .Result/.Wait()",
+      "Torna o HttpContext inacessível após o await no ASP.NET Core, então deve ser evitado em controllers"
+    ],
+    "explanation": "ConfigureAwait(false) só afeta onde a continuação roda: diz ao await para não voltar ao contexto capturado. O ASP.NET Core não tem SynchronizationContext, então não há contexto para causar deadlock, e o HttpContext continua utilizável. Bibliotecas podem ser chamadas por apps de UI ou de ASP.NET legado, que têm contexto, então ainda se beneficiam."
+  },
+  {
+    "id": "cs-valuetask-double-await",
+    "title": "Fazendo await duas vezes em um ValueTask",
+    "question": "Um método retorna ValueTask<int> apoiado por um IValueTaskSource de pool. Um chamador o armazena e faz await duas vezes. Qual é a consequência?",
+    "options": [
+      "O segundo await retorna o resultado em cache, exatamente como fazer await duas vezes em Task<int>",
+      "Comportamento indefinido: a source reciclada pode trazer o resultado de outra operação ou lançar",
+      "O segundo await reexecuta a operação assíncrona e retorna um resultado novo",
+      "O compilador rejeita armazenar um ValueTask em uma variável local para evitar reuso"
+    ],
+    "explanation": "ValueTask foi projetado para ser consumido uma vez. Após o primeiro await, o IValueTaskSource subjacente pode ser resetado e reutilizado por outra operação, então um segundo await (ou awaits concorrentes, ou .Result antes de completar) pode observar o resultado de outra operação ou lançar exceção. Chame .AsTask() se você precisa fazer await várias vezes."
+  },
+  {
+    "id": "cs-concurrency-interlocked",
+    "title": "Atualizações perdidas com ++ entre threads",
+    "question": "Duas threads executam `counter++` um milhão de vezes cada em um campo int compartilhado. O valor final costuma ficar abaixo de 2.000.000. Qual é a correção mais simples?",
+    "options": [
+      "Marcar o campo como volatile",
+      "Tornar counter um campo static",
+      "Trocar int por long",
+      "Usar Interlocked.Increment(ref counter)"
+    ],
+    "explanation": "counter++ é um read-modify-write de três passos, então duas threads podem ler o mesmo valor e um incremento se perde. Interlocked.Increment faz isso de forma atômica. volatile só afeta visibilidade e reordenação, não a atomicidade da operação composta; static ou long não mudam nada na race condition."
+  },
+  {
+    "id": "cs-concurrency-await-in-lock",
+    "title": "await dentro de um lock",
+    "question": "O que acontece quando você compila isto?\n\nlock (_sync)\n{\n    await SaveAsync();\n}",
+    "options": [
+      "Erro de compilação: await não é permitido no corpo de um lock; use SemaphoreSlim.WaitAsync",
+      "Compila e mantém o lock durante o await, em qualquer thread que retomar a execução",
+      "Compila, mas o lock é liberado automaticamente no await e readquirido depois dele",
+      "Só compila quando _sync é uma instância de System.Threading.Lock"
+    ],
+    "explanation": "Locks baseados em Monitor têm afinidade de thread: a thread que entra precisa sair, mas depois de um await a continuação pode rodar em outra thread. Por isso o compilador proíbe await no corpo de um lock. SemaphoreSlim(1, 1) com WaitAsync/Release em um try/finally é a forma usual de exclusão mútua compatível com async."
+  },
+  {
+    "id": "cs-concurrency-lock-type",
+    "title": "System.Threading.Lock com a instrução lock",
+    "question": "No C# 13 / .NET 9 você escreve `private readonly Lock _gate = new();` e `lock (_gate) { ... }`. O que o compilador faz de diferente em relação a `lock (someObject)`?",
+    "options": [
+      "Transforma o bloco em um lock assíncrono que permite await dentro do lock",
+      "Nada; a instrução lock sempre usa Monitor.Enter/Exit em qualquer tipo de objeto",
+      "Chama _gate.EnterScope() e descarta o scope em vez de usar Monitor.Enter/Exit",
+      "Adquire um lock de leitura para que várias threads possam entrar no bloco ao mesmo tempo"
+    ],
+    "explanation": "Quando o alvo do lock é estaticamente um System.Threading.Lock, o compilador usa a API dedicada do tipo (EnterScope, que retorna um scope do tipo ref struct) em vez do mecanismo de header de objeto do Monitor. Continua sendo um lock exclusivo e síncrono, então await dentro do bloco segue proibido."
+  },
+  {
+    "id": "cs-concurrentdictionary-getoradd",
+    "title": "Value factory do ConcurrentDictionary.GetOrAdd",
+    "question": "`cache.GetOrAdd(key, k => CreateExpensiveClient(k))` é chamado concorrentemente para a mesma chave nova. Os logs mostram que CreateExpensiveClient rodou três vezes. Por quê, e como garantir uma única criação?",
+    "options": [
+      "GetOrAdd não é thread-safe para chaves novas; envolva cada chamada em um lock no dicionário",
+      "O dicionário foi redimensionado, o que reexecuta factories pendentes; defina uma capacidade inicial maior",
+      "A factory roda fora do lock, então threads concorrentes podem chamá-la; armazene valores Lazy<T>",
+      "O GetHashCode da chave não é determinístico entre threads; sobrescreva-o para retornar uma constante"
+    ],
+    "explanation": "Todas as operações do ConcurrentDictionary são thread-safe, mas GetOrAdd e AddOrUpdate não são atômicos em relação ao delegate do usuário, que é invocado fora do lock para evitar bloqueio. Só um resultado é armazenado, mas vários podem ser criados. Usar ConcurrentDictionary<TKey, Lazy<TValue>> garante que o trabalho caro rode uma única vez."
+  },
+  {
+    "id": "cs-attribute-constructor-timing",
+    "title": "Quando construtores de atributos executam",
+    "question": "O construtor de um atributo customizado escreve em um log. Você aplica `[Audit(\"orders\")]` a uma classe. Quando esse construtor executa?",
+    "options": [
+      "A cada leitura via reflection, como GetCustomAttributes, que cria uma nova instância",
+      "Uma vez, quando o assembly é carregado, e a instância fica em cache para leituras futuras",
+      "Toda vez que uma instância da classe decorada é construída, antes do construtor dela",
+      "Em tempo de compilação, com o objeto resultante serializado nos metadados do assembly"
+    ],
+    "explanation": "Os argumentos do atributo são armazenados como metadados em tempo de compilação, mas o objeto do atributo só é criado quando o código o solicita via reflection. Cada chamada a GetCustomAttribute(s) instancia novos objetos de atributo e executa o construtor de novo, por isso lógica cara não deve ficar em construtores de atributos."
+  },
+  {
+    "id": "cs-reflection-trimming-aot",
+    "title": "Reflection em um app Native AOT com trimming",
+    "question": "Um carregador de plugins faz `Activator.CreateInstance(Type.GetType(config[\"Handler\"])!)`. Funciona com `dotnet run`, mas o app publicado com Native AOT falha porque o tipo não é encontrado. Por quê?",
+    "options": [
+      "Apps Native AOT não podem chamar Activator.CreateInstance em nenhuma circunstância",
+      "Type.GetType só pesquisa o GAC, que não existe em apps compilados com AOT",
+      "Valores de configuração só ficam disponíveis em apps AOT depois do fim do startup",
+      "O trimmer removeu o tipo porque só uma string de configuração se refere a ele"
+    ],
+    "explanation": "O trimming mantém apenas o código que ele consegue provar que é usado. Um tipo nomeado em uma string de configuração não é referenciado estaticamente, então é removido e a reflection falha em runtime (o build emite warnings de trimming). Referencie os tipos estaticamente, anote com DynamicallyAccessedMembers ou substitua reflection por source generators."
+  },
+  {
+    "id": "cs-span-field-in-class",
+    "title": "Span<T> como campo de classe",
+    "question": "Por que isto não compila?\n\nclass Parser\n{\n    private Span<byte> _buffer;\n}",
+    "options": [
+      "Campos Span<T> precisam ser marcados como readonly quando declarados em uma classe",
+      "Span<T> é uma ref struct, então não pode ser campo de uma classe; use Memory<byte>",
+      "Span<T> só pode envolver memória de stackalloc, nunca arrays gerenciados no heap como byte[]",
+      "Span<T> exige um contexto unsafe quando usado como campo de instância"
+    ],
+    "explanation": "Span<T> pode apontar para memória da stack, então o compilador garante que ele nunca escape para o heap: não pode ser campo de uma classe ou de uma struct comum, sofrer boxing ou ser capturado por uma lambda. Memory<T> é a contraparte que pode ficar no heap e expõe .Span quando você precisa processá-lo de forma síncrona."
+  },
+  {
+    "id": "cs-arraypool-rent-size",
+    "title": "Semântica de ArrayPool.Rent",
+    "question": "O que é garantido sobre `var buf = ArrayPool<byte>.Shared.Rent(1000);`?",
+    "options": [
+      "buf.Length é exatamente 1000 e o array vem zerado, como em new byte[1000]",
+      "buf.Length é pelo menos 1000, e o array pode conter dados de um uso anterior",
+      "buf é alocado na stack com stackalloc e liberado automaticamente no fim do escopo",
+      "buf não deve ser devolvido ao pool se for maior que o tamanho solicitado"
+    ],
+    "explanation": "Pools entregam arrays em faixas de tamanho, então Rent pode retornar um array maior que o solicitado e não o limpa. Controle o tamanho que você realmente precisa em vez de usar buf.Length, e chame Return ao terminar (opcionalmente com clearArray: true para dados sensíveis). Nunca use o array depois de devolvê-lo."
+  },
+  {
+    "id": "cs-in-parameter-defensive-copy",
+    "title": "Cópias defensivas com parâmetros in",
+    "question": "struct Counter { int _n; public int Next() => ++_n; }\nstatic int Use(in Counter c) => c.Next();\n\nvar c = new Counter();\nUse(in c); Use(in c);\n\nO que acontece?",
+    "options": [
+      "Compila e c._n termina como 2, porque in passa a struct por referência",
+      "Erro de compilação: não é possível chamar um método não readonly em um parâmetro in",
+      "Exceção em runtime: tentativa de modificar o alvo de uma referência readonly",
+      "Compila; cada chamada altera uma cópia defensiva oculta, então c não muda"
+    ],
+    "explanation": "Um parâmetro in é uma referência readonly. Como Next não é um membro readonly, o compilador não consegue provar que ele não altera o estado, então copia a struct silenciosamente antes de chamá-lo. O valor do chamador nunca muda, e structs grandes pagam uma cópia por chamada. Marcar a struct ou o membro como readonly elimina a cópia defensiva."
+  },
+  {
+    "id": "net-native-aot-tradeoffs",
+    "title": "Trade-offs do Native AOT",
+    "question": "Um time considera publicar uma minimal API com Native AOT. Qual destes é um trade-off real?",
+    "options": [
+      "Startup mais rápido e footprint menor, mas sem JIT, logo sem geração de código em runtime",
+      "O app ainda precisa do runtime .NET instalado no host, mas inicia mais rápido",
+      "O throughput é sempre maior porque o código é otimizado com dados de profile do runtime",
+      "Reflection fica totalmente indisponível, inclusive a leitura de atributos customizados em tipos"
+    ],
+    "explanation": "O Native AOT compila antecipadamente para um executável nativo autocontido, o que ajuda no startup e no footprint. Sem JIT, recursos como Reflection.Emit não são suportados, e o trimming remove código não referenciado. Reflection básica ainda funciona em tipos preservados, e o throughput de pico pode ser menor porque o Dynamic PGO não está disponível."
+  },
+  {
+    "id": "net-tiered-compilation-pgo",
+    "title": "Tiered compilation e Dynamic PGO",
+    "question": "Um benchmark feito à mão mostra que os primeiros milhares de chamadas de um método são bem mais lentos que as chamadas posteriores no .NET 8+. Qual comportamento do runtime explica isso?",
+    "options": [
+      "O GC roda em modo workstation até o app alocar 1 GB e então muda para o modo server",
+      "A IL é interpretada até o método ser chamado 30 vezes e então é compilada uma única vez",
+      "Métodos começam como código tier 0 rápido e não otimizado; os quentes são recompilados no tier 1 com PGO",
+      "Código ReadyToRun é sempre mais lento e só é trocado por código do JIT após uma GC completa"
+    ],
+    "explanation": "A tiered compilation primeiro compila rapidamente com o JIT e depois recompila os métodos chamados com frequência (com on-stack replacement para loops longos). Desde o .NET 8 o Dynamic PGO vem ligado por padrão, então o código tier 1 usa os tipos e branches observados para inlining e devirtualização. Benchmarks precisam de warmup (como o BenchmarkDotNet faz) para medir o estado estável."
+  },
+  {
+    "id": "net-di-scoped-lifetime",
+    "title": "Significado do lifetime scoped",
+    "question": "Em um app ASP.NET Core, um serviço é registrado com `AddScoped<ICart, Cart>()`. Quantas instâncias são criadas?",
+    "options": [
+      "Uma durante todo o tempo de vida do processo da aplicação",
+      "Uma nova toda vez que é injetado em qualquer lugar",
+      "Uma por requisição HTTP, compartilhada dentro dela",
+      "Uma por thread do thread pool que atende requisições"
+    ],
+    "explanation": "O ASP.NET Core cria um scope de DI por requisição, e serviços scoped são criados uma vez por scope. Singleton dá uma instância para o app inteiro, e transient dá uma instância nova a cada resolução. Scopes não têm relação com threads, o que importa porque código async pode trocar de thread."
+  },
+  {
+    "id": "net-di-last-registration-wins",
+    "title": "Múltiplos registros de uma interface",
+    "question": "services.AddSingleton<INotifier, EmailNotifier>();\nservices.AddSingleton<INotifier, SmsNotifier>();\n\nO que você obtém ao injetar INotifier e IEnumerable<INotifier>?",
+    "options": [
+      "INotifier resolve SmsNotifier; IEnumerable<INotifier> traz ambos, na ordem de registro",
+      "INotifier resolve EmailNotifier; IEnumerable<INotifier> traz apenas EmailNotifier",
+      "O startup lança exceção porque INotifier foi registrado duas vezes",
+      "INotifier resolve EmailNotifier; IEnumerable<INotifier> traz ambos"
+    ],
+    "explanation": "O container padrão resolve o último registro quando um único serviço é pedido, enquanto IEnumerable<T> retorna todos os registros. Registros duplicados não lançam exceção; use TryAdd* se você quer a semântica 'registrar só se não existir', por exemplo em extension methods de bibliotecas."
+  },
+  {
+    "id": "net-di-captive-dependency",
+    "title": "Singleton dependendo de um DbContext scoped",
+    "question": "`PriceCache` está registrado como singleton e seu construtor recebe `AppDbContext` (registrado via AddDbContext). O que acontece quando o app roda no ambiente Development?",
+    "options": [
+      "Funciona; o container cria um DbContext novo a cada chamada de método no PriceCache",
+      "O DbContext é promovido silenciosamente a singleton e nada é reportado em nenhum ambiente",
+      "PriceCache é rebaixado silenciosamente a scoped para ter um DbContext por requisição",
+      "A validação de scopes lança exceção: o singleton PriceCache não pode consumir AppDbContext"
+    ],
+    "explanation": "Isso é uma captive dependency: um serviço de vida longa capturando um de vida mais curta. Em Development, o ASP.NET Core habilita a validação de scopes e detecta isso. Sem validação, um único DbContext viveria durante todo o app, usado concorrentemente e com o change tracker crescendo. Injete IServiceScopeFactory ou torne o consumidor scoped."
+  },
+  {
+    "id": "net-di-transient-disposable-root",
+    "title": "Transients descartáveis no provider raiz",
+    "question": "Um loop em background chama `app.Services.GetRequiredService<ReportWriter>()` a cada iteração. ReportWriter é transient e implementa IDisposable. A memória cresce continuamente. Por quê?",
+    "options": [
+      "Serviços transient nunca passam por garbage collection porque o container os mantém em cache",
+      "O provider raiz guarda cada transient descartável até descartá-lo, no shutdown do app",
+      "Objetos IDisposable sempre vão para o Large Object Heap e raramente são coletados",
+      "GetRequiredService cria um novo provider raiz, com seus próprios caches, a cada chamada"
+    ],
+    "explanation": "O service provider mantém referências às instâncias IDisposable que cria para poder descartá-las quando o scope termina. Resolver a partir da raiz significa que o 'scope' é o app inteiro, então toda instância fica viva. Crie um scope por iteração (IServiceScopeFactory.CreateScope) e resolva a partir dele."
+  },
+  {
+    "id": "net-config-precedence",
+    "title": "Precedência das fontes de configuração",
+    "question": "Payment:TimeoutSeconds está definido em appsettings.json, em appsettings.Production.json e na variável de ambiente `Payment__TimeoutSeconds`. Com um WebApplicationBuilder padrão em Production, qual valor prevalece?",
+    "options": [
+      "appsettings.json, porque é carregado primeiro",
+      "A variável de ambiente",
+      "appsettings.Production.json, porque arquivos de ambiente sempre prevalecem",
+      "Nenhum; chaves duplicadas causam exceção no startup"
+    ],
+    "explanation": "Os providers de configuração são empilhados, e fontes posteriores sobrescrevem as anteriores: appsettings.json, depois appsettings.{Environment}.json, user secrets (só em Development), variáveis de ambiente e, por fim, argumentos de linha de comando. O underscore duplo nos nomes de variáveis de ambiente é mapeado para o separador hierárquico ':'."
+  },
+  {
+    "id": "net-options-monitor",
+    "title": "Lendo options recarregadas em um singleton",
+    "question": "Um serviço singleton precisa enxergar valores atualizados de FeatureFlags quando o appsettings.json muda no disco, sem reiniciar. Qual interface ele deve injetar?",
+    "options": [
+      "IOptions<FeatureFlags>",
+      "IOptionsSnapshot<FeatureFlags>",
+      "IConfigureOptions<FeatureFlags>",
+      "IOptionsMonitor<FeatureFlags>"
+    ],
+    "explanation": "IOptions<T> é calculado uma vez e nunca muda. IOptionsSnapshot<T> é recalculado por scope, mas é ele próprio scoped, então não pode ser injetado em um singleton. IOptionsMonitor<T> é um singleton que expõe CurrentValue e notificações OnChange. IConfigureOptions<T> configura options em vez de lê-las."
+  },
+  {
+    "id": "net-logging-interpolation",
+    "title": "Interpolação de strings em chamadas de log",
+    "question": "Um hot path executa `_logger.LogDebug($\"Processed order {order.Id} in {elapsed} ms\");` enquanto o nível mínimo em produção é Information. Quais são os problemas?",
+    "options": [
+      "Formata a string mesmo com Debug desligado e perde OrderId/elapsed como dados estruturados",
+      "Nenhum; o logger detecta o nível desabilitado e não monta a string interpolada",
+      "A chamada lança FormatException porque as chaves são interpretadas como message template",
+      "Só um problema de performance; as propriedades estruturadas são inferidas dos placeholders da interpolação"
+    ],
+    "explanation": "A interpolação roda antes de LogDebug ser chamado, então aloca uma string independentemente do nível de log, e o provider só vê uma string pronta. Use um message template como LogDebug(\"Processed order {OrderId} in {Elapsed} ms\", order.Id, elapsed), ou o source generator [LoggerMessage] para logging sem alocação e com checagem de nível."
+  },
+  {
+    "id": "net-middleware-order-output",
+    "title": "Ordem de execução do pipeline de middleware",
+    "question": "Para uma única requisição, o que é escrito no console?\n\napp.Use(async (ctx, next) => { Console.Write(\"A\"); await next(); Console.Write(\"B\"); });\napp.Use(async (ctx, next) => { Console.Write(\"C\"); await next(); Console.Write(\"D\"); });\napp.Run(ctx => { Console.Write(\"E\"); return Task.CompletedTask; });",
+    "options": [
+      "ACEBD",
+      "ABCDE",
+      "ACEDB",
+      "EDCBA"
+    ],
+    "explanation": "Middlewares rodam na ordem de registro na ida e na ordem inversa na volta. A escreve A e chama next; o segundo escreve C e chama next; Run é terminal e escreve E. Então o controle retorna: D, depois B. Esse aninhamento é o motivo de a ordem importar para tratamento de exceções, autenticação e modificações na resposta."
+  },
+  {
+    "id": "net-exception-handler-position",
+    "title": "Posição do exception handler",
+    "question": "Um middleware customizado registrado ANTES de `app.UseExceptionHandler(\"/error\")` lança uma exceção. O que acontece?",
+    "options": [
+      "UseExceptionHandler a trata, já que captura exceções do pipeline inteiro",
+      "A exceção é engolida pelo Kestrel e a requisição segue para o endpoint",
+      "Ela escapa do UseExceptionHandler, que só captura exceções de middlewares depois dele",
+      "O ASP.NET Core reordena os middlewares para que o exception handler sempre rode antes dos outros"
+    ],
+    "explanation": "Middlewares envolvem os que são registrados depois deles. O exception handler só consegue capturar exceções que sobem pela sua própria chamada a next, então tudo que é registrado antes dele fica fora do seu try/catch. Por isso UseExceptionHandler (ou a developer exception page) é registrado primeiro."
+  },
+  {
+    "id": "net-route-constraint-mismatch",
+    "title": "Constraint de rota que não corresponde",
+    "question": "Com `app.MapGet(\"/items/{id:int}\", (int id) => ...);` e nenhuma outra rota, o que `GET /items/abc` retorna?",
+    "options": [
+      "404 Not Found, porque a constraint de rota não corresponde",
+      "400 Bad Request com um erro de model binding",
+      "200 OK com id igual a 0",
+      "500 Internal Server Error por uma FormatException"
+    ],
+    "explanation": "Constraints de rota participam do matching: 'abc' não é int, então o endpoint não é selecionado e nenhum outro endpoint corresponde, resultando em 404. Constraints servem para desambiguar rotas, não para validar entrada; para validar entrada, você aceitaria o valor e retornaria 400 por conta própria."
+  },
+  {
+    "id": "net-threadpool-starvation",
+    "title": "Pico de latência por sync-over-async",
+    "question": "Durante um pico de tráfego, a latência p99 de uma API ASP.NET Core sobe para vários segundos enquanto a CPU fica em torno de 20% e o número de threads cresce devagar. Os controllers chamam `_client.GetAsync(url).Result`. Qual é a causa mais provável?",
+    "options": [
+      "O limite MaxConcurrentConnections do Kestrel foi atingido, então novos sockets esperam na fila",
+      "O GC está rodando uma coleta bloqueante da gen 2 a cada requisição sob carga",
+      "O HttpClient serializa por padrão todas as requisições ao mesmo host, uma de cada vez",
+      "Thread pool starvation: threads bloqueiam em I/O enquanto novas são injetadas só aos poucos"
+    ],
+    "explanation": "Bloquear em I/O assíncrono prende uma thread durante toda a espera. Quando um pico bloqueia todas as threads do pool, o trabalho enfileirado (incluindo as continuações que as desbloqueariam) espera enquanto o pool adiciona threads lentamente, então a latência dispara com CPU baixa. Torne a cadeia de chamadas async de ponta a ponta."
+  },
+  {
+    "id": "net-auth-401-vs-403",
+    "title": "401 vs 403",
+    "question": "Um usuário com token válido chama um endpoint protegido por `[Authorize(Roles = \"Admin\")]`, mas não está na role Admin. O que o ASP.NET Core retorna por padrão com autenticação JWT bearer?",
+    "options": [
+      "401 Unauthorized",
+      "403 Forbidden",
+      "404 Not Found",
+      "400 Bad Request"
+    ],
+    "explanation": "401 significa que a requisição não está autenticada (challenge), enquanto 403 significa que o usuário está autenticado, mas não tem permissão (forbid). Uma falha de autorização para um usuário autenticado dispara o comportamento Forbid do scheme, que no JWT bearer é um 403."
+  },
+  {
+    "id": "net-auth-resource-based",
+    "title": "Autorização pelo dono do recurso",
+    "question": "Só o autor de um documento pode editá-lo. O ID do autor fica armazenado no documento, no banco de dados. Qual é a abordagem idiomática no ASP.NET Core?",
+    "options": [
+      "Usar [Authorize(Policy = \"EditPolicy\")] na action e consultar o documento dentro da definição da policy",
+      "Carregar o documento e chamar IAuthorizationService.AuthorizeAsync(User, document, \"EditPolicy\")",
+      "Criar uma role por documento e verificá-la na action com [Authorize(Roles = ...)]",
+      "Colocar o ID do documento em uma claim no login e compará-lo com a rota em um middleware"
+    ],
+    "explanation": "A autorização por atributo roda antes da action e não tem acesso ao recurso carregado. A autorização baseada em recurso chama IAuthorizationService de forma imperativa depois de carregar a entidade, passando-a para um AuthorizationHandler<TRequirement, Document> que compara o autor com as claims do usuário."
+  },
+  {
+    "id": "net-jwt-stale-claims",
+    "title": "Role revogada ainda aceita",
+    "question": "A role de um admin foi removida no banco, mas ele continua chamando endpoints de admin com sucesso por mais 50 minutos. A API usa autenticação JWT bearer com tokens de 1 hora. Por quê?",
+    "options": [
+      "O JWT bearer guarda em cache o registro do usuário no banco por uma hora, por padrão",
+      "Remover uma role só tem efeito depois que o app reinicia e recarrega seu cache de roles",
+      "O middleware de autorização pula a checagem de roles em tokens emitidos pelo mesmo servidor",
+      "Roles são claims no token assinado, que é validado localmente até expirar"
+    ],
+    "explanation": "A validação de JWT confere assinatura, issuer, audience e tempo de vida localmente; as claims são aceitas como foram emitidas. Mudanças na fonte da verdade só aparecem quando um novo token é obtido. Mitigue com access tokens de vida curta e refresh tokens, checagem de permissões críticas no servidor ou listas de revogação de tokens."
+  },
+  {
+    "id": "net-backgroundservice-exception",
+    "title": "Exceção não tratada em um BackgroundService",
+    "question": "Desde o .NET 6, o que acontece por padrão quando o ExecuteAsync de um BackgroundService lança uma exceção não tratada?",
+    "options": [
+      "A exceção é registrada no log e o host para",
+      "A exceção é engolida e o serviço para silenciosamente enquanto o app continua rodando",
+      "O host reinicia o BackgroundService automaticamente",
+      "A exceção derruba o processo sem ser registrada no log"
+    ],
+    "explanation": "O BackgroundServiceExceptionBehavior padrão é StopHost, então o erro é registrado e a aplicação é encerrada, tornando as falhas visíveis (antes do .NET 6 o serviço simplesmente parava em silêncio). Você pode configurá-lo como Ignore, mas normalmente deve capturar e tratar exceções dentro do loop."
+  },
+  {
+    "id": "net-backgroundservice-scoped",
+    "title": "Usando um DbContext em um BackgroundService",
+    "question": "Um BackgroundService que processa um outbox a cada 10 segundos injeta AppDbContext no construtor. Qual é a correção certa?",
+    "options": [
+      "Registrar AppDbContext como singleton para que hosted services e controllers o compartilhem",
+      "Registrar o BackgroundService com AddScoped em vez de AddHostedService",
+      "Injetar IServiceScopeFactory e resolver AppDbContext de um novo scope a cada iteração",
+      "Manter a injeção, mas chamar ChangeTracker.Clear() ao fim de cada iteração"
+    ],
+    "explanation": "Hosted services são singletons, então injetar um DbContext scoped é uma captive dependency (e falha na validação de scopes em Development). Criar um scope por unidade de trabalho fornece um contexto novo e de vida curta a cada vez. Um DbContext singleton não é thread-safe e cresce; hosted services não podem ser scoped."
+  },
+  {
+    "id": "net-health-liveness-readiness",
+    "title": "Checagens de banco em liveness probes",
+    "question": "Uma liveness probe do Kubernetes chama /healthz, que inclui um health check do SQL Server. Um failover breve do banco faz todos os pods serem reiniciados. Qual é o design melhor?",
+    "options": [
+      "Aumentar o timeout da liveness para que a checagem do banco sempre tenha tempo de completar",
+      "Remover os health checks e depender de probes TCP do Kubernetes para tudo",
+      "Mover a checagem do banco para um endpoint de readiness; a liveness checa só o processo",
+      "Guardar em cache o resultado da checagem do banco por uma hora para a liveness nunca falhar"
+    ],
+    "explanation": "Liveness responde 'este container deve ser reiniciado?', e reiniciar não resolve uma indisponibilidade de dependência. Readiness responde 'o tráfego deve ser roteado para cá?'. MapHealthChecks com um HealthCheckOptions.Predicate baseado em tags permite expor endpoints separados, para que falhas de dependências tirem pods de rotação sem tempestades de restart."
+  },
+  {
+    "id": "net-efcore-change-tracking-update",
+    "title": "Salvando uma entidade rastreada",
+    "question": "var blog = await db.Blogs.FirstAsync(b => b.Id == 1);\nblog.Name = \"New name\";\nawait db.SaveChangesAsync();\n\nO que o EF Core envia ao banco de dados?",
+    "options": [
+      "Um UPDATE que define apenas a coluna Name do blog 1",
+      "Um UPDATE que define todas as colunas do blog 1",
+      "Nada, porque Update(blog) não foi chamado",
+      "Um DELETE seguido de um INSERT do blog"
+    ],
+    "explanation": "Entidades consultadas são rastreadas por padrão. O change tracker guarda um snapshot dos valores originais, detecta que só Name mudou e gera um UPDATE para essa coluna. Chamar Update() não é necessário para entidades rastreadas; na verdade, ele marcaria todas as propriedades como modificadas."
+  },
+  {
+    "id": "net-efcore-asnotracking-save",
+    "title": "Modificando uma entidade sem tracking",
+    "question": "var blog = await db.Blogs.AsNoTracking().FirstAsync(b => b.Id == 1);\nblog.Name = \"New name\";\nvar n = await db.SaveChangesAsync();\n\nO que acontece?",
+    "options": [
+      "O UPDATE é enviado porque SaveChanges compara todas as entidades carregadas",
+      "SaveChangesAsync lança exceção porque a entidade foi carregada sem tracking",
+      "O EF consulta o blog de novo e o atualiza, então n é 1",
+      "Nenhum UPDATE é enviado e n é 0, porque o contexto não rastreia a entidade"
+    ],
+    "explanation": "AsNoTracking pula o registro no change tracker, o que é mais rápido para queries só de leitura, mas aí o contexto não sabe que o objeto existe. Para salvar alterações, você precisa anexá-lo (por exemplo, db.Update(blog)) ou consultar com tracking."
+  },
+  {
+    "id": "net-efcore-concurrent-context",
+    "title": "Queries paralelas em um único DbContext",
+    "question": "Em um controller, `await Task.WhenAll(db.Orders.CountAsync(), db.Customers.CountAsync());` falha de forma intermitente. Por quê?",
+    "options": [
+      "O SQL Server não permite duas queries COUNT na mesma conexão aberta",
+      "O DbContext permite uma operação por vez; iniciar uma segunda lança exceção",
+      "Task.WhenAll não pode ser usado com tasks retornadas por queries do EF Core",
+      "CountAsync retorna um ValueTask, que Task.WhenAll não consegue aguardar em conjunto"
+    ],
+    "explanation": "Uma instância de DbContext suporta só uma operação assíncrona por vez e detecta uso concorrente, lançando 'A second operation was started on this context instance'. Faça await das queries em sequência ou use contextos separados (por exemplo, IDbContextFactory) quando precisar de paralelismo real."
+  },
+  {
+    "id": "net-efcore-include-related",
+    "title": "Carregando entidades relacionadas",
+    "question": "Com um DbContext novo e sem lazy loading configurado, `var blog = await db.Blogs.FirstAsync();` é seguido de `blog.Posts.Count` (Posts é inicializado como uma List vazia). Existem posts no banco. Qual é o valor de Count?",
+    "options": [
+      "O número real de posts, porque o EF carrega navegações no primeiro acesso",
+      "0, porque dados relacionados só são carregados via Include ou carregamento explícito",
+      "Lança uma LazyLoadingException no primeiro acesso a Posts",
+      "O número real de posts, porque navegações de coleção são sempre eager"
+    ],
+    "explanation": "O EF Core não carrega navegações automaticamente. Você escolhe eager loading (Include), carregamento explícito (Entry(blog).Collection(b => b.Posts).LoadAsync()) ou lazy loading opcional via proxies. Sem um desses, a coleção continua vazia."
+  },
+  {
+    "id": "net-efcore-n-plus-one",
+    "title": "Queries N+1 com lazy loading",
+    "question": "Um endpoint com proxies de lazy loading habilitados executa:\n\nforeach (var user in await db.Users.ToListAsync())\n    total += user.Orders.Count;\n\nCom 500 usuários, a latência p95 é de 4 s. Qual é o problema e a correção?",
+    "options": [
+      "O change tracker é lento demais para 500 usuários; adicione AsNoTracking e mantenha o loop",
+      "ToListAsync coloca todos os usuários em buffer na memória; troque por AsAsyncEnumerable",
+      "Count em uma navegação é avaliado no cliente; crie um índice no banco em Orders.UserId",
+      "Queries N+1: cada acesso a Orders roda uma query; projete Select(u => u.Orders.Count())"
+    ],
+    "explanation": "O lazy loading emite uma query separada na primeira vez que os Orders de cada usuário são acessados: 1 query para os usuários mais 500 para os pedidos, cada uma com um round trip. Projetar o agregado (ou usar Include quando você precisa das entidades) deixa o banco calcular tudo em uma única query."
+  },
+  {
+    "id": "net-efcore-projection",
+    "title": "Projetando para um DTO",
+    "question": "Um endpoint de listagem só precisa de Id e Name dos produtos, que têm 30 colunas, incluindo uma Description grande. O que `db.Products.Select(p => new ProductDto(p.Id, p.Name)).ToListAsync()` consegue?",
+    "options": [
+      "O SQL seleciona só Id e Name, e os DTOs não são rastreados",
+      "O SQL seleciona todas as colunas e depois o EF mapeia duas delas no DTO",
+      "O SQL seleciona só Id e Name, mas cada DTO é rastreado pelo change tracker",
+      "Falha porque o EF não consegue traduzir uma chamada de construtor"
+    ],
+    "explanation": "O EF Core traduz a projeção em um SELECT das colunas referenciadas, evitando transferir dados desnecessários. Resultados que não são entidades não são rastreados, então também não há custo de snapshot. Projeção é uma das otimizações de leitura mais eficazes no EF."
+  },
+  {
+    "id": "net-efcore-split-query",
+    "title": "Explosão cartesiana com múltiplos Includes",
+    "question": "`db.Blogs.Include(b => b.Posts).Include(b => b.Contributors)` retorna result sets enormes e é lento para blogs com muitos posts e contribuidores. Qual é a causa e um remédio do EF Core?",
+    "options": [
+      "Include emite uma query por blog; use AsNoTracking para agrupá-las em uma só",
+      "O EF carrega Contributors de forma lazy apesar do Include; chame Load() explicitamente",
+      "Uma única query com JOIN duplica linhas (posts x contribuidores); use AsSplitQuery()",
+      "Dois Includes forçam avaliação no cliente; adicione ToList() antes do segundo Include"
+    ],
+    "explanation": "Com carregamento em query única, dois Includes de coleções irmãs produzem um produto cartesiano, e o número de linhas se multiplica. AsSplitQuery (ou UseQuerySplittingBehavior globalmente) executa uma query por coleção, trocando round trips extras e possíveis problemas de consistência por muito menos duplicação de dados."
+  },
+  {
+    "id": "net-efcore-executeupdate",
+    "title": "Atualização em massa com ExecuteUpdateAsync",
+    "question": "await db.Products\n    .Where(p => p.CategoryId == 3)\n    .ExecuteUpdateAsync(s => s.SetProperty(p => p.Price, p => p.Price * 1.1m));\n\nQual afirmação é verdadeira?",
+    "options": [
+      "Carrega os produtos filtrados, atualiza-os em memória e depois espera o SaveChanges",
+      "Atualiza só as entidades rastreadas em memória e não envia nada ao banco",
+      "Envia um UPDATE na hora, sem carregar entidades; produtos rastreados mantêm preços antigos",
+      "Envia um UPDATE por produto, dentro da transação da próxima chamada a SaveChanges"
+    ],
+    "explanation": "ExecuteUpdate/ExecuteDelete são traduzidos diretamente para SQL baseado em conjuntos e executados na hora, ignorando o change tracker. Isso é ótimo para operações em massa, mas instâncias rastreadas não são atualizadas e o comando não faz parte do SaveChanges, a menos que você use uma transação explícita."
+  },
+  {
+    "id": "net-efcore-optimistic-concurrency",
+    "title": "Concorrência otimista com rowversion",
+    "question": "Uma entidade tem `[Timestamp] public byte[] Version { get; set; }` no SQL Server. Dois usuários carregam a mesma linha, ambos editam e salvam. O que acontece no segundo save?",
+    "options": [
+      "DbUpdateConcurrencyException, pois o UPDATE ... WHERE Version = @original afeta 0 linhas",
+      "O segundo save sobrescreve o primeiro silenciosamente, então a última escrita vence",
+      "O segundo save espera o commit da transação do primeiro usuário e então o sobrescreve",
+      "O EF mescla as alterações dos dois usuários coluna por coluna e salva ambas"
+    ],
+    "explanation": "Um concurrency token é adicionado à cláusula WHERE de UPDATE/DELETE. Depois do primeiro save, o banco muda o rowversion, então o segundo comando não afeta nenhuma linha e o EF lança exceção. O app então decide como resolver: recarregar e tentar de novo, mesclar ou mostrar o conflito ao usuário."
+  },
+  {
+    "id": "net-testing-webapplicationfactory",
+    "title": "Testes de integração com WebApplicationFactory",
+    "question": "O que `WebApplicationFactory<Program>` com `WithWebHostBuilder(b => b.ConfigureTestServices(s => ...))` oferece?",
+    "options": [
+      "Gera mocks para todos os serviços registrados automaticamente e os injeta nos controllers",
+      "Faz deploy do app em uma porta local do Kestrel e roda testes de UI no navegador contra ele",
+      "Executa controllers diretamente, sem o pipeline de middlewares, roteamento ou filtros",
+      "Hospeda o app real em memória em um TestServer, com um HttpClient e serviços substituíveis"
+    ],
+    "explanation": "WebApplicationFactory usa o startup real do app (middlewares, roteamento, DI) hospedado em um TestServer em memória, e CreateClient retorna um HttpClient que não passa pela rede. ConfigureTestServices roda depois dos registros do app, então os testes podem substituir, por exemplo, APIs externas ou o banco de dados."
+  },
+  {
+    "id": "net-testing-efcore-inmemory",
+    "title": "Armadilhas do provider in-memory do EF Core",
+    "question": "Testes contra o provider InMemory do EF Core passam, mas em produção, no PostgreSQL, uma query e uma unique constraint falham. Por que isso é comum?",
+    "options": [
+      "O provider in-memory executa queries em paralelo, o que esconde race conditions",
+      "Ele não é relacional: ignora muitas constraints, transações e a tradução para SQL",
+      "O provider in-memory usa uma versão do compilador C# diferente da do app",
+      "Os testes sempre rodam com lazy loading habilitado, ao contrário da produção"
+    ],
+    "explanation": "O provider InMemory avalia LINQ em memória e não imita o comportamento relacional (SQL bruto, transações, aplicação de constraints, diferenciação de maiúsculas e minúsculas). A Microsoft recomenda testar contra o engine de banco real (por exemplo, em containers) ou, no máximo, SQLite in-memory, e usar fakes de repositório para testes unitários puros."
+  },
+  {
+    "id": "cs-linq-groupby-countby",
+    "title": "Contando itens por chave",
+    "question": "No .NET 9+, qual chamada retorna pares chave/contagem de palavras por primeira letra sem materializar grupos?",
+    "options": [
+      "words.GroupBy(w => w[0]).Count()",
+      "words.CountBy(w => w[0])",
+      "words.ToLookup(w => w[0]).Count",
+      "words.Distinct(w => w[0])"
+    ],
+    "explanation": "CountBy (adicionado no .NET 9) produz diretamente um KeyValuePair<TKey,int> para cada chave. GroupBy(...).Count() retorna o número de grupos, não as contagens por chave, e ToLookup(...).Count também é o número de chaves. Distinct não tem overload com seletor de chave (DistinctBy tem)."
+  },
+  {
+    "id": "net-di-keyed-services",
+    "title": "Keyed services",
+    "question": "Duas implementações de IStorage são registradas com `AddKeyedSingleton<IStorage, BlobStorage>(\"blob\")` e `AddKeyedSingleton<IStorage, DiskStorage>(\"disk\")`. Como um construtor pede a de blob?",
+    "options": [
+      "Injetar IStorage, e o container escolhe pelo nome do parâmetro blob",
+      "Injetar IEnumerable<IStorage> e filtrar pela chave em runtime",
+      "Injetar Func<string, IStorage> e chamá-la com \"blob\"",
+      "Anotar o parâmetro: [FromKeyedServices(\"blob\")] IStorage storage"
+    ],
+    "explanation": "Keyed services (nativos no Microsoft.Extensions.DependencyInjection desde o .NET 8) são resolvidos por chave via [FromKeyedServices] ou IServiceProvider.GetRequiredKeyedService. Registros com chave não são retornados para um parâmetro IStorage simples, e nomes de parâmetros não têm papel na resolução."
+  },
+  {
+    "id": "cs-async-cancellation-token",
+    "title": "Respeitando um CancellationToken",
+    "question": "Um endpoint ASP.NET Core recebe um CancellationToken e o passa para `db.Orders.ToListAsync(ct)`. O cliente desconecta no meio da query. O que acontece?",
+    "options": [
+      "O token é cancelado, o EF aborta o comando e uma OperationCanceledException se propaga",
+      "Nada; tokens só afetam código que consulta IsCancellationRequested manualmente",
+      "A query termina e a resposta fica em buffer até o cliente reconectar",
+      "O processo do servidor é reiniciado para liberar a conexão"
+    ],
+    "explanation": "O ASP.NET Core vincula um parâmetro CancellationToken a HttpContext.RequestAborted. APIs assíncronas que aceitam o token o observam e interrompem o trabalho, lançando OperationCanceledException (ou TaskCanceledException, uma subclasse). Repassar tokens economiza tempo de banco e de CPU com requisições abandonadas."
+  },
+  {
+    "id": "net-config-env-var-separator",
+    "title": "Chaves hierárquicas em variáveis de ambiente",
+    "question": "Qual variável de ambiente sobrescreve `Logging:LogLevel:Default` no Linux em um app ASP.NET Core?",
+    "options": [
+      "Logging:LogLevel:Default (separado por dois-pontos)",
+      "Logging.LogLevel.Default (separado por pontos)",
+      "Logging__LogLevel__Default (underscores duplos)",
+      "LOGGING_LOGLEVEL_DEFAULT (underscores simples)"
+    ],
+    "explanation": "Dois-pontos não são permitidos em nomes de variáveis de ambiente em todas as plataformas, então o provider de variáveis de ambiente mapeia o underscore duplo para o separador ':'. Pontos ou underscores simples são mantidos literalmente e não criam hierarquia. As chaves não diferenciam maiúsculas de minúsculas."
+  },
+  {
+    "id": "cs-memory-using-declaration",
+    "title": "Escopo de uma using declaration",
+    "question": "static void Write(string path)\n{\n    using var file = File.CreateText(path);\n    file.WriteLine(\"a\");\n    DoMoreWork();\n}\n\nQuando `file` é descartado?",
+    "options": [
+      "Logo após a chamada a WriteLine",
+      "Quando o garbage collector finaliza o StreamWriter",
+      "No fim do escopo envolvente, depois que DoMoreWork retorna",
+      "Nunca; using declarations só suprimem warnings"
+    ],
+    "explanation": "Uma using declaration (C# 8+) descarta a variável quando o controle sai do bloco envolvente, aqui o corpo do método, mesmo que uma exceção seja lançada. É concisa, mas pode segurar recursos por mais tempo que um bloco using bem delimitado em volta do trabalho."
+  },
+  {
+    "id": "net-efcore-migrations",
+    "title": "Aplicando mudanças de schema",
+    "question": "Depois de adicionar uma propriedade a uma entidade, qual par de comandos da CLI do EF Core cria uma migration e a aplica ao banco?",
+    "options": [
+      "dotnet ef migrations add AddPhone, depois dotnet ef database update",
+      "dotnet ef dbcontext scaffold, depois dotnet ef database update",
+      "dotnet ef migrations add AddPhone, depois dotnet build",
+      "dotnet ef database drop, depois dotnet ef migrations list"
+    ],
+    "explanation": "migrations add compara o modelo com o último snapshot e gera o código Up/Down; database update aplica as migrations pendentes. dbcontext scaffold faz engenharia reversa de código a partir de um banco existente, e apenas fazer o build nunca altera o schema."
+  }
+]

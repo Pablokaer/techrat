@@ -17,13 +17,14 @@ using TechRat.Infrastructure.Persistence;
 namespace TechRat.Infrastructure.Seed;
 
 public sealed record SeedReport(
-    int TopicsAdded, int SubtopicsAdded, int QuestionsAdded, int RoadmapsAdded, int StepsAdded, int AchievementsAdded, int TranslationsAdded);
+    int TopicsAdded, int SubtopicsAdded, int QuestionsAdded, int RoadmapsAdded, int StepsAdded, int AchievementsAdded, int TranslationsAdded,
+    int QuestionsUpdated = 0, int TranslationsUpdated = 0, int ModulesAdded = 0, int CompositionsChanged = 0, int CreditsMapped = 0);
 
 /// <summary>
 /// Idempotent seed. Records are matched by natural keys (slug / external key / code) and only missing ones are inserted,
 /// so restarts never duplicate data and admin edits to existing records are preserved.
 /// </summary>
-public sealed class DatabaseSeeder(
+public sealed partial class DatabaseSeeder(
     AppDbContext db,
     UserManager<ApplicationUser> userManager,
     RoleManager<IdentityRole<Guid>> roleManager,
@@ -40,23 +41,21 @@ public sealed class DatabaseSeeder(
     private sealed record SubtopicJson(string Slug, string Name, int Order);
     private sealed record QuestionJson(string Id, string Topic, string Subtopic, string Difficulty, string Title, string Question,
         List<string> Options, int CorrectIndex, string Explanation, string ReferenceUrl);
-    private sealed record RoadmapJson(string Slug, string Name, string Category, string Difficulty, string Icon, string Description,
-        int EstimatedHours, List<PrereqJson> Prerequisites, List<ModuleJson> Modules);
-    private sealed record PrereqJson(string Slug, int MinimumPercent);
-    private sealed record ModuleJson(string Title, int Order, List<StepJson> Steps);
-    private sealed record StepJson(string Topic, string? Subtopic, string Title, int Order, int EstimatedMinutes);
     private sealed record AchievementJson(string Code, string Name, string Description, string RuleType, int Threshold, string? TargetSlug,
         int? SecondaryThreshold, string Tier, string Icon, int XpReward, string Category);
 
     // i18n/<locale>.json: catalog translations keyed by slug / code / order.
     private sealed record TranslationJson(
         Dictionary<string, TopicTranslationJson>? Topics, Dictionary<string, RoadmapTranslationJson>? Roadmaps,
-        Dictionary<string, AchievementTranslationJson>? Achievements);
+        Dictionary<string, AchievementTranslationJson>? Achievements, Dictionary<string, ModuleTranslationJson>? Modules);
     private sealed record TopicTranslationJson(string? Name, string? Description, string? Category, Dictionary<string, string>? Subtopics);
-    private sealed record RoadmapTranslationJson(string? Name, string? Description, string? Category,
-        Dictionary<string, string>? Modules, Dictionary<string, string>? Steps);
+    private sealed record RoadmapTranslationJson(string? Name, string? Description, string? Category);
+    /// <summary>Module name/description and step titles keyed by "topic/subtopic" (or "topic" for whole-topic steps).</summary>
+    private sealed record ModuleTranslationJson(string? Name, string? Description, Dictionary<string, string>? Steps);
     private sealed record AchievementTranslationJson(string? Name, string? Description, string? Category);
     private const string TranslationResourcePrefix = ".Seed.Data.i18n.";
+    private const string QuestionTranslationResourcePrefix = ".Seed.Data.i18n.questions.";
+    private sealed record QuestionTranslationJson(string Id, string Title, string Question, List<string> Options, string Explanation);
 
     private static T Load<T>(string name)
     {
@@ -101,8 +100,15 @@ public sealed class DatabaseSeeder(
         await db.SaveChangesAsync(ct);
 
         // Questions ------------------------------------------------------------
-        var existingKeys = (await db.Questions.Where(q => q.ExternalKey != null).Select(q => q.ExternalKey!).ToListAsync(ct)).ToHashSet();
+        // Seeded questions an admin never edited (UpdatedAt == CreatedAt) follow the seed files, so content fixes
+        // (e.g. rebalanced option lengths) reach existing databases. Admin-edited questions are left alone.
+        var seeded = await db.Questions.Include(q => q.Options).Where(q => q.ExternalKey != null).ToDictionaryAsync(q => q.ExternalKey!, ct);
+        var existingKeys = seeded.Keys.ToHashSet();
         var questionsAdded = 0;
+        var questionsUpdated = 0;
+        foreach (var file in LoadQuestionFiles())
+        foreach (var qj in file.Where(q => seeded.ContainsKey(q.Id)))
+            if (RefreshFromSeed(seeded[qj.Id], qj)) questionsUpdated++;
         foreach (var file in LoadQuestionFiles())
         foreach (var qj in file.Where(q => !existingKeys.Contains(q.Id)))
         {
@@ -123,67 +129,8 @@ public sealed class DatabaseSeeder(
         }
         await db.SaveChangesAsync(ct);
 
-        // Roadmaps --------------------------------------------------------------
-        var questionCounts = await db.Questions.Where(q => q.IsActive)
-            .GroupBy(q => new { q.TopicId, q.SubtopicId }).Select(g => new { g.Key.TopicId, g.Key.SubtopicId, Count = g.Count() }).ToListAsync(ct);
-        int Available(Guid topicId, Guid? subId) => questionCounts.Where(c => c.TopicId == topicId && (subId == null || c.SubtopicId == subId)).Sum(c => c.Count);
-
-        var roadmapJson = Load<List<RoadmapJson>>("roadmaps.json");
-        var roadmaps = await db.Roadmaps.ToListAsync(ct);
-        int roadmapsAdded = 0, stepsAdded = 0, order = roadmaps.Count;
-        foreach (var rj in roadmapJson.Where(rj => roadmaps.All(r => r.Slug != rj.Slug)))
-        {
-            var difficulty = Enum.Parse<RoadmapDifficulty>(rj.Difficulty);
-            var roadmap = new Roadmap
-            {
-                Slug = rj.Slug, Name = rj.Name, Category = rj.Category, Difficulty = difficulty, Icon = rj.Icon, Description = rj.Description,
-                EstimatedHours = rj.EstimatedHours, IsPublished = true, DisplayOrder = ++order, XPReward = _o.RoadmapCompletedXp,
-            };
-            foreach (var mj in rj.Modules)
-            {
-                var module = new RoadmapModule { RoadmapId = roadmap.Id, Title = mj.Title, Order = mj.Order, XPReward = _o.RoadmapModuleXp };
-                roadmap.Modules.Add(module);
-                foreach (var sj in mj.Steps)
-                {
-                    var topic = topics.First(t => t.Slug == sj.Topic);
-                    var sub = sj.Subtopic is null ? null : topic.Subtopics.First(s => s.Slug == sj.Subtopic);
-                    var available = Available(topic.Id, sub?.Id);
-                    if (available == 0) throw new InvalidOperationException($"Roadmap {rj.Slug} step {sj.Title} has no questions.");
-                    roadmap.Steps.Add(new RoadmapStep
-                    {
-                        RoadmapId = roadmap.Id, ModuleId = module.Id, Title = sj.Title, Order = sj.Order, EstimatedMinutes = sj.EstimatedMinutes,
-                        Description = DefaultStepDescription(topic.Name, sub?.Name),
-                        Difficulty = difficulty switch
-                        {
-                            RoadmapDifficulty.Beginner => Difficulty.Easy, RoadmapDifficulty.Intermediate => Difficulty.Medium,
-                            RoadmapDifficulty.Advanced => Difficulty.Hard, _ => Difficulty.Expert,
-                        },
-                        TopicId = topic.Id, SubtopicId = sub?.Id,
-                        // Never require more questions than exist in the step's scope.
-                        MinimumQuestions = Math.Min(_o.DefaultStepMinimumQuestions, available),
-                        MinimumAccuracy = _o.DefaultStepMinimumAccuracy,
-                        XPReward = _o.RoadmapStepXp,
-                    });
-                    stepsAdded++;
-                }
-            }
-            roadmap.StepsCount = roadmap.Steps.Count;
-            db.Roadmaps.Add(roadmap); roadmaps.Add(roadmap); roadmapsAdded++;
-        }
-        await db.SaveChangesAsync(ct);
-
-        var deps = await db.RoadmapDependencies.ToListAsync(ct);
-        foreach (var rj in roadmapJson)
-        {
-            var roadmap = roadmaps.First(r => r.Slug == rj.Slug);
-            foreach (var p in rj.Prerequisites)
-            {
-                var required = roadmaps.First(r => r.Slug == p.Slug);
-                if (deps.Any(d => d.RoadmapId == roadmap.Id && d.RequiredRoadmapId == required.Id)) continue;
-                var dep = new RoadmapDependency { RoadmapId = roadmap.Id, RequiredRoadmapId = required.Id, MinimumPercent = p.MinimumPercent };
-                db.RoadmapDependencies.Add(dep); deps.Add(dep);
-            }
-        }
+        // Module catalog and roadmaps --------------------------------------------
+        var catalog = await SeedCatalogAsync(topics, ct);
 
         // Achievements ----------------------------------------------------------
         var codes = (await db.Achievements.Select(a => a.Code).ToListAsync(ct)).ToHashSet();
@@ -200,28 +147,33 @@ public sealed class DatabaseSeeder(
         }
         await db.SaveChangesAsync(ct);
 
-        var translationsAdded = await SeedTranslationsAsync(topics, ct);
+        var translations = new TranslationWriter(db);
+        await SeedTranslationsAsync(topics, translations, ct);
+        await SeedQuestionTranslationsAsync(translations, ct);
+        await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
         await SeedIdentityAsync(now);
 
-        var report = new SeedReport(topicsAdded, subsAdded, questionsAdded, roadmapsAdded, stepsAdded, achievementsAdded, translationsAdded);
+        var report = new SeedReport(topicsAdded, subsAdded, questionsAdded, catalog.RoadmapsAdded, catalog.StepsAdded, achievementsAdded,
+            translations.Added, questionsUpdated, translations.Updated, catalog.ModulesAdded, catalog.CompositionsChanged, catalog.CreditsMapped);
         logger.LogInformation("Seed completed {@SeedReport}", report);
         return report;
     }
 
     /// <summary>
-    /// Inserts missing catalog translations from every <c>Seed/Data/i18n/&lt;locale&gt;.json</c>.
-    /// Existing rows are never overwritten, so edited translations survive restarts.
+    /// Writes catalog translations from every <c>Seed/Data/i18n/&lt;locale&gt;.json</c> (see <see cref="TranslationWriter"/>).
     /// </summary>
-    private async Task<int> SeedTranslationsAsync(List<Topic> topics, CancellationToken ct)
+    private async Task SeedTranslationsAsync(List<Topic> topics, TranslationWriter writer, CancellationToken ct)
     {
         var asm = typeof(DatabaseSeeder).Assembly;
-        var roadmaps = await db.Roadmaps.Include(r => r.Modules).Include(r => r.Steps).ToListAsync(ct);
+        var roadmaps = await db.Roadmaps.ToListAsync(ct);
+        var modules = await db.LearningModules.Include(m => m.Steps).ToListAsync(ct);
         var achievements = await db.Achievements.ToListAsync(ct);
-        var added = 0;
 
-        foreach (var resource in asm.GetManifestResourceNames().Where(n => n.Contains(TranslationResourcePrefix, StringComparison.Ordinal)).Order())
+        foreach (var resource in asm.GetManifestResourceNames()
+                     .Where(n => n.Contains(TranslationResourcePrefix, StringComparison.Ordinal) && !n.Contains(QuestionTranslationResourcePrefix, StringComparison.Ordinal))
+                     .Order())
         {
             var file = resource[(resource.IndexOf(TranslationResourcePrefix, StringComparison.Ordinal) + TranslationResourcePrefix.Length)..];
             var locale = Path.GetFileNameWithoutExtension(file);
@@ -235,16 +187,8 @@ public sealed class DatabaseSeeder(
             await using (var stream = asm.GetManifestResourceStream(resource)!)
                 data = (await JsonSerializer.DeserializeAsync<TranslationJson>(stream, Json, ct))!;
 
-            var existing = (await db.ContentTranslations.Where(t => t.Locale == locale)
-                    .Select(t => new { t.EntityType, t.EntityId, t.Field }).ToListAsync(ct))
-                .Select(t => (t.EntityType, t.EntityId, t.Field)).ToHashSet();
-
-            void Add(string entityType, Guid id, string field, string? value)
-            {
-                if (string.IsNullOrWhiteSpace(value) || !existing.Add((entityType, id, field))) return;
-                db.ContentTranslations.Add(new ContentTranslation { EntityType = entityType, EntityId = id, Locale = locale, Field = field, Value = value.Trim() });
-                added++;
-            }
+            await writer.LoadAsync(locale, ct);
+            void Add(string entityType, Guid id, string field, string? value) => writer.Write(locale, entityType, id, field, value);
 
             var topicTr = data.Topics ?? [];
             foreach (var topic in topics)
@@ -264,14 +208,24 @@ public sealed class DatabaseSeeder(
                 Add(TranslatableEntity.Roadmap, roadmap.Id, TranslatableField.Name, rt!.Name);
                 Add(TranslatableEntity.Roadmap, roadmap.Id, TranslatableField.Description, rt.Description);
                 Add(TranslatableEntity.Roadmap, roadmap.Id, TranslatableField.Category, rt.Category);
-                foreach (var module in roadmap.Modules)
-                    if (rt.Modules?.TryGetValue(module.Order.ToString(), out var title) == true)
-                        Add(TranslatableEntity.RoadmapModule, module.Id, TranslatableField.Title, title);
-                foreach (var step in roadmap.Steps)
+            }
+
+            foreach (var module in modules)
+            {
+                var mt = data.Modules?.GetValueOrDefault(module.Slug);
+                if (mt is not null)
                 {
-                    if (rt.Steps?.TryGetValue(step.Order.ToString(), out var title) == true)
-                        Add(TranslatableEntity.RoadmapStep, step.Id, TranslatableField.Title, title);
-                    Add(TranslatableEntity.RoadmapStep, step.Id, TranslatableField.Description, StepDescription(step, topics, topicTr, locale));
+                    Add(TranslatableEntity.Module, module.Id, TranslatableField.Name, mt.Name);
+                    Add(TranslatableEntity.Module, module.Id, TranslatableField.Description, mt.Description);
+                }
+                foreach (var step in module.Steps)
+                {
+                    var topic = topics.First(t => t.Id == step.TopicId);
+                    var sub = step.SubtopicId is { } sid ? topic.Subtopics.First(x => x.Id == sid) : null;
+                    var key = sub is null ? topic.Slug : $"{topic.Slug}/{sub.Slug}";
+                    if (mt?.Steps?.TryGetValue(key, out var title) == true)
+                        Add(TranslatableEntity.ModuleStep, step.Id, TranslatableField.Title, title);
+                    Add(TranslatableEntity.ModuleStep, step.Id, TranslatableField.Description, StepDescription(step, topics, topicTr, locale));
                 }
             }
 
@@ -284,12 +238,121 @@ public sealed class DatabaseSeeder(
             }
         }
 
-        await db.SaveChangesAsync(ct);
-        return added;
+    }
+
+    /// <summary>Writes question translations from <c>Seed/Data/i18n/questions/&lt;group&gt;.&lt;locale&gt;.json</c>, matched by question id.</summary>
+    private async Task SeedQuestionTranslationsAsync(TranslationWriter writer, CancellationToken ct)
+    {
+        var asm = typeof(DatabaseSeeder).Assembly;
+        var questions = await db.Questions.AsNoTracking().Where(q => q.ExternalKey != null)
+            .Select(q => new { q.Id, Key = q.ExternalKey!, Options = q.Options.OrderBy(o => o.DisplayOrder).Select(o => o.Id).ToList() })
+            .ToDictionaryAsync(q => q.Key, ct);
+
+        foreach (var resource in asm.GetManifestResourceNames().Where(n => n.Contains(QuestionTranslationResourcePrefix, StringComparison.Ordinal)).Order())
+        {
+            var file = Path.GetFileNameWithoutExtension(resource); // "...questions.<group>.<locale>"
+            var locale = file[(file.LastIndexOf('.') + 1)..];
+            if (locale == AppLocales.Default || !AppLocales.Supported.Contains(locale))
+            {
+                logger.LogWarning("Skipping question translation file {File}: {Locale} is not a supported non-default locale", resource, locale);
+                continue;
+            }
+
+            List<QuestionTranslationJson> data;
+            await using (var stream = asm.GetManifestResourceStream(resource)!)
+                data = (await JsonSerializer.DeserializeAsync<List<QuestionTranslationJson>>(stream, Json, ct))!;
+
+            await writer.LoadAsync(locale, ct);
+            foreach (var t in data)
+            {
+                if (!questions.TryGetValue(t.Id, out var q)) continue;
+                writer.Write(locale, TranslatableEntity.Question, q.Id, TranslatableField.Title, t.Title);
+                writer.Write(locale, TranslatableEntity.Question, q.Id, TranslatableField.Text, t.Question);
+                writer.Write(locale, TranslatableEntity.Question, q.Id, TranslatableField.Explanation, t.Explanation);
+                if (t.Options.Count != q.Options.Count)
+                {
+                    logger.LogWarning("Question translation {Id} has {Count} options; expected {Expected}", t.Id, t.Options.Count, q.Options.Count);
+                    continue;
+                }
+                for (var i = 0; i < q.Options.Count; i++)
+                    writer.Write(locale, TranslatableEntity.QuestionOption, q.Options[i], TranslatableField.Text, t.Options[i]);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Copies the seed file's text into an unedited seeded question. Returns true when something changed.
+    /// The option order and the correct option never change (attempts reference option ids), so a seed entry
+    /// that moves the correct answer is ignored with a warning.
+    /// </summary>
+    private bool RefreshFromSeed(Question q, QuestionJson qj)
+    {
+        if (q.UpdatedAt != q.CreatedAt) return false;
+        var options = q.Options.OrderBy(o => o.DisplayOrder).ToList();
+        if (options.Count != qj.Options.Count || options.FindIndex(o => o.IsCorrect) != qj.CorrectIndex)
+        {
+            logger.LogWarning("Seed question {Id} changed its options or correct answer; refresh skipped", qj.Id);
+            return false;
+        }
+
+        var changed = false;
+        void Set(string current, string value, Action<string> apply)
+        {
+            if (current == value) return;
+            apply(value);
+            changed = true;
+        }
+        Set(q.Title, qj.Title, v => q.Title = v);
+        Set(q.QuestionText, qj.Question, v => q.QuestionText = v);
+        Set(q.Explanation, qj.Explanation, v => q.Explanation = v);
+        Set(q.ReferenceUrl, qj.ReferenceUrl, v => q.ReferenceUrl = v);
+        for (var i = 0; i < options.Count; i++)
+        {
+            var option = options[i];
+            Set(option.Text, qj.Options[i], v => option.Text = v);
+        }
+        return changed;
+    }
+
+    /// <summary>
+    /// Inserts missing translation rows and refreshes rows that still mirror the seed (<see cref="ContentTranslation.SeedManaged"/>).
+    /// Rows customised by an admin are never overwritten.
+    /// </summary>
+    private sealed class TranslationWriter(AppDbContext db)
+    {
+        private readonly Dictionary<(string Locale, string Type, Guid Id, string Field), ContentTranslation> _rows = [];
+        private readonly HashSet<string> _loadedLocales = [];
+
+        public int Added { get; private set; }
+        public int Updated { get; private set; }
+
+        public async Task LoadAsync(string locale, CancellationToken ct)
+        {
+            if (!_loadedLocales.Add(locale)) return;
+            foreach (var row in await db.ContentTranslations.Where(t => t.Locale == locale).ToListAsync(ct))
+                _rows[(row.Locale, row.EntityType, row.EntityId, row.Field)] = row;
+        }
+
+        public void Write(string locale, string entityType, Guid id, string field, string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return;
+            value = value.Trim();
+            if (_rows.TryGetValue((locale, entityType, id, field), out var row))
+            {
+                if (!row.SeedManaged || row.Value == value) return;
+                row.Value = value;
+                Updated++;
+                return;
+            }
+            row = new ContentTranslation { EntityType = entityType, EntityId = id, Locale = locale, Field = field, Value = value };
+            db.ContentTranslations.Add(row);
+            _rows[(locale, entityType, id, field)] = row;
+            Added++;
+        }
     }
 
     /// <summary>The generated step description in <paramref name="locale"/>; null when an admin replaced the generated English text.</summary>
-    private static string? StepDescription(RoadmapStep step, List<Topic> topics, Dictionary<string, TopicTranslationJson> topicTr, string locale)
+    private static string? StepDescription(ModuleStep step, List<Topic> topics, Dictionary<string, TopicTranslationJson> topicTr, string locale)
     {
         var topic = topics.FirstOrDefault(t => t.Id == step.TopicId);
         if (topic is null) return null;

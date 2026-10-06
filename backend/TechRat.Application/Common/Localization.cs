@@ -92,6 +92,8 @@ public static class Text
         public const string AdminModuleRequired = "admin.moduleRequired";
         public const string AdminTitleRequired = "admin.titleRequired";
         public const string AdminRange = "admin.range";
+        public const string AdminUnknownModule = "admin.unknownModule";
+        public const string AdminModuleAlreadyInRoadmap = "admin.moduleAlreadyInRoadmap";
     }
 
     // Resource names used in "not found" messages (NotFoundException's first argument).
@@ -104,6 +106,7 @@ public static class Text
         ["Roadmap"] = "Roadmap",
         ["Subtopic"] = "Subtópico",
         ["Topic"] = "Tópico",
+        ["Module"] = "Módulo",
         ["User"] = "Usuário",
     };
 
@@ -176,6 +179,8 @@ public static class Text
         [Keys.AdminModuleRequired] = "Provide a module or a new module title.",
         [Keys.AdminTitleRequired] = "Title is required.",
         [Keys.AdminRange] = "Must be between {0} and {1}.",
+        [Keys.AdminUnknownModule] = "Unknown module.",
+        [Keys.AdminModuleAlreadyInRoadmap] = "This module is already in the roadmap.",
     };
 
     public static readonly IReadOnlyDictionary<string, string> PtBr = new Dictionary<string, string>
@@ -247,6 +252,8 @@ public static class Text
         [Keys.AdminModuleRequired] = "Informe um módulo ou o título de um novo módulo.",
         [Keys.AdminTitleRequired] = "O título é obrigatório.",
         [Keys.AdminRange] = "Deve estar entre {0} e {1}.",
+        [Keys.AdminUnknownModule] = "Módulo desconhecido.",
+        [Keys.AdminModuleAlreadyInRoadmap] = "Este módulo já está no roadmap.",
     };
 
     /// <summary>Formats <paramref name="key"/> in the current locale (falls back to English).</summary>
@@ -282,12 +289,17 @@ public sealed class ContentTranslations(IReadOnlyDictionary<string, string> valu
     public string RoadmapName(Guid id, string fallback) => Get(TranslatableEntity.Roadmap, id, TranslatableField.Name, fallback);
     public string RoadmapDescription(Guid id, string fallback) => Get(TranslatableEntity.Roadmap, id, TranslatableField.Description, fallback);
     public string RoadmapCategory(Guid id, string fallback) => Get(TranslatableEntity.Roadmap, id, TranslatableField.Category, fallback);
-    public string ModuleTitle(Guid id, string fallback) => Get(TranslatableEntity.RoadmapModule, id, TranslatableField.Title, fallback);
-    public string StepTitle(Guid id, string fallback) => Get(TranslatableEntity.RoadmapStep, id, TranslatableField.Title, fallback);
-    public string StepDescription(Guid id, string fallback) => Get(TranslatableEntity.RoadmapStep, id, TranslatableField.Description, fallback);
+    public string ModuleName(Guid id, string fallback) => Get(TranslatableEntity.Module, id, TranslatableField.Name, fallback);
+    public string ModuleDescription(Guid id, string fallback) => Get(TranslatableEntity.Module, id, TranslatableField.Description, fallback);
+    public string StepTitle(Guid id, string fallback) => Get(TranslatableEntity.ModuleStep, id, TranslatableField.Title, fallback);
+    public string StepDescription(Guid id, string fallback) => Get(TranslatableEntity.ModuleStep, id, TranslatableField.Description, fallback);
     public string AchievementName(Guid id, string fallback) => Get(TranslatableEntity.Achievement, id, TranslatableField.Name, fallback);
     public string AchievementDescription(Guid id, string fallback) => Get(TranslatableEntity.Achievement, id, TranslatableField.Description, fallback);
     public string AchievementCategory(Guid id, string fallback) => Get(TranslatableEntity.Achievement, id, TranslatableField.Category, fallback);
+    public string QuestionTitle(Guid id, string fallback) => Get(TranslatableEntity.Question, id, TranslatableField.Title, fallback);
+    public string QuestionText(Guid id, string fallback) => Get(TranslatableEntity.Question, id, TranslatableField.Text, fallback);
+    public string QuestionExplanation(Guid id, string fallback) => Get(TranslatableEntity.Question, id, TranslatableField.Explanation, fallback);
+    public string OptionText(Guid id, string fallback) => Get(TranslatableEntity.QuestionOption, id, TranslatableField.Text, fallback);
 }
 
 /// <summary>Loads catalog translations for the current locale (cached; English needs none).</summary>
@@ -302,10 +314,26 @@ public sealed class ContentLocalizer(IAppDbContext db, ICacheService cache)
     {
         if (locale == AppLocales.Default) return ContentTranslations.None;
         if (_loaded.TryGetValue(locale, out var loaded)) return loaded;
+        // Question texts are loaded per session (LoadQuestionsAsync); the cached dictionary holds the small catalog only.
         var values = await cache.GetOrCreateAsync(CacheKeys.Translations(locale), TimeSpan.FromMinutes(10), async c =>
-            (await db.ContentTranslations.AsNoTracking().Where(t => t.Locale == locale)
+            (await db.ContentTranslations.AsNoTracking()
+                .Where(t => t.Locale == locale && t.EntityType != TranslatableEntity.Question && t.EntityType != TranslatableEntity.QuestionOption)
                 .Select(t => new { t.EntityType, t.EntityId, t.Field, t.Value }).ToListAsync(c))
             .ToDictionary(t => ContentTranslations.Key(t.EntityType, t.EntityId, t.Field), t => t.Value), ct);
         return _loaded[locale] = new ContentTranslations(values);
+    }
+
+    /// <summary>Translations of the given questions and their options in the current locale (straight from the database).</summary>
+    public async Task<ContentTranslations> LoadQuestionsAsync(IEnumerable<Guid> questionIds, IEnumerable<Guid> optionIds, CancellationToken ct)
+    {
+        var locale = AppLocales.Current;
+        if (locale == AppLocales.Default) return ContentTranslations.None;
+        var qIds = questionIds.Distinct().ToList();
+        var oIds = optionIds.Distinct().ToList();
+        var rows = await db.ContentTranslations.AsNoTracking()
+            .Where(t => t.Locale == locale && ((t.EntityType == TranslatableEntity.Question && qIds.Contains(t.EntityId))
+                || (t.EntityType == TranslatableEntity.QuestionOption && oIds.Contains(t.EntityId))))
+            .Select(t => new { t.EntityType, t.EntityId, t.Field, t.Value }).ToListAsync(ct);
+        return new ContentTranslations(rows.ToDictionary(t => ContentTranslations.Key(t.EntityType, t.EntityId, t.Field), t => t.Value));
     }
 }

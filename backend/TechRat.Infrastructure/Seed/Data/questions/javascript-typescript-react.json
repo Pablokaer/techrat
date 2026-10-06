@@ -196,7 +196,7 @@
     "options": [
       "It returns 1",
       "It returns undefined",
-      "It throws a ReferenceError for n",
+      "It throws a ReferenceError because n is not defined",
       "It throws a TypeError because this is undefined"
     ],
     "correctIndex": 3,
@@ -282,7 +282,7 @@
       "await inside an arrow function is a syntax error and is skipped",
       "save() runs on a worker thread and cannot be awaited",
       "console.log is hoisted above forEach in async functions",
-      "forEach ignores the promises its callback returns, so nothing is awaited"
+      "forEach ignores the promises returned by its callback"
     ],
     "correctIndex": 3,
     "explanation": "forEach calls the async callback, which returns a promise immediately, and forEach discards that promise. saveAll therefore continues straight to console.log. Use `for (const item of items) await save(item)` for sequential work or `await Promise.all(items.map(save))` for parallel work.",
@@ -382,7 +382,7 @@
     "question": "A function does `try { const res = await fetch(url); return await res.json(); } catch { showError(); }`. The server returns 404 with an HTML body. What happens?",
     "options": [
       "fetch rejects with a 404 error and the catch runs immediately",
-      "fetch resolves; res.json() then fails parsing the HTML and the catch runs",
+      "fetch resolves; res.json() rejects on the HTML and catch runs",
       "fetch resolves and res.json() returns null for non-2xx responses",
       "fetch retries the request until it gets a 2xx response"
     ],
@@ -450,7 +450,7 @@
     "question": "A library caches computed layout info for DOM nodes in a `Map<Element, Info>`. Removed nodes are never freed. Which change fixes the leak with minimal code?",
     "options": [
       "Call map.clear() inside a setInterval every minute",
-      "Use a WeakMap so entries do not keep their key nodes alive",
+      "Use a WeakMap, which does not keep its keys alive",
       "Store the info as a JSON string instead of an object",
       "Replace the Map with a plain object keyed by element id"
     ],
@@ -466,7 +466,7 @@
     "title": "Growing heap in a single-page app",
     "question": "In an SPA, heap snapshots show thousands of detached DOM trees after navigating between views. Each view runs `window.addEventListener(\"resize\", () => this.layout())` on mount. What is the most likely cause?",
     "options": [
-      "The window listeners are never removed, so their closures keep old views and nodes reachable",
+      "The window listeners are never removed and keep old views alive",
       "Arrow functions are never garbage collected by modern engines",
       "The resize event fires too often and fills the microtask queue",
       "Detached DOM trees are expected and are reclaimed only on page reload"
@@ -517,7 +517,7 @@
     "title": "Declaration merging: interface vs type",
     "question": "You declare the same name twice in one module, first with `interface Config { a: string }` and then `interface Config { b: number }`. If you used `type Config = ...` twice instead, what would differ?",
     "options": [
-      "Interfaces merge into one with a and b; duplicate type aliases are a 'Duplicate identifier' error",
+      "Interfaces merge into one; duplicate type aliases are an error",
       "Both forms merge, but type aliases make the later members optional",
       "Interfaces error with 'Duplicate identifier'; type aliases merge",
       "Both forms error; neither can be declared twice"
@@ -551,9 +551,9 @@
     "title": "Accessing properties on a type parameter",
     "question": "Why does this fail to compile, and what is the idiomatic fix?\n\nfunction len<T>(x: T) { return x.length; }",
     "options": [
-      "Generic functions cannot read properties; cast x to any",
-      "length is reserved; rename the parameter type to L",
-      "T could be any type; constrain it with T extends { length: number }",
+      "Generic functions cannot read properties of T; cast x to any first",
+      "length is a reserved name; rename the type parameter T to L",
+      "T may lack length; constrain it with T extends { length: number }",
       "T must be given a default; write <T = string>"
     ],
     "correctIndex": 2,
@@ -637,8 +637,8 @@
     "question": "A discriminated union `Shape` gains a new member `{ kind: \"triangle\"; base: number }`. The switch below handles only \"circle\" and \"square\". What happens?\n\ndefault:\n  const _exhaustive: never = shape;\n  return _exhaustive;",
     "options": [
       "It compiles; default silently handles triangles",
-      "Compile error: the triangle type is not assignable to never",
-      "Runtime TypeError when a triangle reaches default",
+      "Compile error: triangle is not assignable to never",
+      "Runtime TypeError when a triangle shape reaches default",
       "Compile error on the case \"circle\" line"
     ],
     "correctIndex": 1,
@@ -654,8 +654,8 @@
     "question": "Why does this not compile under strict mode?\n\nfunction printAll(strs: string | string[] | null) {\n  if (typeof strs === \"object\") {\n    for (const s of strs) console.log(s);\n  }\n}",
     "options": [
       "for...of cannot iterate a union type",
-      "typeof narrowing only works on primitive unions",
-      "typeof null is \"object\", so strs is narrowed to string[] | null",
+      "typeof narrowing only works on unions of primitive types",
+      "typeof null is \"object\", so strs may still be null",
       "strs must be declared with let to be narrowed"
     ],
     "correctIndex": 2,
@@ -908,9 +908,9 @@
     "title": "Mutating a state object",
     "question": "Clicking Rename does not update the screen:\n\nconst [user, setUser] = useState({ name: \"Ada\" });\nfunction rename() { user.name = \"Grace\"; setUser(user); }\n\nWhy?",
     "options": [
-      "Objects in state are frozen, so the assignment is ignored",
+      "Objects in state are frozen, so the assignment is silently ignored",
       "setUser must be awaited before the UI updates",
-      "setUser receives the same object reference, so React bails out of re-rendering",
+      "setUser gets the same reference, so React skips the re-render",
       "React only re-renders when primitive state changes"
     ],
     "correctIndex": 2,
@@ -976,10 +976,10 @@
     "title": "Object created during render as a dependency",
     "question": "A chat component reconnects on every keystroke in an unrelated input:\n\nconst options = { serverUrl, roomId };\nuseEffect(() => {\n  const c = createConnection(options);\n  c.connect();\n  return () => c.disconnect();\n}, [options]);\n\nWhat is the best fix?",
     "options": [
-      "Create options inside the effect and depend on [serverUrl, roomId]",
-      "Remove options from the dependency array",
-      "Wrap createConnection in useCallback",
-      "Store options in state so it is stable"
+      "Build options inside the effect; depend on [serverUrl, roomId]",
+      "Remove options from the dependency array and silence the lint rule",
+      "Wrap createConnection in useCallback so the effect stays stable",
+      "Store options in state with useState so its identity is stable"
     ],
     "correctIndex": 0,
     "explanation": "options is a new object on every render, so the dependency compares unequal with Object.is and the effect re-runs on every re-render. Moving the object inside the effect leaves only primitive dependencies, which change only when the room actually changes. Omitting a real dependency causes stale-value bugs and violates the lint rule.",
@@ -993,10 +993,10 @@
     "title": "Race condition when fetching in an effect",
     "question": "A profile page fetches in `useEffect(() => { fetchUser(id).then(setUser); }, [id])`. Switching quickly from user 1 to user 2 sometimes shows user 1. What fixes it?",
     "options": [
-      "Set an ignore flag in the cleanup and skip setUser when it is true",
-      "Add setUser to the dependency array",
-      "Replace useEffect with useLayoutEffect",
-      "Call fetchUser during render instead of in an effect"
+      "Set an ignore flag in cleanup and skip stale setUser calls",
+      "Add setUser to the dependency array so it stays in sync",
+      "Replace useEffect with useLayoutEffect so the fetch runs first",
+      "Call fetchUser during render instead of inside an effect"
     ],
     "correctIndex": 0,
     "explanation": "Responses can arrive out of order, so user 1's slower response can overwrite user 2's. The cleanup for the previous id runs before the next effect, so setting `ignore = true` there discards stale responses (aborting the request with AbortController also works). useLayoutEffect does not change network timing, and setUser is already stable.",
@@ -1027,10 +1027,10 @@
     "title": "memo defeated by an inline callback",
     "question": "`const List = memo(function List({ items, onSelect }) {...})` still re-renders whenever its parent types into a search box. The parent renders `<List items={items} onSelect={(id) => setSelected(id)} />`. Why?",
     "options": [
-      "memo only works on class components",
+      "memo only works on class components, not functions",
       "memo compares props deeply and items is a large array",
       "setSelected changes identity on every render",
-      "The inline arrow is a new function each render, so props differ"
+      "The inline arrow is a new function on every render"
     ],
     "correctIndex": 3,
     "explanation": "memo skips a re-render only if every prop is equal with Object.is. A new arrow function is created on every parent render, so onSelect always differs. Wrapping it in useCallback (or passing setSelected directly, which is stable) lets memo work. memo compares shallowly, not deeply.",
@@ -1047,7 +1047,7 @@
       "memo ignores components that receive a title prop",
       "Chart re-renders Card because it is its child",
       "memo is disabled in development builds",
-      "children is a new JSX element object on every parent render"
+      "children is a new JSX element on each render"
     ],
     "correctIndex": 3,
     "explanation": "JSX like `<Chart data={data} />` creates a new element object each time the parent renders, and it is passed to Card as the children prop. memo's shallow comparison sees a different object and re-renders. Memoize the element (for example with useMemo) or restructure so the parent that changes does not own the children.",
@@ -1061,10 +1061,10 @@
     "title": "React Compiler and manual memoization",
     "question": "Your team enables React Compiler in a React 19 codebase. Which statement best describes the effect on manual memoization?",
     "options": [
-      "It removes the need for dependency arrays in useEffect",
-      "It memoizes components and values automatically, so most new useMemo/useCallback/memo is unnecessary",
-      "It converts all components to Server Components",
-      "It deep-compares props at runtime to skip renders"
+      "It removes the need for dependency arrays in useEffect and useLayoutEffect",
+      "It auto-memoizes, so most new useMemo/useCallback/memo is unneeded",
+      "It converts all components into React Server Components",
+      "It deep-compares props at runtime to skip unneeded renders"
     ],
     "correctIndex": 1,
     "explanation": "React Compiler analyzes components at build time and inserts memoization automatically, relying on code following the Rules of React. Existing manual memoization still works and can stay, but new code rarely needs it. It does not change effect dependency semantics, server/client boundaries, or add runtime deep comparisons.",
@@ -1078,8 +1078,8 @@
     "title": "Changing a ref does not re-render",
     "question": "A component stores a click counter in `const clicks = useRef(0)` and renders `{clicks.current}`. A handler does `clicks.current++`. What does the user see?",
     "options": [
-      "The number updates immediately on each click",
-      "The number on screen does not update until something else re-renders",
+      "The number updates immediately on each click, like state does",
+      "The display stays stale until something else re-renders",
       "React throws because refs are read-only during events",
       "The number updates but the component loses its state"
     ],
@@ -1146,7 +1146,7 @@
     "title": "Calling a hook conditionally",
     "question": "A component does `if (isAdmin) { const stats = useAdminStats(); }`. When isAdmin flips from false to true, React errors. Why?",
     "options": [
-      "React matches hooks by call order, which must be the same every render",
+      "React matches hooks by call order, which must not vary",
       "Custom hooks may only be called from other custom hooks",
       "useAdminStats must be declared before the component",
       "Hooks inside if blocks run only during the first render"
@@ -1200,7 +1200,7 @@
       "React re-mounts every row on insert and loses drafts",
       "Uncontrolled inputs cannot be used in lists",
       "map must be replaced by a for loop for stable rendering",
-      "Keys are positions, so React reuses each row's state for a different todo"
+      "Keys are positions, so row state shifts to other todos"
     ],
     "correctIndex": 3,
     "explanation": "Keys tell React which item a component instance belongs to. With index keys, the row at index 0 keeps its state and DOM even though it now receives a different todo, so drafts shift. Use a stable unique id such as todo.id as the key.",
@@ -1232,9 +1232,9 @@
     "question": "An input loses focus after every keystroke:\n\nfunction Form() {\n  const [text, setText] = useState(\"\");\n  function Field() { return <input value={text} onChange={e => setText(e.target.value)} />; }\n  return <Field />;\n}\n\nWhy?",
     "options": [
       "Controlled inputs always lose focus when state changes",
-      "setText is asynchronous and drops focus",
+      "setText is asynchronous and drops focus between renders",
       "Form is missing a key prop",
-      "Field is a new component type each render, so React remounts the input"
+      "Field is redefined each render, so React remounts it"
     ],
     "correctIndex": 3,
     "explanation": "Field is redefined on every render of Form, so its function identity changes. React sees a different component type at the same position, unmounts the old subtree, and mounts a new input, losing focus and any state. Define components at the top level and pass data via props.",
@@ -1248,7 +1248,7 @@
     "title": "Same component at the same position",
     "question": "A Counter has local count state. What happens to count when `isFancy` toggles?\n\nreturn isFancy ? <Counter isFancy={true} /> : <Counter isFancy={false} />;",
     "options": [
-      "It is preserved, because it is the same component type at the same position",
+      "It is preserved: same component type at the same position",
       "It resets to 0, because the two JSX branches are different elements",
       "It resets to 0, because the isFancy prop changed",
       "React throws because conditional branches need keys"
@@ -1284,8 +1284,8 @@
     "options": [
       "gcTime defaults to 0, so the cache is cleared on blur",
       "useQuery polls every 5 seconds by default",
-      "Browsers clear fetch caches when a tab is hidden",
-      "Default staleTime is 0, and stale queries refetch on window focus"
+      "Browsers drop in-memory fetch caches whenever a tab is hidden",
+      "staleTime defaults to 0, and stale queries refetch on focus"
     ],
     "correctIndex": 3,
     "explanation": "By default, cached data is considered stale immediately (staleTime 0), and stale queries refetch on mount, window focus, and reconnect. Raising staleTime for data that changes rarely, or disabling refetchOnWindowFocus, prevents these refetches. gcTime controls when unused cache entries are removed, not refetching.",
@@ -1317,7 +1317,7 @@
     "question": "A Client Component does `const user = use(fetch(`/api/user/${id}`).then(r => r.json()));` inside a Suspense boundary. The fallback flickers forever. What is the root cause?",
     "options": [
       "use() only accepts promises from Server Components and throws otherwise",
-      "A new promise is created every render, so React suspends again each time",
+      "A new promise is created each render, so React suspends again",
       "Suspense boundaries cannot wrap Client Components",
       "fetch promises cannot be passed to use() without await"
     ],
@@ -1367,7 +1367,7 @@
     "title": "useFormStatus always reports pending false",
     "question": "A React 19 component renders `<form action={save}>` and, in the same component body, calls `const { pending } = useFormStatus();` to disable the submit button. pending is always false. Why?",
     "options": [
-      "useFormStatus only reads the status of a parent <form>, so it must be called in a child component",
+      "It reads only a parent <form>'s status; call it in a child",
       "Form actions must be async arrow functions for pending to work",
       "useFormStatus requires wrapping the form in <Suspense>",
       "pending only becomes true when the action throws"
@@ -1404,7 +1404,7 @@
       "Boundaries only catch errors from direct children, not grandchildren",
       "The boundary must be placed inside Checkout to catch it",
       "onClick errors are swallowed by React and never surfaced",
-      "Error boundaries only catch errors during rendering, lifecycle, and effects, not in event handlers"
+      "Boundaries do not catch errors thrown in event handlers"
     ],
     "correctIndex": 3,
     "explanation": "Error boundaries catch errors thrown while React renders components, runs lifecycle methods, or runs effects below them. Event handlers run outside rendering, so you handle those errors with try/catch and update state if you want to show error UI. Depth does not matter, and React does not swallow handler errors.",

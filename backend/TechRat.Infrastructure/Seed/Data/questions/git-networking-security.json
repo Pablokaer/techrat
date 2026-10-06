@@ -26,7 +26,7 @@
     "options": [
       ".gitignore only takes effect after the .gitignore file itself is committed",
       "Patterns in .gitignore need a leading slash before they match any file",
-      ".env is already tracked; ignore rules only apply to untracked files, so run git rm --cached .env",
+      ".env is already tracked; run git rm --cached .env so the rule applies",
       "Git caches ignore rules until you run git gc to refresh them"
     ],
     "correctIndex": 2,
@@ -41,7 +41,7 @@
     "title": "Commits made in detached HEAD",
     "question": "You run `git checkout v1.2.0`, make two commits, then `git switch main`. What happens to those two commits?",
     "options": [
-      "They belong to no branch and become unreachable, recoverable via the reflog until garbage-collected",
+      "No branch points at them; only the reflog keeps them until gc",
       "They are automatically appended to main when you switch back to it",
       "The v1.2.0 tag is moved forward to point at the newest of the two commits",
       "They never existed, because Git refuses to commit in detached HEAD state"
@@ -61,7 +61,7 @@
       "Creates a merge commit with two parents to record the integration",
       "Squashes all of feature's commits into one new commit on main",
       "Rebases feature's commits onto main, giving them new hashes",
-      "Fast-forwards main's pointer to feature's tip without creating a merge commit"
+      "Fast-forwards main to feature's tip, with no merge commit"
     ],
     "correctIndex": 3,
     "explanation": "When the current branch is an ancestor of the branch being merged, Git can simply move the ref forward: there is nothing to combine. A merge commit is only created when histories diverged or when --no-ff is given; squashing and rebasing require explicit commands.",
@@ -94,7 +94,7 @@
     "options": [
       "-s ours resolves only conflicting hunks with our side; -X ours discards all of topic's changes",
       "They are equivalent; -X is simply the short spelling of the -s ours strategy",
-      "-s ours discards all of topic's changes; -X ours merges normally but resolves only conflicting hunks with our side",
+      "-s ours ignores all of topic's changes; -X ours only favours our side in conflicts",
       "-s ours keeps topic's side for conflicts; -X ours keeps the current branch's side"
     ],
     "correctIndex": 2,
@@ -110,7 +110,7 @@
     "question": "A long-lived branch is repeatedly merged and rebased against main, and you keep resolving the same conflicts by hand. Which Git feature records your resolutions and reapplies them automatically?",
     "options": [
       "git mergetool with the --auto flag",
-      "rerere, enabled with rerere.enabled=true",
+      "rerere, via rerere.enabled=true",
       "git rebase --autosquash",
       "merge.conflictStyle set to diff3"
     ],
@@ -129,7 +129,7 @@
       "Their working trees are reset automatically and any uncommitted changes are lost",
       "The remote rejects their next fetch until they delete and re-clone the repository",
       "Nothing; Git matches rewritten commits by patch-id during fetch and syncs silently",
-      "Their local feature still holds the old commits, so a plain pull merges old and rewritten copies and duplicates work"
+      "Their branches still hold the old commits, so a plain pull duplicates the work"
     ],
     "correctIndex": 3,
     "explanation": "Rebasing creates new commits with new hashes. Teammates' branches are still based on the originals, so a default pull merges both histories and the same changes appear twice (often with conflicts). They must recover with git pull --rebase or git rebase --onto, as the RECOVERING FROM UPSTREAM REBASE section of git-rebase explains; fetches are never rejected and working trees are not touched.",
@@ -146,7 +146,7 @@
       "It keeps the old remote commits as a backup ref; deleting that ref manually defeats it",
       "It only forces when CI has passed on the new commits; skipping CI defeats it",
       "It rebases the remote branch server-side; a protected branch rule defeats it",
-      "It refuses if the remote ref moved since you last fetched it; a background fetch that updates origin/* can silently defeat it"
+      "It fails if the remote moved since your last fetch; background fetches defeat it"
     ],
     "correctIndex": 3,
     "explanation": "--force-with-lease compares the remote ref with your remote-tracking ref and refuses if someone else pushed in the meantime. If an IDE or cron job fetches in the background, your tracking ref already includes their commit, so the lease passes and you overwrite it anyway; --force-if-includes (or an explicit expected sha) closes that gap. It has nothing to do with backups, CI or server-side rebases.",
@@ -177,7 +177,7 @@
     "title": "Reviewing what changed between two rebased versions",
     "question": "You rebased a 6-commit PR onto a main that moved by 40 commits and tweaked two commits while resolving conflicts. A reviewer wants to see only how your series changed, not upstream's changes. What should they use?",
     "options": [
-      "git range-diff comparing the old base..old tip range with the new base..new tip range",
+      "git range-diff between the old and new base..tip ranges",
       "git diff between the old tip and the new tip of the PR branch",
       "git log --cherry-mark on the symmetric difference of the two tips",
       "git diff --merge-base from the old tip to the new tip"
@@ -196,7 +196,7 @@
     "options": [
       "It merges origin/main into the current branch",
       "It rebases the current branch onto origin/main",
-      "Nothing; it only updates remote-tracking refs such as origin/main",
+      "Nothing; it only updates refs like origin/main",
       "It resets the current branch to match the remote"
     ],
     "correctIndex": 2,
@@ -246,7 +246,7 @@
     "question": "A buggy commit was pushed to the shared main branch an hour ago and several teammates have pulled it. What is the safest way to undo it?",
     "options": [
       "Reset main to the commit before it and force-push",
-      "Run git revert on that commit and push the new commit",
+      "Revert that commit with git revert and push it",
       "Amend the commit to remove the bug and force-push",
       "Drop it with an interactive rebase and force-push"
     ],
@@ -262,7 +262,7 @@
     "title": "Recovering after reset --hard",
     "question": "You ran `git reset --hard HEAD~3` on a local branch and realise you needed those three commits. How do you get them back?",
     "options": [
-      "Find the previous tip in git reflog and reset or branch to it, e.g. git reset --hard HEAD@{1}",
+      "Find the old tip in git reflog and reset to it, e.g. HEAD@{1}",
       "Run git revert HEAD~3 to restore the three dropped commits",
       "They are gone; reset --hard deletes the commit objects immediately",
       "Pull from origin, since reset --hard never affects committed history"
@@ -299,7 +299,7 @@
       "The -m 1 flag permanently excludes that branch from merges; recreate feature under a new name",
       "The second merge used the ort strategy, which skips reverted hunks; merge with -s recursive",
       "The reverted commits were garbage-collected; cherry-pick them back from the remote",
-      "Git sees feature's old commits as already merged, so only the new ones apply; revert the revert commit, then merge"
+      "Old feature commits count as already merged; revert the revert, then merge"
     ],
     "correctIndex": 3,
     "explanation": "Reverting a merge undoes its changes but does not undo history: the old feature commits are still ancestors of main, so the next merge only brings in commits after the old merge base. Reverting the revert restores those changes before merging the fixes, as described in the revert documentation. There is no blacklist, ort does not track reverts, and the commits are still reachable.",
@@ -313,8 +313,8 @@
     "title": "Backporting one fix to a release branch",
     "question": "Fix commit abc123 landed on main. You need exactly that fix on release/2.3 without any other commits from main, and want traceability. What do you run on release/2.3?",
     "options": [
-      "git merge main",
-      "git rebase main",
+      "git merge --no-ff main",
+      "git rebase main release/2.3",
       "git cherry-pick -x abc123",
       "git revert abc123"
     ],
@@ -331,7 +331,7 @@
     "question": "You have modified tracked files plus a new untracked file config.local, and run `git stash`. What is the state afterwards?",
     "options": [
       "Both the tracked changes and config.local are stashed together",
-      "Tracked changes are stashed but config.local stays in the working tree; -u would include it",
+      "Only tracked changes are stashed; config.local stays in place",
       "Tracked changes are stashed and config.local is deleted from disk",
       "git stash refuses to run while untracked files are present"
     ],
@@ -348,7 +348,7 @@
     "question": "What distinguishes an annotated tag from a lightweight tag?",
     "options": [
       "An annotated tag automatically moves forward as new commits land on the branch",
-      "An annotated tag is its own object with tagger, date, message and optional signature",
+      "It is a separate object with tagger, date, message and optional signature",
       "Only annotated tags can be pushed to a remote; lightweight tags stay local",
       "An annotated tag can only point at merge commits, not at regular commits"
     ],
@@ -366,7 +366,7 @@
     "options": [
       "git log -S on the failing function name and inspect each matching commit",
       "git blame on the failing file and test each commit it lists",
-      "git bisect start <bad> <good>, then git bisect run ./test.sh, about 10 test runs",
+      "git bisect start <bad> <good>, then git bisect run ./test.sh",
       "Cherry-pick each commit onto the last good version and run the test"
     ],
     "correctIndex": 2,
@@ -384,7 +384,7 @@
       "Squash merge deletes the branch's history on the server, leaving orphaned commits",
       "GitHub requires a force-push to the branch after every squash merge",
       "Squash merge rewrites earlier commits on main, so your branch's base changed",
-      "The squash commit is a new commit unrelated to your originals, so Git does not see them as merged"
+      "The squash commit has no link to your originals, so they look unmerged"
     ],
     "correctIndex": 3,
     "explanation": "Squashing creates one new commit on main with the combined changes but no parent link to your branch's commits, so from Git's view your original commits are still unmerged. The fix is to start new work from an updated main (or rebase --onto). Squash merging does not delete history or rewrite main.",
@@ -415,9 +415,9 @@
     "title": "Two green PRs that break main together",
     "question": "Two PRs each pass CI against main, but once both are merged the build breaks because of how they interact. Which GitHub feature is designed to prevent this?",
     "options": [
-      "Requiring linear history on the main branch",
-      "Requiring signed commits on the main branch",
-      "A merge queue that tests each PR combined with main and the PRs queued ahead of it",
+      "Requiring linear history on main, so no merge commits are created",
+      "Requiring signed commits so every change on main is verified",
+      "A merge queue testing each PR with main and the PRs ahead of it",
       "Dismissing stale approvals when new commits are pushed"
     ],
     "correctIndex": 2,
@@ -449,7 +449,7 @@
     "title": "Ping works but HTTPS times out",
     "question": "`ping api.internal` succeeds, but `curl https://api.internal` hangs until it times out. Which conclusion is best supported?",
     "options": [
-      "IP reachability is fine; the problem is at the transport or application level, e.g. TCP 443 filtered or nothing listening",
+      "IP reachability works; TCP 443 is likely filtered or nothing is listening",
       "Name resolution is broken, because curl resolves names differently from ping",
       "The physical link is flapping, which ping cannot detect but TCP can",
       "The server's TLS certificate has expired, which makes the connection hang"
@@ -484,7 +484,7 @@
     "question": "Host A is 10.0.1.100/25 and wants to send a packet to 10.0.1.200. What does A do?",
     "options": [
       "ARPs directly for 10.0.1.200, because both addresses share 10.0.1.0/24",
-      "Sends it to its default gateway, because .200 is in 10.0.1.128/25, a different subnet",
+      "Sends it to the gateway: .200 is in 10.0.1.128/25, another subnet",
       "Drops it, because a /25 network cannot route to other subnets",
       "Broadcasts it to 10.0.1.255 so that the destination host picks it up"
     ],
@@ -502,7 +502,7 @@
     "options": [
       "A /17 is a larger network than a /16, so the partner must shrink their range first",
       "RFC 1918 ranges cannot be routed between networks owned by different organisations",
-      "The ranges overlap, so routes are ambiguous; you need non-overlapping CIDRs or NAT between them",
+      "The ranges overlap, so routing is ambiguous without NAT or renumbering",
       "Nothing; longest-prefix matching routes traffic correctly in both directions"
     ],
     "correctIndex": 2,
@@ -553,7 +553,7 @@
     "options": [
       "UDP guarantees delivery with less header overhead than TCP does",
       "TCP connections cannot traverse home NAT routers reliably",
-      "TCP's in-order reliable delivery stalls on retransmits, and late audio is useless anyway",
+      "TCP stalls all data on a retransmit, and late audio is useless",
       "UDP payloads are encrypted by default while TCP payloads are not"
     ],
     "correctIndex": 2,
@@ -568,7 +568,7 @@
     "title": "Large responses hang over a VPN",
     "question": "Over a new VPN tunnel, SSH works and small pages load, but large HTTPS downloads hang forever. A firewall in the path drops all ICMP. What is the likely cause?",
     "options": [
-      "A path MTU discovery black hole: 'fragmentation needed' ICMP is dropped, so oversized DF packets vanish",
+      "A path MTU discovery black hole caused by the dropped ICMP",
       "TCP window scaling is disabled, so transfers above 64 KB are refused",
       "TLS session tickets expire in the middle of long downloads",
       "Nagle's algorithm holds back the final segments of large responses"
@@ -587,8 +587,8 @@
     "options": [
       "CNAME records only work for names with at least three labels",
       "DNSSEC requires the apex to be an A record so it can be signed",
-      "Registrars forbid CNAMEs at the apex to prevent domain hijacking",
-      "A CNAME cannot coexist with other records, and the apex must hold SOA and NS records"
+      "Registrars forbid CNAMEs at the apex to protect the domain from hijacking",
+      "A CNAME cannot coexist with other data, and the apex needs SOA and NS"
     ],
     "correctIndex": 3,
     "explanation": "A CNAME declares that a name is an alias, so no other data may exist at that name. The zone apex always has SOA and NS records, so an apex CNAME would break the zone. Providers work around this with ALIAS/ANAME flattening or the newer HTTPS/SVCB records; label count, DNSSEC and registrars are not the reason.",
@@ -603,7 +603,7 @@
     "question": "You are moving an API to a new IP address. Its A record has a TTL of 86400 seconds. What is the right plan?",
     "options": [
       "Switch the record and flush your own resolver; all clients update within minutes",
-      "Lower the TTL at least a day ahead, switch the record, keep the old IP serving until caches expire",
+      "Lower the TTL a day ahead, switch, and keep the old IP up until caches expire",
       "Set the TTL to 0 at the moment of cutover so every cache refetches immediately",
       "Change the NS records instead, because delegation changes bypass resolver caches"
     ],
@@ -622,7 +622,7 @@
       "NXDOMAIN answers stay cached until the resolver process is restarted",
       "New records always need up to 48 hours to propagate through the registrar",
       "The new A record's TTL has to count down once before it becomes visible",
-      "Resolvers cache negative answers for a time derived from the zone's SOA record"
+      "Resolvers cache NXDOMAIN for a time set by the zone's SOA record"
     ],
     "correctIndex": 3,
     "explanation": "Negative caching lets resolvers remember non-existence, for the minimum of the SOA record's TTL and its MINIMUM field. Until that expires the resolver will not ask again. Registrars are not involved in records inside your zone, and a record's TTL only governs how long the positive answer is cached.",
@@ -636,7 +636,7 @@
     "title": "DNSSEC lookups fail behind a firewall",
     "question": "Resolution of a DNSSEC-signed domain with large responses fails intermittently from a network whose firewall allows only UDP port 53 outbound. Others resolve it fine. What is happening?",
     "options": [
-      "Large answers come back truncated (TC bit) and the retry over TCP/53 is blocked",
+      "Large answers are truncated (TC bit) and the TCP/53 retry is blocked",
       "DNSSEC validation requires port 853, which this firewall does not allow",
       "UDP checksums are invalid for any DNS message larger than 512 bytes",
       "The firewall strips DNSSEC signatures, so resolvers reject the answers"
@@ -672,7 +672,7 @@
     "options": [
       "HTTP/2 has no header compression, so its requests are far larger on the wire",
       "HTTP/2 opens a separate TCP connection per request, multiplying handshakes",
-      "One lost TCP segment stalls every HTTP/2 stream; QUIC recovers streams independently",
+      "A lost TCP segment stalls all HTTP/2 streams; QUIC isolates streams",
       "HTTP/3 drops TLS encryption, which removes a round trip from each request"
     ],
     "correctIndex": 2,
@@ -690,7 +690,7 @@
       "The server does not send the root CA certificate, which every client requires",
       "The clients do not send SNI, so the server returns its default certificate",
       "The certificate has expired, but browsers apply a grace period",
-      "The server sends only its leaf certificate and not the intermediate CA certificate"
+      "The server sends only the leaf certificate, without the intermediate"
     ],
     "correctIndex": 3,
     "explanation": "Clients need a chain from the leaf to a trusted root, and the server should send the leaf plus intermediates. Browsers often hide the misconfiguration by using cached intermediates or fetching them via the AIA extension, while most libraries do not. Roots are already in the client's trust store and need not be sent; an SNI or expiry problem gives different errors.",
@@ -721,7 +721,7 @@
     "title": "Why 0-RTT data must be idempotent",
     "question": "Why do servers typically accept TLS 1.3 0-RTT early data only for idempotent requests such as GET?",
     "options": [
-      "Early data has no replay protection, so an attacker could resend it and repeat an action",
+      "Early data can be replayed by an attacker, repeating the action",
       "Early data is sent unencrypted, so only public requests may use it",
       "Early data is sent before SNI, so routing breaks for requests with bodies",
       "The TLS specification limits early data to the HTTP GET method"
@@ -755,7 +755,7 @@
     "title": "Every request comes from the proxy IP",
     "question": "Your app behind a reverse proxy logs the proxy's address as the client IP and rate-limits all users as one. What is the correct fix?",
     "options": [
-      "Read the client IP from X-Forwarded-For or Forwarded, trusting only the known proxy's entries",
+      "Read X-Forwarded-For or Forwarded, trusting only your proxy's entries",
       "Always use the leftmost X-Forwarded-For value, regardless of where the request came from",
       "Switch the load balancer to layer 4 so the app sees TCP from the proxy directly",
       "Rate-limit by User-Agent string instead, since it passes through proxies unchanged"
@@ -773,7 +773,7 @@
     "question": "An Application Load Balancer has a 60-second idle timeout and reuses keep-alive connections to backends. Backends close idle keep-alive connections after 5 seconds. Under light traffic you see sporadic 502s. Why?",
     "options": [
       "The LB health checks are too frequent and mark healthy targets as down",
-      "The LB sends a request on a connection the backend just closed; make the backend timeout longer",
+      "The LB reuses a connection the backend just closed; raise backend timeout",
       "HTTP/1.1 keep-alive is incompatible with load balancers, so it should be disabled",
       "The backend's TCP receive buffer overflows when connections sit idle too long"
     ],
@@ -792,7 +792,7 @@
       "ISPs drop all inbound packets addressed to residential IP addresses",
       "TCP does not allow a host behind NAT to act as a server",
       "The NAT router encrypts internal addresses, so the packet cannot be decrypted",
-      "NAT only has mappings for outbound flows, so the router cannot tell which host should get it"
+      "NAT has no mapping for unsolicited inbound traffic, so it is dropped"
     ],
     "correctIndex": 3,
     "explanation": "A NAT router shares one public address among many private hosts and creates translation entries when inside hosts send traffic out. An unsolicited inbound packet matches no entry, so it is dropped. Port forwarding adds a static mapping. TCP has no such restriction, ISPs generally do not block all inbound, and NAT does not encrypt anything.",
@@ -808,7 +808,7 @@
     "options": [
       "Network ACLs only evaluate traffic between subnets, never to the internet",
       "HTTPS also needs UDP 443 allowed for the TLS handshake to finish",
-      "The ACL is stateless; responses go to the client's ephemeral port, which outbound rules do not allow",
+      "The ACL is stateless, so replies to the ephemeral port are blocked",
       "Outbound rules are evaluated before inbound rules, so the SYN is dropped"
     ],
     "correctIndex": 2,
@@ -823,7 +823,7 @@
     "title": "How a WebSocket connection starts",
     "question": "How is a WebSocket connection established?",
     "options": [
-      "An HTTP/1.1 GET with Upgrade: websocket, answered by 101 Switching Protocols",
+      "An HTTP/1.1 GET with Upgrade: websocket and a 101 response",
       "A dedicated UDP handshake on a separate port negotiated in advance",
       "An HTTP POST answered with 200 OK, after which frames are streamed",
       "A TLS extension negotiated in ClientHello that switches the protocol"
@@ -842,7 +842,7 @@
     "options": [
       "Set max-age=0 on every static asset so the CDN always fetches from origin",
       "Purge the whole CDN on each deploy while keeping the same filenames",
-      "Content-hashed filenames with long immutable caching, and short caching for the HTML that references them",
+      "Content-hashed filenames cached as immutable, with short-cached HTML",
       "Append a random query string to each asset request in the browser"
     ],
     "correctIndex": 2,
@@ -858,7 +858,7 @@
     "question": "You scale a WebSocket service from 4 to 8 instances behind a load balancer, but the 4 original instances keep most of the load for hours. Why?",
     "options": [
       "Load balancers cannot route WebSocket traffic to instances added after startup",
-      "Balancing happens when a connection opens; long-lived connections stay put until they reconnect",
+      "Balancing happens per connection, and long-lived connections stay put",
       "WebSocket frames are routed per message, but the balancer caches routes per client IP",
       "The new instances must first complete a WebSocket handshake with each old instance"
     ],
@@ -891,7 +891,7 @@
     "title": "Why fast hashes are bad for passwords",
     "question": "Why is a salted SHA-256 hash still a poor choice for password storage?",
     "options": [
-      "It is fast, so attackers with GPUs can test billions of guesses per second against leaked hashes",
+      "It is fast, so GPUs can test billions of guesses per second",
       "SHA-256 has practical collision attacks that let attackers forge a matching hash",
       "SHA-256 cannot be combined with a salt without weakening its security properties",
       "SHA-256 output is too long to store efficiently in common database columns"
@@ -928,7 +928,7 @@
       "Upgrade each user to Argon2id when they next log in and leave other accounts on MD5 until then",
       "Crack the MD5 hashes offline to recover the passwords, then hash them with Argon2id",
       "Add a salt column now and store the salt next to each existing MD5 hash",
-      "Wrap every hash now as Argon2id(md5_hash), then rehash with Argon2id directly on each user's next login"
+      "Wrap every hash as Argon2id(md5_hash) now, and rehash cleanly at next login"
     ],
     "correctIndex": 3,
     "explanation": "Layering Argon2id over the existing hashes protects every account immediately, including inactive ones that would otherwise sit as plain MD5 for years. On login you verify via the layered scheme and replace it with a clean Argon2id hash of the password. Cracking users' passwords is unethical and incomplete, and adding a salt to an already-computed hash adds nothing.",
@@ -962,7 +962,7 @@
       "Cross-site request forgery against the invoices API",
       "SQL injection through the invoice ID parameter",
       "Session fixation on the authenticated user's session",
-      "Insecure direct object reference (broken object-level authorization)"
+      "Broken object-level authorization (IDOR)"
     ],
     "correctIndex": 3,
     "explanation": "The server authenticates the user but never checks that the requested object belongs to them. The fix is an ownership or permission check on every object access, not hiding or obfuscating IDs. No forged cross-site request, injected SQL or fixed session is involved.",
@@ -1012,7 +1012,7 @@
     "options": [
       "Theft of access tokens from browser storage through XSS",
       "Cross-site request forgery against the resource server's API",
-      "A stolen authorization code being redeemed by someone without the code_verifier",
+      "A stolen authorization code being redeemed by an attacker",
       "Replay of a valid access token at a different API"
     ],
     "correctIndex": 2,
@@ -1081,7 +1081,7 @@
       "Escaping single quotes in the input with a regular expression",
       "Hiding database error messages from end users",
       "Placing a web application firewall in front of the application",
-      "Parameterized queries (prepared statements) that bind input as data"
+      "Parameterized queries that bind the input as data"
     ],
     "correctIndex": 3,
     "explanation": "Parameterized queries send the SQL structure and the values separately, so input can never change the query's meaning. Hand-rolled escaping misses edge cases (encodings, numeric contexts), hiding errors only makes exploitation blind rather than impossible, and a WAF is a bypassable extra layer, not the fix.",
@@ -1095,7 +1095,7 @@
     "title": "Shelling out with a user filename",
     "question": "A Python service runs `subprocess.run(f\"convert {filename} out.png\", shell=True)` with a user-supplied filename. What is the best fix?",
     "options": [
-      "Pass an argument list with shell=False and validate the filename, or use a library API",
+      "Pass an argument list with shell=False and validate the filename",
       "Wrap filename in double quotes inside the f-string before running it",
       "Strip semicolons and ampersands from filename before running it",
       "Run the command inside a container so the shell cannot reach the host"
@@ -1132,7 +1132,7 @@
       "Removing the string <script> from comments before saving them",
       "Serving the site over HTTPS with HSTS enabled",
       "Storing comments base64-encoded in the database",
-      "Context-aware output encoding when rendering, e.g. a templating engine's auto-escaping"
+      "Context-aware output encoding, such as template auto-escaping"
     ],
     "correctIndex": 3,
     "explanation": "XSS happens when data is interpreted as markup or code by the browser. Encoding at output for the specific context (HTML body, attribute, JavaScript, URL) turns it back into text. Blocklist filtering is bypassed with event handlers such as onerror, HTTPS does not affect content, and base64 storage changes nothing once the value is decoded and rendered.",
@@ -1183,7 +1183,7 @@
       "The WAF decodes URL encoding only once; enable recursive decoding in its rules",
       "The server strips the payload before logging it; log raw request bodies instead",
       "Browsers send fragments only over HTTP/2; force HTTP/1.1 so the WAF inspects them",
-      "The fragment is never sent to the server; use textContent or Trusted Types instead of innerHTML"
+      "Fragments never reach the server; use textContent instead of innerHTML"
     ],
     "correctIndex": 3,
     "explanation": "Everything after # stays in the browser, so this DOM-based XSS bypasses any server-side inspection. The sink is innerHTML; writing with textContent treats the value as text, and Trusted Types can enforce that dangerous sinks only receive sanitised values. No HTTP version sends fragments.",
@@ -1250,7 +1250,7 @@
     "options": [
       "Browsers block the response because a reflected origin is treated as a wildcard",
       "Only same-site subdomains can read responses, because cookies are domain-scoped",
-      "Any website can make credentialed requests and read the victim's authenticated responses",
+      "Any site can send credentialed requests and read the victim's responses",
       "Preflight requests fail, so only simple GET requests continue to work"
     ],
     "correctIndex": 2,
@@ -1285,7 +1285,7 @@
       "In the Dockerfile as an ENV instruction so it ships with the image",
       "In a .env file committed to a private repository",
       "Hardcoded in the source code but obfuscated with base64",
-      "In a secrets manager, injected at runtime with access limited to that service"
+      "In a secrets manager, injected at runtime for that service only"
     ],
     "correctIndex": 3,
     "explanation": "A secrets manager provides access control, audit logging and rotation, and runtime injection keeps the secret out of images and source. ENV values are baked into image layers anyone with the image can read, private repositories are still widely cloned, and base64 is encoding, not protection.",
@@ -1301,7 +1301,7 @@
     "options": [
       "Rotate the long-lived key monthly and keep it stored as a masked CI secret",
       "Encrypt the key with a passphrase that is stored in a second CI secret",
-      "OIDC federation, where each job exchanges a signed token for short-lived, narrowly scoped credentials",
+      "OIDC federation exchanging a job token for short-lived credentials",
       "Move the key into the repository's encrypted config file used at deploy time"
     ],
     "correctIndex": 2,
@@ -1353,7 +1353,7 @@
       "The blob may be too large; cap the input size and readObject() becomes safe",
       "Base64 can be tampered with; switch to hex encoding before deserializing",
       "Deserialized objects may be stale; add a version field and reject old ones",
-      "Gadget chains can achieve remote code execution; accept a data-only format like JSON with a strict schema"
+      "Gadget chains can lead to RCE; accept a data-only format such as JSON"
     ],
     "correctIndex": 3,
     "explanation": "Native deserialization instantiates arbitrary classes on the classpath and runs their callbacks, so crafted object graphs can chain library code into command execution before your code ever inspects the result. Size limits and encodings do not change that; avoid native serialization for untrusted input, or at least use strict class allow-listing filters.",

@@ -41,10 +41,10 @@
     "title": "Latency spikes after idle periods",
     "question": "A serverless function API has p50 latency of 40 ms, but the first request after ~15 minutes of no traffic takes 2-3 seconds. What is the most likely cause and a standard mitigation?",
     "options": [
-      "DNS caching; lower the TTL on the API's DNS record",
-      "A cold start; keep pre-initialized capacity with provisioned concurrency or minimum instances",
-      "TLS renegotiation; switch the API from HTTPS to plain HTTP",
-      "Database lock contention; add an index on the hot table"
+      "DNS cache expiry; lower the TTL on the API's DNS record so lookups stay fresh",
+      "A cold start; keep warm capacity via provisioned concurrency or min instances",
+      "TLS session renegotiation; switch the API from HTTPS to plain HTTP to skip it",
+      "Database lock contention; add an index on the hot table being queried"
     ],
     "correctIndex": 1,
     "explanation": "After idling, the platform reclaims execution environments, so the next request pays for creating a new one and running init code (a cold start). Provisioned concurrency (Lambda) or minimum instances (Cloud Run, Functions premium/flex) keep warm environments ready. DNS, locks or TLS would not correlate so cleanly with idle time.",
@@ -58,10 +58,10 @@
     "title": "Cheap capacity for interruptible jobs",
     "question": "A nightly batch job is checkpointed and can be restarted at any time. You want to cut compute cost as much as possible. Which purchasing option fits?",
     "options": [
-      "Spot instances, which can be reclaimed by the provider at short notice",
-      "On-demand instances with no commitment",
-      "Dedicated hosts reserved for your account",
-      "Bare-metal instances with a three-year reservation"
+      "Spot instances, which the provider can reclaim at short notice",
+      "On-demand instances billed per second with no commitment",
+      "Dedicated hosts reserved exclusively for your account",
+      "Bare-metal instances bought with a three-year reservation plan"
     ],
     "correctIndex": 0,
     "explanation": "Spot capacity uses spare provider capacity at a steep discount, with the tradeoff that instances can be interrupted with a short warning. That is acceptable for fault-tolerant, checkpointed batch work. Dedicated hosts and bare-metal reservations cost more, and on-demand is flexible but full price.",
@@ -75,9 +75,9 @@
     "title": "Users logged out after scale-in",
     "question": "A web app behind an autoscaling load balancer stores login sessions in each instance's memory. Users are randomly logged out, mostly when the group scales in or a deploy happens. What is the best fix?",
     "options": [
-      "Move session state to an external store such as a managed cache or database so instances are stateless",
-      "Disable autoscaling so the instance count never changes",
-      "Increase each instance's memory so sessions are evicted less often",
+      "Move session state to an external store such as a cache or database",
+      "Disable autoscaling so the instance count and sessions never change",
+      "Increase each instance's memory so that sessions are evicted less often",
       "Lower the load balancer idle timeout so sessions refresh faster"
     ],
     "correctIndex": 0,
@@ -92,10 +92,10 @@
     "title": "A 40-minute job on AWS Lambda",
     "question": "A team wants to move a video transcoding step that runs 30-45 minutes per file to AWS Lambda. What is the key problem?",
     "options": [
-      "Lambda's maximum timeout is 15 minutes, so the job should run on containers or batch compute (or be split into shorter steps)",
-      "Lambda only supports interpreted languages, so FFmpeg cannot be used",
-      "Lambda functions are limited to 1 vCPU, so the job would be throttled",
-      "Lambda cannot read from S3, so the input files must be moved to EFS first"
+      "Lambda invocations time out after 15 minutes; use containers or batch compute",
+      "Lambda only supports interpreted languages, so FFmpeg binaries cannot be used",
+      "Lambda functions are limited to 1 vCPU, so the transcoding would be throttled",
+      "Lambda cannot read objects from S3, so the input files must first be moved to EFS"
     ],
     "correctIndex": 0,
     "explanation": "A Lambda invocation can run for at most 900 seconds; longer work is killed. Long-running jobs fit ECS/Fargate, AWS Batch or a Step Functions workflow over smaller chunks. Lambda reads S3 natively, supports container images and custom runtimes, and scales vCPU with configured memory beyond a single core.",
@@ -126,10 +126,10 @@
     "title": "Retaining rarely read logs for years",
     "question": "Audit logs are read frequently for 30 days, almost never after 90 days, but must be retained for 7 years. Retrieval within 12 hours is acceptable for old logs. What is the most cost-effective approach?",
     "options": [
-      "A lifecycle policy that transitions objects to infrequent-access and then an archive storage class",
-      "Keep everything in the standard storage class and enable versioning",
-      "Copy old logs into the primary transactional database",
-      "Store old logs on provisioned block volumes that are detached"
+      "A lifecycle policy that tiers objects to infrequent-access, then archive",
+      "Keep everything in the standard storage class with versioning enabled",
+      "Copy logs older than 90 days into the primary transactional database",
+      "Store old logs on provisioned block volumes that are kept detached from VMs"
     ],
     "correctIndex": 0,
     "explanation": "Lifecycle rules automatically move objects to cheaper classes as they age; archive classes have very low storage cost in exchange for retrieval delays and fees, which matches the 12-hour tolerance. Standard storage plus versioning costs more, detached volumes still bill provisioned capacity, and a transactional DB is the most expensive place for cold data.",
@@ -144,9 +144,9 @@
     "question": "A DynamoDB table of events uses the event date (e.g. 2026-10-05) as its partition key. Writes are heavily throttled even though total consumed capacity is well below table capacity. Why?",
     "options": [
       "The table needs a global secondary index before it can accept writes",
-      "On-demand tables throttle any request larger than 1 KB",
+      "On-demand tables throttle every write request that is larger than 1 KB",
       "DynamoDB cannot store more than one item per partition key value",
-      "All of today's writes target one partition key, creating a hot partition that exceeds per-partition throughput"
+      "Today's writes all hit one partition key, creating a hot partition"
     ],
     "correctIndex": 3,
     "explanation": "Throughput is distributed across partitions by partition key, and each partition has its own limits. A low-cardinality key that concentrates current traffic (like today's date) sends all writes to one partition. Using a high-cardinality key or write sharding (e.g. date#random-suffix) spreads the load. Items can share a partition key via sort keys, and GSIs or item size are not the cause here.",
@@ -161,9 +161,9 @@
     "question": "In a VPC, a subnet's network ACL allows inbound TCP 443 from anywhere, and the instance's security group also allows inbound 443. Clients still time out. The NACL's outbound rules only allow port 443. What is wrong?",
     "options": [
       "Security groups are stateless and need an explicit outbound rule for port 443",
-      "NACLs can only be applied to load balancers, not subnets",
-      "NACLs are stateless, so outbound rules must also allow responses to the clients' ephemeral ports",
-      "Port 443 requires a NAT gateway to accept inbound connections"
+      "NACLs can only be associated with load balancers, never with subnets",
+      "NACLs are stateless, so outbound must allow the clients' ephemeral ports",
+      "Inbound port 443 needs a NAT gateway in the subnet to accept connections"
     ],
     "correctIndex": 2,
     "explanation": "Network ACLs evaluate each direction independently, so return traffic to the client's ephemeral port range (e.g. 1024-65535) must be explicitly allowed outbound. Security groups are stateful and automatically allow return traffic. NACLs are subnet-level, and NAT gateways are for outbound-initiated traffic, not inbound.",
@@ -177,7 +177,7 @@
     "title": "Routing /api and /static differently",
     "question": "You need one public endpoint that sends /api/* requests to one service and /static/* to another, based on the HTTP path. Which load balancer type do you need?",
     "options": [
-      "A NAT gateway",
+      "A NAT gateway with port-forwarding rules",
       "A layer 7 (application) load balancer",
       "A DNS round-robin record",
       "A layer 4 (network) load balancer"
@@ -194,10 +194,10 @@
     "title": "Huge NAT bill from S3 traffic",
     "question": "Instances in private subnets read terabytes per day from S3 in the same region through a NAT gateway, and NAT data-processing charges dominate the bill. What is the simplest fix?",
     "options": [
-      "Move the instances to public subnets and attach Elastic IPs",
-      "Enable S3 Transfer Acceleration on the bucket",
-      "Add an S3 gateway VPC endpoint and route table entries so S3 traffic bypasses the NAT gateway",
-      "Replace the NAT gateway with a larger instance type"
+      "Move the instances to public subnets and attach an Elastic IP to each",
+      "Enable S3 Transfer Acceleration on the bucket to speed up reads",
+      "Add an S3 gateway VPC endpoint so S3 traffic bypasses the NAT gateway",
+      "Replace the NAT gateway with a NAT instance on a larger instance type"
     ],
     "correctIndex": 2,
     "explanation": "A gateway endpoint for S3 adds a route that keeps S3 traffic on the AWS network without passing through the NAT gateway, and gateway endpoints carry no additional charge. Moving instances to public subnets weakens security, NAT size does not change per-GB processing charges, and Transfer Acceleration targets long-distance client uploads.",
@@ -228,10 +228,10 @@
     "title": "Access keys in an EC2 config file",
     "question": "An application on EC2 reads AWS access keys from a config file to call S3 and SQS. What is the recommended replacement?",
     "options": [
-      "Create a separate IAM user per instance with its own long-lived keys",
-      "Embed the keys in the AMI so they never appear in source control",
-      "Attach an IAM role via an instance profile so the SDK obtains temporary, auto-rotated credentials",
-      "Store the same access keys in an environment variable instead"
+      "Create a separate IAM user per instance, each with its own long-lived access keys",
+      "Embed the access keys in the AMI so they never appear in source control",
+      "Attach an IAM role (instance profile) so the SDK gets temporary credentials",
+      "Store the same access keys in an environment variable instead of a file"
     ],
     "correctIndex": 2,
     "explanation": "IAM roles for EC2 deliver short-lived credentials through the instance metadata service and rotate them automatically, removing long-lived secrets entirely. Moving keys to environment variables or the AMI still leaves static credentials that can leak, and per-instance IAM users multiply the problem.",
@@ -262,10 +262,10 @@
     "title": "Outages during DB password rotation",
     "question": "After enabling automatic database password rotation, an app fails for a few minutes on each rotation: it reads the secret once at startup and keeps using it. Which change best removes the outage?",
     "options": [
-      "Disable rotation and lengthen the password to compensate",
-      "Re-fetch the secret on authentication failure (or cache with a short TTL) and use an alternating-users rotation so the old credential stays valid",
-      "Restart all instances manually right before every rotation",
-      "Store the password in the container image so it is always available"
+      "Disable rotation and use a much longer password to compensate for it",
+      "Re-fetch the secret on auth failure; rotate using alternating users",
+      "Restart all instances manually right before every scheduled rotation",
+      "Bake the password into the container image so it is always available"
     ],
     "correctIndex": 1,
     "explanation": "Rotation changes the credential under a running app, so clients must refresh it; an alternating-users strategy keeps the previous user's credentials valid during the switch so in-flight clients keep working. Disabling rotation trades away security, manual restarts are fragile, and baking secrets into images is both insecure and still stale after rotation.",
@@ -279,10 +279,10 @@
     "title": "What RPO measures",
     "question": "A business states an RPO of 15 minutes for its order database. What does that mean?",
     "options": [
-      "At most 15 minutes of data may be lost, measured back from the moment of failure",
-      "The system must be back online within 15 minutes of an outage",
-      "Backups must be retained for at least 15 minutes",
-      "Failover must be tested every 15 minutes"
+      "At most 15 minutes of data may be lost, measured back from the failure",
+      "The system must be fully back online within 15 minutes of any outage",
+      "Every backup must be retained for at least 15 minutes",
+      "Failover to the secondary site must be tested every 15 minutes"
     ],
     "correctIndex": 0,
     "explanation": "Recovery Point Objective is the maximum acceptable data loss expressed as time since the last recoverable point. The time to restore service is the Recovery Time Objective (RTO). Retention and test frequency are separate concerns.",
@@ -298,8 +298,8 @@
     "options": [
       "Multi-site active/active at full capacity in both regions",
       "Backup and restore from daily snapshots copied to the second region",
-      "Pilot light with only data replicated and infrastructure created at failover time",
-      "Warm standby: a scaled-down but fully functional copy running in the second region with continuous replication"
+      "Pilot light, with only data replicated and servers created at failover",
+      "Warm standby: a scaled-down, fully working copy running in the second region"
     ],
     "correctIndex": 3,
     "explanation": "Warm standby keeps a running, smaller environment that can take traffic immediately and scale up, giving RTO in minutes with replicated data for seconds of RPO. Backup and restore gives hours of RTO and RPO, pilot light needs time to provision and start services, and active/active meets the goals but is the expensive option ruled out.",
@@ -330,9 +330,9 @@
     "title": "Data loss after cross-region failover",
     "question": "The primary database replicates asynchronously to another region with typical lag of 5 seconds. The primary region fails and you fail over. What should you expect?",
     "options": [
-      "The replica is unusable until the primary region recovers",
-      "Transactions committed in the last seconds before the failure may be lost, so RPO is greater than zero",
-      "Failover is impossible without synchronous replication",
+      "The replica stays unusable until the primary region has fully recovered",
+      "Commits from the last seconds before the failure may be lost (RPO > 0)",
+      "Failover is impossible because the replication is not synchronous",
       "No data loss, because asynchronous replication confirms every commit in both regions"
     ],
     "correctIndex": 1,
@@ -347,10 +347,10 @@
     "title": "A bad DELETE replicated everywhere",
     "question": "A buggy migration ran DELETE without a WHERE clause on the primary database. The multi-region replicas and zone-redundant standby all show the same missing rows within seconds. What should the DR plan have included?",
     "options": [
-      "More replicas in additional regions to raise availability",
-      "Point-in-time restore from backups (ideally isolated/immutable), because replication faithfully copies logical corruption",
-      "Shorter DNS TTLs so traffic could fail over faster",
-      "A synchronous replica, which would have rejected the destructive statement"
+      "More replicas in additional regions to raise availability during incidents",
+      "Point-in-time restore from isolated backups, as replication copies the DELETE",
+      "Shorter DNS TTLs so that traffic could fail over to another region faster",
+      "A synchronous replica, which would have rejected the destructive DELETE statement"
     ],
     "correctIndex": 1,
     "explanation": "Replication and HA protect against infrastructure failures, not bad writes: a valid DELETE is replicated like any other change. Recovery needs backups with point-in-time restore to before the incident, and immutable or isolated copies also protect against ransomware. Synchronous replicas, more regions or faster DNS failover would all contain the same deleted data.",
@@ -381,10 +381,10 @@
     "title": "Paging on CPU vs error budget",
     "question": "An on-call team is paged whenever CPU exceeds 80%, yet most pages need no action and a recent outage with low CPU was missed. What alerting approach does SRE practice recommend instead?",
     "options": [
-      "Lower the CPU threshold to 60% so problems are caught earlier",
-      "Page on every ERROR log line from any service",
-      "Remove paging and rely on a daily dashboard review",
-      "Alert on SLO error-budget burn rate (e.g. multi-window burn-rate alerts) based on user-visible symptoms"
+      "Lower the CPU threshold to 60% so that problems are caught much earlier",
+      "Page on every ERROR log line emitted by any service in production",
+      "Remove paging entirely and rely on a daily dashboard review",
+      "Alert on SLO error-budget burn rate based on user-visible symptoms"
     ],
     "correctIndex": 3,
     "explanation": "Burn-rate alerts fire when users are actually being hurt fast enough to threaten the SLO, which improves precision and recall versus resource thresholds. A lower CPU threshold creates more noise, paging on every error line is unmanageable, and dashboards alone miss urgent incidents.",
@@ -399,9 +399,9 @@
     "question": "Workers take about 2 minutes to process each SQS message, and the queue's visibility timeout is 30 seconds. Many messages are processed twice. What is happening?",
     "options": [
       "Long polling is causing workers to read the same message simultaneously",
-      "SQS standard queues always deliver every message exactly twice",
+      "SQS standard queues deliberately deliver every message exactly twice",
       "The dead-letter queue is redriving messages back to the source queue",
-      "The message becomes visible again before processing finishes, so another worker receives it"
+      "The message reappears before processing finishes, so another worker gets it"
     ],
     "correctIndex": 3,
     "explanation": "While a consumer processes a message it is hidden for the visibility timeout; if it is not deleted in time it reappears and another consumer gets it. Set the timeout above the processing time (or extend it while working) and keep handlers idempotent, since standard queues are at-least-once anyway. Long polling and DLQs do not cause this pattern.",
@@ -432,9 +432,9 @@
     "title": "Read replica vs Multi-AZ",
     "question": "A team added an RDS read replica in another AZ, expecting it to provide automatic failover if the primary instance fails. What is the flaw?",
     "options": [
-      "Read replicas use asynchronous replication for read scaling; automatic failover comes from a Multi-AZ deployment's synchronously replicated standby",
-      "Read replicas cannot be placed in a different AZ from the primary",
-      "Multi-AZ standbys are only available for Aurora, not RDS",
+      "Read replicas are async and for reads; automatic failover needs Multi-AZ",
+      "Read replicas cannot be placed in a different AZ from the primary instance",
+      "Multi-AZ standbys are only available for Aurora, not for standard RDS",
       "Automatic failover requires two read replicas in different regions"
     ],
     "correctIndex": 0,
@@ -449,10 +449,10 @@
     "title": "One poison message retries the whole batch",
     "question": "A Lambda function consumes SQS in batches of 10. One malformed message makes the function throw, so all 10 messages return to the queue and are reprocessed repeatedly. What is the best fix?",
     "options": [
-      "Set the batch size to 10,000 so failures are diluted",
+      "Set the batch size to 10,000 so each failure is diluted among more messages",
       "Catch the exception and return success so the batch is deleted",
       "Set the visibility timeout to zero so retries happen immediately",
-      "Enable ReportBatchItemFailures and return only the failed message IDs, plus configure a dead-letter queue via redrive policy"
+      "Enable ReportBatchItemFailures, return failed IDs, and add a DLQ"
     ],
     "correctIndex": 3,
     "explanation": "With partial batch responses, Lambda deletes the successful messages and only the reported failures become visible again; a redrive policy moves repeatedly failing messages to a DLQ. Swallowing errors silently loses data, larger batches increase blast radius, and zero visibility timeout causes immediate duplicate processing.",
@@ -466,10 +466,10 @@
     "title": "Account-wide guardrail against public buckets",
     "question": "Security wants to make sure no S3 bucket in an account can be made public through ACLs or bucket policies, even by mistake. Which feature provides this guardrail?",
     "options": [
-      "S3 Block Public Access at the account level",
-      "S3 Transfer Acceleration",
-      "S3 Versioning",
-      "S3 Intelligent-Tiering"
+      "Account-level S3 Block Public Access",
+      "S3 Transfer Acceleration on every bucket",
+      "S3 Versioning with MFA Delete enabled",
+      "S3 Intelligent-Tiering for all new objects"
     ],
     "correctIndex": 0,
     "explanation": "Block Public Access settings override ACLs and bucket policies that would grant public access, and setting them at the account level covers existing and future buckets. Versioning protects against overwrites, Transfer Acceleration speeds uploads, and Intelligent-Tiering optimises storage cost.",
@@ -483,9 +483,9 @@
     "title": "Google Cloud resource hierarchy",
     "question": "In Google Cloud, an IAM role granted on a folder applies to which resources?",
     "options": [
-      "Only resources created after the grant",
-      "Only the folder object itself, not its projects",
-      "All projects and resources beneath that folder, through policy inheritance",
+      "Only resources in that folder created after the role was granted",
+      "Only the folder object itself, not the projects or resources inside",
+      "All projects and resources beneath that folder, via inheritance",
       "All projects in the organization, regardless of folder"
     ],
     "correctIndex": 2,
@@ -502,7 +502,7 @@
     "options": [
       "Rotate the JSON key weekly and keep it in the repository secret",
       "Create a user account for the pipeline and store its password",
-      "Workload Identity Federation, exchanging the CI provider's OIDC token for short-lived Google credentials",
+      "Workload Identity Federation with short-lived tokens via OIDC",
       "Grant the Owner role to allUsers on the deployment project"
     ],
     "correctIndex": 2,
@@ -518,9 +518,9 @@
     "question": "A legacy service moved to Cloud Run starts producing corrupted responses under load, though it worked fine with one request at a time. The code uses global mutable state. Which setting is most relevant?",
     "options": [
       "Minimum instances, which defaults to 80 and should be set to 0",
-      "The request timeout, which must be raised to 60 minutes",
-      "Maximum concurrent requests per instance, which defaults to 80; set it to 1 for code that is not thread-safe",
-      "CPU always-allocated billing, which disables multithreading"
+      "The request timeout, which must be raised to the 60-minute maximum",
+      "Maximum concurrent requests per instance (default 80); set it to 1",
+      "CPU always-allocated billing, which disables multithreading per instance"
     ],
     "correctIndex": 2,
     "explanation": "Unlike classic FaaS, a Cloud Run instance serves many requests at once (default concurrency 80), so shared global state can be corrupted. Setting concurrency to 1 restores one-request-per-instance semantics at the cost of more instances; the better long-term fix is removing shared mutable state. Min instances, timeouts and billing mode do not change concurrency.",
@@ -653,10 +653,10 @@
     "title": "Reading an archived blob",
     "question": "A blob in the Archive access tier must be read by an application today. What must happen first?",
     "options": [
-      "The storage account must be converted to premium performance",
-      "Nothing; Archive blobs can be read directly at a higher price",
-      "The blob must be rehydrated to an online tier (Hot, Cool or Cold), which can take hours",
-      "The blob must be copied to a file share before reading"
+      "The storage account must first be converted to premium performance",
+      "Nothing; Archive blobs can be read directly, just at a higher price",
+      "It must be rehydrated to an online tier first, which can take hours",
+      "The blob must be copied to an Azure file share before it can be read"
     ],
     "correctIndex": 2,
     "explanation": "The Archive tier is offline: data cannot be read until the blob is rehydrated to an online tier, either by changing its tier or copying it, which may take up to many hours depending on priority. Premium accounts and file shares are unrelated to rehydration.",
@@ -670,10 +670,10 @@
     "title": "Keeping connection strings after geo-failover",
     "question": "An Azure SQL Database uses active geo-replication. After a regional failover, every app had to be reconfigured with the new server name. Which feature avoids this?",
     "options": [
-      "Enabling the serverless compute tier with auto-pause",
-      "Increasing the database's backup retention period",
-      "Failover groups, which expose read-write and read-only listener endpoints that follow the primary",
-      "Zone-redundant configuration on the primary database"
+      "Enabling the serverless compute tier with auto-pause on both servers",
+      "Increasing the database's long-term backup retention period",
+      "Failover groups, whose listener endpoints follow the current primary",
+      "A zone-redundant configuration on the primary and secondary databases"
     ],
     "correctIndex": 2,
     "explanation": "Failover groups wrap geo-replication with stable DNS listener endpoints that redirect to the current primary after failover, so connection strings do not change. Zone redundancy protects within a region, backup retention affects restores, and serverless affects compute billing.",
@@ -687,9 +687,9 @@
     "title": "Too many PostgreSQL connections",
     "question": "A serverless app creates many short-lived connections to Azure Database for PostgreSQL flexible server and hits connection limits and high CPU from connection churn. What built-in option helps most?",
     "options": [
-      "Enable the built-in PgBouncer connection pooler and connect through it (port 6432)",
-      "Switch the server to the burstable compute tier",
-      "Disable SSL so connection setup is cheaper",
+      "Enable the built-in PgBouncer and connect through port 6432",
+      "Switch the server to the burstable compute tier to absorb spikes",
+      "Disable SSL on the server so each connection setup is cheaper",
       "Increase max_connections far above the server's memory capacity"
     ],
     "correctIndex": 0,
@@ -704,10 +704,10 @@
     "title": "Removing a storage connection string",
     "question": "An App Service app reads blobs using a storage account connection string with the account key in app settings. What is the recommended way to remove that secret?",
     "options": [
-      "Move the connection string into a Git-ignored local file",
-      "Enable a managed identity, grant it a data-plane role such as Storage Blob Data Reader, and authenticate with DefaultAzureCredential",
-      "Grant the app the Owner role on the storage account and keep the key",
-      "Use a SAS token with no expiry date in app settings"
+      "Move the connection string into a Git-ignored local file on the server",
+      "Use a managed identity with a data-plane role like Storage Blob Data Reader",
+      "Grant the app the Owner role on the storage account and keep using the key",
+      "Use a SAS token with no expiry date, stored in app settings"
     ],
     "correctIndex": 1,
     "explanation": "Managed identities let the app obtain Microsoft Entra tokens without any stored secret, and data-plane RBAC roles grant just the blob access needed. Local files and non-expiring SAS tokens are still long-lived secrets, and Owner is a management-plane role that is far too broad.",
@@ -739,9 +739,9 @@
     "question": "How can an App Service app consume a secret from Key Vault as a normal app setting without changing application code?",
     "options": [
       "Enable public network access on the vault so the app can read it anonymously",
-      "Mount the Key Vault as a network drive on the app",
+      "Mount the Key Vault as a network drive on the App Service instances",
       "Copy the secret value into the app setting during each deployment",
-      "Use a Key Vault reference such as @Microsoft.KeyVault(SecretUri=...) resolved via the app's managed identity"
+      "Use a Key Vault reference resolved through the app's managed identity"
     ],
     "correctIndex": 3,
     "explanation": "Key Vault references let App Service resolve app settings from Key Vault at runtime using the app's managed identity, so code reads an ordinary environment variable. Copying values loses central rotation, vaults cannot be mounted as drives, and Key Vault never allows anonymous secret reads.",
@@ -756,8 +756,8 @@
     "question": "A managed identity has the 'Key Vault Reader' role on an RBAC-enabled vault, yet GET on a secret returns 403 Forbidden. What is the fix?",
     "options": [
       "Grant 'Reader' on the resource group, which includes data-plane access",
-      "Wait 24 hours for role assignments to propagate",
-      "Assign 'Key Vault Secrets User', because Key Vault Reader can read metadata but not secret values",
+      "Wait up to 24 hours for the role assignment to propagate to the vault",
+      "Assign 'Key Vault Secrets User'; Key Vault Reader covers only metadata",
       "Add an access policy, since RBAC vaults still evaluate access policies first"
     ],
     "correctIndex": 2,
@@ -823,10 +823,10 @@
     "title": "Messages land in the DLQ despite success",
     "question": "A Service Bus consumer uses peek-lock with a 30-second lock duration. Handlers take about 90 seconds. Messages are redelivered repeatedly and end up in the dead-letter queue with MaxDeliveryCountExceeded. What is the cause?",
     "options": [
-      "The dead-letter queue is full and is pushing messages back",
+      "The dead-letter queue is full and is pushing messages back to the main queue",
       "Sessions are disabled, which makes every message expire after 30 seconds",
-      "Peek-lock deletes the message on receipt, so retries come from the sender",
-      "The lock expires before the handler completes, so completion fails and each redelivery increments the delivery count"
+      "Peek-lock deletes each message on receipt, so the retries come from the sender",
+      "The lock expires before the handler finishes, so the message is redelivered"
     ],
     "correctIndex": 3,
     "explanation": "In peek-lock mode the message is locked for the lock duration; if it is not settled in time the lock is lost, the message becomes available again and its delivery count increases until it hits MaxDeliveryCount and is dead-lettered. Fix it by renewing locks (SDK auto-lock-renewal) or increasing the lock duration. Receive-and-delete is the mode that removes messages on receipt.",
@@ -840,9 +840,9 @@
     "title": "Duplicates despite duplicate detection",
     "question": "A queue has duplicate detection enabled and senders set MessageId to the business ID. The team still sees an order processed twice after a consumer crashed right after writing to the database but before completing the message. Why?",
     "options": [
-      "Duplicate detection only drops duplicate sends within its window; delivery is still at-least-once, so the consumer must be idempotent",
-      "The lock duration resets the duplicate detection window to zero",
-      "MessageId must be a GUID generated by the SDK for detection to apply",
+      "Duplicate detection only blocks duplicate sends; the consumer must be idempotent",
+      "Each lock renewal resets the duplicate detection window back to zero",
+      "MessageId must be a GUID generated by the SDK, not a business ID, for detection to apply",
       "Duplicate detection requires partitioning to be disabled to work at all"
     ],
     "correctIndex": 0,
@@ -874,10 +874,10 @@
     "title": "Private endpoint still resolves public IP",
     "question": "You created a private endpoint for an Azure SQL server and disabled public network access. The app in a peered VNet now fails because myserver.database.windows.net still resolves to a public IP. What is missing?",
     "options": [
-      "A privatelink.database.windows.net private DNS zone with the endpoint's record, linked to the app's VNet",
+      "A privatelink.database.windows.net private DNS zone linked to the VNet",
       "An NSG rule allowing outbound port 1433 to the Internet service tag",
-      "A service endpoint for Microsoft.Sql on the database server",
-      "A public IP address attached to the private endpoint"
+      "A service endpoint for Microsoft.Sql on the app's subnet in the VNet",
+      "A public IP address attached to the private endpoint's network interface"
     ],
     "correctIndex": 0,
     "explanation": "Private endpoints rely on DNS: the public name must resolve via a CNAME to the privatelink zone, which needs a private DNS zone (or custom DNS) linked to every VNet that resolves it. Opening outbound Internet does not help when public access is disabled, private endpoints have no public IPs, and service endpoints are a different mechanism.",
@@ -925,10 +925,10 @@
     "title": "Cutting Application Insights cost",
     "question": "A high-traffic API's Application Insights ingestion costs are too high. You enable sampling. Why can you still trust request counts and follow complete traces for sampled operations?",
     "options": [
-      "Sampling only discards exceptions, leaving all requests intact",
-      "Sampled-out telemetry is stored in a cheaper tier and merged at query time",
-      "Sampling compresses telemetry without dropping any items",
-      "Sampling decisions are made per operation/trace ID, and retained items carry a weight so aggregates are statistically adjusted"
+      "Sampling only discards exception telemetry, leaving all requests intact",
+      "Sampled-out telemetry is stored in a cheaper tier and merged back at query time",
+      "Sampling compresses telemetry on the client without dropping any items",
+      "Sampling keeps or drops whole operations by trace ID and weights kept items"
     ],
     "correctIndex": 3,
     "explanation": "Application Insights sampling keeps or drops whole operations together based on the trace ID, so related requests, dependencies and logs stay correlated, and each retained item represents several items so metrics are scaled. It does drop data permanently and does not target exceptions only.",
@@ -959,9 +959,9 @@
     "title": "What makes a pipeline ELT",
     "question": "What distinguishes ELT from ETL?",
     "options": [
-      "Raw data is loaded into the target system first and transformed there using its compute",
+      "Raw data is loaded into the target first and transformed there",
       "ELT never transforms data; it only replicates source tables",
-      "ELT runs only as streaming, while ETL runs only as batch",
+      "ELT always runs as streaming, while ETL always runs as nightly batch",
       "Data is transformed on a separate server before being loaded"
     ],
     "correctIndex": 0,
@@ -976,10 +976,10 @@
     "title": "Reruns duplicate rows",
     "question": "A daily job appends yesterday's sales to a table. When it is retried after a partial failure, rows are duplicated. What design change makes reruns safe?",
     "options": [
-      "Make the load idempotent, e.g. overwrite the day's partition or MERGE/upsert on a business key",
-      "Run the job twice and deduplicate weekly",
-      "Increase the job's timeout so it never fails partway",
-      "Add a retry limit of one so the job never runs twice"
+      "Make the load idempotent, e.g. overwrite the day's partition or MERGE",
+      "Let reruns append and run a deduplication job once a week",
+      "Increase the job's timeout so that it never fails partway through",
+      "Disable retries entirely so the job can never run twice for the same day"
     ],
     "correctIndex": 0,
     "explanation": "Idempotent tasks produce the same result no matter how many times they run for a given interval, typically by replacing the partition for that interval or upserting on keys. Limiting retries reduces reliability, weekly dedup leaves bad data in between, and longer timeouts do not prevent all failures.",
@@ -993,9 +993,9 @@
     "title": "Incremental loads that miss deletes",
     "question": "An incremental pipeline extracts rows WHERE updated_at > last_run. Analysts find that records deleted in the source still exist in the warehouse, and some rapid updates are missed. What approach addresses both?",
     "options": [
-      "Switching the warehouse table to a columnar format",
-      "Running the timestamp-based query more frequently",
-      "Log-based change data capture that reads inserts, updates and deletes from the database's transaction log",
+      "Switching the warehouse table to a columnar storage format such as Parquet",
+      "Running the timestamp-based query every few minutes instead of daily",
+      "Log-based change data capture reading the database's transaction log",
       "Adding an index on updated_at in the source database"
     ],
     "correctIndex": 2,
@@ -1027,10 +1027,10 @@
     "title": "Late events and watermarks",
     "question": "A Spark Structured Streaming job aggregates 5-minute event-time windows with withWatermark(\"eventTime\", \"10 minutes\"). An event arrives 40 minutes after the latest event time seen. What happens?",
     "options": [
-      "It is older than the watermark, so it may be dropped and not counted in its window",
-      "The query fails with a late-data exception",
+      "It is behind the watermark, so it may be dropped and not counted",
+      "The query fails with a late-data exception and must be restarted",
       "It is always added to its window and the result is re-emitted",
-      "It is assigned to the current window instead of its own"
+      "It is assigned to the current open window instead of its original one"
     ],
     "correctIndex": 0,
     "explanation": "The watermark (max event time seen minus 10 minutes) tells the engine how long to keep window state for late data; data older than that is not guaranteed to be aggregated and is typically dropped, which bounds state. Spark does not fail on late data or reassign it to another window.",
@@ -1044,10 +1044,10 @@
     "title": "Streaming dedup state grows forever",
     "question": "A streaming job calls dropDuplicates(\"eventId\") on a stream of events without a watermark. Over weeks, state store size and checkpoint times grow until the job becomes unstable. What is the fix?",
     "options": [
-      "Switch the output mode from append to complete",
-      "Add a watermark and include the event-time column (or use a bounded dedup variant) so old keys can be evicted from state",
-      "Repartition the stream into a single partition",
-      "Increase the trigger interval so fewer micro-batches run"
+      "Switch the output mode from append to complete for the dedup query",
+      "Add a watermark and dedup on eventId plus event time so keys can expire",
+      "Repartition the stream into a single partition so all state is in one place",
+      "Increase the trigger interval so that fewer micro-batches have to run"
     ],
     "correctIndex": 1,
     "explanation": "Without a watermark the engine must remember every eventId forever to detect duplicates, so state grows unbounded. A watermark lets it discard keys older than the threshold, accepting that very late duplicates are not caught. Trigger intervals, complete mode or a single partition do not bound the state and some make it worse.",
@@ -1061,9 +1061,9 @@
     "title": "Exactly-once and external side effects",
     "question": "A Flink job with checkpointing and exactly-once mode calls an external payment HTTP API for each event. After a failure and restore, some customers are charged twice. Why?",
     "options": [
-      "Checkpoints are only taken when the job shuts down cleanly",
-      "Exactly-once covers the engine's state and transactional sinks; replayed records re-trigger non-idempotent external calls",
-      "Exactly-once is disabled automatically whenever parallelism is greater than 1",
+      "Checkpoints are only taken when the job shuts down cleanly, not periodically",
+      "Exactly-once covers engine state, not external calls replayed after restore",
+      "Exactly-once is disabled automatically whenever parallelism exceeds 1",
       "The HTTP client retried because exactly-once requires UDP"
     ],
     "correctIndex": 1,
@@ -1078,9 +1078,9 @@
     "title": "When streaming is worth it",
     "question": "Which requirement most clearly justifies a streaming pipeline instead of a nightly batch job?",
     "options": [
-      "Rebuilding a dimension table once a day",
-      "Flagging fraudulent card transactions within seconds of them occurring",
-      "Archiving last year's logs to cold storage",
+      "Rebuilding a customer dimension table once a day",
+      "Flagging fraudulent card transactions within seconds",
+      "Archiving last year's application logs to cold storage",
       "Producing a monthly finance report for the board"
     ],
     "correctIndex": 1,
@@ -1095,10 +1095,10 @@
     "title": "Warehouse or data lake",
     "question": "Data scientists want to keep raw JSON clickstream, images and CSV extracts cheaply for future, not-yet-defined analyses. Which storage architecture fits that need best?",
     "options": [
-      "An in-memory cache cluster",
-      "A data lake on object storage that stores raw data in native formats",
-      "An OLTP database tuned for transactions",
-      "A relational data warehouse with a fixed star schema"
+      "An in-memory cache cluster with persistence enabled",
+      "A data lake on object storage holding raw data in native formats",
+      "An OLTP database tuned for high-volume transactions",
+      "A relational data warehouse modelled up front as a fixed star schema"
     ],
     "correctIndex": 1,
     "explanation": "Data lakes store large volumes of raw structured, semi-structured and unstructured data at low cost with schema-on-read, ideal for exploratory and ML use. A warehouse is best for curated, structured data for BI with schema-on-write, while OLTP databases and caches are not designed for cheap bulk analytical storage.",
@@ -1112,10 +1112,10 @@
     "title": "Readers see half-written data",
     "question": "Several Spark jobs write Parquet files directly into the same lake folders while BI queries read them. Readers sometimes see partial results and failed jobs leave orphaned files. What addresses this?",
     "options": [
-      "Adopt an open table format with a transaction log (Delta Lake or Apache Iceberg) for ACID commits and snapshot isolation",
-      "Schedule all readers to run only at night",
-      "Increase the object storage account's throughput limits",
-      "Switch the files from Parquet to CSV"
+      "Adopt a table format with a transaction log, such as Delta Lake or Iceberg",
+      "Schedule all BI readers to run only at night, after the writers finish",
+      "Increase the object storage account's throughput and request limits",
+      "Switch the files from Parquet to CSV so each write is a single append"
     ],
     "correctIndex": 0,
     "explanation": "Table formats such as Delta Lake and Iceberg add a transaction log or metadata layer so writes commit atomically, readers see consistent snapshots, and uncommitted files are ignored - the basis of a lakehouse. The file format inside does not provide transactions, scheduling only hides the issue, and throughput is unrelated to consistency.",
@@ -1129,10 +1129,10 @@
     "title": "Historical attributes in a dimension",
     "question": "Sales reports must show each order with the customer's region at the time of the order, even after customers move. How should the customer dimension be modelled?",
     "options": [
-      "Type 1: overwrite the region in place whenever it changes",
-      "Slowly changing dimension Type 2: add a new row with effective dates for each change and link facts to the surrogate key",
+      "SCD Type 1: overwrite the region in place whenever the customer moves",
+      "SCD Type 2: a new row per change, with effective dates and surrogate keys",
       "Drop the dimension and store the region on every fact row as free text",
-      "Store region only in the source OLTP database and join live"
+      "Keep the region only in the source OLTP database and join to it live"
     ],
     "correctIndex": 1,
     "explanation": "SCD Type 2 preserves history by versioning dimension rows with validity ranges and surrogate keys, so facts point to the version valid at the time. Type 1 overwrites history, live joins to OLTP show current values and burden production, and free text on facts loses consistency.",
@@ -1146,10 +1146,10 @@
     "title": "Ordering guarantees in Kafka",
     "question": "Events for each bank account must be consumed in the order they were produced. How do you get this with a multi-partition Kafka topic?",
     "options": [
-      "Set the topic to use a single consumer group",
-      "Enable log compaction on the topic",
-      "Kafka guarantees global ordering across all partitions of a topic",
-      "Use the account ID as the message key so all its events go to the same partition"
+      "Have all consumers of the topic join a single consumer group",
+      "Enable log compaction on the topic so events stay in order",
+      "Nothing extra, since Kafka orders events globally across all partitions of a topic",
+      "Use the account ID as the message key so its events share a partition"
     ],
     "correctIndex": 3,
     "explanation": "Kafka guarantees ordering only within a partition, and the default partitioner maps the same key to the same partition. There is no ordering across partitions, consumer groups affect how partitions are shared, and compaction controls retention by key rather than ordering.",
@@ -1180,10 +1180,10 @@
     "title": "acks=all with brokers down",
     "question": "A topic has replication factor 3 and min.insync.replicas=2; producers use acks=all. Two of the three replicas for a partition go offline. What happens to writes to that partition?",
     "options": [
-      "Writes are buffered on the broker until replicas return",
-      "Kafka automatically lowers the replication factor to 1",
-      "Writes succeed with only the leader, and replicas catch up later",
-      "Producers receive NotEnoughReplicas errors, sacrificing availability to avoid acknowledged writes on a single copy"
+      "Writes are buffered on the leader broker until the replicas come back",
+      "Kafka automatically lowers the partition's replication factor to 1",
+      "Writes succeed with only the leader, and the replicas catch up after they return",
+      "Producers get NotEnoughReplicas errors; availability is traded for safety"
     ],
     "correctIndex": 3,
     "explanation": "With acks=all, the leader only acknowledges when at least min.insync.replicas replicas are in sync; with just one remaining the write is rejected. This combination prevents data loss from acknowledging writes held by a single broker. Kafka never silently changes replication factor, and brokers do not buffer rejected writes.",
@@ -1197,9 +1197,9 @@
     "title": "Consumers see aborted transactional data",
     "question": "A producer uses Kafka transactions to write to two topics atomically. Downstream consumers sometimes process records from transactions that were later aborted. What is the likely cause?",
     "options": [
-      "Consumers use the default isolation.level=read_uncommitted; they must set read_committed",
+      "Consumers did not set isolation.level=read_committed",
       "Transactions only work when both topics have one partition",
-      "Transactions require acks=1 on the producer",
+      "Transactions require acks=1 on the producer to commit",
       "Aborted records are only filtered when the topic is compacted"
     ],
     "correctIndex": 0,
@@ -1214,10 +1214,10 @@
     "title": "Adding partitions to a keyed topic",
     "question": "A keyed topic that relies on per-key ordering is increased from 12 to 24 partitions. What risk should the team expect?",
     "options": [
-      "The topic becomes read-only until a full rebalance completes",
-      "Consumers lose their committed offsets on all partitions",
-      "New records for many keys hash to different partitions, so per-key ordering across the change is broken and stateful consumers may see keys move",
-      "Existing records are automatically rehashed into the new partitions"
+      "The topic becomes read-only until a full partition rebalance completes",
+      "Consumers lose their committed offsets on all existing partitions",
+      "Keys may map to new partitions, breaking per-key ordering across the change",
+      "Existing records are automatically rehashed and moved into the new partitions"
     ],
     "correctIndex": 2,
     "explanation": "Kafka never moves existing data when partitions are added, but the key-to-partition mapping (hash modulo partition count) changes for new records, so a key's old and new events can live in different partitions. Plan partition counts up front for keyed topics. The topic stays writable and committed offsets for existing partitions remain.",
@@ -1231,10 +1231,10 @@
     "title": "Keeping the latest value per key",
     "question": "A topic stores customer profile updates keyed by customer ID. New services need to rebuild the current state of all customers without keeping every historical update forever. Which topic setting fits?",
     "options": [
-      "retention.ms=-1 with cleanup.policy=delete",
-      "A replication factor of 1 to reduce storage",
-      "A larger segment.bytes so fewer files are kept",
-      "cleanup.policy=compact, so Kafka retains at least the latest record for each key"
+      "retention.ms=-1 with cleanup.policy=delete to keep every update",
+      "A replication factor of 1 to reduce the storage used by old updates",
+      "A larger segment.bytes value so that fewer old segment files are kept",
+      "cleanup.policy=compact, which keeps at least the latest record per key"
     ],
     "correctIndex": 3,
     "explanation": "Log compaction removes older records for a key while keeping the most recent value, so a consumer can rebuild current state from the topic. Infinite delete-based retention keeps every update, replication factor affects durability rather than retention, and segment size only changes file layout.",
@@ -1265,10 +1265,10 @@
     "title": "Stopping bad rows at write time",
     "question": "An upstream bug started sending negative quantities, which silently polluted a Delta Lake table used by dashboards. Which table-level feature would reject such writes?",
     "options": [
-      "Z-ordering the table by quantity",
-      "A CHECK constraint (e.g. quantity >= 0) that fails any transaction containing violating rows",
-      "Running VACUUM with a shorter retention period",
-      "Enabling the table's change data feed"
+      "Z-ordering the table by quantity so negatives are isolated",
+      "A CHECK constraint (e.g. quantity >= 0) that fails violating writes",
+      "Running VACUUM with a shorter retention period after each load",
+      "Enabling the table's change data feed to block invalid row changes"
     ],
     "correctIndex": 1,
     "explanation": "Delta Lake CHECK constraints are validated on every write, and a transaction with violating rows fails, so bad data never becomes visible. Z-ordering is a layout optimisation, change data feed exposes row changes, and VACUUM deletes old files - none of them validate data.",
@@ -1282,10 +1282,10 @@
     "title": "Why Parquet speeds up analytics",
     "question": "A query reads 3 columns from a 200-column table and filters on a date. Why is Parquet typically much faster than CSV here?",
     "options": [
-      "It sorts every file by the primary key automatically",
-      "It is columnar, so only needed columns are read, and row-group statistics let readers skip data that cannot match the filter",
-      "It stores data uncompressed, so no decoding is needed",
-      "It keeps a B-tree index for every column"
+      "It automatically sorts every file by the table's primary key on write",
+      "It is columnar, and row-group statistics let readers skip non-matching data",
+      "It stores data uncompressed, so no decoding is needed when reading",
+      "It keeps a B-tree index on every column, much like a relational database table"
     ],
     "correctIndex": 1,
     "explanation": "Parquet stores each column's values together, enabling column pruning and effective compression, and its metadata holds min/max statistics per row group for predicate pushdown. It is usually compressed, does not sort data automatically, and does not maintain B-tree indexes.",
@@ -1299,10 +1299,10 @@
     "title": "Thousands of tiny files",
     "question": "A streaming job writes a new Parquet file per partition every 30 seconds, producing millions of files of a few KB each. Queries over the table have become slow. What is the standard remedy?",
     "options": [
-      "Periodically compact small files into larger ones (e.g. Delta OPTIMIZE or Iceberg rewrite) and use larger write batches",
-      "Add more partition columns to spread the files further",
-      "Convert the files to JSON so they can be appended in place",
-      "Disable compression to make each file faster to open"
+      "Periodically compact them into larger files, e.g. with Delta OPTIMIZE",
+      "Add more partition columns to spread the files across more folders",
+      "Convert the files to JSON so new records can be appended in place",
+      "Disable compression so that each small file is faster to open and to read"
     ],
     "correctIndex": 0,
     "explanation": "Each file adds listing, open and metadata overhead, and tiny files compress poorly, so many small files hurt performance. Compaction rewrites them into appropriately large files, and longer triggers reduce creation of new ones. More partition columns create even more small files, and JSON or disabling compression worsens scans.",
@@ -1316,10 +1316,10 @@
     "title": "Partitioning by user_id",
     "question": "An events table in a data lake is partitioned by user_id (millions of users). Queries usually filter by date range, and query planning is now extremely slow. What is the better layout?",
     "options": [
-      "Partition by a random hash so files are evenly sized",
-      "Remove all partitioning and rely on full scans",
-      "Partition by both user_id and event timestamp to the second",
-      "Partition by a low-cardinality column matching common filters (e.g. event date) and cluster/sort by user_id within partitions"
+      "Partition by a random hash bucket so that all files are evenly sized",
+      "Remove all partitioning and rely on full scans of the whole table",
+      "Partition by both user_id and the event timestamp truncated to the second",
+      "Partition by event date and cluster or sort by user_id within partitions"
     ],
     "correctIndex": 3,
     "explanation": "Partition columns should be low to moderate cardinality and align with frequent filters; millions of partitions create huge metadata overhead and tiny files. Date partitions prune effectively for range queries, and clustering by user_id still helps user lookups. Finer partitions worsen the problem, while full scans or random partitions remove pruning.",
@@ -1334,9 +1334,9 @@
     "question": "A new Airflow DAG has a daily schedule, start_date set to one year ago and catchup=True. As soon as it is unpaused, the scheduler creates hundreds of DAG runs. Why?",
     "options": [
       "Airflow retries the first run once per day of the start_date offset",
-      "The scheduler duplicates runs when the DAG file is parsed",
+      "The scheduler duplicates runs each time the DAG file is re-parsed",
       "Daily schedules always backfill exactly one year by default",
-      "Catchup schedules a run for every missed data interval between start_date and now"
+      "Catchup schedules a run for every missed data interval since start_date"
     ],
     "correctIndex": 3,
     "explanation": "With catchup enabled, the scheduler creates DAG runs for every interval since start_date that has not run yet. Set catchup=False (the default in recent Airflow versions) or a recent start_date, and use explicit backfills when history is needed. Retries and file parsing do not create new DAG runs.",
@@ -1350,10 +1350,10 @@
     "title": "Passing a large DataFrame between tasks",
     "question": "A task pushes a 2 GB DataFrame to XCom so the next task can use it, and the metadata database is struggling. What is the recommended pattern?",
     "options": [
-      "Merge all tasks into one so XCom is not needed",
-      "Pickle the DataFrame to shrink it before pushing to XCom",
+      "Merge all the tasks into a single task so that XCom is not needed",
+      "Pickle and compress the DataFrame to shrink it before pushing to XCom",
       "Increase the metadata database's disk size",
-      "Write the data to external storage (e.g. object storage) and pass only a reference such as its path via XCom"
+      "Write the data to external storage and pass only its path via XCom"
     ],
     "correctIndex": 3,
     "explanation": "XComs are meant for small pieces of metadata; by default they live in the Airflow metadata database. Large data should go to external storage, with tasks exchanging only references, or use a custom XCom backend. Bigger disks and pickling do not fix the misuse, and merging tasks loses retries and observability.",
@@ -1367,10 +1367,10 @@
     "title": "Slow scheduler from DAG files",
     "question": "DAG files query a database at module level to build a list of tables, and the scheduler's DAG parsing becomes slow and puts load on that database. What does Airflow best practice recommend?",
     "options": [
-      "Put the database query inside a try/except block",
-      "Combine all DAGs into a single file so it is parsed once",
-      "Avoid expensive top-level code; move such work into tasks or templated/runtime logic, since files are parsed repeatedly",
-      "Increase the DAG file processing interval to once per week"
+      "Wrap the module-level database query in a try/except block",
+      "Combine all DAGs into a single file so that it is parsed only once",
+      "Move expensive top-level code into tasks, since files are parsed repeatedly",
+      "Increase the DAG file processing interval so files are parsed once per week"
     ],
     "correctIndex": 2,
     "explanation": "The DAG processor re-parses DAG files frequently, so any top-level code runs on every parse, slowing scheduling and hammering external systems. Expensive work belongs inside tasks executed at runtime. Rarely parsing delays picking up changes, try/except does not reduce cost, and one giant file is slower to parse.",

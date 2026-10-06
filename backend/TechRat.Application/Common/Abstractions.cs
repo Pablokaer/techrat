@@ -27,11 +27,14 @@ public interface IAppDbContext
     DbSet<UserTopicProgress> UserTopicProgress { get; }
     DbSet<XPTransaction> XPTransactions { get; }
     DbSet<Roadmap> Roadmaps { get; }
-    DbSet<RoadmapModule> RoadmapModules { get; }
-    DbSet<RoadmapStep> RoadmapSteps { get; }
+    DbSet<LearningModule> LearningModules { get; }
+    DbSet<ModuleStep> ModuleSteps { get; }
+    DbSet<RoadmapModuleLink> RoadmapModuleLinks { get; }
+    DbSet<ModuleDependency> ModuleDependencies { get; }
     DbSet<RoadmapDependency> RoadmapDependencies { get; }
     DbSet<UserRoadmapProgress> UserRoadmapProgress { get; }
-    DbSet<UserRoadmapStepCompletion> UserRoadmapStepCompletions { get; }
+    DbSet<UserModuleProgress> UserModuleProgress { get; }
+    DbSet<UserModuleStepCompletion> UserModuleStepCompletions { get; }
     DbSet<Achievement> Achievements { get; }
     DbSet<UserAchievement> UserAchievements { get; }
     DbSet<Notification> Notifications { get; }
@@ -73,7 +76,7 @@ public static class CacheKeys
 {
     public const string Topics = "catalog:topics:v1";
     public const string Roadmaps = "catalog:roadmaps:v1";
-    public static string Translations(string locale) => $"catalog:translations:{locale}:v1";
+    public static string Translations(string locale) => $"catalog:translations:{locale}:v2";
     public static string Leaderboard(string scope, string? topic, int page, int pageSize) =>
         $"leaderboard:{scope}:{topic ?? "all"}:{page}:{pageSize}";
 }

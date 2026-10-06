@@ -1,0 +1,518 @@
+[
+  {
+    "id": "lead-cr-cleanup-later",
+    "title": "Resistência do tipo 'eu limpo depois'",
+    "question": "Um autor pede que você aprove o PR agora e promete limpar, em um PR de follow-up na próxima sprint, um helper confuso e duplicado que ele introduz. Não há emergência. O que o guia de code review do Google recomenda?",
+    "options": [
+      "Em geral, insistir na limpeza neste PR, porque limpezas adiadas raramente acontecem",
+      "Aprovar agora, já que bloquear por limpeza atrasa o time e follow-ups são fáceis de agendar",
+      "Aprovar agora, mas registrar a limpeza no backlog como ticket de dívida técnica de baixa prioridade",
+      "Rejeitar o PR de vez e pedir ao autor que reenvie depois de refatorar o módulo inteiro"
+    ],
+    "explanation": "O guia do Google observa que, quanto mais tempo passa depois da mudança original, menor a chance de a limpeza acontecer; se não for feita imediatamente, em geral nunca é. Por isso os revisores devem, em geral, insistir na limpeza agora (só emergências reais justificam adiar, com um bug registrado). Aprovar com um ticket no backlog é exatamente o padrão que tende a se perder, e exigir a refatoração de um módulo inteiro vai muito além do que a mudança pede."
+  },
+  {
+    "id": "lead-cr-design-first",
+    "title": "Enviando cedo os comentários de design",
+    "question": "Você começa a revisar um PR grande e, no arquivo principal, percebe que o design central está fundamentalmente errado para o problema. Você não tem tempo de revisar os outros 20 arquivos hoje. O que deve fazer?",
+    "options": [
+      "Esperar até poder revisar todos os arquivos para o autor receber uma rodada completa e consolidada",
+      "Enviar já os comentários de design, antes de revisar o resto, pois boa parte do código pode mudar",
+      "Deixar primeiro comentários de nit nos outros arquivos para o autor ter algo para fazer agora",
+      "Aprovar com uma nota sobre o design para o autor decidir se vai retrabalhá-lo em algum momento"
+    ],
+    "explanation": "A orientação 'Navigating a CL' do Google diz para olhar primeiro a parte principal e enviar imediatamente os comentários de design importantes, mesmo sem revisar o resto. Boa parte do código restante pode desaparecer quando o design mudar, autores muitas vezes constroem trabalho seguinte sobre uma mudança pendente, e grandes redesenhos são os que mais demoram. Esperar uma passada completa ou polir detalhes primeiro desperdiça o tempo de todos, e aprovar um design sabidamente ruim anula o review."
+  },
+  {
+    "id": "sd-403-vs-401",
+    "title": "401 vs 403 para falta de permissão",
+    "question": "Um usuário logado, com token válido, chama DELETE /admin/users/7, mas não tem a role de admin. Qual status code se encaixa melhor?",
+    "options": [
+      "401 Unauthorized, porque a requisição falhou na checagem de autorização do servidor",
+      "404 Not Found, porque rotas de admin nunca devem ficar visíveis a nenhum cliente",
+      "403 Forbidden, porque o servidor sabe quem é o cliente, mas recusa o acesso",
+      "400 Bad Request, porque o cliente enviou uma requisição que não pode fazer"
+    ],
+    "explanation": "403 significa que o servidor entendeu a requisição e conhece a identidade do cliente, mas ele não tem permissão; autenticar de novo não vai ajudar. Apesar do nome, 401 significa que a autenticação está ausente ou inválida e é enviado com um desafio WWW-Authenticate. 404 às vezes é usado de propósito para esconder a existência de um recurso, mas não é obrigatório, e 400 é para requisições malformadas."
+  },
+  {
+    "id": "sd-http3-hol-blocking",
+    "title": "Head-of-line blocking de transporte no HTTP/2",
+    "question": "Um app mobile multiplexa muitas requisições de API em uma única conexão HTTP/2. Em redes celulares com perda, um único pacote perdido trava todas as requisições em andamento nessa conexão. Por quê, e o que resolve isso?",
+    "options": [
+      "O HTTP/2 só permite um stream ativo por conexão; habilitar pipelining do HTTP/1.1 restaura o paralelismo",
+      "O estado de compressão HPACK é corrompido pela perda; desativar a compressão de headers evita o travamento",
+      "Sessões TLS precisam ser renegociadas após cada perda de pacote; migrar para TLS 1.3 elimina esse handshake extra",
+      "O TCP entrega bytes em ordem, então uma perda trava todos os streams; o HTTP/3 sobre QUIC se recupera por stream"
+    ],
+    "explanation": "O HTTP/2 multiplexa streams, mas o TCP não os conhece e precisa entregar os bytes em ordem, então uma retransmissão segura os dados de todos os streams (a RFC 9114 descreve esse travamento). O HTTP/3 roda sobre QUIC, que oferece confiabilidade por stream, então a perda em um stream não bloqueia os outros. O HTTP/2 suporta muitos streams simultâneos, a retransmissão do TCP mantém o estado do HPACK intacto, e o TLS não renegocia por causa de perda."
+  },
+  {
+    "id": "sd-db-connection-limit",
+    "title": "Escala horizontal esgotando conexões do banco",
+    "question": "Para absorver um pico de tráfego, a camada web escala de 10 para 40 instâncias, cada uma com um pool de 25 conexões. O PostgreSQL tem max_connections = 200, e as novas instâncias falham com 'sorry, too many clients already'. Qual é a melhor correção?",
+    "options": [
+      "Adicionar um connection pooler como o PgBouncer e dimensionar os pools à capacidade do banco",
+      "Aumentar max_connections para 5.000 para cada instância abrir seu pool completo direto",
+      "Adicionar réplicas de leitura, já que as réplicas assumem o limite de conexões de escrita do primário",
+      "Abrir uma nova conexão com o banco para cada query e fechá-la assim que a query terminar"
+    ],
+    "explanation": "40 instâncias x 25 conexões = 1.000 conexões possíveis contra um limite de 200. Cada conexão do PostgreSQL é um processo no servidor, e o servidor dimensiona recursos compartilhados a partir de max_connections, então elevá-lo para milhares degrada o desempenho. Um pooler multiplexa muitas conexões de clientes em um pequeno conjunto de conexões no servidor. Réplicas não absorvem conexões de escrita, e conectar a cada query adiciona um custo alto de setup."
+  },
+  {
+    "id": "sd-hpa-replica-math",
+    "title": "Cálculo de réplicas desejadas do HPA",
+    "question": "Um Deployment tem 4 réplicas com média de 90% de utilização de CPU, e seu HorizontalPodAutoscaler tem alvo de 60%. Ignorando tolerância e janelas de estabilização, quantas réplicas o HPA vai pedir?",
+    "options": [
+      "5 réplicas",
+      "6 réplicas",
+      "8 réplicas",
+      "9 réplicas"
+    ],
+    "explanation": "O HPA calcula desiredReplicas = ceil(currentReplicas x currentMetric / desiredMetric) = ceil(4 x 90 / 60) = ceil(6.0) = 6. Ele não adiciona uma réplica por vez, não dobra a contagem e não escala pela porcentagem bruta de utilização; ele escala proporcionalmente para a utilização média voltar ao alvo."
+  },
+  {
+    "id": "sd-scale-out-bottleneck",
+    "title": "Escalar horizontalmente move o gargalo",
+    "question": "Durante uma promoção, uma API stateless escalou automaticamente de 20 para 80 instâncias, mas o throughput caiu e os erros aumentaram porque o banco compartilhado ficou saturado com as queries simultâneas extras. Qual é a principal lição?",
+    "options": [
+      "O autoscaling deve se basear em memória, não em CPU, para reagir antes do banco",
+      "Serviços stateless não podem escalar horizontalmente enquanto dividem um único banco relacional",
+      "Ache o gargalo real primeiro; mais servidores web não ajudam quando o limite é o banco",
+      "As instâncias deviam ter escalado verticalmente, porque hosts maiores enviam menos queries cada"
+    ],
+    "explanation": "Escalar horizontalmente não resolve todo problema de desempenho: se o banco de backend é o gargalo, mais servidores web só aumentam a contenção, então identifique e resolva o gargalo (e limite a escala ou descarte carga para protegê-lo). A métrica de escala não muda o limite do banco, serviços stateless podem escalar, mas são limitados pelas partes stateful compartilhadas, e hosts maiores emitem o mesmo total de queries."
+  },
+  {
+    "id": "sd-sticky-session-drawback",
+    "title": "Desvantagens de sticky sessions",
+    "question": "Um load balancer usa sticky sessions baseadas em cookie para cada usuário continuar caindo na mesma instância. Qual é uma desvantagem típica?",
+    "options": [
+      "Cada requisição precisa ser decifrada duas vezes, uma no balanceador e outra no destino",
+      "O balanceador não consegue mais rodar health checks em destinos com usuários fixados",
+      "Cookies de afinidade desativam o keep-alive HTTP, e cada requisição abre uma nova conexão TCP",
+      "A carga pode ficar desigual, e usuários em uma instância que falha perdem as sessões em memória"
+    ],
+    "explanation": "A afinidade de sessão prende clientes a servidores, então o tráfego de um usuário pesado não se espalha entre instâncias, e o estado guardado na memória daquele servidor se perde se ele falhar ou for removido na redução de escala. Por isso as orientações de escala horizontal recomendam evitar afinidade e externalizar o estado de sessão. A afinidade não muda a terminação TLS, os health checks nem o keep-alive."
+  },
+  {
+    "id": "sd-lb-deregistration-delay",
+    "title": "502s durante rolling deploys",
+    "question": "Durante rolling deploys atrás de um Application Load Balancer, os clientes veem uma rajada de erros 502 sempre que uma instância antiga é parada, mesmo com as novas instâncias saudáveis. Qual é a correção mais provável?",
+    "options": [
+      "Desregistrar a instância antes e deixar o deregistration delay drenar as requisições em andamento",
+      "Reduzir o intervalo de health check para o balanceador detectar instâncias paradas alguns segundos antes",
+      "Habilitar sticky sessions para os usuários ficarem presos a instâncias que não estão sendo trocadas",
+      "Mudar para least outstanding requests para as instâncias sendo paradas receberem menos requisições"
+    ],
+    "explanation": "Quando um destino é desregistrado, o Elastic Load Balancing para de enviar novas requisições a ele e espera o deregistration delay (300 segundos por padrão) para as requisições em andamento terminarem; a instância só deve ser parada depois da drenagem. Health checks mais rápidos ainda cortam requisições em andamento, afinidade não protege usuários presos à instância substituída, e o algoritmo de roteamento continua enviando requisições até o destino ser removido."
+  },
+  {
+    "id": "sd-grpc-l4-imbalance",
+    "title": "Tráfego gRPC preso nos pods antigos",
+    "question": "Clientes gRPC acessam um serviço de 6 pods por um Service ClusterIP do Kubernetes. Depois de escalar para 12 pods, os novos quase não recebem tráfego, enquanto os originais continuam sobrecarregados. Qual é a causa?",
+    "options": [
+      "Services ClusterIP só roteiam para o conjunto de pods que existia quando o objeto Service foi criado",
+      "O gRPC mantém conexões HTTP/2 longas, e o balanceamento L4 escolhe um pod por conexão, não por chamada",
+      "O kube-proxy sempre prefere pods com conexões já estabelecidas para manter o TCP aquecido no gRPC",
+      "Pods novos ficam unready até receberem tráfego, então nunca entram nos endpoints do Service"
+    ],
+    "explanation": "Um Service ClusterIP balanceia no nível de conexão, e o gRPC multiplexa todas as chamadas em poucas conexões HTTP/2 de longa duração, então as conexões existentes continuam nos pods originais. As correções incluem balanceamento por requisição (L7) via proxy ou service mesh, balanceamento no cliente sobre um headless Service, ou limitar a idade das conexões. Os endpoints do Service são atualizados dinamicamente, o kube-proxy não tem preferência por conexões aquecidas, e a readiness não depende de receber tráfego."
+  },
+  {
+    "id": "sd-cdn-s-maxage",
+    "title": "TTLs diferentes para navegador e CDN",
+    "question": "Você quer que os navegadores guardem em cache uma resposta JSON pública por 60 segundos, enquanto a CDN a mantém por uma hora. Qual header Cache-Control faz isso?",
+    "options": [
+      "public, max-age=3600, s-maxage=60",
+      "public, max-age=60, s-maxage=3600",
+      "public, max-age=60, proxy-revalidate=3600",
+      "private, max-age=60, s-maxage=3600"
+    ],
+    "explanation": "s-maxage vale só para caches compartilhados, como CDNs, e lá sobrepõe o max-age, enquanto os navegadores usam o max-age. Inverter os valores inverte a intenção, proxy-revalidate não recebe valor e só proíbe caches compartilhados de servir cópias stale, e private proíbe caches compartilhados de armazenar a resposta."
+  },
+  {
+    "id": "sd-cdn-stale-if-error",
+    "title": "Servindo conteúdo stale durante erros na origem",
+    "question": "Quando a origem retorna 503 por um curto período, a CDN repassa esses erros aos usuários, mesmo tendo cópias recém-expiradas das páginas. Qual extensão do Cache-Control permite aos caches continuar servindo as cópias stale durante erros na origem?",
+    "options": [
+      "must-revalidate, que deixa o cache reutilizar sua cópia sempre que a revalidação falha",
+      "stale-while-revalidate, que só vale nos períodos em que a origem está retornando erros",
+      "stale-if-error, que permite usar uma cópia stale quando a origem retorna um erro",
+      "no-cache, que mantém a cópia armazenada e obriga o cache a servi-la em qualquer falha"
+    ],
+    "explanation": "A RFC 5861 define o stale-if-error, que permite a um cache retornar uma resposta stale por um tempo limitado quando a origem falha (por exemplo, 5xx ou falha de conexão). stale-while-revalidate é outra extensão, que serve conteúdo stale enquanto revalida em background, must-revalidate proíbe servir respostas stale, e no-cache exige revalidação antes de cada reutilização."
+  },
+  {
+    "id": "sd-cdn-origin-shield",
+    "title": "Reduzindo a carga na origem vinda de muitos edges",
+    "question": "Uma CDN tem centenas de pontos de presença. Após cada purge, a origem recebe uma enxurrada de requisições idênticas porque cada edge erra o cache de forma independente. Qual recurso reduz mais diretamente essa carga na origem?",
+    "options": [
+      "TTLs menores em todos os objetos para os caches de edge expirarem aos poucos, não todos juntos",
+      "Geo-restrição, para só os pontos de presença mais próximos da origem buscarem dela",
+      "Signed URLs, para cada ponto de presença se autenticar antes de buscar um objeto",
+      "Um origin shield: uma camada de cache central que os edges consultam antes da origem"
+    ],
+    "explanation": "Um origin shield (como o CloudFront Origin Shield) adiciona uma camada de cache entre os edges e a origem, então os misses dos edges para o mesmo objeto são consolidados e atendidos principalmente pelo shield, melhorando a taxa de acerto e cortando a carga na origem. TTLs menores geram mais misses, a geo-restrição controla quais usuários são atendidos, não como os edges buscam, e signed URLs controlam o acesso dos usuários."
+  },
+  {
+    "id": "sd-sharding-vs-replicas",
+    "title": "Por que réplicas não escalam escritas",
+    "question": "Um único primário PostgreSQL está sobrecarregado pelo volume de escritas, e o dataset logo vai passar do armazenamento de um servidor. Por que adicionar réplicas de leitura não resolve isso?",
+    "options": [
+      "Cada réplica guarda o dataset inteiro e aplica toda escrita, então a carga por nó não diminui",
+      "Réplicas precisam rodar no mesmo host do primário, então dividem seus discos e sua CPU",
+      "Réplicas também aceitam escritas, o que dobra os conflitos que o primário resolve no commit",
+      "Réplicas exigem commit síncrono, o que reduz pela metade o throughput de escrita do primário"
+    ],
+    "explanation": "A replicação copia todos os dados e aplica cada escrita em todos os nós, o que escala leituras e disponibilidade, mas não o throughput de escrita nem o armazenamento por nó. O sharding divide os dados entre nós, para cada um guardar e escrever só um subconjunto. Réplicas do PostgreSQL rodam em hosts separados, réplicas de streaming padrão são somente leitura, e a replicação pode ser assíncrona."
+  },
+  {
+    "id": "sd-kafka-max-poll-interval",
+    "title": "Loop de rebalance no Kafka por lotes lentos",
+    "question": "Um consumidor Kafka busca até 500 registros por poll() e chama uma API lenta para cada um, então um lote leva cerca de 8 minutos; as demais configurações são padrão. O grupo fica rebalanceando e os mesmos registros são processados de novo e de novo. O que está acontecendo?",
+    "options": [
+      "O broker apaga registros não commitados após 5 minutos, e o consumidor os busca de novo nas réplicas",
+      "O processamento passa do max.poll.interval.ms (5 min por padrão) e o membro é removido antes do commit",
+      "O session.timeout.ms expira porque os heartbeats param enquanto a thread processa registros",
+      "O líder da partição muda a cada poucos minutos e volta os offsets commitados do grupo para earliest"
+    ],
+    "explanation": "max.poll.interval.ms (padrão 300000 ms) limita o tempo entre chamadas de poll(); se for excedido, o consumidor é considerado com falha e o grupo rebalanceia, então os offsets do lote nunca são commitados e outro membro o reprocessa. As correções incluem reduzir max.poll.records, aumentar max.poll.interval.ms ou processar de forma assíncrona. Clientes modernos enviam heartbeats de uma thread em background, a retenção não depende de commits, e trocas de líder não resetam os offsets commitados."
+  },
+  {
+    "id": "sd-event-vs-command",
+    "title": "Eventos versus comandos",
+    "question": "Qual mensagem é melhor modelada como evento, e não como comando?",
+    "options": [
+      "ChargeCustomerCard, enviada ao serviço de pagamentos",
+      "SendWelcomeEmail, enviada ao serviço de notificações",
+      "OrderPlaced, publicada para quaisquer assinantes",
+      "ReserveStock, enviada ao serviço de estoque para agir"
+    ],
+    "explanation": "Um evento registra um fato que já aconteceu (no passado) e é transmitido sem saber quem vai reagir, o que mantém o publicador desacoplado. As outras mensagens são pedidos imperativos direcionados a um receptor específico que deve executar uma ação, o que as torna comandos. Fowler alerta contra disfarçar esses comandos de eventos."
+  },
+  {
+    "id": "sd-rebuild-projection",
+    "title": "Corrigindo uma projeção com bug",
+    "question": "Em um sistema com event sourcing, um bug na projeção OrderSummary gravou totais errados no read model durante semanas. Os eventos em si estão corretos. Qual é a forma usual de corrigir os dados?",
+    "options": [
+      "Adicionar eventos de compensação que subtraem os totais errados para o read model se corrigir",
+      "Editar os eventos armazenados para incluir os totais corretos e deixar a projeção pegá-los",
+      "Rodar updates SQL manuais no read model e deixar o código da projeção como está",
+      "Corrigir o código da projeção e reconstruir o read model reprocessando os eventos do event store"
+    ],
+    "explanation": "Read models são projeções derivadas e descartáveis do log de eventos, então, depois de corrigir a lógica da projeção, dá para reconstruí-los reprocessando os eventos. Eventos de compensação servem para corrigir fatos de negócio errados, o que não é o caso aqui; eventos são imutáveis e não devem ser editados; e correções manuais deixam o bug no lugar para corromper dados futuros."
+  },
+  {
+    "id": "sd-event-version-ordering",
+    "title": "Eventos antigos aplicados fora de ordem",
+    "question": "Um consumidor mantém um cache de preços de produtos a partir de eventos PriceChanged. Por causa de retries entre instâncias do consumidor, às vezes ele aplica a versão 7 do preço de um produto e depois uma versão 6 atrasada, deixando um preço desatualizado. Qual é a correção mais robusta?",
+    "options": [
+      "Guardar a última versão aplicada por produto e ignorar eventos com versão igual ou menor",
+      "Processar todos os eventos em uma única instância global para tudo ficar estritamente ordenado",
+      "Esperar 30 segundos antes de aplicar cada evento para dar tempo de chegarem os atrasados",
+      "Habilitar entrega exactly-once, que também garante ordem entre as instâncias do consumidor"
+    ],
+    "explanation": "Com várias instâncias de consumidor e retries, ordem e duplicidade precisam ser tratadas pelo consumidor; uma checagem de versão por entidade torna as atualizações idempotentes e descarta as antigas, seja qual for a ordem de chegada. Um único consumidor global mata o throughput e ainda quebra com retries, atrasos fixos só diminuem a janela, e a semântica de entrega exactly-once não impõe, por si só, ordem entre instâncias."
+  },
+  {
+    "id": "sd-rate-limit-by-key",
+    "title": "Escolhendo a chave do rate limit",
+    "question": "Uma API pública limita cada IP de cliente a 100 requisições por minuto. Um grande cliente, cujos 2.000 funcionários compartilham um único endereço de NAT corporativo, é limitado o tempo todo, enquanto um scraper que alterna entre muitos IPs não é. Qual é o design melhor?",
+    "options": [
+      "Aumentar o limite por IP para 10.000 por minuto para endereços de NAT compartilhados não serem limitados",
+      "Limitar por identidade autenticada, como API key ou assinatura, e não por IP",
+      "Trocar a janela fixa por um token bucket para absorver as rajadas que vêm do NAT",
+      "Bloquear manualmente as faixas de IP do scraper e manter o limite por IP para os demais"
+    ],
+    "explanation": "O limite deve usar como chave a entidade cujo uso você quer controlar. Usar uma identidade autenticada (por exemplo, um counter-key por assinatura ou API key) trata o cliente atrás do NAT como um único cliente com uma cota adequada e impede o scraper de multiplicar sua cota alternando IPs. Um limite maior por IP enfraquece a proteção para todos, mudar o algoritmo mantém a chave errada, e bloqueios manuais não escalam."
+  },
+  {
+    "id": "sd-distributed-rate-limit",
+    "title": "Rate limiting entre várias instâncias",
+    "question": "Um API gateway roda 20 instâncias atrás de um load balancer, e cada uma aplica '100 requisições/s por API key' com um contador em memória. Um cliente sustenta cerca de 2.000 requisições/s. Qual é a correção mais precisa?",
+    "options": [
+      "Dividir o limite pelo número de instâncias, dando a cada uma um limite local de 5 requisições/s por chave",
+      "Sincronizar os contadores em memória entre as instâncias uma vez por minuto com um job em background",
+      "Manter um contador compartilhado por chave em um store central como Redis, atualizado com INCR atômico",
+      "Trocar cada instância para token bucket, que contabiliza o tráfego que as outras instâncias recebem"
+    ],
+    "explanation": "Contadores locais independentes deixam um cliente usar o limite uma vez por instância. Um store compartilhado com incrementos atômicos (Redis INCR com expiração é o padrão clássico de rate limiter) dá uma contagem consistente por chave. Dividir o limite é só aproximado e quebra quando o tráfego é desigual ou o número de instâncias muda, sincronizar a cada minuto deixa rajadas passarem, e um token bucket local continua sendo local."
+  },
+  {
+    "id": "sd-sliding-window-counter",
+    "title": "Estimativa do sliding window counter",
+    "question": "Um limitador sliding window counter permite 50 requisições por minuto. O minuto anterior teve 42 requisições; o minuto atual começou há 15 segundos e já tem 18 requisições. Usando a aproximação ponderada usual, qual é a taxa estimada?",
+    "options": [
+      "Cerca de 28,5, ponderando o minuto anterior por 15/60",
+      "Cerca de 60, somando as contagens completas dos dois minutos",
+      "Cerca de 36, ponderando os dois minutos pelo tempo decorrido",
+      "Cerca de 49,5, ponderando o minuto anterior por 45/60"
+    ],
+    "explanation": "O sliding window counter assume que as requisições da janela anterior foram distribuídas de forma uniforme e conta a parte dela que ainda está nos últimos 60 segundos: 42 x (60-15)/60 + 18 = 31,5 + 18 = 49,5, então a próxima requisição ainda fica abaixo do limite de 50. Ponderar pelos 15 segundos decorridos usa a fração errada, somar as duas janelas conta a mais, e a contagem da janela atual nunca é descontada."
+  },
+  {
+    "id": "sd-gateway-routing",
+    "title": "Um endpoint roteando para vários serviços",
+    "question": "Clientes chamam cinco serviços em cinco hostnames diferentes, então toda vez que um serviço é movido ou dividido é preciso um novo release do cliente. Qual padrão expõe um único endpoint e encaminha cada requisição ao serviço certo com base no path?",
+    "options": [
+      "Gateway Routing",
+      "Circuit Breaker",
+      "Sidecar",
+      "Competing Consumers"
+    ],
+    "explanation": "Gateway Routing coloca um único endpoint na frente de vários serviços e usa roteamento de camada 7 (por exemplo, por path) para encaminhar as requisições, então os backends podem ser movidos, divididos ou versionados sem mudar os clientes. Circuit Breaker lida com dependências com falha, Sidecar implanta componentes auxiliares ao lado de um serviço, e Competing Consumers trata de processamento paralelo de mensagens."
+  },
+  {
+    "id": "sd-gateway-aggregation",
+    "title": "Cliente mobile 'tagarela' em rede celular",
+    "question": "Uma tela inicial mobile faz sete chamadas separadas, por uma rede celular de alta latência, a serviços diferentes, e usuários com conexão ruim muitas vezes veem telas carregadas pela metade. Qual mudança resolve melhor isso?",
+    "options": [
+      "Fazer as sete chamadas em sequência, para cada uma terminar antes de a próxima começar",
+      "Um gateway faz o fan-out das sete chamadas no backend e retorna uma resposta combinada",
+      "Juntar os sete serviços em um único deployable para o cliente ter um só host",
+      "Aumentar o timeout HTTP do cliente para as chamadas lentas em redes fracas terminarem"
+    ],
+    "explanation": "Gateway Aggregation troca vários round trips do cliente por uma rede lenta e instável por uma única requisição; o gateway chama os backends pela rede interna rápida e combina os resultados. Chamadas sequenciais pioram a latência, juntar serviços abre mão do deploy independente para resolver um problema de rede, e timeouts maiores não reduzem o excesso de chamadas nem o risco de falha."
+  },
+  {
+    "id": "sd-gateway-partial-response",
+    "title": "Agregação com um backend lento",
+    "question": "Um gateway de agregação monta a página de produto a partir de catálogo, preços e recomendações. Quando recomendações fica com 8 segundos, a página inteira dá timeout. Faltar recomendações é aceitável; faltar preços não. Qual é o melhor design?",
+    "options": [
+      "Aumentar o timeout geral do gateway para 10 segundos para as três chamadas terem tempo de terminar",
+      "Repetir a chamada de recomendações até três vezes antes de retornar a resposta agregada",
+      "Usar timeouts por chamada e retornar a página sem recomendações, mas falhar se preços falhar",
+      "Falhar a requisição inteira sempre que algum backend estiver lento, para as páginas serem consistentes"
+    ],
+    "explanation": "As orientações de agregação recomendam timeouts por requisição, circuit breakers e uma decisão explícita por operação: retornar dados parciais quando as partes ausentes são aceitáveis e falhar quando são essenciais. Aumentar o timeout deixa uma dependência lenta degradar todas as páginas, repetir uma chamada lenta adiciona ainda mais latência e carga, e falhar tudo transforma uma feature opcional em uma indisponibilidade total."
+  },
+  {
+    "id": "sd-delete-404-idempotent",
+    "title": "DELETE repetido retornando 404",
+    "question": "Um cliente envia DELETE /orders/42, dá timeout e tenta de novo. A primeira tentativa tinha funcionado, então o retry retorna 404 Not Found. Isso viola a idempotência do DELETE?",
+    "options": [
+      "Sim: um método idempotente precisa retornar exatamente o mesmo status code em toda repetição",
+      "Sim: DELETE só é idempotente quando o cliente também envia um header Idempotency-Key",
+      "Não: DELETE não é definido como idempotente, então qualquer resposta a um retry é aceitável",
+      "Não: idempotência diz respeito ao efeito no estado do servidor, que é o mesmo após as duas chamadas"
+    ],
+    "explanation": "A RFC 9110 define um método como idempotente se o efeito pretendido no servidor de várias requisições idênticas é o mesmo de uma só; PUT, DELETE e os métodos seguros são idempotentes. O pedido deixa de existir de qualquer forma, então um status code diferente no retry não é problema. Idempotência não exige respostas idênticas, e nenhum header extra é necessário para o DELETE ter essa propriedade."
+  },
+  {
+    "id": "sd-natural-idempotency",
+    "title": "Atualizações naturalmente idempotentes",
+    "question": "Um worker pode processar a mesma mensagem duas vezes. Qual atualização é naturalmente idempotente, de modo que uma duplicata não cause dano?",
+    "options": [
+      "UPDATE orders SET status = 'SHIPPED' WHERE id = 42",
+      "UPDATE accounts SET balance = balance - 20 WHERE id = 7",
+      "INSERT INTO payments (order_id, amount) VALUES (42, 20)",
+      "UPDATE stats SET views = views + 1 WHERE page_id = 9"
+    ],
+    "explanation": "Definir um campo com um valor absoluto deixa o mesmo estado final não importa quantas vezes rode. Atualizações relativas (decremento, incremento) e inserts simples mudam o estado de novo a cada duplicata, então precisam de uma chave de idempotência, de um registro de mensagens processadas ou de uma unique constraint para poderem ser repetidas com segurança."
+  },
+  {
+    "id": "sd-dynamodb-consistent-read",
+    "title": "Leitura desatualizada logo após uma escrita",
+    "question": "Logo após um PutItem bem-sucedido no DynamoDB, um GetItem com as configurações padrão às vezes retorna a versão anterior do item. O que explica isso, e como a leitura pode ver a escrita?",
+    "options": [
+      "O PutItem é fire-and-forget e retorna antes de gravar; espere um evento TableActive antes de ler",
+      "Leituras padrão são eventualmente consistentes; defina ConsistentRead como true para uma leitura forte",
+      "O GetItem lê de um índice secundário global por padrão; consulte a tabela base explicitamente",
+      "O SDK faz cache dos itens no cliente por um minuto; desative esse cache para ver o valor mais novo"
+    ],
+    "explanation": "Leituras no DynamoDB são eventualmente consistentes por padrão e podem não refletir uma escrita recém-concluída; definir ConsistentRead=true em GetItem, Query ou Scan retorna os dados mais atualizados (pelo dobro do custo de leitura, e sem suporte em índices secundários globais). O PutItem retorna depois que a escrita é durável, o GetItem sempre acessa a tabela base, e o SDK não faz cache de itens."
+  },
+  {
+    "id": "sd-saga-pivot",
+    "title": "A etapa pivô em uma saga",
+    "question": "Uma saga de viagem reserva um hotel reembolsável, depois emite uma passagem aérea não reembolsável, depois envia um e-mail de confirmação e concede pontos de fidelidade. Em termos de saga, como a etapa da passagem deve ser tratada?",
+    "options": [
+      "Como etapa compensável, cancelada por um pedido de reembolso se a etapa do e-mail falhar depois",
+      "Como etapa de um two-phase commit com a reserva do hotel para as duas commitarem atomicamente",
+      "Como o pivô: as etapas antes dela devem ser compensáveis, e as depois, repetíveis",
+      "Como etapa fora da saga, para sua falha nunca disparar a compensação da reserva do hotel"
+    ],
+    "explanation": "Uma transação pivô é o ponto sem volta da saga: depois que ela dá certo, a compensação não se aplica mais e todas as etapas seguintes precisam ser concluídas, então são projetadas para permitir retry. As etapas antes do pivô precisam ser compensáveis para a saga poder voltar atrás se o pivô falhar. A passagem não pode ser compensada, 2PC com provedores externos é o acoplamento que sagas evitam, e tirá-la da saga perde a compensação do hotel."
+  },
+  {
+    "id": "sd-multi-az-why",
+    "title": "Por que fazer deploy em várias availability zones",
+    "question": "Por que os times distribuem as instâncias de produção por várias availability zones dentro de uma região?",
+    "options": [
+      "O tráfego entre zonas é gratuito e mais rápido que dentro de uma zona, o que reduz a latência",
+      "Cada zona guarda um backup completo da região, então os dados sobrevivem até à perda da região",
+      "Fazer deploy em várias zonas é obrigatório para um serviço poder receber um IP público",
+      "As zonas têm energia, refrigeração e rede independentes, então a falha de uma poupa as outras"
+    ],
+    "explanation": "Availability zones são grupos separados de datacenters dentro de uma região, com energia, refrigeração e rede independentes, então uma indisponibilidade em uma zona deixa as outras atendendo. Tráfego entre zonas normalmente adiciona um pouco de latência e muitas vezes tem custo, zonas não protegem contra a perda de uma região inteira (isso exige DR multirregião), e IPs públicos não dependem do número de zonas."
+  },
+  {
+    "id": "sd-split-brain-fencing",
+    "title": "Split brain durante failover automático",
+    "question": "Um cluster de banco com dois nós faz failover automático quando o standby perde o heartbeat do primário. Durante uma falha de rede entre eles, o standby se promove enquanto o primário antigo continua aceitando escritas de alguns clientes. Que design evita isso?",
+    "options": [
+      "Decidir o failover com uma testemunha ou quórum e isolar (STONITH) o primário antigo antes da promoção",
+      "Reduzir o intervalo de heartbeat para o standby detectar um primário com falha em cerca de um segundo",
+      "Mudar a replicação para o modo assíncrono para o standby nunca ser bloqueado pelo primário",
+      "Deixar os dois nós aceitarem escritas e reconciliar as linhas divergentes depois com last-write-wins"
+    ],
+    "explanation": "Com só dois nós, o standby não consegue distinguir um primário morto de um link quebrado, então os dois podem agir como primário (split brain). Um terceiro voto (testemunha/quórum) decide o failover, e um fencing como o STONITH garante que o primário antigo pare de aceitar escritas; a documentação do PostgreSQL alerta que, sem isso, os dois sistemas podem achar que são o primário, levando à perda de dados. Heartbeats mais rápidos tornam failovers falsos mais prováveis, a replicação assíncrona não tem relação, e last-write-wins perde dados silenciosamente."
+  },
+  {
+    "id": "lead-incident-comms-role",
+    "title": "Quem atualiza os stakeholders",
+    "question": "No modelo de gestão de incidentes do Google, qual papel envia atualizações periódicas aos stakeholders e mantém o documento do incidente atualizado?",
+    "options": [
+      "Incident commander",
+      "Líder de operações",
+      "Líder de comunicação",
+      "Líder de planejamento"
+    ],
+    "explanation": "O papel de comunicação é a face pública da resposta, enviando atualizações periódicas e mantendo o documento do incidente correto. O incident commander mantém a visão geral do estado e atribui os papéis, o líder de operações (e apenas o time de operações) altera o sistema, e o papel de planejamento cuida de tarefas de prazo mais longo, como registrar bugs e organizar as passagens de turno."
+  },
+  {
+    "id": "lead-incident-declare-early",
+    "title": "Quando declarar um incidente",
+    "question": "Um engenheiro passou 75 minutos depurando sozinho falhas intermitentes em um job noturno de reconciliação. Ainda não há impacto visível para clientes e nenhum outro time está envolvido. Segundo a orientação de SRE do Google sobre quando declarar um incidente, o que deve acontecer?",
+    "options": [
+      "Continuar depurando sozinho, já que incidentes só são declarados quando clientes são afetados",
+      "Esperar o próximo dia útil e levar o problema à revisão semanal de operações",
+      "Declarar um incidente só quando um segundo time precisar ser chamado para ajudar",
+      "Declarar um incidente, porque o problema segue sem solução após uma hora de análise focada"
+    ],
+    "explanation": "O Google recomenda declarar cedo e trata um evento como incidente se qualquer condição valer: um segundo time é necessário, a indisponibilidade é visível para clientes, ou o problema segue sem solução após uma hora de análise concentrada. Declarar cedo e encerrar rápido é mais barato do que acionar o processo horas depois; as outras opções tratam um único critério como obrigatório ou atrasam a resposta."
+  },
+  {
+    "id": "lead-postmortem-trigger",
+    "title": "Postmortem após um rollback rápido",
+    "question": "Um engenheiro de plantão viu a latência subir após um release e fez rollback em 10 minutos. Nenhum SLO foi violado e nenhum usuário reclamou. Os critérios do time seguem os gatilhos comuns de postmortem do Google. Deve-se escrever um postmortem?",
+    "options": [
+      "Sim, porque intervenção do plantão, como o rollback de um release, é um gatilho comum",
+      "Não, porque postmortems só são necessários quando usuários viram indisponibilidade ou houve perda de dados",
+      "Não, porque o rollback resolveu rápido e a causa do problema já é conhecida",
+      "Sim, mas só se um gestor pedir um depois de analisar as métricas daquele release"
+    ],
+    "explanation": "O Google lista gatilhos comuns: indisponibilidade ou degradação visível ao usuário acima de um limite, qualquer perda de dados, intervenção do plantão (rollback de release, redirecionamento de tráfego), tempo de resolução acima de um limite e falhas de monitoramento. Um rollback é uma intervenção, então se qualifica mesmo sem impacto em usuários. Os critérios devem ser definidos antes dos incidentes, e não deixados ao pedido pontual de um gestor."
+  },
+  {
+    "id": "lead-sacrificial-architecture",
+    "title": "Projetando para hoje vs para 10x depois",
+    "question": "Uma startup precisa validar uma ideia de produto em três meses e não sabe se vai chegar nem a 1.000 usuários. Alguns engenheiros querem projetar para 10 milhões de usuários desde o primeiro dia. O que a 'Sacrificial Architecture' de Fowler sugere?",
+    "options": [
+      "Projetar agora para 10 milhões de usuários, já que reescrever depois sempre custa mais do que fazer certo",
+      "Construir para as necessidades atuais e aceitar que o código seja substituído quando elas ficarem claras",
+      "Evitar código de produção até aprovar uma arquitetura para cada estágio futuro de crescimento",
+      "Começar com microsserviços para cada parte poder ser descartada de forma independente no futuro"
+    ],
+    "explanation": "A Sacrificial Architecture argumenta que no início da vida de um sistema você entende mal suas necessidades, então muitas vezes é certo construir algo que você espera substituir depois; a regra prática do Google é projetar para cerca de 10x de crescimento e planejar reescrever antes de 100x. Superdimensionar para uma escala que talvez nunca venha desperdiça um tempo escasso, e microsserviços adicionam custo operacional em vez de tornar a substituição gratuita."
+  },
+  {
+    "id": "lead-branch-by-abstraction",
+    "title": "Substituindo uma biblioteca sem parar os releases",
+    "question": "Um time com trunk-based development precisa substituir um ORM usado por 300 classes. A migração vai levar meses, e eles precisam continuar fazendo releases semanais. Qual técnica se encaixa?",
+    "options": [
+      "Uma feature branch de longa duração, mergeada no trunk quando as 300 classes estiverem migradas",
+      "Uma virada big-bang num fim de semana em que o time inteiro reescreve a camada de dados em um release",
+      "Branch by Abstraction: passar as chamadas por uma camada sobre o ORM e trocar o que há por trás",
+      "Fazer um fork do repositório para as camadas de dados antiga e nova evoluírem até atingir paridade"
+    ],
+    "explanation": "Branch by Abstraction faz uma mudança de grande escala aos poucos enquanto o sistema segue com releases: introduza uma abstração sobre o fornecedor atual, mova os clientes para ela, construa a nova implementação por trás, depois troque e remova a antiga. Branches de longa duração e forks geram merges dolorosos e atrasam a integração, e uma virada big-bang concentra todo o risco em um único release."
+  },
+  {
+    "id": "lead-sli-measurement-point",
+    "title": "Onde medir um SLI",
+    "question": "O SLI de disponibilidade de um serviço, calculado a partir dos logs do servidor de aplicação, mostra 99,98% de sucesso, mas os usuários relatam muitas falhas. Requisições que falham no load balancer nunca chegam aos servidores. O que o SRE workbook sugere?",
+    "options": [
+      "Manter os logs do servidor como fonte do SLI, mas subir o SLO para 99,999% para compensar os erros ausentes",
+      "Excluir do SLI as falhas do load balancer, já que elas são da área do time de infraestrutura",
+      "Substituir o SLI de disponibilidade por utilização de CPU e memória, que refletem melhor a experiência",
+      "Medir o SLI mais perto dos usuários, por exemplo com métricas do load balancer ou instrumentação no cliente"
+    ],
+    "explanation": "O workbook lista fontes de SLI (logs do servidor de aplicação, monitoramento do load balancer, monitoramento black-box, instrumentação no cliente) e prefere as mais próximas da experiência do usuário; logs do servidor não enxergam requisições que nunca chegam. Subir a meta não captura as falhas ausentes, excluí-las esconde o problema real dos usuários, e a utilização de recursos não é um indicador voltado ao usuário."
+  },
+  {
+    "id": "lead-pair-navigator-role",
+    "title": "O papel do navigator no pareamento",
+    "question": "No estilo clássico driver/navigator de pair programming, qual é a principal função do navigator?",
+    "options": [
+      "Revisar o código enquanto é escrito e ficar de olho em questões maiores e próximos passos",
+      "Digitar o código explicando cada passo em voz alta para o driver acompanhar",
+      "Ficar em silêncio até o driver terminar a tarefa e então fazer um code review formal",
+      "Pesquisar documentação e cuidar das mensagens para o driver nunca ser interrompido"
+    ],
+    "explanation": "O driver fica com o teclado e foca taticamente no passo imediato enquanto fala sobre ele; o navigator revisa o código em tempo real, dá direção e observa questões maiores, bugs e próximos passos. Digitar é função do driver, ficar em silêncio desperdiça a segunda perspectiva, e agir como assistente que cuida de mensagens não é navegar."
+  },
+  {
+    "id": "lead-review-comment-courtesy",
+    "title": "Formulando comentários críticos no review",
+    "question": "Você está mentorando um desenvolvedor via code review e precisa criticar um design de concorrência desnecessariamente complexo. Qual comentário segue o guia de review do Google?",
+    "options": [
+      "Por que você usou threads aqui se obviamente não há nenhum benefício em concorrência?",
+      "Essa concorrência adiciona complexidade sem um ganho claro, então single-thread parece melhor.",
+      "Eu nunca teria escrito assim; por favor, repense toda a sua abordagem para isso.",
+      "LGTM no geral, mas em algum momento talvez valha estudar como concorrência funciona na prática."
+    ],
+    "explanation": "O guia do Google diz para ser cortês e comentar sobre o código, não sobre o desenvolvedor, explicando o seu raciocínio. O bom comentário nomeia o problema e o porquê. A pergunta retórica mira a pessoa, o vago 'repense tudo' não dá direção, e aprovar insinuando uma lacuna de conhecimento pula o problema real."
+  },
+  {
+    "id": "lead-pair-rotation-anchor",
+    "title": "Rodando pares sem perder contexto",
+    "question": "Só um engenheiro entende o módulo de billing, e o time pareia todos os dias. Para espalhar esse conhecimento sem perder o contexto das histórias em andamento, qual prática de rotação o artigo de Fowler sobre pareamento descreve?",
+    "options": [
+      "Trocar as duas pessoas de uma história todo dia para pares novos sempre recomeçarem do zero",
+      "Manter o especialista em billing sempre com o mesmo parceiro até o módulo ser aposentado",
+      "Manter uma pessoa como 'anchor' da história enquanto a outra metade do par faz rodízio",
+      "Pausar o pareamento em billing e pedir ao especialista que grave vídeos explicando o módulo"
+    ],
+    "explanation": "Na rotação, metade do par sai da história enquanto a outra fica e faz o onboarding de quem chega; quem fica é o anchor da história. Rodar as pessoas por pares e áreas de código diferentes evita silos de conhecimento e cria propriedade coletiva. Trocar as duas pessoas perde contexto, um par fixo mantém o silo em duas pessoas, e gravações são um substituto fraco para trabalhar junto."
+  },
+  {
+    "id": "lead-pair-five-second-rule",
+    "title": "Navigator que interrompe o tempo todo",
+    "question": "Um engenheiro sênior, como navigator em uma sessão de pareamento com um júnior, interrompe toda vez que o driver erra a digitação ou hesita, e o júnior parou de pensar por conta própria. Qual prática concreta o artigo de Fowler sobre pareamento sugere?",
+    "options": [
+      "O sênior fica com o teclado o tempo todo para o júnior aprender observando de perto",
+      "Passar a usar só code review assíncrono, já que pareamento não funciona entre níveis diferentes",
+      "O sênior dita cada linha com precisão para os erros nunca chegarem ao editor",
+      "Aplicar a 'regra dos 5 segundos': esperar antes de apontar um erro, pois o driver pode corrigi-lo"
+    ],
+    "explanation": "O conselho do artigo contra a impaciência é a 'regra dos 5 segundos': quando o navigator vê algo 'errado', deve esperar pelo menos cinco segundos, pois o driver talvez já esteja pensando nisso, ou anotar para depois. Tomar o teclado é keyboard hogging, ditar cada linha é o modo de microgerenciamento contra o qual o artigo alerta, e parear entre níveis diferentes é um desafio a administrar, não um motivo para parar."
+  },
+  {
+    "id": "lead-c4-deployment",
+    "title": "Mostrando containers na infraestrutura",
+    "question": "Seu time de operações pergunta como os containers C4 do sistema (web app, API, banco de dados) são mapeados em clusters Kubernetes e regiões de nuvem em produção. Qual diagrama C4 responde isso?",
+    "options": [
+      "Diagrama de deployment",
+      "Diagrama de contexto do sistema",
+      "Diagrama de containers",
+      "Diagrama de componentes"
+    ],
+    "explanation": "Um diagrama de deployment do C4 mostra como instâncias de sistemas de software e containers são implantadas na infraestrutura (deployment nodes como clusters, servidores ou regiões) em um dado ambiente. O diagrama de contexto mostra usuários e sistemas externos, o de containers mostra aplicações e data stores e como interagem, sem infraestrutura, e o de componentes detalha um único container."
+  },
+  {
+    "id": "lead-team-topologies-enabling",
+    "title": "Time que orienta outros times",
+    "question": "No Team Topologies, um pequeno grupo de especialistas em segurança orienta os times de produto para que eles próprios assumam as práticas de segurança, em vez de fazer o trabalho por eles. Que tipo de time é esse?",
+    "options": [
+      "Stream-aligned team",
+      "Enabling team",
+      "Platform team",
+      "Complicated-subsystem team"
+    ],
+    "explanation": "Enabling teams desenvolvem habilidades dentro de outros times por meio do modo de interação facilitating: eles orientam e ensinam, em vez de escrever código ou impor padrões, para que os stream-aligned teams continuem independentes. Stream-aligned teams são donos de uma capacidade de negócio, platform teams oferecem serviços internos self-service, e complicated-subsystem teams cuidam de uma parte que exige conhecimento especializado profundo."
+  },
+  {
+    "id": "lead-team-topologies-xaas",
+    "title": "Platform team preso em colaboração",
+    "question": "Um platform team trabalha há 18 meses em modo de colaboração próxima com três stream-aligned teams para construir uma plataforma de deploy. Cada novo time agora precisa de semanas de acompanhamento, e o platform team virou gargalo. O que o Team Topologies recomenda?",
+    "options": [
+      "Alocar permanentemente um engenheiro de plataforma em cada stream-aligned team para seguir colaborando",
+      "Fundir o platform team ao maior stream-aligned team para as decisões ficarem em um só lugar",
+      "Passar da colaboração temporária para X-as-a-Service, tratando a plataforma como produto",
+      "Transformar o platform team em enabling team que escreve todos os deploys dos outros times"
+    ],
+    "explanation": "O Team Topologies trata o modo de colaboração como uma parceria intensa e temporária enquanto um serviço está tomando forma; quando a plataforma amadurece, a interação deve passar para X-as-a-Service, com a plataforma construída como um produto que os stream-aligned teams consomem em self-service. Alocar pessoas permanentemente mantém o gargalo, fundir times aumenta a carga cognitiva, e enabling teams orientam em vez de fazer o trabalho dos outros times."
+  }
+]

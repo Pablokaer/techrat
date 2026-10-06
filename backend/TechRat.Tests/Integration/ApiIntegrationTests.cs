@@ -21,13 +21,13 @@ public class SeedTests(TechRatFactory api)
     {
         var (questions, topics, subtopics, roadmaps, steps, achievements) = await api.WithDbAsync(async db => (
             await db.Questions.CountAsync(), await db.Topics.CountAsync(), await db.Subtopics.CountAsync(),
-            await db.Roadmaps.CountAsync(), await db.RoadmapSteps.CountAsync(), await db.Achievements.CountAsync()));
+            await db.Roadmaps.CountAsync(), await db.ModuleSteps.CountAsync(), await db.Achievements.CountAsync()));
 
         Assert.True(questions >= 600, $"expected >= 600 questions, got {questions}");
         Assert.True(topics >= 30);
         Assert.True(subtopics >= 200);
         Assert.True(roadmaps >= 31);
-        Assert.True(steps >= 300);
+        Assert.True(steps >= 279, $"expected >= 279 module steps, got {steps}");
         Assert.True(achievements >= 24);
     }
 
@@ -51,7 +51,7 @@ public class SeedTests(TechRatFactory api)
     [Fact]
     public async Task Every_roadmap_step_can_be_completed_with_existing_questions()
     {
-        var steps = await api.WithDbAsync(db => db.RoadmapSteps.Select(s => new
+        var steps = await api.WithDbAsync(db => db.ModuleSteps.Where(s => s.IsActive).Select(s => new
         {
             s.Title, s.MinimumQuestions,
             Available = db.Questions.Count(q => q.IsActive && q.TopicId == s.TopicId && (s.SubtopicId == null || q.SubtopicId == s.SubtopicId)),
@@ -62,11 +62,11 @@ public class SeedTests(TechRatFactory api)
     [Fact]
     public async Task Seeding_twice_is_idempotent()
     {
-        var before = await api.WithDbAsync(async db => (await db.Questions.CountAsync(), await db.RoadmapSteps.CountAsync(), await db.RoadmapDependencies.CountAsync()));
+        var before = await api.WithDbAsync(async db => (await db.Questions.CountAsync(), await db.ModuleSteps.CountAsync(), await db.RoadmapDependencies.CountAsync()));
         using var scope = api.Services.CreateScope();
         var report = await scope.ServiceProvider.GetRequiredService<DatabaseSeeder>().SeedAsync();
-        Assert.Equal(new SeedReport(0, 0, 0, 0, 0, 0, 0), report);
-        var after = await api.WithDbAsync(async db => (await db.Questions.CountAsync(), await db.RoadmapSteps.CountAsync(), await db.RoadmapDependencies.CountAsync()));
+        Assert.Equal(new SeedReport(0, 0, 0, 0, 0, 0, 0, 0, 0), report);
+        var after = await api.WithDbAsync(async db => (await db.Questions.CountAsync(), await db.ModuleSteps.CountAsync(), await db.RoadmapDependencies.CountAsync()));
         Assert.Equal(before, after);
     }
 }
@@ -396,14 +396,19 @@ public class RoadmapTests(TechRatFactory api)
         var userId = await api.UserIdAsync(username);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsync("/api/v1/roadmaps/typescript-developer/start", null)).StatusCode);
 
-        // typescript-developer requires 50% of javascript-developer: mark half of its steps as completed.
+        // typescript-developer requires 50% of javascript-developer: mark half of its required steps as completed.
         await api.WithDbAsync(async db =>
         {
             var js = await db.Roadmaps.SingleAsync(r => r.Slug == "javascript-developer");
-            var steps = await db.RoadmapSteps.Where(s => s.RoadmapId == js.Id).OrderBy(s => s.Order).ToListAsync();
+            var steps = await (from l in db.RoadmapModuleLinks where l.RoadmapId == js.Id && l.IsRequired
+                               join s in db.ModuleSteps on l.ModuleId equals s.ModuleId
+                               where s.IsActive
+                               orderby l.Order, s.Order
+                               select s).ToListAsync();
             foreach (var st in steps.Take((int)Math.Ceiling(steps.Count / 2.0)))
-                db.UserRoadmapStepCompletions.Add(new() { UserId = userId, RoadmapId = js.Id, RoadmapStepId = st.Id, CompletedAt = DateTimeOffset.UtcNow });
+                db.UserModuleStepCompletions.Add(new() { UserId = userId, ModuleId = st.ModuleId, ModuleStepId = st.Id, CompletedAt = DateTimeOffset.UtcNow });
             await db.SaveChangesAsync();
+            return 0;
         });
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsync("/api/v1/roadmaps/typescript-developer/start", null)).StatusCode);
     }

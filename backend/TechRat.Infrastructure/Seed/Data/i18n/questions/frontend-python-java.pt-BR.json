@@ -1,0 +1,950 @@
+[
+  {
+    "id": "fe-div-onclick-vs-button",
+    "title": "div clicável versus button nativo",
+    "question": "Um desenvolvedor renderiza `<div onclick=\"save()\">Save</div>` em vez de um `<button>`. O que o botão nativo oferece que a div não oferece?",
+    "options": [
+      "Clique mais rápido, porque eventos de botão pulam a fase de bubbling",
+      "Proteção automática contra envio duplicado do mesmo clique",
+      "Foco por teclado, ativação por Enter/Espaço e o papel button exposto",
+      "Garantia de que não envia o formulário quando está dentro de um form"
+    ],
+    "explanation": "Um <button> nativo é focável por padrão, dispara click com Enter e Espaço e expõe o papel button aos leitores de tela; uma div precisa de tabindex, handlers de teclado e um role para imitar isso. Eventos de botão fazem bubbling como qualquer outro, não existe proteção embutida contra clique duplo, e dentro de um form o botão, na verdade, tem type=\"submit\" por padrão."
+  },
+  {
+    "id": "fe-main-landmark-count",
+    "title": "Quantos elementos main",
+    "question": "Quantos elementos `<main>` um documento pode conter segundo a especificação HTML, conforme descrito no MDN?",
+    "options": [
+      "Exatamente um por <section> que contenha conteúdo principal",
+      "No máximo um que não tenha o atributo hidden",
+      "Um por <article>, para que cada artigo tenha seu landmark",
+      "Qualquer quantidade, já que leitores de tela os unem"
+    ],
+    "explanation": "Um documento não pode ter mais de um <main> visível (sem o atributo hidden); ele marca o conteúdo dominante e corresponde ao landmark main. Sections e articles não ganham seu próprio <main>, e vários mains visíveis são inválidos, e não unificados pela tecnologia assistiva."
+  },
+  {
+    "id": "fe-article-for-cards",
+    "title": "Usando article para cards de prévia",
+    "question": "O índice de um blog mostra cards de prévia de posts, cada um autocontido e adequado para distribuição em um feed RSS. Qual elemento envolve melhor cada card?",
+    "options": [
+      "<section>",
+      "<aside>",
+      "<div role=\"region\">",
+      "<article>"
+    ],
+    "explanation": "<article> representa uma composição autocontida que pode ser distribuída ou reutilizada de forma independente, como um post de blog ou um card em um feed. <section> é um agrupamento temático que normalmente precisa de um título e não é independente, <aside> é para conteúdo tangencial, e uma div genérica com region adiciona um landmark sem a semântica correta."
+  },
+  {
+    "id": "fe-aria-hidden-focusable",
+    "title": "aria-hidden em conteúdo focável",
+    "question": "Enquanto um modal customizado está aberto, a página por trás recebe `aria-hidden=\"true\"`, mas os links atrás do modal ainda podem ser alcançados com Tab. Qual é o problema e a correção robusta?",
+    "options": [
+      "O foco chega a conteúdo oculto para leitores de tela; torne o fundo inert ou use showModal()",
+      "aria-hidden deve ser \"hidden\" em vez de \"true\"; mudar o valor também tira os elementos da ordem do Tab",
+      "O modal precisa de role=\"alert\" para que leitores de tela ignorem o fundo automaticamente",
+      "Os links do fundo precisam de aria-disabled=\"true\", que os remove da ordem sequencial de foco"
+    ],
+    "explanation": "aria-hidden apenas remove o conteúdo da árvore de acessibilidade; não impede o foco por teclado, então o usuário pode navegar com Tab até elementos que o leitor de tela não anuncia, algo contra o que o MDN alerta explicitamente. O atributo inert (ou um <dialog> nativo aberto com showModal(), que torna o resto da página inert) bloqueia tanto o foco quanto a interação. aria-disabled não remove elementos da ordem do Tab, e role=\"alert\" serve para anúncios urgentes."
+  },
+  {
+    "id": "fe-contrast-minimum-aa",
+    "title": "Contraste WCAG AA para texto comum",
+    "question": "Pelo critério de sucesso 1.4.3 da WCAG 2.2 (Nível AA), qual é a razão de contraste mínima exigida para texto de tamanho normal em relação ao fundo?",
+    "options": [
+      "3:1",
+      "7:1",
+      "2.5:1",
+      "4.5:1"
+    ],
+    "explanation": "O SC 1.4.3 Contrast (Minimum) exige 4.5:1 para texto normal no Nível AA. 3:1 vale para texto grande (cerca de 18pt, ou 14pt em negrito), 7:1 é o requisito aprimorado do AAA, e 2.5:1 não aparece na WCAG."
+  },
+  {
+    "id": "fe-aria-live-polite",
+    "title": "Anunciando atualizações assíncronas do carrinho",
+    "question": "O total do carrinho é atualizado via fetch, mas usuários de leitor de tela nunca ouvem o novo valor. Qual abordagem faz a mudança ser anunciada de forma confiável sem interromper o usuário?",
+    "options": [
+      "Inserir um novo elemento aria-live=\"assertive\" no momento em que o total muda",
+      "Definir aria-hidden=\"false\" no total para que seja relido a cada atualização",
+      "Renderizar o total em uma região aria-live=\"polite\" que exista antes da mudança",
+      "Dar tabindex=\"0\" ao total para que leitores de tela o revisitem quando mudar"
+    ],
+    "explanation": "A tecnologia assistiva observa live regions que já estão no DOM; mudanças no conteúdo delas são anunciadas, e polite espera até o usuário ficar ocioso. Uma live region injetada no mesmo momento que seu conteúdo costuma ser ignorada, e assertive interrompe o usuário. aria-hidden=\"false\" e tabindex não disparam anúncios."
+  },
+  {
+    "id": "fe-focus-visible-reset",
+    "title": "Contornos de foco removidos",
+    "question": "Um CSS reset inclui `*:focus { outline: none; }` sem estilo substituto. Usuários de teclado relatam que não sabem onde estão. Qual critério de sucesso da WCAG é violado e qual é uma boa correção?",
+    "options": [
+      "2.4.7 Focus Visible; restaurar um indicador claro, p. ex. via :focus-visible",
+      "1.4.3 Contrast (Minimum); elevar o contraste do texto para 4.5:1 em todo lugar",
+      "2.1.1 Keyboard; adicionar handlers de keydown a todo elemento interativo",
+      "4.1.2 Name, Role, Value; adicionar aria-label a cada elemento focável"
+    ],
+    "explanation": "O SC 2.4.7 Focus Visible exige um indicador visível de foco do teclado, que o reset remove. Usar :focus-visible permite mostrar um indicador forte para usuários de teclado sem exibir anéis em cliques de mouse. Os elementos continuam operáveis por teclado (2.1.1) e continuam tendo nomes (4.1.2); contraste de texto não tem relação."
+  },
+  {
+    "id": "fe-flex-min-width-auto",
+    "title": "Item flex que não encolhe",
+    "question": "Um item flex com `flex: 1` contém uma URL longa sem quebras e transborda o contêiner em vez de encolher. O que causa isso e qual é a correção usual?",
+    "options": [
+      "flex: 1 define flex-shrink como 0; troque por flex: 1 1 auto",
+      "Seu min-width automático (min-content) impede encolher; use min-width: 0",
+      "O contêiner precisa de flex-wrap: wrap, senão os itens nunca podem encolher",
+      "Texto longo força display: block no item; defina display: flex nele"
+    ],
+    "explanation": "O tamanho mínimo automático de um item flex é seu tamanho min-content, então uma palavra longa sem quebra impede que ele encolha abaixo disso; min-width: 0 (ou overflow diferente de visible) remove esse piso para que a quebra ou as reticências funcionem. flex: 1 equivale a 1 1 0 e já permite encolher, wrap move itens para novas linhas em vez de encolhê-los, e o display não é alterado pelo conteúdo."
+  },
+  {
+    "id": "fe-grid-auto-fit-vs-fill",
+    "title": "auto-fit versus auto-fill",
+    "question": "Um grid usa `grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))` em um contêiner de 1200px, mas tem só dois itens, que ficam com cerca de 200px e deixam espaço vazio. O que muda ao trocar para `auto-fit`?",
+    "options": [
+      "As colunas ficam fixas em 200px e o grid centraliza os dois itens",
+      "Trilhas vazias colapsam para 0, e os dois itens se esticam pela linha",
+      "O grid deixa de criar linhas implícitas, e itens extras transbordam",
+      "As duas palavras-chave se comportam igual; só a ordem do minmax() importa"
+    ],
+    "explanation": "As duas palavras-chave criam quantas trilhas couberem, mas auto-fit colapsa as trilhas sem itens, deixando o máximo 1fr distribuir o espaço livre entre as trilhas ocupadas; auto-fill mantém as trilhas vazias. A palavra-chave não fixa larguras de coluna, não centraliza itens nem altera a criação de linhas implícitas."
+  },
+  {
+    "id": "fe-specificity-id-vs-classes",
+    "title": "ID versus várias classes",
+    "question": "Duas regras definem a cor do mesmo link: `#nav a { color: red }` e `.menu .link.active { color: blue }`. Ambas são estilos de autor sem !important. Qual cor é aplicada?",
+    "options": [
+      "Azul, porque três classes superam um ID e um seletor de tipo",
+      "Azul, porque a regra com mais seletores sempre vence",
+      "A da regra que vier por último na folha, pois há empate de especificidade",
+      "Vermelho, porque um seletor de ID supera qualquer número de classes"
+    ],
+    "explanation": "A especificidade compara primeiro IDs, depois classes/atributos/pseudo-classes e depois tipos: #nav a é (1,0,1) e .menu .link.active é (0,3,0), então a coluna de ID decide. Classes nunca passam para a coluna de ID, e a ordem no código só importa quando a especificidade é igual."
+  },
+  {
+    "id": "fe-srcset-sizes-selection",
+    "title": "srcset com sizes",
+    "question": "Dado `<img srcset=\"a-480.jpg 480w, a-960.jpg 960w\" sizes=\"(max-width: 600px) 100vw, 50vw\">` em uma viewport de 1200px de largura com device pixel ratio 1, qual arquivo o navegador provavelmente vai baixar?",
+    "options": [
+      "a-480.jpg, porque 50vw sempre aponta para o candidato menor",
+      "Os dois arquivos, para poder trocar se a viewport mudar",
+      "a-960.jpg, porque o slot tem 600px e 480w é pequeno demais",
+      "a-480.jpg, porque descritores w são ignorados com DPR 1"
+    ],
+    "explanation": "A media condition falha em 1200px, então sizes resolve para 50vw = 600 px CSS; com DPR 1 o navegador precisa de cerca de 600 pixels de imagem e escolhe o menor candidato suficiente, 960w. sizes descreve a largura do slot, não qual candidato escolher; o navegador baixa só um candidato, e descritores w valem em qualquer DPR."
+  },
+  {
+    "id": "fe-missing-viewport-meta",
+    "title": "Meta tag viewport ausente",
+    "question": "Um site responsivo com media queries corretas ainda aparece minúsculo e com zoom reduzido em celulares. A tag `<meta name=\"viewport\">` está ausente. Por que isso importa?",
+    "options": [
+      "O celular renderiza numa viewport virtual larga e reduz a página",
+      "Sem ela, navegadores mobile ignoram toda media query das folhas de estilo",
+      "O navegador recorre à folha de estilo de impressão em telas pequenas",
+      "As imagens vêm em resolução de desktop, inflando as dimensões da página"
+    ],
+    "explanation": "Sem width=device-width, navegadores mobile renderizam a página em uma viewport virtual (normalmente por volta de 980px) e a reduzem para caber, então media queries baseadas em largura enxergam uma largura de desktop. Media queries não são desativadas, estilos de impressão não são afetados, e a seleção de imagens é uma questão separada."
+  },
+  {
+    "id": "fe-picture-art-direction",
+    "title": "Direção de arte com picture",
+    "question": "O design quer uma foto em retrato com corte fechado nos celulares e um corte paisagem largo da mesma cena no desktop. Qual marcação atende esse requisito?",
+    "options": [
+      "Um único <img> com descritores de largura no srcset para cada corte",
+      "<picture> com entradas <source media=...> e um <img> de fallback",
+      "Um <img> usando sizes para o navegador recortar por breakpoint",
+      "Dois elementos <img> alternados com display: none em media queries"
+    ],
+    "explanation": "Servir cortes diferentes por condição é direção de arte, que o <picture> resolve: o navegador precisa usar o primeiro <source> cujo media corresponda. srcset/sizes é troca de resolução e deixa o navegador escolher qualquer candidato, assumindo que são a mesma imagem; sizes nunca recorta. Alternar duas imagens com CSS ainda pode baixar ambas."
+  },
+  {
+    "id": "fe-container-queries-card",
+    "title": "Responsividade no nível do componente",
+    "question": "Um card de produto é usado tanto em uma sidebar estreita quanto em uma coluna principal larga na mesma página. O layout dele precisa se adaptar ao espaço que realmente tem, não à viewport. Qual é a solução moderna em CSS?",
+    "options": [
+      "Usar @media queries com breakpoints min-width ajustados para cada posição",
+      "Usar unidades vw na largura do card para escalar com o espaço disponível",
+      "Tornar o pai um contêiner inline-size e usar @container queries",
+      "Definir display: contents no card para que herde o layout do pai"
+    ],
+    "explanation": "Container queries permitem que um componente responda ao tamanho do query container mais próximo, então o mesmo card se adapta de forma diferente na sidebar e na coluna principal. Media queries e unidades vw só enxergam a viewport, que é idêntica nos dois lugares, e display: contents remove a caixa do card em vez de adaptá-la."
+  },
+  {
+    "id": "fe-css-render-blocking",
+    "title": "Por que CSS bloqueia a renderização",
+    "question": "Por que os navegadores tratam uma folha de estilo vinculada no `<head>` como bloqueante de renderização por padrão?",
+    "options": [
+      "Renderizar exige o CSSOM; pintar antes mostraria conteúdo sem estilo",
+      "Arquivos CSS precisam ser executados antes que o parser HTML continue",
+      "Folhas de estilo são buscadas em uma conexão separada que bloqueia o DOM",
+      "O navegador precisa do CSS para decidir quais scripts pode baixar"
+    ],
+    "explanation": "A render tree combina o DOM e o CSSOM; renderizar antes de o CSSOM estar pronto mostraria conteúdo sem estilo e depois faria novo layout, então o navegador espera. CSS não é executado e não bloqueia o parsing do HTML em si, usa conexões normais, e decisões de download de scripts não dependem dele (embora scripts possam esperar CSS pendente antes de executar)."
+  },
+  {
+    "id": "fe-defer-vs-async",
+    "title": "Scripts defer versus async",
+    "question": "Três scripts clássicos no head dependem uns dos outros em ordem e precisam do DOM já parseado. Qual estratégia de carregamento mantém o parsing desbloqueado e preserva a ordem?",
+    "options": [
+      "Adicionar async: eles rodam em ordem assim que cada um termina de baixar",
+      "Adicionar async e defer juntos para forçar carregamento estritamente sequencial",
+      "Movê-los para um único script inline para o parser poder ignorá-los",
+      "Adicionar defer: rodam em ordem após o parsing, antes do DOMContentLoaded"
+    ],
+    "explanation": "Scripts clássicos com defer baixam em paralelo e executam na ordem do documento quando o parsing termina, logo antes do DOMContentLoaded. Scripts async executam assim que chegam, sem ordem garantida; quando os dois atributos estão presentes, async tem precedência nos navegadores modernos. Scripts inline bloqueiam o parser enquanto rodam."
+  },
+  {
+    "id": "fe-layout-thrashing",
+    "title": "Loop com layout síncrono forçado",
+    "question": "Um loop faz `for (const el of items) { el.style.height = (el.offsetHeight + 10) + 'px'; }` em 500 elementos e a página trava. O que está acontecendo?",
+    "options": [
+      "Definir style.height dispara uma requisição de rede para recalcular estilos",
+      "Ler offsetHeight após cada escrita de estilo força um layout síncrono",
+      "offsetHeight é assíncrono, então o loop espera 500 frames de animação",
+      "O navegador repinta a página inteira na GPU a cada iteração do loop"
+    ],
+    "explanation": "Escrever um estilo invalida o layout, e ler offsetHeight na iteração seguinte força o navegador a rodar o layout imediatamente para devolver um valor preciso; fazer isso por elemento é layout thrashing. Faça todas as leituras primeiro e depois todas as escritas (ou agende as escritas com requestAnimationFrame). Não há rede envolvida, offsetHeight é síncrono, e a pintura acontece depois, não a cada iteração."
+  },
+  {
+    "id": "fe-cls-image-dimensions",
+    "title": "Imagens deslocando o conteúdo",
+    "question": "O texto do artigo pula para baixo conforme as imagens carregam, prejudicando o Cumulative Layout Shift. Qual é a correção mais simples?",
+    "options": [
+      "Adicionar loading=\"lazy\" a todas as imagens da página",
+      "Converter cada imagem para WebP para baixar bem mais rápido",
+      "Definir width e height (ou aspect-ratio) nas imagens",
+      "Pré-carregar todas as imagens com <link rel=\"preload\">"
+    ],
+    "explanation": "Com width e height (ou aspect-ratio), o navegador reserva a caixa correta antes de a imagem chegar, então nada se move. Lazy loading, formatos menores e preload mudam quando os bytes chegam, mas o espaço continua desconhecido até a decodificação, então os deslocamentos continuam acontecendo."
+  },
+  {
+    "id": "fe-lcp-lazy-hero",
+    "title": "Imagem hero com lazy loading",
+    "question": "Depois que o time adicionou `loading=\"lazy\"` em todas as imagens, o LCP piorou na landing page, cujo elemento de LCP é a imagem hero acima da dobra. O que deve mudar?",
+    "options": [
+      "Manter o lazy loading, mas adicionar decoding=\"async\" à hero",
+      "Mover a hero para background-image no CSS para carregar antes",
+      "Aumentar o tempo de cache da imagem para visitas repetidas",
+      "Carregar a hero de forma eager, opcionalmente com fetchpriority=\"high\""
+    ],
+    "explanation": "Imagens com lazy loading esperam o layout confirmar que estão perto da viewport, atrasando a requisição de conteúdo visível; imagens acima da dobra, especialmente a de LCP, não devem ser lazy e podem ser priorizadas com fetchpriority=\"high\". Dicas de decoding não mudam a descoberta, backgrounds em CSS são descobertos ainda mais tarde, e cache não ajuda na primeira visita."
+  },
+  {
+    "id": "fe-code-splitting-dynamic-import",
+    "title": "Dependência pesada usada só no admin",
+    "question": "Uma biblioteca de gráficos de 400 KB usada só na página de relatórios do admin está empacotada no arquivo JavaScript principal carregado por todos os visitantes. Qual é a solução padrão?",
+    "options": [
+      "Carregá-la com import() dinâmico quando a página de relatórios abrir",
+      "Marcar o script do bundle principal como async no head do documento",
+      "Minificar a biblioteca de novo com uma configuração mais agressiva",
+      "Fazer inline da biblioteca no HTML para economizar uma requisição"
+    ],
+    "explanation": "O import() dinâmico permite que bundlers separem a biblioteca em um chunk próprio buscado sob demanda, então visitantes comuns nunca a baixam nem a parseiam. async só muda quando o mesmo bundle grande executa, minificar de novo rende ganho marginal, e o inline continua enviando todos os bytes para todo mundo."
+  },
+  {
+    "id": "fe-inp-long-handler",
+    "title": "INP ruim por causa de um handler de clique",
+    "question": "Dados de campo mostram INP ruim em um botão de filtro. O handler de clique recalcula e re-renderiza uma lista grande de forma síncrona, levando cerca de 350 ms em celulares intermediários. Qual mudança melhora o INP mais diretamente?",
+    "options": [
+      "Registrar o listener de clique com { passive: true } para pular a ação padrão",
+      "Pintar um feedback mínimo, ceder a thread e dividir o resto em tarefas menores",
+      "Pré-carregar o script do handler com <link rel=\"preload\"> para acelerar a execução",
+      "Mover o botão para mais acima no DOM para o dispatch terminar mais cedo"
+    ],
+    "explanation": "O INP mede o tempo entre uma interação e a próxima pintura, então uma tarefa síncrona longa no handler atrasa esse frame; ceder à main thread permite que o navegador pinte o feedback rapidamente e processe o resto depois. passive só afeta os comportamentos padrão de scroll em touch/wheel, preload não reduz o tempo de execução de código já carregado, e a posição no DOM não muda de forma relevante o custo do dispatch."
+  },
+  {
+    "id": "fe-derived-state",
+    "title": "Estado derivado redundante",
+    "question": "Um componente React mantém `items` e `filteredItems` em duas variáveis de estado separadas, e elas de vez em quando ficam dessincronizadas após edições. O que a documentação do React recomenda?",
+    "options": [
+      "Adicionar um useEffect que copia items para filteredItems após cada mudança",
+      "Mover os dois arrays para uma store global para atualizarem atomicamente",
+      "Guardar filteredItems em uma ref para que nunca dispare re-renders",
+      "Manter só items e o filtro no estado; derivar a lista durante o render"
+    ],
+    "explanation": "Valores que podem ser calculados a partir de props ou estado existentes não devem ser guardados como estado separado; derivá-los durante o render elimina a possibilidade de divergirem (use memo só se for caro). Um effect de sincronização adiciona um render extra e ainda deixa uma janela com dado desatualizado, uma store global não remove a duplicação, e uma ref não atualizaria a UI."
+  },
+  {
+    "id": "fe-ssr-hydration-gap",
+    "title": "Página SSR que ignora toques",
+    "question": "Uma página de produto renderizada no servidor mostra o conteúdo rápido no celular, mas toques em 'Add to cart' não fazem nada por cerca de três segundos depois que ela aparece. Qual é a causa mais provável?",
+    "options": [
+      "A renderização no servidor desativa listeners até a próxima navegação completa",
+      "O navegador bloqueia cliques até todas as imagens da página serem decodificadas",
+      "O JavaScript ainda não hidratou a página, então os handlers não estão ligados",
+      "A CDN faz cache do HTML, o que remove os atributos de handlers inline"
+    ],
+    "explanation": "Com SSR, o HTML parece interativo antes de o bundle JavaScript baixar, executar e hidratar a marcação para ligar os handlers de eventos, criando uma janela em que toques são ignorados. Reduzir ou dividir o JS e usar hidratação progressiva ou parcial ajudam. SSR não desativa listeners, a decodificação de imagens não bloqueia input, e CDNs não reescrevem a marcação desse jeito."
+  },
+  {
+    "id": "fe-label-association",
+    "title": "Associando labels a inputs",
+    "question": "Qual é a forma correta de associar programaticamente um label visível a um input de texto?",
+    "options": [
+      "<label for=\"email\"> apontando para o id do input, ou envolver o input",
+      "Colocar o texto do label no atributo placeholder do input",
+      "Colocar um <span> logo antes do input com o mesmo nome de classe",
+      "Dar ao label um atributo name igual ao atributo name do input"
+    ],
+    "explanation": "Um <label> associado via for/id ou por aninhamento dá ao input um nome acessível e torna o label clicável para focar o controle. Placeholders somem ao digitar e não são um label confiável, adjacência ou classes em comum não criam associação, e name serve para o envio do formulário, não para rotular."
+  },
+  {
+    "id": "fe-setcustomvalidity-clear",
+    "title": "Formulário preso como inválido",
+    "question": "Quando não coincidem, um campo de confirmação de senha chama `confirm.setCustomValidity('Passwords must match')`. Depois que o usuário corrige, o formulário ainda se recusa a enviar. O que está faltando?",
+    "options": [
+      "Chamar reportValidity() de novo para recalcular as restrições nativas",
+      "Adicionar o atributo novalidate para a mensagem customizada ser ignorada",
+      "Chamar setCustomValidity('') quando os valores coincidirem, limpando o erro",
+      "Definir o atributo pattern do input com o valor da primeira senha"
+    ],
+    "explanation": "Uma mensagem de validade customizada não vazia mantém o elemento no estado customError até ser redefinida com uma string vazia, então o código precisa limpá-la quando os valores coincidirem. reportValidity() só reporta o estado atual, novalidate desativa toda a validação do navegador, e pattern com uma senha dinâmica é frágil e desnecessário."
+  },
+  {
+    "id": "fe-innerhtml-user-content",
+    "title": "Renderizando comentários de usuários",
+    "question": "Uma página exibe comentários de usuários com `div.innerHTML = comment.text`. Um revisor aponta o problema. Qual é o risco e a alternativa segura mais simples?",
+    "options": [
+      "Nenhum risco, porque navegadores nunca executam scripts inseridos via innerHTML",
+      "Marcação como <img onerror> pode rodar script; use textContent para texto puro",
+      "Só há risco de quebrar o layout; envolver o texto em tags <pre> basta",
+      "Usar outerHTML, que escapa caracteres especiais automaticamente"
+    ],
+    "explanation": "innerHTML interpreta a string como HTML; embora elementos <script> inseridos não rodem, atributos de handlers de evento como <img src=x onerror=...> rodam, o que torna isso um DOM XSS clássico. textContent trata o valor como texto. <pre> não escapa nada, e outerHTML interpreta HTML do mesmo jeito."
+  },
+  {
+    "id": "fe-csp-unsafe-inline",
+    "title": "CSP e scripts inline",
+    "question": "Depois do deploy de `Content-Security-Policy: script-src 'self'`, um snippet inline de analytics para de funcionar. Um colega propõe adicionar `'unsafe-inline'`. Qual é a abordagem melhor?",
+    "options": [
+      "Permitir esse snippet com um nonce por resposta ou um hash no script-src",
+      "Adicionar 'unsafe-inline', já que o snippet é first-party e confiável",
+      "Mover a política para uma tag <meta>, que não bloqueia código inline",
+      "Trocar para default-src * para que o snippet seja coberto pelo curinga"
+    ],
+    "explanation": "'unsafe-inline' permite todo script inline, inclusive os injetados por um atacante, o que remove a maior parte da proteção do CSP contra XSS. Um nonce gerado por resposta ou um hash do snippet exato permite só aquele script. Um CSP via <meta> aplica script-src do mesmo jeito, e fontes curinga continuam sem permitir script inline enquanto enfraquecem a política."
+  },
+  {
+    "id": "fe-httponly-token-storage",
+    "title": "localStorage versus cookie HttpOnly",
+    "question": "Uma revisão de segurança diz que um access token no localStorage pode ser roubado por qualquer XSS. O time o move para um cookie HttpOnly, Secure e SameSite. O que essa mudança consegue?",
+    "options": [
+      "O XSS se torna impossível, porque scripts injetados não rodam nessa origem",
+      "O token agora fica criptografado no navegador e não pode ser copiado",
+      "O CSRF fica totalmente evitado, sem precisar de outras checagens no servidor",
+      "Scripts não leem mais o token, mas o XSS ainda age como o usuário"
+    ],
+    "explanation": "HttpOnly esconde o cookie de document.cookie e de outras APIs de script, então código injetado não consegue exfiltrá-lo, mas código rodando na página ainda pode fazer requisições same-origin que levam o cookie. Isso não impede o XSS em si, não criptografa o cookie, e SameSite reduz, mas não substitui, todas as defesas contra CSRF."
+  },
+  {
+    "id": "fe-trusted-types",
+    "title": "Travando sinks de DOM XSS",
+    "question": "Uma SPA grande vive reintroduzindo DOM XSS por novos usos de `innerHTML`. A segurança quer que o próprio navegador rejeite strings cruas passadas para esses sinks. O que deve ser implantado?",
+    "options": [
+      "Um hash de Subresource Integrity em cada script que a aplicação carrega",
+      "CSP require-trusted-types-for 'script' com policies de Trusted Types",
+      "O header X-Content-Type-Options: nosniff em todas as respostas HTML",
+      "Uma diretiva frame-ancestors 'none' no Content-Security-Policy"
+    ],
+    "explanation": "Com require-trusted-types-for 'script', sinks de injeção como innerHTML lançam erro quando recebem strings simples e só aceitam TrustedHTML criado por policies nomeadas, concentrando a sanitização em poucos lugares revisados. SRI protege contra arquivos adulterados, nosniff impede MIME sniffing, e frame-ancestors impede o enquadramento; nenhum deles restringe sinks do DOM."
+  },
+  {
+    "id": "py-list-multiply-aliasing",
+    "title": "Lista aninhada criada por multiplicação",
+    "question": "O que isto imprime?\n\ngrid = [[0] * 3] * 3\ngrid[0][0] = 1\nprint(grid)",
+    "options": [
+      "[[1, 0, 0], [0, 0, 0], [0, 0, 0]]",
+      "[[1, 1, 1], [0, 0, 0], [0, 0, 0]]",
+      "TypeError: list item assignment on a copy",
+      "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]"
+    ],
+    "explanation": "Multiplicar a lista externa repete três vezes a referência para a mesma lista interna, então alterar uma linha aparece em todas. Crie linhas independentes com uma comprehension como [[0] * 3 for _ in range(3)]. O [0] * 3 interno não tem problema, porque ints são imutáveis."
+  },
+  {
+    "id": "py-is-vs-equals",
+    "title": "is versus ==",
+    "question": "Dados `a = [1, 2]` e `b = [1, 2]`, quanto valem `a == b` e `a is b`?",
+    "options": [
+      "True e False",
+      "True e True",
+      "False e False",
+      "False e True"
+    ],
+    "explanation": "== compara valores via __eq__, e as duas listas têm o mesmo conteúdo; is compara a identidade do objeto, e cada literal de lista cria um objeto distinto. Use is para checagens de identidade como `x is None`, não para comparar valores."
+  },
+  {
+    "id": "py-mutable-default-arg",
+    "title": "Argumento padrão mutável",
+    "question": "O que é impresso?\n\ndef add(x, acc=[]):\n    acc.append(x)\n    return acc\n\nprint(add(1))\nprint(add(2))",
+    "options": [
+      "[1] depois [2]",
+      "[1, 2] depois [1, 2]",
+      "[1] depois [1, 2]",
+      "[] depois [1]"
+    ],
+    "explanation": "Valores padrão são avaliados uma única vez, quando a instrução def roda, então toda chamada sem acc compartilha a mesma lista, que vai acumulando. A correção idiomática é acc=None e criar uma nova lista dentro da função."
+  },
+  {
+    "id": "py-functools-wraps",
+    "title": "Decorator perde metadados",
+    "question": "Depois de decorar `fetch_user` com um decorator caseiro de medição de tempo, logs e a documentação da API mostram o nome da função como `wrapper`, e a docstring sumiu. O que resolve isso?",
+    "options": [
+      "Aplicar @functools.wraps(func) à função wrapper interna",
+      "Retornar func em vez de wrapper no decorator",
+      "Declarar o wrapper só com *args e **kwargs",
+      "Usar @staticmethod no wrapper dentro do decorator"
+    ],
+    "explanation": "functools.wraps copia __name__, __doc__, __qualname__, __module__ e mais da função decorada e define __wrapped__, então a introspecção continua vendo a original. Retornar func pula toda a lógica de medição, o estilo da assinatura não afeta os metadados, e staticmethod não tem relação."
+  },
+  {
+    "id": "py-late-binding-closures",
+    "title": "Lambdas criadas em um loop",
+    "question": "Qual é o resultado disto?\n\nfs = [lambda: i for i in range(3)]\n[f() for f in fs]",
+    "options": [
+      "[0, 1, 2]",
+      "[0, 0, 0]",
+      "[2, 2, 2]",
+      "NameError: i is not defined"
+    ],
+    "explanation": "Closures buscam i quando são chamadas, não quando são criadas, e as três lambdas compartilham o i da comprehension, que termina em 2. Capture o valor atual com um argumento padrão (lambda i=i: i). Não é NameError porque o escopo da comprehension é mantido vivo pelas closures."
+  },
+  {
+    "id": "py-generator-exhausted",
+    "title": "Reutilizando um generator",
+    "question": "O que é impresso?\n\ngen = (x * x for x in range(3))\nprint(sum(gen))\nprint(sum(gen))",
+    "options": [
+      "5 depois 5",
+      "5 depois 0",
+      "5 depois TypeError",
+      "0 depois 5"
+    ],
+    "explanation": "Um generator é um iterador de uso único: o primeiro sum consome 0 + 1 + 4 = 5, e o segundo encontra um iterador já esgotado e retorna 0. Para iterar duas vezes, recrie o generator ou materialize-o em uma lista."
+  },
+  {
+    "id": "py-generator-large-file",
+    "title": "Processando um arquivo de log de 20 GB",
+    "question": "Um script processa um arquivo de log de 20 GB com `lines = f.readlines()` e é morto pelo OOM killer. Qual reescrita mantém o uso de memória aproximadamente constante?",
+    "options": [
+      "Chamar f.read() uma vez e dividir a string resultante nas quebras de linha",
+      "Envolver readlines() em list() para forçar a avaliação antecipada",
+      "Usar sorted(f.readlines()) para processar as linhas em ordem",
+      "Iterar o arquivo de forma lazy, p. ex. um generator sobre `for line in f`"
+    ],
+    "explanation": "Objetos de arquivo são iteradores que entregam uma linha por vez, então um pipeline de generators sobre eles só mantém a linha atual na memória. read() e readlines() carregam o arquivo inteiro, e list() ou sorted() também materializam tudo."
+  },
+  {
+    "id": "py-yield-from-return",
+    "title": "Valor de yield from",
+    "question": "Em um generator, `result = yield from sub()`, em que `sub` faz yield de 1 e 2 e depois executa `return 'done'`. O que fica associado a `result`?",
+    "options": [
+      "2, o último valor emitido por sub",
+      "None, já que yield from não tem valor",
+      "'done', o valor de retorno do subgenerator",
+      "Uma lista [1, 2] com os itens emitidos"
+    ],
+    "explanation": "yield from delega a iteração (incluindo send() e throw()) ao subgenerator, e a expressão avalia para o valor carregado pelo StopIteration dele, ou seja, o que sub retorna. Os valores emitidos vão para quem chamou o generator externo, não para result."
+  },
+  {
+    "id": "py-dataclass-mutable-default",
+    "title": "Campo lista em dataclass",
+    "question": "Definir `@dataclass class Order: tags: list = []` falha na criação da classe. Qual é a forma correta de dar a cada instância sua própria lista vazia?",
+    "options": [
+      "tags: list = list() avaliado na definição",
+      "tags: list = [].copy() no corpo da classe",
+      "tags: list = None com frozen=True na classe",
+      "tags: list = field(default_factory=list)"
+    ],
+    "explanation": "dataclasses rejeita padrões mutáveis como uma lista (lançando ValueError) porque um único objeto seria compartilhado por todas as instâncias; default_factory chama list() para cada nova instância. list() ou [].copy() no corpo da classe continuam sendo um único objeto compartilhado, e frozen=True com None não cria uma lista."
+  },
+  {
+    "id": "py-mro-diamond",
+    "title": "Ordem de resolução de métodos em diamante",
+    "question": "Dado:\n\nclass A: pass\nclass B(A): pass\nclass C(A): pass\nclass D(B, C): pass\n\nQual é o `D.__mro__` (só os nomes)?",
+    "options": [
+      "D, B, C, A, object",
+      "D, B, A, C, object",
+      "D, C, B, A, object",
+      "D, A, B, C, object"
+    ],
+    "explanation": "Python usa a linearização C3, que preserva a precedência local (B antes de C, como listado) e coloca uma base compartilhada depois de todas as suas subclasses, então A vem depois de B e de C. A ordem em profundidade (D, B, A, C) visitaria A cedo demais, e por isso a resolução no estilo clássico foi substituída."
+  },
+  {
+    "id": "py-exit-returns-true",
+    "title": "Exceções engolidas",
+    "question": "Erros dentro de blocos `with db_session():` somem silenciosamente em produção. O `__exit__` do context manager customizado termina com `return True`. Por quê?",
+    "options": [
+      "__exit__ é chamado antes do bloco, então a exceção nunca ocorre",
+      "Um retorno truthy de __exit__ diz ao Python para suprimir a exceção",
+      "Retornar True relança a exceção de forma assíncrona em uma thread",
+      "A instrução with sempre suprime exceções de managers customizados"
+    ],
+    "explanation": "Se __exit__ retorna um valor verdadeiro, a exceção lançada no corpo do with é suprimida e a execução continua após a instrução. Ele deve retornar False/None, a menos que trate a exceção deliberadamente. __exit__ roda depois do bloco, nada é relançado em outro lugar, e a supressão nunca é automática."
+  },
+  {
+    "id": "py-contextmanager-finally",
+    "title": "Limpeza após o yield ignorada",
+    "question": "Uma função `@contextmanager` faz `conn = open_conn(); yield conn; conn.close()`. Quando o bloco with lança uma exceção, a conexão vaza. Por quê?",
+    "options": [
+      "contextmanager só executa o código após o yield quando o bloco retorna um valor",
+      "O generator é coletado pelo garbage collector antes de o bloco with começar a rodar",
+      "O erro é lançado no yield, então sem try/finally o close() é pulado",
+      "close() nunca é permitido dentro de um generator decorado com contextmanager"
+    ],
+    "explanation": "contextlib.contextmanager relança a exceção do bloco dentro do generator, no ponto do yield; sem try/finally (ou uma instrução with) em volta do yield, a linha de limpeza nunca roda. Valores de retorno são irrelevantes, o generator vive durante todo o bloco, e chamar close() não tem problema."
+  },
+  {
+    "id": "py-raise-from-cause",
+    "title": "Encadeamento de exceções com from",
+    "question": "Um repositório captura `KeyError` e lança `NotFound`. Qual instrução registra o KeyError como causa direta explícita no traceback?",
+    "options": [
+      "raise NotFound('user', exc)",
+      "raise NotFound('user') from exc",
+      "raise NotFound('user') from None",
+      "raise exc from NotFound('user')"
+    ],
+    "explanation": "raise ... from exc define __cause__, e o traceback informa que a exceção original foi a causa direta. Passar exc como argumento apenas o guarda em args, from None suprime o contexto, e a última forma lança o tipo de exceção errado."
+  },
+  {
+    "id": "py-venv-isolation",
+    "title": "Dois projetos, duas versões do Django",
+    "question": "Dois projetos na mesma máquina precisam de versões diferentes do Django. Qual é a forma da biblioteca padrão de manter as dependências isoladas?",
+    "options": [
+      "Instalar as duas versões globalmente com pip e escolher pelo nome no import",
+      "Apontar o PYTHONPATH para o site-packages do projeto que estiver aberto",
+      "Usar um único requirements.txt listando as duas versões do Django",
+      "Criar um venv separado por projeto e instalar os pacotes em cada um"
+    ],
+    "explanation": "python -m venv cria um ambiente com seu próprio site-packages, então cada projeto pode fixar suas próprias versões de dependências. O pip não consegue instalar duas versões da mesma distribuição lado a lado, ficar trocando o PYTHONPATH é frágil, e um arquivo de requirements não resolve duas versões conflitantes."
+  },
+  {
+    "id": "py-circular-import",
+    "title": "Módulo parcialmente inicializado",
+    "question": "`models.py` faz `from services import notify` no topo, e `services.py` faz `from models import User` no topo. Importar `models` falha com \"cannot import name 'User' from partially initialized module\". Por quê?",
+    "options": [
+      "models já está em sys.modules, mas ainda executando, então User não existe ainda",
+      "Python proíbe que dois módulos importem um ao outro em qualquer circunstância",
+      "from-imports são resolvidos de forma lazy, então User é buscado após models ser apagado",
+      "O sistema de import guarda em cache uma busca falha de User de uma execução anterior"
+    ],
+    "explanation": "Importar models o registra em sys.modules e começa a executá-lo; o import de services então executa services, cujo from models import User encontra o módulo executado pela metade, em que User ainda não foi definido. Imports mútuos podem funcionar (p. ex. importar o módulo, não os nomes, ou mover o import), então não são proibidos; from-imports são eager e nada é guardado em cache entre execuções."
+  },
+  {
+    "id": "py-type-hints-runtime",
+    "title": "Type hints são aplicados?",
+    "question": "Dado `def area(r: float) -> float: return 3.14 * r * r`, o que acontece ao chamar `area(\"2\")` em tempo de execução?",
+    "options": [
+      "Python lança TypeError antes da chamada porque o argumento não é float",
+      "O interpretador converte \"2\" para 2.0 automaticamente pela anotação",
+      "Um aviso é impresso e a chamada retorna None em vez de um resultado",
+      "Anotações não são aplicadas; roda e falha lá dentro em str * float"
+    ],
+    "explanation": "O runtime do Python não aplica anotações; elas são metadados para type checkers, IDEs e bibliotecas. A chamada prossegue e a multiplicação lança TypeError dentro da função. Nenhuma conversão ou aviso acontece automaticamente."
+  },
+  {
+    "id": "py-protocol-structural",
+    "title": "Tipando parâmetros com duck typing",
+    "question": "Uma função aceita qualquer objeto com um método `read(n: int) -> bytes`, incluindo classes de terceiros que você não pode modificar. Como tipá-la para que o mypy verifique quem a chama?",
+    "options": [
+      "Anotar o parâmetro como Any e documentar o método na docstring",
+      "Criar uma classe base abstrata e exigir que quem chama herde dela",
+      "Definir um typing.Protocol com esse método read e usá-lo como tipo",
+      "Usar um typing.Union de toda classe leitora conhecida hoje"
+    ],
+    "explanation": "Protocols permitem subtipagem estrutural: qualquer classe com um método read compatível satisfaz o protocolo sem herdar dele. Any desativa a verificação, uma ABC exige herança nominal que classes de terceiros não têm, e um Union é fechado para novos tipos."
+  },
+  {
+    "id": "py-list-invariance",
+    "title": "list[Dog] passada como list[Animal]",
+    "question": "`Dog` é subclasse de `Animal`. Um type checker rejeita passar uma `list[Dog]` para `def feed(animals: list[Animal]) -> None`, que só itera. Qual é a melhor correção?",
+    "options": [
+      "Fazer cast do argumento com cast(list[Animal], dogs) em toda chamada",
+      "Anotar o parâmetro como Sequence[Animal], que é covariante",
+      "Anotar o parâmetro como list[Any] para aceitar qualquer tipo",
+      "Declarar Dog com Generic[Animal] para que listas dele sejam compatíveis"
+    ],
+    "explanation": "list é invariante porque uma função que recebe list[Animal] poderia adicionar um Cat em uma lista de cães; abstrações somente leitura como Sequence ou Iterable são covariantes, então Sequence[Animal] aceita list[Dog] com segurança. cast e Any silenciam o checker sem expressar a intenção, e Generic não muda a variância de list."
+  },
+  {
+    "id": "py-gil-cpu-threads",
+    "title": "Threads para trabalho CPU-bound",
+    "question": "No build padrão do CPython (com GIL), um time roda um redimensionamento de imagens CPU-bound em 8 threads e não vê ganho em relação a uma thread. Qual mudança vai usar vários núcleos?",
+    "options": [
+      "Usar um ProcessPoolExecutor para cada worker ter seu próprio interpretador",
+      "Converter a função para async def e rodar as chamadas com asyncio.gather",
+      "Aumentar o max_workers do ThreadPoolExecutor para 32 threads",
+      "Chamar time.sleep(0) dentro do loop para liberar o GIL com mais frequência"
+    ],
+    "explanation": "O GIL deixa só uma thread executar bytecode Python por vez, então trabalho CPU-bound em Python puro não escala com threads; processos separados têm cada um seu interpretador e seu GIL. asyncio é single-threaded, mais threads aumentam a contenção, e liberar o GIL não cria paralelismo. (Builds free-threaded existem, mas não são o padrão.)"
+  },
+  {
+    "id": "py-asyncio-blocking-call",
+    "title": "Event loop travando",
+    "question": "Em um web service com asyncio, um handler chama `requests.get(url)` (uma biblioteca bloqueante). Sob carga, todas as outras requisições travam enquanto ela roda. Qual é a correção?",
+    "options": [
+      "Envolver a chamada em asyncio.wait_for para o loop agendá-la em paralelo",
+      "Marcar o handler com @asyncio.coroutine para tornar a chamada não bloqueante",
+      "Aumentar o limite de tarefas do event loop para rodar mais handlers ao mesmo tempo",
+      "Usar um cliente HTTP assíncrono ou delegar a chamada com asyncio.to_thread"
+    ],
+    "explanation": "Uma chamada bloqueante dentro de uma coroutine para a única thread do event loop, então nenhuma outra tarefa avança até ela retornar; use um cliente assíncrono nativo ou rode a chamada em uma thread worker via asyncio.to_thread ou run_in_executor. wait_for só adiciona um timeout em volta de awaitables, o decorator antigo foi removido e nunca tornou código não bloqueante, e não existe um limite de tarefas causando isso."
+  },
+  {
+    "id": "py-asyncio-gather",
+    "title": "Awaits sequenciais",
+    "question": "Uma coroutine faz `a = await fetch(1); b = await fetch(2); c = await fetch(3)`; cada fetch espera cerca de 1 s pela rede e eles são independentes. Como levar o total para perto de 1 s?",
+    "options": [
+      "Trocar await por yield para que as chamadas fiquem em buffer",
+      "Executá-las de forma concorrente com asyncio.gather ou um TaskGroup",
+      "Chamar asyncio.run separadamente para cada coroutine de fetch",
+      "Usar time.sleep(0) entre os awaits para o loop poder alternar"
+    ],
+    "explanation": "Cada await suspende até aquela coroutine terminar, então as chamadas são sequenciais; gather ou TaskGroup as agendam como tasks que esperam pela rede simultaneamente. yield é inválido aqui, asyncio.run cria um novo loop a cada vez e ainda as executa uma após a outra, e time.sleep bloqueia o loop."
+  },
+  {
+    "id": "py-create-task-reference",
+    "title": "Task fire-and-forget que desaparece",
+    "question": "Um serviço chama `asyncio.create_task(send_audit_log(event))` sem guardar o resultado. De vez em quando os logs de auditoria nunca são gravados, sem nenhum erro. O que a documentação aponta como causa?",
+    "options": [
+      "O loop só guarda referências fracas, então uma task não guardada pode ser coletada",
+      "create_task só agenda a coroutine se quem chama fizer await dela no mesmo tick",
+      "Tasks criadas sem nome são canceladas quando a coroutine que as criou retorna",
+      "create_task roda a coroutine em um pool de threads que descarta trabalho sob carga"
+    ],
+    "explanation": "A documentação do asyncio alerta para guardar uma referência ao resultado de create_task, porque o event loop só mantém referências fracas; mantenha as tasks em um set e descarte-as em um done callback (ou use um TaskGroup). Tasks rodam sem precisar de await, o nome é irrelevante, e create_task não usa threads."
+  },
+  {
+    "id": "py-mock-where-to-patch",
+    "title": "Patch que não tem efeito",
+    "question": "`billing.py` contém `from payments import charge`. Um teste usa `@patch('payments.charge')`, mas `billing.checkout()` ainda chama o `charge` real. O que está errado?",
+    "options": [
+      "patch só funciona em classes, então charge precisa ser envolvido em uma classe antes",
+      "O decorator precisa ser @patch.object('payments', 'charge') com strings",
+      "billing tem sua própria referência a charge; faça patch de 'billing.charge'",
+      "patch substitui a função só depois que a função de teste retorna"
+    ],
+    "explanation": "patch substitui um nome em um namespace; o from-import liga charge ao namespace de billing no momento do import, então fazer patch de payments.charge deixa billing.charge apontando para o original. Faça patch onde o objeto é buscado. patch funciona com qualquer atributo, patch.object recebe um objeto e não uma string, e o patch fica ativo durante o teste."
+  },
+  {
+    "id": "py-pytest-yield-fixture",
+    "title": "Teardown de fixture",
+    "question": "Em uma fixture do pytest que cria um banco de dados temporário, onde deve ficar o código de limpeza para que ele rode após cada teste que usa a fixture?",
+    "options": [
+      "Antes da instrução return, para rodar antes do teste",
+      "Em uma função de teste separada chamada test_teardown no fim do arquivo",
+      "Depois de uma instrução yield que entrega o banco ao teste",
+      "No conftest.py, em nível de módulo, fora de qualquer função"
+    ],
+    "explanation": "O pytest roda o código da fixture até o yield como setup, passa o valor do yield para o teste e roda o código após o yield como teardown, mesmo se o teste falhar. Código antes de return roda antes do teste, testes não rodam em uma ordem garantida de teardown, e código em nível de módulo roda uma vez no import."
+  },
+  {
+    "id": "py-str-join-loop",
+    "title": "Montando uma string grande",
+    "question": "Um gerador de relatórios faz `out += line` para 500.000 linhas e está lento. O que a documentação do Python recomenda?",
+    "options": [
+      "Usar out = out + line, que evita uma cópia extra",
+      "Usar f-strings em cada linha para a concatenação ser O(1)",
+      "Converter out em uma tupla e adicionar as linhas à tupla",
+      "Juntar os pedaços em uma lista e chamar ''.join(pieces) uma vez"
+    ],
+    "explanation": "Strings são imutáveis, então a concatenação repetida pode criar novos objetos a cada vez, e a documentação alerta que isso tem custo quadrático em geral; str.join calcula o tamanho final uma única vez. out = out + line é a mesma operação, f-strings formatam uma única string mas não mudam a acumulação, e tuplas também são imutáveis."
+  },
+  {
+    "id": "py-lru-cache-method-leak",
+    "title": "lru_cache em métodos vaza memória",
+    "question": "Um request handler cria um novo `PriceService` por requisição, e `PriceService.quote(self, sku)` é decorado com `@functools.lru_cache(maxsize=None)`. A memória cresce sem limite. Por quê?",
+    "options": [
+      "lru_cache guarda uma cópia completa do __dict__ de cada instância junto ao resultado",
+      "O cache no nível da classe mantém referências fortes a todo self que já viu",
+      "maxsize=None torna o cache por instância, então ele é duplicado a cada requisição",
+      "lru_cache desativa a contagem de referências de todos os argumentos cacheados"
+    ],
+    "explanation": "A função com cache vive na classe, e self faz parte de cada chave do cache, então toda instância continua alcançável a partir do cache; com maxsize=None as entradas nunca são removidas. O FAQ discute isso e sugere alternativas como cached_property ou um cache por instância. Nenhuma cópia de __dict__ é feita, o cache não é por instância, e a contagem de referências não muda."
+  },
+  {
+    "id": "java-heap-vs-stack",
+    "title": "Onde os objetos vivem",
+    "question": "Em `void handle() { Order o = new Order(); }`, onde a JVM armazena conceitualmente o objeto Order e a variável local `o`?",
+    "options": [
+      "O objeto no heap; a referência o no stack frame da thread",
+      "O objeto e o na method area, junto com os metadados da classe",
+      "O objeto no stack frame da thread; o no heap compartilhado",
+      "Ambos em um heap por thread que é limpo quando o método termina"
+    ],
+    "explanation": "A especificação da JVM aloca instâncias de classes no heap compartilhado por todas as threads, enquanto a JVM stack de cada thread guarda frames com variáveis locais, incluindo referências. A method area guarda dados por classe, e o heap não é por thread. (A escape analysis do JIT pode otimizar alocações, mas o modelo não muda.)"
+  },
+  {
+    "id": "java-stackoverflow-recursion",
+    "title": "Erro de recursão profunda",
+    "question": "Uma travessia recursiva sobre uma árvore degenerada com 1.000.000 de níveis quebra com `java.lang.StackOverflowError`. Qual é a causa raiz?",
+    "options": [
+      "Cada chamada adiciona um frame a uma stack de tamanho fixo, que se esgota",
+      "O heap está cheio de nós da árvore e o GC não consegue recuperá-los",
+      "O Metaspace se esgota por carregar o método recursivo repetidamente",
+      "O compilador JIT se recusa a compilar métodos que chamam a si mesmos"
+    ],
+    "explanation": "Cada invocação de método empilha um frame na JVM stack da thread, e quando a profundidade necessária excede o tamanho da stack a JVM lança StackOverflowError. Use um algoritmo iterativo com uma pilha explícita (ou aumente -Xss como paliativo). Esgotar o heap ou o Metaspace gera OutOfMemoryError, e a recursão não impede a compilação JIT."
+  },
+  {
+    "id": "java-equals-without-hashcode",
+    "title": "equals sem hashCode",
+    "question": "Uma classe `Money` sobrescreve `equals` para comparar valor e moeda, mas não `hashCode`. Dois objetos Money iguais são adicionados a um `HashSet`. O que acontece?",
+    "options": [
+      "O segundo add lança IllegalStateException por contrato quebrado",
+      "O set muito provavelmente terá os dois, porque os hash codes diferem",
+      "O set remove a duplicata, porque o HashSet só chama equals",
+      "A compilação falha até hashCode ser sobrescrito junto com equals"
+    ],
+    "explanation": "O contrato de Object exige que objetos iguais tenham hash codes iguais; o HashSet usa primeiro o hashCode para achar um bucket, então com hash codes baseados em identidade os objetos iguais normalmente caem em buckets diferentes e equals nunca é consultado. Nada é lançado, e o compilador não impõe o contrato."
+  },
+  {
+    "id": "java-record-accessors",
+    "title": "Lendo um componente de record",
+    "question": "Dados `record Point(int x, int y) {}` e `Point p = new Point(1, 2);`, como você lê x?",
+    "options": [
+      "p.getX()",
+      "p.x como campo público",
+      "p.component(\"x\")",
+      "p.x()"
+    ],
+    "explanation": "Records recebem automaticamente um campo private final e um método acessor público com exatamente o nome de cada componente, além de um construtor canônico, equals, hashCode e toString. Não há getter getX() no estilo bean, o campo é privado, e records não têm um get reflexivo por nome."
+  },
+  {
+    "id": "java-sealed-exhaustive-switch",
+    "title": "Hierarquia sealed e switch",
+    "question": "Com `sealed interface Shape permits Circle, Square {}` e um `switch (shape)` com pattern matching que trata `Circle` e `Square` sem `default`, o que acontece quando um novo `Triangle` é adicionado à lista permits?",
+    "options": [
+      "O switch ignora valores Triangle silenciosamente em runtime",
+      "O switch lança NullPointerException para Triangle",
+      "O switch deixa de compilar até Triangle ser tratado",
+      "Nada, já que tipos sealed só restringem reflection"
+    ],
+    "explanation": "Como o compilador conhece todos os subtipos permitidos, um switch que cobre todos é exaustivo sem default; adicionar um novo subtipo permitido o torna não exaustivo, o que é erro de compilação, então todos os switches precisam ser atualizados. Valores não são ignorados silenciosamente, o tratamento de null é separado, e sealed restringe quais classes podem estender o tipo."
+  },
+  {
+    "id": "java-default-method-conflict",
+    "title": "Dois defaults com a mesma assinatura",
+    "question": "A classe `Robot implements Walker, Talker`, e as duas interfaces declaram `default String describe()`. O que Robot precisa fazer para compilar?",
+    "options": [
+      "Compila; a interface listada primeiro no implements vence",
+      "Compila; a JVM escolhe uma em runtime pela ordem de carga",
+      "Marcar Robot como abstract, o que resolve o conflito de defaults sozinho",
+      "Sobrescrever describe(), podendo chamar Walker.super.describe()"
+    ],
+    "explanation": "Quando uma classe herda dois métodos default não relacionados com a mesma assinatura, o compilador reporta erro até a classe sobrescrever o método; dentro dele, ela pode escolher uma implementação com InterfaceName.super.method(). A ordem de declaração não importa, nada é resolvido em runtime, e classes abstratas enfrentam o mesmo conflito."
+  },
+  {
+    "id": "java-type-erasure-new-t",
+    "title": "Por que new T() falha",
+    "question": "Dentro de `class Repository<T>`, a linha `T entity = new T();` não compila. Por quê?",
+    "options": [
+      "T é apagado, então o runtime não tem classe para chamar o construtor",
+      "Classes genéricas só podem criar instâncias por métodos factory estáticos",
+      "T precisa antes ser declarado com extends Object para permitir construção",
+      "Construtores não podem ser chamados em interfaces, e T é sempre uma interface"
+    ],
+    "explanation": "Generics são implementados por erasure: T vira seu limite (Object) no bytecode, então não existe classe cujo construtor chamar. O contorno usual é passar um Supplier<T> ou Class<T>. Não existe regra de factory estático, limitar por Object não muda nada, e T pode ser qualquer tipo de referência."
+  },
+  {
+    "id": "java-pecs-super-wildcard",
+    "title": "Escolhendo o wildcard",
+    "question": "Um método adiciona Integers a uma lista fornecida por quem chama. Quem chama pode passar uma `List<Integer>`, `List<Number>` ou `List<Object>`. Qual tipo de parâmetro serve?",
+    "options": [
+      "List<? extends Integer>",
+      "List<? extends Number>",
+      "List<? super Integer>",
+      "List<Integer>"
+    ],
+    "explanation": "A lista é consumidora de Integers, então precisa de um wildcard com limite inferior: qualquer lista cujo tipo de elemento seja Integer ou um supertipo pode aceitá-los. Wildcards extends servem para produtores e não permitem add, e List<Integer> rejeita List<Number> porque generics são invariantes."
+  },
+  {
+    "id": "java-cme-foreach-remove",
+    "title": "Removendo dentro de um for-each",
+    "question": "O código itera `for (Order o : orders) if (o.isCancelled()) orders.remove(o);` sobre um `ArrayList`. O que normalmente acontece, e qual é a correção idiomática?",
+    "options": [
+      "Funciona, já que ArrayList foi projetado para mudanças estruturais durante a iteração",
+      "ConcurrentModificationException; use orders.removeIf(Order::isCancelled)",
+      "Entra em loop infinito; envolva o corpo em synchronized (orders) para corrigir",
+      "UnsupportedOperationException; copie para uma LinkedList antes de remover"
+    ],
+    "explanation": "Iteradores de ArrayList são fail-fast: uma mudança estrutural feita fora do iterador é detectada na próxima chamada e lança ConcurrentModificationException (em regime de melhor esforço). removeIf ou Iterator.remove modificam a lista com segurança. Sincronização é irrelevante em uma única thread, e ArrayList suporta remove."
+  },
+  {
+    "id": "java-stream-no-terminal",
+    "title": "Stream que não imprime nada",
+    "question": "O que este código imprime?\n\nList.of(1, 2, 3).stream()\n    .filter(x -> { System.out.println(x); return x > 1; });",
+    "options": [
+      "1, 2 e 3 em linhas separadas",
+      "Nada, porque nenhuma operação terminal roda",
+      "2 e 3, os elementos que passam pelo filtro",
+      "Só 1, e então a stream faz curto-circuito"
+    ],
+    "explanation": "Operações intermediárias como filter são lazy: só montam o pipeline, e os elementos são puxados quando uma operação terminal como toList(), forEach ou count roda. Sem uma, a lambda nunca executa."
+  },
+  {
+    "id": "java-stream-infinite-sorted",
+    "title": "Stream infinita que trava",
+    "question": "Partindo de `Stream.iterate(1, i -> i + 1)`, qual pipeline nunca termina?",
+    "options": [
+      ".filter(i -> i % 7 == 0).findFirst()",
+      ".anyMatch(i -> i > 100)",
+      ".limit(5).sorted().toList()",
+      ".sorted().findFirst()"
+    ],
+    "explanation": "sorted() é uma operação com estado que precisa ver todos os elementos antes de emitir qualquer um, o que é impossível em uma stream infinita. findFirst e anyMatch fazem curto-circuito e param no primeiro match, e limit(5) torna a stream finita antes da ordenação."
+  },
+  {
+    "id": "java-parallel-stream-side-effects",
+    "title": "forEach paralelo em um ArrayList",
+    "question": "`List<Id> out = new ArrayList<>(); ids.parallelStream().map(this::lookup).forEach(out::add);` às vezes retorna menos elementos do que o esperado ou lança exceção. Qual é a reescrita correta?",
+    "options": [
+      "Trocar forEach por forEachOrdered, que torna os adds no ArrayList thread-safe",
+      "Declarar out como volatile para toda thread ver o conteúdo mais recente",
+      "Coletar pela stream: ids.parallelStream().map(this::lookup).toList()",
+      "Chamar .sequential() depois do forEach para mesclar os adds no final"
+    ],
+    "explanation": "forEach em uma stream paralela executa a ação de forma concorrente a partir de várias threads, e ArrayList.add não é thread-safe, então atualizações se perdem ou ocorre uma exceção de índice; a documentação de streams recomenda evitar efeitos colaterais e usar operações de redução/coleta. forEachOrdered ordena as ações, mas é a ferramenta errada aqui, volatile na referência não protege o interior da lista, e nada pode vir depois de uma operação terminal."
+  },
+  {
+    "id": "java-checked-exceptions",
+    "title": "Checked exceptions",
+    "question": "Qual destas exceções precisa ser capturada ou declarada na cláusula `throws` de um método?",
+    "options": [
+      "java.io.IOException",
+      "java.lang.IllegalArgumentException",
+      "java.lang.NullPointerException",
+      "java.lang.ArithmeticException"
+    ],
+    "explanation": "IOException é uma checked exception, então o compilador impõe o requisito de capturar ou declarar. As outras três estendem RuntimeException; exceções unchecked sinalizam erros de programação e não precisam ser declaradas."
+  },
+  {
+    "id": "java-try-with-resources-suppressed",
+    "title": "Exceções do corpo e do close",
+    "question": "Em um bloco try-with-resources, o corpo lança `SQLException(\"query\")` e depois o `close()` do recurso lança `SQLException(\"close\")`. O que quem chamou recebe?",
+    "options": [
+      "A exceção do close, porque foi lançada por último",
+      "A exceção da query, com a do close em getSuppressed()",
+      "A exceção do close, com a da query disponível em getCause()",
+      "Ambas, juntas em uma nova instância de AggregateException"
+    ],
+    "explanation": "O try-with-resources propaga a exceção do bloco try e anexa as exceções lançadas durante o fechamento como suprimidas, acessíveis via Throwable.getSuppressed(). Isso evita mascarar a falha original, como acontecia no código antigo baseado em finally. Java não tem AggregateException, e a falha do close não é definida como causa."
+  },
+  {
+    "id": "java-volatile-stop-flag",
+    "title": "Worker que nunca para",
+    "question": "Uma thread worker faz o loop `while (running) { ... }` e outra thread define `running = false`, mas às vezes o worker nunca sai. `running` é um campo `boolean` comum. Qual é a correção mínima?",
+    "options": [
+      "Chamar Thread.yield() dentro do loop para o campo ser relido",
+      "Tornar o campo static para todas as threads compartilharem uma só cópia",
+      "Declarar o campo final para o compilador não poder cachear o valor",
+      "Declarar o campo volatile para as escritas ficarem visíveis à leitora"
+    ],
+    "explanation": "Sem uma relação happens-before, o JIT pode tirar a leitura de dentro do loop e o worker pode nunca observar a escrita; o Java Memory Model garante que uma escrita em um campo volatile fica visível para leituras posteriores. yield não tem semântica de memória, static muda o compartilhamento mas não a visibilidade, e um campo final nem poderia ser alterado."
+  },
+  {
+    "id": "java-volatile-not-atomic",
+    "title": "Incrementos perdidos",
+    "question": "Um contador de métricas `volatile int hits;` é incrementado com `hits++` por muitas threads de requisição e termina abaixo da contagem real. Por quê, e qual é a correção?",
+    "options": [
+      "++ é ler-modificar-escrever; use AtomicInteger.incrementAndGet()",
+      "volatile faz cache do valor por thread; remova o volatile para corrigir",
+      "O int estoura sob carga; mude o campo para volatile long",
+      "O JIT reordena os incrementos; adicione um Thread.sleep(0) depois"
+    ],
+    "explanation": "volatile garante visibilidade, mas hits++ lê, soma e escreve em passos separados, então duas threads podem ler o mesmo valor e uma atualização se perde. AtomicInteger faz o incremento de forma atômica usando compare-and-set (LongAdder também serve para alta contenção). Remover o volatile piora as coisas, overflow não é o problema, e sleep não dá atomicidade."
+  },
+  {
+    "id": "java-executor-shutdown",
+    "title": "JVM não encerra",
+    "question": "Uma ferramenta CLI submete trabalho a `Executors.newFixedThreadPool(4)`, imprime os resultados e retorna do `main`, mas o processo nunca encerra. O que está faltando?",
+    "options": [
+      "Chamar System.gc() para que a JVM recolha as threads worker ociosas",
+      "Declarar main como synchronized para que espere todas as tarefas",
+      "Encerrar o executor, p. ex. shutdown() ou try-with-resources",
+      "Usar submit() em vez de execute() para as tarefas terminarem antes"
+    ],
+    "explanation": "Thread pools fixos usam threads não daemon que esperam novas tarefas, mantendo a JVM viva; shutdown() deixa que terminem o trabalho na fila e encerrem, e desde o JDK 19 ExecutorService é AutoCloseable, então o try-with-resources espera e faz o shutdown. O GC não para threads vivas, um main synchronized não faz nada aqui, e submit vs execute é irrelevante."
+  },
+  {
+    "id": "java-virtual-thread-pinning",
+    "title": "Virtual threads que não escalam no JDK 21",
+    "question": "No JDK 21, um serviço migrou para virtual threads, mas o throughput fica limitado perto do número de núcleos de CPU. O profiling mostra threads bloqueando em I/O de socket dentro de blocos `synchronized`. O que está acontecendo?",
+    "options": [
+      "Virtual threads sempre rodam em um único carrier, então qualquer I/O serializa a aplicação",
+      "synchronized transforma virtual threads em threads daemon, que a JVM desprioriza",
+      "I/O de socket não é suportado em virtual threads e cai silenciosamente para polling",
+      "Bloquear em synchronized prende a thread ao carrier; use ReentrantLock ou JDK 24+"
+    ],
+    "explanation": "No JDK 21, uma virtual thread que bloqueia enquanto segura um monitor fica pinned e não consegue se desmontar, então ocupa sua carrier thread; com poucos carriers (cerca de um por núcleo), o throughput despenca. A orientação do JDK 21 sugere ReentrantLock em volta de operações bloqueantes longas; o JDK 24 (JEP 491) removeu esse pinning para synchronized. Virtual threads usam vários carriers, são sempre daemon e suportam I/O de socket bloqueante."
+  },
+  {
+    "id": "java-gc-reachability",
+    "title": "Quando um objeto pode ser coletado",
+    "question": "Dois objetos se referenciam mutuamente, mas nada mais na aplicação referencia nenhum deles. O garbage collector da JVM pode recuperá-los?",
+    "options": [
+      "Não, porque cada um ainda tem contagem de referências igual a um",
+      "Só se um dos campos for definido explicitamente como null",
+      "Sim, porque nenhum deles é alcançável a partir de uma GC root",
+      "Só depois que a aplicação chamar System.gc()"
+    ],
+    "explanation": "Os coletores do HotSpot rastreiam a alcançabilidade a partir de roots como stacks de threads e campos estáticos; tudo que é inalcançável, incluindo ciclos, é lixo. Contagem de referências não é como a JVM decide o que está vivo, anular campos é desnecessário, e System.gc() é só uma dica."
+  },
+  {
+    "id": "java-default-gc-g1",
+    "title": "Coletor padrão",
+    "question": "Em um servidor multi-core típico com alguns gigabytes de RAM e sem flags de GC, qual garbage collector o JDK 21 seleciona?",
+    "options": [
+      "Coletor Parallel",
+      "G1 (Garbage-First)",
+      "Coletor Serial",
+      "ZGC"
+    ],
+    "explanation": "O G1 é o padrão desde o JDK 9 e é escolhido na maioria dos hardwares; o coletor Serial só é escolhido por ergonomia em máquinas pequenas (uma única CPU ou pouca memória). Parallel e ZGC precisam ser habilitados explicitamente com -XX:+UseParallelGC ou -XX:+UseZGC."
+  },
+  {
+    "id": "java-zgc-low-latency",
+    "title": "Requisito de pausas abaixo de um milissegundo",
+    "question": "Um serviço de trading com heap de 64 GB tem pausas do G1 de 50 a 150 ms e precisa de pausas consistentemente em torno de um milissegundo ou menos. Qual coletor foi projetado para isso?",
+    "options": [
+      "ZGC, que faz o trabalho pesado de forma concorrente com a aplicação",
+      "Parallel GC, que usa todos os núcleos para encurtar cada pausa",
+      "Serial GC, que evita o custo de coordenação entre threads",
+      "G1 com MaxGCPauseMillis=1 para forçar coletas minúsculas"
+    ],
+    "explanation": "O ZGC é um coletor escalável de baixa latência que faz marcação, realocação e processamento de referências de forma concorrente, mantendo as pausas tipicamente abaixo de um milissegundo, independentemente do tamanho do heap. O Parallel GC otimiza throughput com pausas stop-the-world, o Serial é single-threaded e stop-the-world, e MaxGCPauseMillis é uma meta flexível que o G1 não consegue cumprir em 1 ms."
+  },
+  {
+    "id": "java-spring-constructor-injection",
+    "title": "Injeção por construtor versus por campo",
+    "question": "Por que o time do Spring geralmente recomenda injeção por construtor em vez de campos com `@Autowired` para dependências obrigatórias?",
+    "options": [
+      "Dependências podem ser final, nunca são null e são fáceis de passar em testes",
+      "A injeção por campo foi removida no Spring 6 e agora impede o contexto de subir",
+      "A injeção por construtor cria beans de forma lazy, reduzindo o startup",
+      "A injeção por construtor permite ao Spring resolver dependências circulares"
+    ],
+    "explanation": "A injeção por construtor deixa os componentes imutáveis e totalmente inicializados, e testes unitários simples podem passar os colaboradores sem um container. A injeção por campo ainda funciona, lazy loading não tem relação, e a injeção por construtor na verdade faz dependências circulares falharem logo, em vez de resolvê-las."
+  },
+  {
+    "id": "java-spring-transactional-self-invocation",
+    "title": "@Transactional não aplicado",
+    "question": "Em `OrderService`, um método público não transacional `placeAll()` chama `this.place(order)`, que é anotado com `@Transactional`. Falhas em place() não sofrem rollback. Por quê?",
+    "options": [
+      "@Transactional só funciona em métodos privados chamados internamente",
+      "A chamada contorna o proxy do Spring, então nenhum advice transacional roda",
+      "O Spring só aplica transações a métodos em classes @Controller",
+      "place() também precisa ser static para a anotação ser detectada"
+    ],
+    "explanation": "Com o AOP padrão do Spring baseado em proxies, o advice é aplicado quando as chamadas passam pelo proxy; a autoinvocação via this chama o alvo diretamente, então o interceptor de transação nunca roda. Mova o método para outro bean ou chame pelo proxy. Métodos privados e estáticos não recebem advice de proxies, e transações não se limitam a controllers."
+  },
+  {
+    "id": "java-spring-transactional-checked",
+    "title": "Checked exception não faz rollback",
+    "question": "Um método de serviço `@Transactional` salva uma entidade e depois lança uma `PaymentDeclinedException` checked. A entidade continua no banco. Por quê?",
+    "options": [
+      "Checked exceptions são engolidas pelo proxy transacional antes de chegar a quem chamou",
+      "O rollback só ocorre quando o retorno do método é void ou Optional",
+      "Por padrão, o rollback cobre RuntimeException e Error, não checked exceptions",
+      "O save sofreu flush, e mudanças com flush nunca podem sofrer rollback"
+    ],
+    "explanation": "As regras padrão de rollback do Spring fazem rollback em exceções unchecked (RuntimeException e Error) e commit nas checked; use rollbackFor = PaymentDeclinedException.class ou lance uma exceção unchecked. A exceção é propagada, tipos de retorno são irrelevantes, e mudanças com flush ainda fazem parte da transação não commitada."
+  }
+]

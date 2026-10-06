@@ -24,15 +24,18 @@ class FakeSeed:
             {"slug": "git", "name": "Git", "category": "Tools", "subtopics": [{"slug": "basics", "name": "Basics"}, {"slug": "rebase", "name": "Rebase"}]},
             {"slug": "sql", "name": "SQL", "category": "Data", "subtopics": [{"slug": "joins", "name": "Joins"}]},
         ])
+        self.write("modules.json", [
+            {"slug": "git-basics", "name": "Git Basics", "kind": "Core", "steps": [
+                {"topic": "git", "subtopic": "basics", "title": "Basics"}, {"topic": "git", "subtopic": "rebase", "title": "Rebase"}]},
+            {"slug": "sql-joins", "name": "SQL Joins", "kind": "Context", "steps": [{"topic": "sql", "subtopic": "joins", "title": "Joins"}]},
+            {"slug": "git-extra", "name": "Git Extra", "kind": "Context", "steps": [{"topic": "git", "subtopic": "basics", "title": "Again"}]},
+        ])
         self.write("roadmaps.json", [
-            {"slug": "git-path", "name": "Git Path", "category": "Tools", "difficulty": "Beginner", "estimatedHours": 4, "prerequisites": [],
-             "modules": [{"title": "M1", "order": 1, "steps": [
-                 {"topic": "git", "subtopic": "basics", "title": "Basics", "order": 1},
-                 {"topic": "git", "subtopic": "rebase", "title": "Rebase", "order": 2}]}]},
-            {"slug": "sql-path", "name": "SQL Path", "category": "Data", "difficulty": "Advanced", "estimatedHours": 6,
+            {"slug": "git-path", "name": "Git Path", "category": "Tools", "difficulty": "Beginner", "type": "SkillTrack", "estimatedHours": 4,
+             "prerequisites": [], "modules": [{"slug": "git-basics", "required": True}]},
+            {"slug": "sql-path", "name": "SQL Path", "category": "Data", "difficulty": "Advanced", "type": "Role", "estimatedHours": 6,
              "prerequisites": [{"slug": "git-path", "minimumPercent": 50}],
-             "modules": [{"title": "M1", "order": 1, "steps": [{"topic": "sql", "subtopic": "joins", "title": "Joins", "order": 1}]},
-                         {"title": "M2", "order": 2, "steps": [{"topic": "git", "subtopic": "basics", "title": "Basics again", "order": 2}]}]},
+             "modules": [{"slug": "sql-joins", "required": True}, {"slug": "git-basics", "required": True}, {"slug": "git-extra", "required": False}]},
         ])
         self.write("questions/a.json", [q("g1", "git", "basics", "Easy"), q("g2", "git", "basics", "Medium"), q("g3", "git", "rebase", "Easy")])
         self.write("questions/b.json", [q("s1", "sql", "joins", "Hard"), q("s2", "sql", "joins", "Expert")])
@@ -61,10 +64,14 @@ class CatalogMarkdownTests(unittest.TestCase):
         self.assertIn("| SQL | Data | 1 | 2 |", self.md)
 
     def test_lists_every_roadmap_with_its_size_and_questions(self):
-        self.assertIn("**2** roadmaps · 3 modules · 4 steps", self.md)
-        # Questions available = distinct questions across the roadmap's step subtopics.
-        self.assertIn("| 1 | Git Path | Trilha Git | Tools | Beginner | 1 | 2 | 4 h | 3 | — |", self.md)
-        self.assertIn("| 2 | SQL Path | SQL Path | Data | Advanced | 2 | 2 | 6 h | 4 | Git Path (50%) |", self.md)
+        self.assertIn("**2** roadmaps built from **3** modules (1 shared by 2+ roadmaps) · 4 module steps.", self.md)
+        # Steps = steps of required modules; questions = distinct questions across all of the roadmap's module scopes.
+        self.assertIn("| 1 | Git Path | Trilha Git | SkillTrack | Tools | Beginner | 1 | 2 | 4 h | 3 | — |", self.md)
+        self.assertIn("| 2 | SQL Path | SQL Path | Role | Data | Advanced | 3 (1 optional) | 3 | 6 h | 5 | Git Path (50%) |", self.md)
+
+    def test_lists_modules_with_kind_and_usage(self):
+        self.assertIn("| Git Basics | Core | 2 | Git Path, SQL Path |", self.md)
+        self.assertIn("| SQL Joins | Context | 1 | SQL Path |", self.md)
 
     def test_output_is_deterministic(self):
         self.assertEqual(self.md, rc.build_catalog_markdown(self.seed.dir))

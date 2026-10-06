@@ -43,8 +43,8 @@
     "options": [
       "The compiler generates a public init-only property Name, exactly as for a positional record",
       "It is implicitly readonly, so assigning `name = \"x\"` inside a method is a compile error",
-      "It is only visible in field initializers; using it inside a method like Hi() is a compile error",
-      "It is in scope in the whole class body; because a member uses it, the compiler captures it in a hidden private field, and no public property is generated"
+      "It is only visible in field initializers, so using it inside a method like Hi() is a compile error",
+      "It is in scope in the whole class body; since Hi() uses it, it is captured in a hidden field"
     ],
     "correctIndex": 3,
     "explanation": "Unlike positional records, class primary constructor parameters do not become public properties. They are parameters in scope throughout the type; when a member references one, the compiler stores it in an unnamed field. They are also mutable, which is why many teams copy them into explicit readonly fields.",
@@ -177,10 +177,10 @@
     "title": "Event subscriptions keeping objects alive",
     "question": "Short-lived view models subscribe to a singleton's event in their constructor (`clock.Tick += OnTick;`) and never unsubscribe. Memory grows over time. Why?",
     "options": [
-      "Event handlers are pinned by the GC, which prevents heap compaction",
-      "Each += allocates a thread that only exits when the publisher is disposed",
+      "Event handlers are pinned by the GC, which blocks compaction and keeps the heap growing",
+      "Each += allocates a dedicated thread that only exits when the publisher is disposed",
       "The view models are collected, but their handlers stay in the finalization queue forever",
-      "The singleton's delegate holds a reference to each view model, so they stay reachable and are never collected"
+      "The singleton's delegate list references every view model, so they stay reachable"
     ],
     "correctIndex": 3,
     "explanation": "A delegate stores a reference to its target object. While the long-lived publisher keeps the handler in its invocation list, every subscriber is reachable from a GC root and can never be collected. Unsubscribe (e.g. in Dispose) or use a weak-event approach when publisher outlives subscribers.",
@@ -229,9 +229,9 @@
     "question": "What happens when this runs?\n\nvar x = new[] { 1, 2, 2 }.Single(n => n == 2);",
     "options": [
       "It returns 2, the first matching element",
-      "It returns 0, the default value, because the match is ambiguous",
+      "It returns 0, the default value of int, because the match is ambiguous",
       "It returns 2 and logs a warning about duplicates",
-      "It throws InvalidOperationException because more than one element matches"
+      "It throws InvalidOperationException: more than one element matches"
     ],
     "correctIndex": 3,
     "explanation": "Single asserts that exactly one element matches and throws if there are zero or several. First returns the first match, and SingleOrDefault returns default only when nothing matches (it still throws on multiple matches). Use Single when duplicates indicate a bug.",
@@ -245,8 +245,8 @@
     "title": "IEnumerable variable over an EF DbSet",
     "question": "IEnumerable<Order> orders = db.Orders;\nvar big = orders.Where(o => o.Total > 1000).ToList();\n\nThe Orders table has 5 million rows. What happens?",
     "options": [
-      "Where binds to Enumerable.Where, so all orders are loaded from the database and filtered in memory",
-      "EF Core translates the filter to SQL because the runtime type is still a DbSet",
+      "Enumerable.Where is bound, so the whole table is loaded and filtered in memory",
+      "EF Core translates the filter to SQL because the runtime type is still a DbSet<Order>",
       "It fails to compile because DbSet<Order> cannot be assigned to IEnumerable<Order>",
       "EF Core throws because client evaluation is disabled for top-level filters"
     ],
@@ -262,10 +262,10 @@
     "title": "Rethrowing with throw vs throw ex",
     "question": "Inside `catch (Exception ex) { Log(ex); ... }`, why is `throw;` preferred over `throw ex;`?",
     "options": [
-      "`throw ex;` wraps the exception in an AggregateException",
-      "`throw;` is faster because it skips running finally blocks",
-      "`throw;` preserves the original stack trace, while `throw ex;` resets it to the rethrow location",
-      "`throw ex;` does not compile inside a catch block"
+      "`throw ex;` wraps the caught exception in an AggregateException, hiding its type",
+      "`throw;` is faster because it skips running the enclosing finally blocks",
+      "`throw;` keeps the original stack trace; `throw ex;` restarts it at the rethrow",
+      "`throw ex;` does not compile inside a catch block that declares a variable"
     ],
     "correctIndex": 2,
     "explanation": "A bare `throw;` rethrows the current exception unchanged, keeping the frames where it originated. `throw ex;` throws the same object as if it started here, so the original failure location is lost from the stack trace, which makes production debugging much harder. Neither form skips finally blocks or wraps the exception.",
@@ -279,10 +279,10 @@
     "title": "What nullable reference types do at runtime",
     "question": "A library with `<Nullable>enable</Nullable>` exposes `public int Len(string s) => s.Length;`. An older project without nullable annotations calls `Len(null)`. What happens?",
     "options": [
-      "The runtime throws ArgumentNullException before entering Len",
-      "The call fails to compile in the calling project",
-      "Nothing stops the call; NRT is a compile-time analysis, so a NullReferenceException is thrown at s.Length",
-      "Len receives an empty string because non-nullable parameters are coerced"
+      "The runtime throws ArgumentNullException before entering Len, due to the annotation",
+      "The call fails to compile in the calling project because Len's parameter is non-nullable",
+      "Nothing stops it; NRT is compile-time only, so s.Length throws NullReferenceException",
+      "Len receives an empty string because non-nullable parameters are coerced at runtime"
     ],
     "correctIndex": 2,
     "explanation": "Nullable reference types only change compiler warnings and metadata; there are no injected runtime checks. Callers that ignore or don't see the annotations can still pass null. Public APIs should still validate arguments, e.g. with ArgumentNullException.ThrowIfNull(s).",
@@ -331,9 +331,9 @@
     "question": "A class Key overrides Equals/GetHashCode using its mutable Name property. You do `dict[k] = 1; k.Name = \"changed\";` and then call `dict.ContainsKey(k)`. What is the most likely result?",
     "options": [
       "true, because the dictionary stores a reference to k and compares by reference first",
-      "false, because the entry is stored under the old hash code and the lookup searches a different bucket",
+      "false, because the lookup uses the new hash code and searches the wrong bucket",
       "true, because Dictionary rehashes keys automatically when their properties change",
-      "An InvalidOperationException because the key was modified"
+      "An InvalidOperationException because the key was modified after it was inserted"
     ],
     "correctIndex": 1,
     "explanation": "Dictionary<TKey,TValue> computes the hash once at insertion. If the hash-relevant state changes, lookups compute a new hash, probe the wrong bucket and miss the entry, which is effectively lost. Keys must be immutable with respect to Equals/GetHashCode; records or readonly structs make good keys.",
@@ -347,9 +347,9 @@
     "title": "Why the GC uses generations",
     "question": "Why does the .NET garbage collector divide the managed heap into generations 0, 1 and 2?",
     "options": [
-      "Each generation belongs to a different thread to avoid locking",
-      "Most objects die young, so frequently collecting only the small gen 0 reclaims most garbage cheaply",
-      "Generations separate value types from reference types",
+      "Each generation belongs to a different thread, which avoids locking during allocation",
+      "Most objects die young, so frequent gen 0 collections reclaim most garbage cheaply",
+      "Generations separate value types from reference types so each can be collected differently",
       "Objects in gen 2 are never collected, which avoids long pauses"
     ],
     "correctIndex": 1,
@@ -364,10 +364,10 @@
     "title": "GC.SuppressFinalize in Dispose",
     "question": "In the standard dispose pattern for a class with a finalizer, why does Dispose() call `GC.SuppressFinalize(this)`?",
     "options": [
-      "It forces an immediate garbage collection of the object",
-      "It prevents other code from calling Dispose a second time",
-      "It releases the object's unmanaged memory directly",
-      "Resources are already released, so the finalizer need not run and the object avoids the finalization queue"
+      "It forces an immediate garbage collection so the object's memory is reclaimed right away",
+      "It prevents other code from calling Dispose a second time on the same instance",
+      "It releases the object's unmanaged memory directly instead of waiting for the GC",
+      "Resources are already released, so finalization is unnecessary and can be skipped"
     ],
     "correctIndex": 3,
     "explanation": "Objects with finalizers survive at least one extra GC because they must be queued and finalized first. After deterministic cleanup in Dispose, suppressing finalization lets the GC reclaim the object normally. It does not trigger a collection or guard against double Dispose; Dispose must be idempotent on its own.",
@@ -381,8 +381,8 @@
     "title": "Large buffers per request",
     "question": "A service allocates `new byte[1_000_000]` for each request. Under load, profiling shows frequent gen 2 collections and a fragmented heap. What explains it and what is a good fix?",
     "options": [
-      "Arrays of 85,000 bytes or more go on the Large Object Heap, which is collected with gen 2 and not compacted by default; rent buffers from ArrayPool<byte> instead",
-      "Arrays are value types, so each one is copied to gen 2; switch to List<byte>",
+      "85,000+ byte arrays go on the LOH, collected with gen 2 and not compacted by default; use ArrayPool<byte>",
+      "Arrays are value types, so each one is copied into gen 2 on allocation; switch to List<byte> instead",
       "Large arrays are pinned automatically, which blocks gen 0 collections; call GC.Collect after each request",
       "The JIT allocates large arrays on the stack and spills them to gen 2; mark the method with [SkipLocalsInit]"
     ],
@@ -432,9 +432,9 @@
     "title": "Blocking on async code in a UI app",
     "question": "A WinForms button handler runs `var text = LoadAsync().Result;`. LoadAsync does `return await httpClient.GetStringAsync(url);`. The window freezes forever. Why?",
     "options": [
-      "The UI thread is blocked waiting, but the continuation after the await needs that same UI thread via its SynchronizationContext",
-      "HttpClient cannot be used from a UI thread and silently never completes",
-      ".Result starts a second message loop that never processes the response",
+      "The UI thread blocks on .Result, yet the continuation must resume on that thread",
+      "HttpClient cannot be used from a UI thread, so the request silently never completes",
+      ".Result starts a nested message loop that never processes the HTTP response",
       "LoadAsync runs synchronously, so GetStringAsync waits for the button handler to return"
     ],
     "correctIndex": 0,
@@ -449,10 +449,10 @@
     "title": "Exceptions from async void",
     "question": "In a console app, what happens?\n\nasync void Boom() { await Task.Delay(10); throw new Exception(\"x\"); }\n\ntry { Boom(); }\ncatch { Console.WriteLine(\"caught\"); }\nConsole.ReadLine();",
     "options": [
-      "\"caught\" is printed because the try block surrounds the call",
-      "The exception is stored in a Task and silently ignored",
-      "It fails to compile because async void methods cannot throw",
-      "\"caught\" is not printed; the exception is raised on the thread pool and crashes the process"
+      "\"caught\" is printed because the try block surrounds the call to Boom()",
+      "The exception is stored in the returned Task and silently ignored by the runtime",
+      "It fails to compile because async void methods are not allowed to throw exceptions",
+      "\"caught\" isn't printed; the exception crashes the process from the thread pool"
     ],
     "correctIndex": 3,
     "explanation": "Boom returns to the caller at its first await, so the try block has already exited when the exception occurs. An async void method has no Task to hold the exception, so it is rethrown on the captured context (here, the thread pool) as an unhandled exception. Use async Task except for event handlers.",
@@ -466,10 +466,10 @@
     "title": "ConfigureAwait(false) in ASP.NET Core",
     "question": "Which statement about ConfigureAwait(false) is accurate for modern .NET?",
     "options": [
-      "It makes the awaited operation itself run on a thread-pool thread instead of the caller's thread",
-      "ASP.NET Core has no SynchronizationContext, so it isn't needed to avoid deadlocks in app code, but general-purpose libraries should still use it",
-      "It is required in ASP.NET Core controllers to avoid the classic .Result deadlock",
-      "It makes HttpContext inaccessible after the await in ASP.NET Core"
+      "It makes the awaited operation itself run on a thread-pool thread instead of on the caller's thread",
+      "ASP.NET Core app code doesn't need it (no SynchronizationContext), but libraries should still use it",
+      "It is required in ASP.NET Core controllers to avoid the classic .Result/.Wait() sync-over-async deadlock",
+      "It makes HttpContext inaccessible after the await in ASP.NET Core, so it must be avoided in controllers"
     ],
     "correctIndex": 1,
     "explanation": "ConfigureAwait(false) only affects where the continuation runs: it tells await not to marshal back to the captured context. ASP.NET Core has no SynchronizationContext, so there is no context to deadlock on, and HttpContext stays usable. Libraries might be called from UI or legacy ASP.NET apps that do have a context, so they still benefit.",
@@ -483,10 +483,10 @@
     "title": "Awaiting a ValueTask twice",
     "question": "A method returns ValueTask<int> backed by a pooled IValueTaskSource. A caller stores it and awaits it twice. What is the consequence?",
     "options": [
-      "The second await returns the cached result just like Task<int>",
-      "Undefined behavior: the source may have been recycled for another operation, giving wrong results or exceptions",
-      "The second await re-executes the asynchronous operation",
-      "The compiler rejects storing a ValueTask in a local variable"
+      "The second await returns the cached result, exactly like awaiting a Task<int> twice",
+      "Undefined behavior: the recycled source may yield another operation's result or throw",
+      "The second await re-executes the asynchronous operation and returns its fresh result value",
+      "The compiler rejects storing a ValueTask in a local variable to prevent reuse"
     ],
     "correctIndex": 1,
     "explanation": "ValueTask is designed to be consumed once. After the first await the underlying IValueTaskSource can be reset and reused by another operation, so a second await (or concurrent awaits, or .Result before completion) may observe someone else's result or throw. Call .AsTask() if you need to await multiple times.",
@@ -517,10 +517,10 @@
     "title": "await inside a lock statement",
     "question": "What happens when you compile this?\n\nlock (_sync)\n{\n    await SaveAsync();\n}",
     "options": [
-      "Compile error: you cannot await in the body of a lock statement; use SemaphoreSlim.WaitAsync instead",
+      "Compile error: await is not allowed in a lock body; use SemaphoreSlim.WaitAsync",
       "It compiles and holds the lock across the await on whichever thread resumes",
-      "It compiles, but the lock is released automatically at the await",
-      "It compiles only when _sync is a System.Threading.Lock"
+      "It compiles, but the lock is released automatically at the await and reacquired after",
+      "It compiles only when _sync is a System.Threading.Lock instance"
     ],
     "correctIndex": 0,
     "explanation": "Monitor-based locks are thread-affine: the thread that enters must exit, but after an await the continuation may run on another thread. The compiler therefore forbids await in a lock body. SemaphoreSlim(1, 1) with WaitAsync/Release in a try/finally is the usual async-compatible mutual exclusion.",
@@ -534,10 +534,10 @@
     "title": "System.Threading.Lock with the lock statement",
     "question": "In C# 13 / .NET 9 you write `private readonly Lock _gate = new();` and `lock (_gate) { ... }`. What does the compiler do differently than for `lock (someObject)`?",
     "options": [
-      "It turns the block into an async lock that allows await inside",
-      "Nothing; the lock statement always uses Monitor on any object",
-      "It calls _gate.EnterScope() and disposes the returned scope instead of using Monitor.Enter/Exit",
-      "It acquires a reader lock so that multiple threads may enter simultaneously"
+      "It turns the block into an async lock that allows await inside the lock body",
+      "Nothing; the lock statement always uses Monitor.Enter/Exit on any object type",
+      "It calls _gate.EnterScope() and disposes the scope instead of Monitor.Enter/Exit",
+      "It acquires a reader lock so that multiple threads may enter the block simultaneously"
     ],
     "correctIndex": 2,
     "explanation": "When the lock target is statically a System.Threading.Lock, the compiler uses the type's dedicated API (EnterScope returning a ref struct scope) rather than the Monitor object-header mechanism. It is still an exclusive, synchronous lock, so await inside the block remains disallowed.",
@@ -551,10 +551,10 @@
     "title": "ConcurrentDictionary.GetOrAdd value factory",
     "question": "`cache.GetOrAdd(key, k => CreateExpensiveClient(k))` is called concurrently for the same new key. Logs show CreateExpensiveClient ran three times. Why, and how do you guarantee a single creation?",
     "options": [
-      "GetOrAdd is not thread-safe; wrap every call in a lock on the dictionary",
-      "The dictionary was resized, which re-runs factories; set a larger initial capacity",
-      "The factory runs outside the internal lock, so several threads can invoke it before one value wins; store Lazy<T> values instead",
-      "The key's GetHashCode is not deterministic; override it to return a constant"
+      "GetOrAdd is not thread-safe for new keys; wrap every call in a lock on the dictionary",
+      "The dictionary was resized, which re-runs pending factories; set a larger initial capacity",
+      "The factory runs outside the lock, so racing threads may each call it; store Lazy<T> values",
+      "The key's GetHashCode is not deterministic across threads; override it to return a stable constant"
     ],
     "correctIndex": 2,
     "explanation": "All ConcurrentDictionary operations are thread-safe, but GetOrAdd and AddOrUpdate are not atomic with respect to the user delegate, which is invoked outside the lock to avoid blocking. Only one result is stored, yet several may be created. Using ConcurrentDictionary<TKey, Lazy<TValue>> ensures the expensive work runs once.",
@@ -568,10 +568,10 @@
     "title": "When attribute constructors run",
     "question": "A custom attribute's constructor writes to a log. You apply `[Audit(\"orders\")]` to a class. When does that constructor run?",
     "options": [
-      "Only when the attribute is retrieved through reflection, e.g. GetCustomAttributes, creating a new instance each time",
-      "Once when the assembly is loaded",
-      "Every time an instance of the decorated class is constructed",
-      "At compile time, with the result serialized into the assembly"
+      "On each reflection lookup such as GetCustomAttributes, which creates a new instance",
+      "Once, when the assembly is loaded, and the instance is cached for later lookups",
+      "Every time an instance of the decorated class is constructed, before its constructor",
+      "At compile time, with the resulting object serialized into the assembly metadata"
     ],
     "correctIndex": 0,
     "explanation": "Attribute arguments are stored as metadata at compile time, but the attribute object is not created until code asks for it via reflection. Each GetCustomAttribute(s) call instantiates new attribute objects and runs the constructor again, which is why expensive logic does not belong in attribute constructors.",
@@ -586,9 +586,9 @@
     "question": "A plugin loader does `Activator.CreateInstance(Type.GetType(config[\"Handler\"])!)`. It works with `dotnet run`, but the Native AOT published app fails because the type cannot be found. Why?",
     "options": [
       "Native AOT apps cannot call Activator.CreateInstance under any circumstances",
-      "Type.GetType only searches the GAC, which doesn't exist in AOT apps",
-      "Configuration values are not available in AOT apps until after startup",
-      "The trimmer removed the type because nothing references it statically; reflection by string name is invisible to its analysis"
+      "Type.GetType only searches the GAC, which doesn't exist in AOT-compiled apps",
+      "Configuration values are not available in AOT apps until after startup completes",
+      "The trimmer removed the type because only a config string refers to it"
     ],
     "correctIndex": 3,
     "explanation": "Trimming keeps only code it can prove is used. A type named in a config string is not statically referenced, so it is removed and reflection fails at runtime (the build emits trim warnings). Reference the types statically, annotate with DynamicallyAccessedMembers, or replace reflection with source generators.",
@@ -602,10 +602,10 @@
     "title": "Span<T> as a class field",
     "question": "Why does this fail to compile?\n\nclass Parser\n{\n    private Span<byte> _buffer;\n}",
     "options": [
-      "Span<T> fields must be marked readonly",
-      "Span<T> is a ref struct that must live on the stack, so it cannot be a field of a class; use Memory<byte>",
-      "Span<T> can only wrap stackalloc memory, not heap arrays",
-      "Span<T> requires an unsafe context when used as a field"
+      "Span<T> fields must be marked readonly when declared inside a class",
+      "Span<T> is a ref struct, so it can't be a field of a class; use Memory<byte>",
+      "Span<T> can only wrap stackalloc memory, never heap-allocated managed arrays like byte[]",
+      "Span<T> requires an unsafe context when it is used as an instance field"
     ],
     "correctIndex": 1,
     "explanation": "Span<T> may point into stack memory, so the compiler ensures it never escapes to the heap: it can't be a field of a class or regular struct, be boxed, or be captured by a lambda. Memory<T> is the heap-storable counterpart and exposes .Span when you need to process it synchronously.",
@@ -619,10 +619,10 @@
     "title": "ArrayPool.Rent semantics",
     "question": "What is guaranteed about `var buf = ArrayPool<byte>.Shared.Rent(1000);`?",
     "options": [
-      "buf.Length is exactly 1000 and the array is zeroed",
-      "buf.Length is at least 1000 and may be larger, and its contents may contain data from earlier use",
-      "buf is allocated on the stack and freed automatically at scope end",
-      "buf must not be returned to the pool if it was larger than requested"
+      "buf.Length is exactly 1000 and the array is zeroed, just like new byte[1000]",
+      "buf.Length is at least 1000, and the array may hold data from a previous renter",
+      "buf is allocated on the stack with stackalloc and freed automatically at scope end",
+      "buf must not be returned to the pool if it is larger than the requested size"
     ],
     "correctIndex": 1,
     "explanation": "Pools hand out arrays in size buckets, so Rent may return a bigger array than requested and does not clear it. Track the length you actually need instead of using buf.Length, and call Return when done (optionally with clearArray: true for sensitive data). Never use the array after returning it.",
@@ -636,10 +636,10 @@
     "title": "Defensive copies with in parameters",
     "question": "struct Counter { int _n; public int Next() => ++_n; }\nstatic int Use(in Counter c) => c.Next();\n\nvar c = new Counter();\nUse(in c); Use(in c);\n\nWhat happens?",
     "options": [
-      "It compiles and c._n ends up as 2",
-      "Compile error: cannot call a method on an in parameter",
-      "Runtime exception: attempted to modify a readonly reference",
-      "It compiles; each call runs Next on a hidden defensive copy, so c is never modified"
+      "It compiles and c._n ends up as 2, because in passes the struct by reference",
+      "Compile error: cannot call a non-readonly method on an in parameter",
+      "Runtime exception: attempted to modify the target of a readonly reference",
+      "It compiles; each call mutates a hidden defensive copy, so c stays unchanged"
     ],
     "correctIndex": 3,
     "explanation": "An in parameter is a readonly reference. Since Next is not a readonly member, the compiler cannot prove it won't mutate, so it silently copies the struct before calling it. The caller's value never changes, and large structs pay a copy per call. Marking the struct or member readonly removes the defensive copy.",
@@ -653,10 +653,10 @@
     "title": "Native AOT trade-offs",
     "question": "A team considers publishing a minimal API with Native AOT. Which is a real trade-off?",
     "options": [
-      "Startup is faster and memory lower, but there is no JIT at runtime, so runtime code generation is unavailable and the app must be trim-compatible",
-      "The app still needs the .NET runtime installed but starts faster",
-      "Throughput is always higher because code is optimized with runtime profile data",
-      "Reflection is completely unavailable, including reading attributes"
+      "Faster startup and smaller footprint, but no JIT, so no runtime code generation",
+      "The app still needs the .NET runtime installed on the host, but it starts faster",
+      "Throughput is always higher because code is optimized using runtime profile data",
+      "Reflection is completely unavailable, including reading custom attributes on types"
     ],
     "correctIndex": 0,
     "explanation": "Native AOT compiles to a self-contained native executable ahead of time, which helps startup and footprint. Without a JIT, features like Reflection.Emit are unsupported, and trimming removes unreferenced code. Basic reflection still works on preserved types, and peak throughput can be lower because Dynamic PGO is unavailable.",
@@ -670,10 +670,10 @@
     "title": "Tiered compilation and Dynamic PGO",
     "question": "A hand-rolled benchmark shows the first few thousand calls of a method are much slower than later calls on .NET 8+. What runtime behavior explains it?",
     "options": [
-      "The GC runs in workstation mode until the app has allocated 1 GB",
-      "IL is interpreted until the method has been called 30 times, then compiled once",
-      "Methods start at tier 0 (quickly JIT-compiled, unoptimized and instrumented), and hot methods are later re-JITted at tier 1 using Dynamic PGO data",
-      "ReadyToRun code is always slower and is replaced only after a GC"
+      "The GC runs in workstation mode until the app has allocated 1 GB, then switches to server mode",
+      "IL is interpreted until the method has been called 30 times, then it is compiled once",
+      "Methods start as quick unoptimized tier-0 code; hot ones are re-JITted at tier 1 with PGO",
+      "ReadyToRun code is always slower and is replaced with JIT code only after a full GC"
     ],
     "correctIndex": 2,
     "explanation": "Tiered compilation JITs quickly first, then recompiles methods that are called often (with on-stack replacement for long loops). Since .NET 8 Dynamic PGO is on by default, so tier-1 code uses observed types and branches for inlining and devirtualization. Benchmarks need warmup (as BenchmarkDotNet does) to measure steady state.",
@@ -687,10 +687,10 @@
     "title": "Meaning of a scoped lifetime",
     "question": "In an ASP.NET Core app, a service is registered with `AddScoped<ICart, Cart>()`. How many instances are created?",
     "options": [
-      "One for the lifetime of the application",
+      "One for the whole lifetime of the application process",
       "A new one every time it is injected anywhere",
-      "One per HTTP request, shared by everything resolved within that request",
-      "One per thread-pool thread"
+      "One per HTTP request, shared within that request",
+      "One per thread-pool thread handling requests"
     ],
     "correctIndex": 2,
     "explanation": "ASP.NET Core creates a DI scope per request, and scoped services are created once per scope. Singleton gives one instance for the app, and transient gives a new instance per resolution. Scopes are not related to threads, which matters because async code can hop threads.",
@@ -724,7 +724,7 @@
       "It works; the container creates a fresh DbContext for each method call on PriceCache",
       "The DbContext is silently promoted to singleton and nothing is reported in any environment",
       "PriceCache is silently downgraded to scoped so it gets one DbContext per request",
-      "Scope validation throws InvalidOperationException: cannot consume scoped service AppDbContext from singleton PriceCache"
+      "Scope validation throws: scoped AppDbContext can't be consumed from singleton PriceCache"
     ],
     "correctIndex": 3,
     "explanation": "This is a captive dependency: a long-lived service capturing a shorter-lived one. In Development, ASP.NET Core enables scope validation and detects it. Without validation, one DbContext would live for the whole app, used concurrently and growing its change tracker. Inject IServiceScopeFactory or make the consumer scoped.",
@@ -739,9 +739,9 @@
     "question": "A background loop calls `app.Services.GetRequiredService<ReportWriter>()` each iteration. ReportWriter is transient and implements IDisposable. Memory grows steadily. Why?",
     "options": [
       "Transient services are never garbage collected because the container caches them",
-      "The container tracks disposable transients it creates and only disposes them with their scope; from the root provider that is app shutdown",
-      "IDisposable objects are always placed on the Large Object Heap",
-      "GetRequiredService creates a new root provider on each call"
+      "The root provider holds every disposable transient until it is disposed at shutdown",
+      "IDisposable objects are always placed on the Large Object Heap and rarely collected",
+      "GetRequiredService creates a new root provider, with its own caches, on each call"
     ],
     "correctIndex": 1,
     "explanation": "The service provider holds references to the IDisposable instances it creates so it can dispose them when the scope ends. Resolving from the root means the 'scope' is the app, so every instance is kept alive. Create a scope per iteration (IServiceScopeFactory.CreateScope) and resolve from it.",
@@ -789,9 +789,9 @@
     "title": "String interpolation in log calls",
     "question": "A hot path runs `_logger.LogDebug($\"Processed order {order.Id} in {elapsed} ms\");` while the minimum level in production is Information. What are the problems?",
     "options": [
-      "The string is built on every call even though Debug is disabled, and OrderId/elapsed are lost as structured properties",
-      "None; the logger detects the disabled level and skips the interpolation",
-      "The call throws FormatException because the braces are interpreted as a template",
+      "It formats the string even with Debug off and loses OrderId/elapsed as structured data",
+      "None; the logger detects the disabled level and skips building the interpolated string",
+      "The call throws FormatException because the braces are interpreted as a message template",
       "Only a performance problem; structured properties are inferred from the interpolation holes"
     ],
     "correctIndex": 0,
@@ -824,9 +824,9 @@
     "question": "A custom middleware registered BEFORE `app.UseExceptionHandler(\"/error\")` throws an exception. What happens?",
     "options": [
       "UseExceptionHandler handles it, since it catches exceptions from the whole pipeline",
-      "The exception is swallowed and the request continues to the endpoint",
-      "UseExceptionHandler does not handle it, because it only catches exceptions thrown by middleware later in the pipeline",
-      "ASP.NET Core reorders middleware so that the exception handler always runs first"
+      "The exception is swallowed by Kestrel and the request continues to the endpoint",
+      "It escapes UseExceptionHandler, which only catches exceptions from middleware after it",
+      "ASP.NET Core reorders the middleware so the exception handler always runs before others"
     ],
     "correctIndex": 2,
     "explanation": "Middleware wrap the ones registered after them. The exception handler can only catch exceptions that propagate up through its own call to next, so anything registered before it is outside its try/catch. That is why UseExceptionHandler (or the developer exception page) is registered first.",
@@ -857,10 +857,10 @@
     "title": "Latency spike from sync-over-async",
     "question": "Under a traffic burst, an ASP.NET Core API's p99 latency jumps to several seconds while CPU stays around 20% and the thread count climbs slowly. Controllers call `_client.GetAsync(url).Result`. What is the most likely cause?",
     "options": [
-      "Kestrel's connection limit was reached, so new sockets are queued",
-      "The GC is running a blocking gen 2 collection on every request",
-      "HttpClient serializes all requests to the same host by default",
-      "Thread-pool starvation: blocked threads wait on I/O while the pool injects new threads only gradually"
+      "Kestrel's MaxConcurrentConnections limit was reached, so new sockets wait in the queue",
+      "The GC is running a blocking gen 2 collection on every request under load",
+      "HttpClient serializes all requests to the same host by default, one at a time",
+      "Thread-pool starvation: threads block on I/O while new ones are injected only slowly"
     ],
     "correctIndex": 3,
     "explanation": "Blocking on async I/O ties up a thread for the whole wait. When a burst blocks all pool threads, queued work (including continuations that would unblock them) waits while the pool slowly adds threads, so latency soars with low CPU. Make the call chain async end to end.",
@@ -891,10 +891,10 @@
     "title": "Authorizing by resource ownership",
     "question": "Only a document's author may edit it. The author ID is stored on the document in the database. What is the idiomatic ASP.NET Core approach?",
     "options": [
-      "Use [Authorize(Policy = \"EditPolicy\")] and read the document inside the policy definition",
-      "Load the document, then call IAuthorizationService.AuthorizeAsync(User, document, \"EditPolicy\") with a handler for that resource type",
-      "Create one role per document and check it with [Authorize(Roles = ...)]",
-      "Put the document ID in a claim at login and compare it in middleware"
+      "Use [Authorize(Policy = \"EditPolicy\")] on the action and query the document inside the policy definition",
+      "Load the document, then call IAuthorizationService.AuthorizeAsync(User, document, \"EditPolicy\")",
+      "Create one role per document and check it on the action with [Authorize(Roles = ...)]",
+      "Put the document ID in a claim at login and compare it against the route in middleware"
     ],
     "correctIndex": 1,
     "explanation": "Attribute authorization runs before the action and has no access to the loaded resource. Resource-based authorization calls IAuthorizationService imperatively after loading the entity, passing it to an AuthorizationHandler<TRequirement, Document> that compares the author with the user's claims.",
@@ -908,10 +908,10 @@
     "title": "Revoked role still accepted",
     "question": "An admin's role was removed in the database, yet they keep calling admin endpoints successfully for another 50 minutes. The API uses JWT bearer authentication with 1-hour tokens. Why?",
     "options": [
-      "JWT bearer caches the user's database record for one hour by default",
-      "Removing a role only takes effect after the app restarts",
+      "JWT bearer caches the user's database record for one hour by default to save lookups",
+      "Removing a role only takes effect after the app restarts and reloads its role cache",
       "The authorization middleware skips role checks for tokens issued by the same server",
-      "The role is a claim inside the signed token, which is validated without contacting the database until it expires"
+      "Roles are claims in the signed token, validated locally until it expires"
     ],
     "correctIndex": 3,
     "explanation": "JWT validation checks signature, issuer, audience and lifetime locally; claims are trusted as issued. Changes to the source of truth aren't seen until a new token is obtained. Mitigate with short-lived access tokens plus refresh tokens, checking critical permissions server-side, or token revocation lists.",
@@ -942,10 +942,10 @@
     "title": "Using a DbContext from a BackgroundService",
     "question": "A BackgroundService that processes an outbox every 10 seconds injects AppDbContext in its constructor. What is the correct fix?",
     "options": [
-      "Register AppDbContext as a singleton so hosted services can use it",
-      "Register the BackgroundService with AddScoped instead of AddHostedService",
-      "Inject IServiceScopeFactory and create a scope per iteration, resolving AppDbContext from it",
-      "Keep the injection but call ChangeTracker.Clear() after every iteration"
+      "Register AppDbContext as a singleton so that hosted services and controllers can share it",
+      "Register the BackgroundService with AddScoped instead of with AddHostedService",
+      "Inject IServiceScopeFactory and resolve AppDbContext from a new scope per iteration",
+      "Keep the injection but call ChangeTracker.Clear() at the end of every iteration"
     ],
     "correctIndex": 2,
     "explanation": "Hosted services are singletons, so injecting a scoped DbContext is a captive dependency (and fails scope validation in Development). Creating a scope per unit of work gives a fresh, short-lived context each time. A singleton DbContext isn't thread-safe and grows; hosted services can't be scoped.",
@@ -959,10 +959,10 @@
     "title": "Database checks in liveness probes",
     "question": "A Kubernetes liveness probe hits /healthz, which includes a SQL Server health check. A brief database failover causes every pod to be restarted. What is the better design?",
     "options": [
-      "Increase the liveness timeout so the database check always completes",
-      "Remove health checks and rely on Kubernetes TCP probes for everything",
-      "Expose the database check only on a readiness endpoint (filtered with tags) and keep liveness limited to the process itself",
-      "Cache the database check result for an hour so liveness never fails"
+      "Increase the liveness timeout so that the database check always has time to complete",
+      "Remove health checks entirely and rely on Kubernetes TCP socket probes for everything",
+      "Move the database check to a readiness endpoint; liveness checks only the process",
+      "Cache the database check result for an hour so the liveness probe never fails"
     ],
     "correctIndex": 2,
     "explanation": "Liveness answers 'should this container be restarted?', which a dependency outage doesn't fix. Readiness answers 'should traffic be routed here?'. MapHealthChecks with a HealthCheckOptions.Predicate on tags lets you expose separate endpoints so dependency failures take pods out of rotation without restart storms.",
@@ -1010,10 +1010,10 @@
     "title": "Parallel queries on one DbContext",
     "question": "In a controller, `await Task.WhenAll(db.Orders.CountAsync(), db.Customers.CountAsync());` intermittently fails. Why?",
     "options": [
-      "SQL Server does not allow two COUNT queries on one connection",
-      "DbContext isn't thread-safe; starting a second operation before the first completes throws InvalidOperationException",
-      "Task.WhenAll cannot be used with EF Core tasks",
-      "CountAsync returns ValueTask, which WhenAll cannot await"
+      "SQL Server does not allow two COUNT queries on one open connection",
+      "DbContext allows one operation at a time; starting a second one throws",
+      "Task.WhenAll cannot be used with tasks returned by EF Core queries",
+      "CountAsync returns a ValueTask, which Task.WhenAll cannot await together"
     ],
     "correctIndex": 1,
     "explanation": "A DbContext instance supports only one async operation at a time and detects concurrent use, throwing 'A second operation was started on this context instance'. Await the queries sequentially, or use separate contexts (e.g. IDbContextFactory) when real parallelism is needed.",
@@ -1028,8 +1028,8 @@
     "question": "With a fresh DbContext and no lazy loading configured, `var blog = await db.Blogs.FirstAsync();` is followed by `blog.Posts.Count` (Posts is initialized to an empty List). Posts exist in the database. What is Count?",
     "options": [
       "The real number of posts, because EF loads navigations on first access",
-      "0, because related data isn't loaded unless requested with Include or explicit loading",
-      "It throws a LazyLoadingException",
+      "0, because related data loads only via Include or explicit loading",
+      "It throws a LazyLoadingException on first access to Posts",
       "The real number of posts, because collection navigations are always eager"
     ],
     "correctIndex": 1,
@@ -1044,10 +1044,10 @@
     "title": "N+1 queries with lazy loading",
     "question": "An endpoint with lazy-loading proxies enabled runs:\n\nforeach (var user in await db.Users.ToListAsync())\n    total += user.Orders.Count;\n\nWith 500 users, p95 latency is 4 s. What is the problem and fix?",
     "options": [
-      "The change tracker is too slow; add AsNoTracking and keep the loop",
-      "ToListAsync is buffering; switch to AsAsyncEnumerable",
-      "Count on a navigation is evaluated on the client; add an index on Orders",
-      "N+1 queries: each Orders access triggers a query; project the count in one query, e.g. Select(u => u.Orders.Count())"
+      "The change tracker is too slow for 500 users; add AsNoTracking and keep the loop",
+      "ToListAsync buffers every user in memory; switch to AsAsyncEnumerable to stream them",
+      "Count on a navigation is evaluated on the client; add a database index on Orders.UserId",
+      "N+1 queries: each Orders access runs a query; project Select(u => u.Orders.Count())"
     ],
     "correctIndex": 3,
     "explanation": "Lazy loading issues a separate query the first time each user's Orders is touched: 1 query for users plus 500 for orders, each a round trip. Projecting the aggregate (or using Include when you need the entities) lets the database compute it in one query.",
@@ -1078,9 +1078,9 @@
     "title": "Cartesian explosion with multiple Includes",
     "question": "`db.Blogs.Include(b => b.Posts).Include(b => b.Contributors)` returns huge result sets and is slow for blogs with many posts and contributors. What is the cause and an EF Core remedy?",
     "options": [
-      "Include issues one query per blog; use AsNoTracking to batch them",
-      "EF loads Contributors lazily despite Include; call Load() explicitly",
-      "One JOIN query duplicates rows (posts x contributors per blog); use AsSplitQuery() to load each collection separately",
+      "Include issues one query per blog; use AsNoTracking to batch them into one",
+      "EF loads Contributors lazily despite Include; call Load() explicitly instead",
+      "One JOIN query duplicates rows (posts x contributors); use AsSplitQuery()",
       "Two Includes force client evaluation; add ToList() before the second Include"
     ],
     "correctIndex": 2,
@@ -1095,10 +1095,10 @@
     "title": "Bulk update with ExecuteUpdateAsync",
     "question": "await db.Products\n    .Where(p => p.CategoryId == 3)\n    .ExecuteUpdateAsync(s => s.SetProperty(p => p.Price, p => p.Price * 1.1m));\n\nWhich statement is true?",
     "options": [
-      "It loads matching products, updates them in memory, then waits for SaveChanges",
-      "It updates tracked entities in memory and sends nothing to the database",
-      "It sends one UPDATE immediately without loading entities, and products already tracked in the context keep stale prices",
-      "It sends one UPDATE per product, inside the next SaveChanges transaction"
+      "It loads the matching products, updates them in memory, then waits for SaveChanges",
+      "It updates only the tracked entities in memory and sends nothing to the database",
+      "It sends one UPDATE at once without loading entities; tracked products keep stale prices",
+      "It sends one UPDATE per product, inside the transaction of the next SaveChanges call"
     ],
     "correctIndex": 2,
     "explanation": "ExecuteUpdate/ExecuteDelete translate directly to set-based SQL and execute right away, bypassing the change tracker. That is great for bulk operations, but tracked instances aren't refreshed and the statement isn't part of SaveChanges unless you use an explicit transaction.",
@@ -1112,10 +1112,10 @@
     "title": "Optimistic concurrency with a rowversion",
     "question": "An entity has `[Timestamp] public byte[] Version { get; set; }` on SQL Server. Two users load the same row, both edit and save. What happens on the second save?",
     "options": [
-      "DbUpdateConcurrencyException, because its UPDATE ... WHERE Version = @original affects zero rows",
-      "The second save silently overwrites the first (last write wins)",
-      "The second save blocks until the first user's transaction commits",
-      "EF merges both changes column by column automatically"
+      "DbUpdateConcurrencyException, since UPDATE ... WHERE Version = @original hits 0 rows",
+      "The second save silently overwrites the first one, so the last write wins",
+      "The second save blocks until the first user's transaction commits, then overwrites it",
+      "EF merges both users' changes column by column automatically and saves both"
     ],
     "correctIndex": 0,
     "explanation": "A concurrency token is added to the WHERE clause of UPDATE/DELETE. After the first save the database changes the rowversion, so the second statement matches no rows and EF throws. The app then decides how to resolve: reload and retry, merge, or show the conflict to the user.",
@@ -1129,10 +1129,10 @@
     "title": "Integration tests with WebApplicationFactory",
     "question": "What does `WebApplicationFactory<Program>` with `WithWebHostBuilder(b => b.ConfigureTestServices(s => ...))` provide?",
     "options": [
-      "It generates mocks for every registered service automatically",
-      "It deploys the app to a local Kestrel port and runs browser-based UI tests",
-      "It runs controllers directly without middleware, routing or filters",
-      "It boots the real app in memory on a TestServer, gives an HttpClient for it, and lets the test replace services"
+      "It generates mocks for every registered service automatically and injects them into controllers",
+      "It deploys the app to a local Kestrel port and runs browser-based UI tests against it",
+      "It runs controllers directly, without the middleware pipeline, routing or filters",
+      "It hosts the real app in memory on a TestServer, with an HttpClient and swappable services"
     ],
     "correctIndex": 3,
     "explanation": "WebApplicationFactory uses the app's real startup (middleware, routing, DI) hosted on an in-memory TestServer, and CreateClient returns an HttpClient that bypasses the network. ConfigureTestServices runs after the app's registrations, so tests can swap e.g. external APIs or the database.",
@@ -1146,10 +1146,10 @@
     "title": "Pitfalls of the EF Core in-memory provider",
     "question": "Tests against the EF Core InMemory provider pass, but production on PostgreSQL fails on a query and a unique constraint. Why is this common?",
     "options": [
-      "The in-memory provider runs queries in parallel, hiding race conditions",
-      "The in-memory provider isn't a relational database: it doesn't enforce many constraints, transactions or SQL translation like the real provider",
-      "The in-memory provider uses a different C# compiler version",
-      "Tests always run with lazy loading enabled, unlike production"
+      "The in-memory provider runs queries in parallel, which hides race conditions",
+      "It isn't relational: it skips many constraints, transactions and SQL translation",
+      "The in-memory provider uses a different C# compiler version than the app",
+      "Tests always run with lazy loading enabled, unlike the production configuration"
     ],
     "correctIndex": 1,
     "explanation": "The InMemory provider evaluates LINQ in memory and doesn't mimic relational behavior (raw SQL, transactions, constraint enforcement, case sensitivity). Microsoft recommends testing against the real database engine (e.g. in containers) or, at most, SQLite in-memory, and using repository fakes for pure unit tests.",

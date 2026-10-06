@@ -84,7 +84,17 @@ Tested by: an integration test that migrates a fresh database to the previous mi
   - DSA and interview prep → shared data-structure/algorithm modules; interview prep adds a Context module.
   - system-design "Distributed Systems" and senior → shared `distributed-systems`.
   - The full list of modules per roadmap is generated into the README catalog and the `validate_catalog.py` reuse report.
+- Decisions taken while building the catalog (112 modules: 49 Core reused by 2+ roadmaps, 63 Context; every one of the 279 scopes in exactly one module):
+  - `databases/indexing` is the only index scope, so it lives in `sql-performance` (with N+1 and pooling); `sql-for-applications` is transactions + isolation/locking/MVCC. Backend uses foundations + applications + performance; full-stack uses foundations + performance.
+  - `auth-fundamentals` = sessions/cookies/OAuth/JWT + XSS/CSRF; `security-foundations` = injection + authorization. The "cleaner" authN/authZ vs injection split would grow full-stack by 50%.
+  - Docker is split into `docker-essentials` (containers, images/layers) and `dockerfile-and-compose`; SRE pairs deployment strategies with SLOs (`safe-releases-and-slos`); idempotency moved to `messaging-and-events`.
+  - Roadmap growth from shared modules: 394 → 449 roadmap steps; largest: junior-software-engineer +39% (23 → 32), full-stack +36% (14 → 19), backend +32%; 14 roadmaps unchanged. Every roadmap still covers all scopes it had.
+  - Roadmap types: 10 Role, 5 Language, 17 SkillTrack (existing roadmaps are marked `"new": false`, so the Context + Capstone rule applies to new roadmaps only).
 - Existing roadmap slugs are all preserved. Some roadmaps gain steps (a shared module may cover a little more than the old module did), so their percentage can drop slightly; completions are never lost. Chosen because it keeps one owner per scope (no double XP) — recorded here as the main trade-off.
+
+### Result on the development database (2026-10-06)
+
+Migrations `AddQuestionTranslations` + `ReusableModuleCatalog`, then the seeder: 111 legacy modules created with the old ids (unpublished afterwards), 112 catalog modules and 279 steps added, 32 compositions synced (190 links), 1 existing step completion migrated (`xp_awarded = true`) and credited by scope to the catalog step (`xp_awarded = false`), roadmap progress kept (1/16), 499 unedited seeded questions refreshed with rebalanced options, 12,731 pt-BR translation rows added.
 
 ## 6. Bilingual content (CLAUDE.md)
 

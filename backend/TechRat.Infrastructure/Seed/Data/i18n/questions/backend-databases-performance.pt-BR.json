@@ -1,0 +1,1058 @@
+[
+  {
+    "id": "be-http-put-idempotent",
+    "title": "Métodos HTTP idempotentes",
+    "question": "Qual conjunto de métodos HTTP é definido como idempotente pela RFC 9110?",
+    "options": [
+      "POST, PUT e DELETE",
+      "GET, POST e PATCH",
+      "GET, PUT e DELETE",
+      "PATCH, PUT e GET"
+    ],
+    "explanation": "A RFC 9110 define PUT, DELETE e todos os métodos seguros (GET, HEAD, OPTIONS, TRACE) como idempotentes: repetir a requisição tem no servidor o mesmo efeito pretendido que enviá-la uma vez. POST não é idempotente, e PATCH não tem idempotência garantida porque um documento de patch pode descrever uma mudança relativa (por exemplo, 'append item')."
+  },
+  {
+    "id": "be-http-201-location",
+    "title": "Resposta para um recurso criado",
+    "question": "Uma requisição POST /orders cria com sucesso um novo pedido com id 42. Qual resposta segue melhor a semântica HTTP?",
+    "options": [
+      "201 Created com um header Location para /orders/42",
+      "200 OK com o id do novo pedido em um header X-Id customizado",
+      "202 Accepted com um Content-Location de /orders",
+      "204 No Content com um header Link para /orders/42"
+    ],
+    "explanation": "201 Created indica que um ou mais recursos novos foram criados, e o header Location identifica o principal deles. 200 funciona, mas perde significado; 202 indica que o trabalho ainda não terminou; e 204 diz que não há corpo, sem comunicar a criação."
+  },
+  {
+    "id": "be-http-409-vs-422",
+    "title": "Escolhendo entre 409, 412 ou 422",
+    "question": "Um cliente envia um PUT com If-Match: \"v7\", mas o ETag atual do recurso é \"v8\" porque outro cliente o atualizou. Qual status code o servidor deve retornar?",
+    "options": [
+      "409 Conflict",
+      "428 Precondition Required",
+      "422 Unprocessable Content",
+      "412 Precondition Failed"
+    ],
+    "explanation": "Quando um header de requisição condicional como If-Match é avaliado como falso, a RFC 9110 especifica 412 Precondition Failed. 409 é para conflitos com o estado do recurso não expressos por pré-condições, 422 é para conteúdo sintaticamente válido, mas semanticamente inválido, e 428 é usado quando o servidor exige uma pré-condição que o cliente não enviou."
+  },
+  {
+    "id": "be-http-vary-header",
+    "title": "Caches servindo a representação errada",
+    "question": "Uma API retorna JSON comprimido com gzip quando a requisição tem Accept-Encoding: gzip e JSON puro caso contrário. Um cache compartilhado de CDN às vezes entrega bytes gzip a clientes que não conseguem decodificá-los. Qual é a correção da causa raiz?",
+    "options": [
+      "Enviar Cache-Control: no-transform em toda resposta comprimida",
+      "Enviar Vary: Accept-Encoding para a CDN separar por esse header",
+      "Adicionar um ETag para a CDN revalidar cada resposta comprimida",
+      "Definir Content-Location com outra URL para corpos comprimidos"
+    ],
+    "explanation": "Vary informa aos caches quais headers da requisição foram usados para selecionar a representação, então eles armazenam variantes separadas por valor de Accept-Encoding. no-transform só impede que intermediários modifiquem o payload, um ETag permite revalidação mas não separa a chave de cache, e Content-Location não muda a forma como o cache indexa a URL da requisição original."
+  },
+  {
+    "id": "be-api-cursor-pagination",
+    "title": "Paginação por offset vs cursor",
+    "question": "Um endpoint de feed usa ?offset=N&limit=50 sobre uma tabela que recebe muitos inserts por segundo. Usuários relatam itens duplicados e pulados ao rolar a tela, e páginas profundas são lentas. Qual mudança resolve os dois problemas?",
+    "options": [
+      "Aumentar o tamanho da página para que o cliente busque menos páginas",
+      "Paginação keyset (cursor) sobre uma chave de ordenação estável e única",
+      "Cachear cada página de offset por alguns minutos no Redis",
+      "Adicionar COUNT(*) para retornar o número total de páginas"
+    ],
+    "explanation": "Com OFFSET, novas linhas deslocam as posições entre requisições (duplicados/pulos) e o banco ainda precisa ler e descartar as primeiras N linhas. Um cursor como WHERE (created_at, id) < (:c, :id) ORDER BY created_at DESC, id DESC LIMIT 50 é estável sob inserts e usa um index seek. Páginas maiores ou cache só mascaram o problema, e COUNT(*) adiciona custo."
+  },
+  {
+    "id": "be-api-versioning-breaking",
+    "title": "O que é uma breaking change",
+    "question": "Qual mudança em uma API REST JSON pública tem mais chance de ser uma breaking change para os clientes existentes?",
+    "options": [
+      "Renomear um campo existente da resposta de userName para username",
+      "Adicionar um novo campo a um objeto de resposta",
+      "Adicionar um endpoint totalmente novo na mesma versão",
+      "Adicionar um query parameter opcional a um endpoint de listagem existente"
+    ],
+    "explanation": "Clientes que leem userName deixam de receber o valor silenciosamente após a renomeação, então ela exige uma nova versão ou um período de depreciação. Adicionar parâmetros opcionais, novos campos de resposta ou novos endpoints são mudanças aditivas que clientes bem-comportados (que ignoram campos desconhecidos) toleram."
+  },
+  {
+    "id": "be-api-problem-details",
+    "title": "Formato padrão de corpo de erro",
+    "question": "Qual padrão define um formato de erro em JSON legível por máquina, com campos como type, title, status e detail, servido como application/problem+json?",
+    "options": [
+      "RFC 9457 Problem Details for HTTP APIs",
+      "RFC 7519 JSON Web Token",
+      "RFC 6749 OAuth 2.0 Authorization Framework",
+      "RFC 8288 Web Linking"
+    ],
+    "explanation": "A RFC 9457 (que torna obsoleta a RFC 7807) define o Problem Details, dando às APIs um envelope de erro consistente. A RFC 7519 é o JWT, a RFC 8288 define o header Link (útil para links de paginação) e a RFC 6749 é o OAuth 2.0."
+  },
+  {
+    "id": "be-api-patch-semantics",
+    "title": "PATCH vs PUT para atualizações parciais",
+    "question": "Um cliente quer alterar apenas o email de um usuário. Enviar PUT /users/7 com o corpo {\"email\":\"a@b.c\"} apagou o nome e o telefone do usuário. Por quê, e qual é a alternativa correta?",
+    "options": [
+      "O servidor ignorou o If-Match; reenvie o PUT com um ETag forte",
+      "PUT não é idempotente; repita-o com um header Idempotency-Key",
+      "PUT substitui o recurso inteiro; use PATCH com JSON Merge Patch",
+      "PUT exige que todos os campos sejam null-safe; envie POST para /users/7/email"
+    ],
+    "explanation": "A semântica do PUT é substituir o estado do recurso alvo pela representação enviada, então campos omitidos são legitimamente apagados. PATCH aplica uma modificação parcial descrita por um documento de patch (por exemplo, application/merge-patch+json ou JSON Patch). PUT é idempotente, e ETags evitam lost updates, mas não mudam a semântica de substituição."
+  },
+  {
+    "id": "be-auth-cookie-flags",
+    "title": "Atributos de um cookie de sessão seguro",
+    "question": "Quais atributos de Set-Cookie protegem melhor um cookie de sessão contra acesso via JavaScript e contra envio por HTTP sem criptografia?",
+    "options": [
+      "HttpOnly e Secure",
+      "Partitioned e Expires",
+      "Domain e Max-Age",
+      "SameSite=None e Path=/"
+    ],
+    "explanation": "HttpOnly impede o acesso via document.cookie (limitando o roubo via XSS), e Secure garante que o cookie só seja enviado por HTTPS. SameSite=None na verdade afrouxa o envio cross-site, Domain/Max-Age controlam escopo e tempo de vida, e Partitioned se refere ao particionamento de cookies de terceiros."
+  },
+  {
+    "id": "be-auth-pkce",
+    "title": "Por que o PKCE existe",
+    "question": "Um app mobile usa o fluxo authorization code do OAuth 2.0. Qual ataque a adição do PKCE (code_verifier/code_challenge) mitiga principalmente?",
+    "options": [
+      "Replay de um refresh token expirado pelo próprio usuário",
+      "Interceptação do authorization code por um app malicioso",
+      "Falsificação da assinatura do access token",
+      "Ataque de força bruta à senha do usuário na página de login"
+    ],
+    "explanation": "O PKCE (RFC 7636) vincula a requisição de autorização a um code_verifier secreto, então um atacante que intercepta o authorization code (por exemplo, via um custom URI scheme) não consegue resgatá-lo. Ele não trata falsificação de assinatura de token, replay de refresh token nem força bruta de senha; as recomendações atuais de segurança do OAuth indicam PKCE para todos os clientes."
+  },
+  {
+    "id": "be-auth-jwt-alg-none",
+    "title": "Validação do algoritmo do JWT",
+    "question": "Uma API verifica JWTs lendo o valor alg do header do token e usando qualquer algoritmo que ele indicar. Qual é o principal risco?",
+    "options": [
+      "Os tokens crescem e excedem os limites de tamanho de header do servidor",
+      "Atacantes podem definir alg como 'none' ou HS256 e forjar tokens",
+      "A claim exp é ignorada em algoritmos assimétricos",
+      "O clock skew faz com que tokens válidos sejam rejeitados"
+    ],
+    "explanation": "A RFC 8725 (JWT Best Current Practices) exige que as bibliotecas permitam à aplicação definir uma allow-list de algoritmos, sem confiar cegamente no alg do header. Caso contrário, um atacante pode enviar alg=none ou usar a chave pública RSA como segredo HMAC. Tamanho, clock skew e tratamento do exp não têm relação com a escolha do algoritmo."
+  },
+  {
+    "id": "be-auth-jwt-revocation",
+    "title": "Revogando access tokens stateless",
+    "question": "Seu sistema emite access tokens JWT autocontidos válidos por 24 horas. A equipe de segurança pede que o acesso de um usuário comprometido seja cortado em minutos, sem consulta ao banco a cada requisição. Qual design atende melhor?",
+    "options": [
+      "Manter tokens de 24h e rotacionar a chave de assinatura a cada usuário comprometido",
+      "Guardar o JWT no localStorage e apagá-lo remotamente via push",
+      "Criptografar o JWT com JWE para que um token roubado não possa ser lido",
+      "Access tokens curtos (~5 min) com refresh tokens revogáveis"
+    ],
+    "explanation": "Tokens autocontidos não podem ser revogados sem estado, então limitar o tempo de vida reduz a exposição, enquanto refresh tokens no servidor (de preferência rotacionados) oferecem um ponto de revogação. Rotacionar chaves desloga todo mundo, apagar remotamente não faz nada contra a cópia do atacante, e a criptografia esconde as claims, mas não impede o replay de um token roubado."
+  },
+  {
+    "id": "be-rt-sse-vs-ws",
+    "title": "SSE vs WebSockets",
+    "question": "Um dashboard só precisa enviar atualizações unidirecionais do servidor para os browsers via HTTP, com reconexão automática. Qual tecnologia atende melhor com a menor complexidade?",
+    "options": [
+      "Data channels do WebRTC",
+      "Long polling com intervalo de 1 segundo",
+      "Um WebSocket com um protocolo de heartbeat próprio",
+      "Server-Sent Events via EventSource"
+    ],
+    "explanation": "SSE é um stream unidirecional do servidor para o cliente sobre HTTP comum; o EventSource do browser reconecta automaticamente e suporta retomada com Last-Event-ID. WebSockets são full-duplex e exigem que você trate a reconexão, long polling adiciona overhead e latência, e o WebRTC foi projetado para mídia/dados peer-to-peer."
+  },
+  {
+    "id": "be-rt-ws-scaleout",
+    "title": "Escalando servidores de chat com WebSocket",
+    "question": "Um serviço de chat roda 6 instâncias de servidor WebSocket atrás de um load balancer. Mensagens enviadas por um usuário conectado à instância A nunca chegam aos destinatários conectados à instância D. Qual é a correção padrão?",
+    "options": [
+      "Aumentar o idle timeout do load balancer para 1 hora",
+      "Fazer fan-out por um backplane compartilhado, como Redis pub/sub",
+      "Ativar sticky sessions para que todos os usuários caiam na instância A",
+      "Trocar WebSockets por HTTP/2 server push"
+    ],
+    "explanation": "Cada instância só conhece as próprias conexões, então a entrega entre instâncias precisa de um backplane (Redis pub/sub, um message broker) que todas as instâncias assinam. Sticky sessions mantêm um cliente em uma instância, mas não juntam usuários diferentes; o HTTP/2 push servia para pré-carregar recursos e está descontinuado nos browsers; e idle timeouts afetam desconexões, não o roteamento."
+  },
+  {
+    "id": "be-grpc-streaming-kinds",
+    "title": "Tipos de RPC no gRPC",
+    "question": "Em um arquivo .proto, qual declaração define um RPC de streaming bidirecional?",
+    "options": [
+      "rpc Chat(stream Msg) returns (stream Msg);",
+      "rpc Chat(stream Msg) returns (Msg);",
+      "rpc Chat(Msg) returns (stream Msg);",
+      "rpc Chat(repeated Msg) returns (repeated Msg);"
+    ],
+    "explanation": "O gRPC suporta unary, server streaming, client streaming e streaming bidirecional, indicados pela palavra-chave stream na requisição, na resposta ou em ambas. stream apenas na resposta é server streaming, stream apenas na requisição é client streaming, e repeated é um label de campo, inválido na assinatura de um rpc."
+  },
+  {
+    "id": "be-grpc-deadlines",
+    "title": "Propagação de deadline no gRPC",
+    "question": "O serviço A chama B, que chama C via gRPC. Durante uma lentidão em C, os chamadores de A recebem timeout após 2s, mas B e C continuam trabalhando em requisições abandonadas por 30s, esgotando as threads. O que deve ser feito?",
+    "options": [
+      "Adicionar retries com exponential backoff de B para C",
+      "Definir deadlines nas chamadas e propagar o deadline restante adiante",
+      "Aumentar o thread pool de B para que o trabalho abandonado não trave novas requisições",
+      "Mudar B para client streaming para que C possa retornar resultados parciais"
+    ],
+    "explanation": "Deadlines do gRPC permitem ao cliente dizer quanto tempo vai esperar; os servidores podem verificá-los e interromper o trabalho, e propagar o tempo restante evita que serviços downstream processem requisições que ninguém está esperando. Mais threads só adiam o esgotamento, streaming não cancela trabalho, e retries amplificam a carga durante uma lentidão."
+  },
+  {
+    "id": "be-jobs-at-least-once",
+    "title": "Consequências da entrega at-least-once",
+    "question": "Uma fila oferece entrega at-least-once. Um worker cobra um cartão e cai antes de dar ack na mensagem. O que o design do worker precisa levar em conta?",
+    "options": [
+      "A mensagem vai direto para a dead-letter queue",
+      "Ela será reentregue, então o processamento deve ser idempotente",
+      "O broker garante exactly-once, então nada precisa mudar",
+      "A mensagem se perde, então a cobrança deve ser registrada à parte"
+    ],
+    "explanation": "Com semântica at-least-once, uma mensagem sem ack é reentregue quando o lock/visibility timeout expira, então a cobrança pode acontecer duas vezes, a menos que o worker faça deduplicação (por exemplo, com uma idempotency key do pagamento). A mensagem não se perde, exactly-once não está implícito, e o dead-lettering só ocorre depois que a contagem máxima de entregas é excedida."
+  },
+  {
+    "id": "be-jobs-dead-letter",
+    "title": "Propósito de uma dead-letter queue",
+    "question": "Qual é o principal propósito de uma dead-letter queue (DLQ) em um sistema de mensageria?",
+    "options": [
+      "Guardar mensagens que falham repetidamente para inspeção",
+      "Bufferizar mensagens de alta prioridade à frente da fila principal",
+      "Replicar mensagens para uma segunda região para disaster recovery",
+      "Armazenar mensagens até que um consumidor assine pela primeira vez"
+    ],
+    "explanation": "Uma DLQ isola poison messages que excedem a contagem máxima de entregas ou expiram, evitando que bloqueiem ou fiquem em retry infinito na fila principal, e permite que operadores as inspecionem e reenviem. Ela não é um buffer de assinatura, uma faixa prioritária nem um mecanismo de replicação geográfica."
+  },
+  {
+    "id": "be-jobs-outbox",
+    "title": "Dual write entre banco e broker",
+    "question": "Um serviço de pedidos salva um pedido no PostgreSQL e depois publica OrderCreated em um broker. Às vezes o commit no banco funciona, mas a publicação falha, e os serviços downstream nunca ficam sabendo do pedido. Qual padrão resolve isso de forma confiável?",
+    "options": [
+      "Publicar o evento primeiro e só fazer commit do pedido se a publicação funcionar",
+      "Transactional outbox: gravar o evento na mesma transação e depois repassá-lo",
+      "Usar um lock distribuído no Redis em volta do commit e da publicação",
+      "Envolver a escrita no banco e a publicação em um try/catch com três retries"
+    ],
+    "explanation": "O padrão outbox torna a mudança de estado e o registro do evento atômicos em uma única transação local; um relay depois publica as linhas do outbox (at-least-once), então os consumidores devem ser idempotentes. Inverter a ordem só inverte a inconsistência, retries não cobrem uma queda entre as etapas, e um lock não faz dois sistemas darem commit atomicamente."
+  },
+  {
+    "id": "be-webhook-signature",
+    "title": "Verificando a autenticidade de webhooks",
+    "question": "Como um receptor deve verificar que uma entrega de webhook realmente veio do provedor e não foi modificada?",
+    "options": [
+      "Calcular o HMAC do corpo bruto com o segredo e comparar em tempo constante",
+      "Aceitar a requisição apenas se ela chegar via HTTPS na porta 443",
+      "Verificar se o header User-Agent corresponde ao nome e à versão do provedor",
+      "Fazer parse do JSON e confirmar que o id do evento existe no payload"
+    ],
+    "explanation": "Provedores como o GitHub enviam um header de assinatura HMAC-SHA256 calculado sobre o payload bruto; recalculá-lo com o segredo compartilhado comprova autenticidade e integridade, e a comparação em tempo constante evita vazamentos por timing. Headers e campos do payload podem ser forjados, e o TLS protege o transporte, mas não prova quem enviou a requisição."
+  },
+  {
+    "id": "be-webhook-fast-ack",
+    "title": "Timeouts e duplicatas em webhooks",
+    "question": "Seu handler de webhook faz 15s de processamento antes de responder. O provedor dá timeout em 10s, tenta de novo, e você acaba processando os eventos várias vezes. Qual é o melhor design?",
+    "options": [
+      "Continuar processando de forma síncrona, mas cachear a resposta por 10 segundos",
+      "Verificar, enfileirar, responder 2xx rápido e deduplicar pelo id da entrega",
+      "Retornar 500 até o processamento terminar para o provedor esperar",
+      "Pedir ao provedor que aumente o timeout para 60 segundos"
+    ],
+    "explanation": "A boa prática é confirmar rápido e fazer o trabalho de forma assíncrona, usando o id da entrega/evento para ignorar duplicatas, já que os provedores fazem retry em timeouts e erros. Você raramente controla o timeout do provedor, retornar 500 provoca mais retries, e cachear uma resposta não impede que a primeira tentativa lenta dê timeout."
+  },
+  {
+    "id": "be-cache-idempotency-key",
+    "title": "Idempotency keys para POST",
+    "question": "Um cliente de pagamentos repete POST /payments após um timeout de rede, sem saber se a primeira tentativa funcionou. Como a API pode garantir que o pagamento seja criado só uma vez?",
+    "options": [
+      "O servidor retorna 409 Conflict para qualquer POST que chegue em até 5 segundos",
+      "O servidor cacheia respostas de POST por URL usando Cache-Control",
+      "O cliente envia uma Idempotency-Key; o servidor devolve o primeiro resultado",
+      "O cliente troca a requisição para PUT com o mesmo corpo"
+    ],
+    "explanation": "Uma idempotency key permite ao servidor reconhecer retries da mesma operação lógica, persistir o resultado atomicamente e retornar a resposta original em vez de cobrar de novo. Uma janela de tempo rejeitaria pagamentos legítimos, trocar o verbo não muda o comportamento do servidor, e respostas de POST indexadas só pela URL misturariam requisições diferentes."
+  },
+  {
+    "id": "be-cache-etag-304",
+    "title": "Revalidação com GET condicional",
+    "question": "Um cliente tem uma resposta em cache com ETag \"abc\". Ele envia um GET com If-None-Match: \"abc\" e o recurso não mudou. O que o servidor deve retornar?",
+    "options": [
+      "412 Precondition Failed",
+      "304 Not Modified sem corpo",
+      "204 No Content com o mesmo ETag",
+      "200 OK com o corpo completo de novo"
+    ],
+    "explanation": "If-None-Match em um GET permite que o servidor responda 304 Not Modified quando o ETag ainda corresponde, então o cliente reutiliza o corpo em cache e economiza banda. 200 reenviaria o corpo, 204 significa uma resposta bem-sucedida sem conteúdo (não uma revalidação), e 412 é para pré-condições que falham em requisições que alteram estado, como If-Match."
+  },
+  {
+    "id": "be-cache-private-shared",
+    "title": "Cache de respostas personalizadas",
+    "question": "GET /me/profile retorna dados específicos do usuário com Cache-Control: max-age=300. Depois que uma CDN foi adicionada, usuários começaram a ver os perfis de outras pessoas. Qual mudança de header é a correta?",
+    "options": [
+      "Cache-Control: public, s-maxage=300",
+      "Cache-Control: private, max-age=300",
+      "Cache-Control: max-age=300, immutable",
+      "Cache-Control: must-revalidate, max-age=300"
+    ],
+    "explanation": "private permite que apenas o cache do browser do usuário armazene a resposta e proíbe caches compartilhados, como CDNs. public e s-maxage miram explicitamente caches compartilhados, immutable só diz que o corpo não muda enquanto estiver fresh, e must-revalidate controla o tratamento de conteúdo stale, mas ainda permite armazenamento compartilhado."
+  },
+  {
+    "id": "be-http-429-retry-after",
+    "title": "Sinalizando rate limits",
+    "question": "Um cliente excede sua cota por minuto. Qual resposta permite que clientes bem-comportados recuem corretamente?",
+    "options": [
+      "503 Service Unavailable com um header Connection: close",
+      "403 Forbidden com um header WWW-Authenticate",
+      "400 Bad Request com uma mensagem de erro no corpo",
+      "429 Too Many Requests com um header Retry-After"
+    ],
+    "explanation": "429 (RFC 6585) indica que o usuário enviou requisições demais em um dado intervalo, e Retry-After diz ao cliente quanto tempo esperar. 503 sugere que o próprio servidor está indisponível, 403 significa que a requisição foi recusada por motivos de autorização, e 400 sinaliza entrada malformada."
+  },
+  {
+    "id": "be-api-filter-sort",
+    "title": "Ordenação estável para paginação",
+    "question": "Um endpoint com paginação por cursor ordena apenas por created_at. Várias linhas têm o mesmo timestamp e algumas são puladas entre as páginas. Qual é a correção?",
+    "options": [
+      "Adicionar um desempate único, como id, à chave de ordenação e ao cursor",
+      "Trocar a direção da ordenação de DESC para ASC",
+      "Retornar uma página maior sempre que houver valores repetidos de created_at",
+      "Arredondar created_at para o segundo mais próximo antes de ordenar"
+    ],
+    "explanation": "A paginação keyset exige uma ordem total; com empates, um cursor apenas em created_at não consegue saber quais linhas daquele timestamp já foram retornadas. Ordenar e comparar por (created_at, id) torna a ordem determinística. Mudar a direção, arredondar (o que cria mais empates) ou variar o tamanho da página não elimina a ambiguidade."
+  },
+  {
+    "id": "be-auth-csrf-samesite",
+    "title": "CSRF com sessões baseadas em cookie",
+    "question": "Uma aplicação web autentica com um cookie de sessão. Qual medida defende mais diretamente os endpoints que alteram estado contra cross-site request forgery?",
+    "options": [
+      "Cookies SameSite=Lax/Strict combinados com tokens anti-CSRF",
+      "Exigir HTTPS e habilitar HSTS para todo o domínio",
+      "Adicionar uma Content-Security-Policy que bloqueie scripts inline",
+      "Armazenar o id de sessão em um cookie codificado em Base64"
+    ],
+    "explanation": "O CSRF funciona porque os browsers anexam cookies a requisições cross-site; o SameSite limita isso, e tokens synchronizer ou double-submit provam que a requisição partiu das suas páginas. Codificar o id não adiciona proteção, HTTPS/HSTS protegem o transporte, e a CSP mitiga principalmente XSS, não cross-site request forgery."
+  },
+  {
+    "id": "be-jobs-retry-jitter",
+    "title": "Tempestades de retry após uma indisponibilidade",
+    "question": "Quando uma API downstream se recuperou de uma indisponibilidade de 2 minutos, milhares de jobs que tinham falhado fizeram retry exatamente nos mesmos intervalos fixos de 30s e a derrubaram de novo. Qual mudança evita melhor isso?",
+    "options": [
+      "Usar um intervalo fixo de 60 segundos em vez de 30 segundos",
+      "Rodar todos os retries em um único worker para serializá-los",
+      "Fazer retry imediatamente para zerar o backlog antes do pico de tráfego",
+      "Exponential backoff com jitter aleatório e um limite de retries"
+    ],
+    "explanation": "Retries sincronizados criam thundering herds; o exponential backoff espalha a carga no tempo e o jitter dessincroniza os clientes, enquanto um limite impede retries infinitos. Retries imediatos pioram o pico, um intervalo fixo mais longo continua sincronizando os retries, e um único worker mata o throughput e é um ponto único de falha."
+  },
+  {
+    "id": "db-sql-null-compare",
+    "title": "Comparando com NULL",
+    "question": "A tabela users tem 10 linhas em que deleted_at IS NULL. Quantas linhas SELECT * FROM users WHERE deleted_at = NULL retorna?",
+    "options": [
+      "Todas, porque NULL corresponde a qualquer valor",
+      "Ocorre um erro de sintaxe em = NULL",
+      "0 linhas, porque = NULL resulta em unknown",
+      "10 linhas, o mesmo que WHERE deleted_at IS NULL"
+    ],
+    "explanation": "Em SQL, qualquer comparação com NULL usando = resulta em NULL (unknown), e o WHERE só mantém linhas em que a condição é verdadeira, então nada é retornado. Use IS NULL (ou IS DISTINCT FROM para comparação null-safe). A instrução é sintaticamente válida, então nenhum erro é gerado."
+  },
+  {
+    "id": "db-sql-not-in-null",
+    "title": "NOT IN com um NULL na subquery",
+    "question": "SELECT id FROM customers WHERE id NOT IN (SELECT customer_id FROM orders);\nA query não retorna nenhuma linha, embora muitos clientes não tenham pedidos. orders.customer_id aceita NULL. Por quê?",
+    "options": [
+      "A subquery precisa ser correlacionada para o NOT IN retornar linhas",
+      "NOT IN sempre faz um semi-join que ignora linhas sem correspondência",
+      "Um NULL na subquery torna o NOT IN unknown para todas as linhas",
+      "NOT IN só funciona quando as duas colunas têm uma constraint UNIQUE"
+    ],
+    "explanation": "x NOT IN (a, b, NULL) nunca é verdadeiro: é falso se x corresponde e NULL caso contrário, então o WHERE filtra todas as linhas. Use NOT EXISTS (correlacionado) ou adicione WHERE customer_id IS NOT NULL. NOT IN não exige correlação nem unicidade, e é um anti-join, não um semi-join."
+  },
+  {
+    "id": "db-join-left-where",
+    "title": "LEFT JOIN virando INNER JOIN",
+    "question": "SELECT c.name, o.id FROM customers c\nLEFT JOIN orders o ON o.customer_id = c.id\nWHERE o.status = 'paid';\nClientes sem pedidos não aparecem no resultado. Por quê?",
+    "options": [
+      "O filtro do WHERE em o.status descarta as linhas estendidas com NULL",
+      "O LEFT JOIN exige um GROUP BY para manter as linhas sem correspondência",
+      "A cláusula ON precisa referenciar a tabela da esquerda primeiro",
+      "O LEFT JOIN descarta linhas quando a coluna do ON é indexada"
+    ],
+    "explanation": "Para clientes sem pedidos, o LEFT JOIN produz o.* = NULL, e WHERE o.status = 'paid' é unknown para eles, então são removidos, o que na prática transforma a query em um inner join. Mova o predicado para a cláusula ON (ON o.customer_id = c.id AND o.status = 'paid') para mantê-los. Índices, ordem dos operandos e GROUP BY não afetam isso."
+  },
+  {
+    "id": "db-join-fanout-sum",
+    "title": "Fan-out do join inflando o SUM",
+    "question": "SELECT o.id, SUM(p.amount) AS paid, COUNT(i.id) AS items\nFROM orders o\nJOIN payments p ON p.order_id = o.id\nJOIN order_items i ON i.order_id = o.id\nGROUP BY o.id;\nUm pedido com 2 pagamentos e 3 itens mostra paid três vezes maior do que deveria. O que está acontecendo?",
+    "options": [
+      "O GROUP BY o.id também precisa incluir p.amount para ficar correto",
+      "O SUM ignora amounts NULL e conta o restante em dobro",
+      "COUNT e SUM não podem ser usados juntos na mesma lista do SELECT",
+      "Dois joins um-para-muitos multiplicam as linhas antes da agregação"
+    ],
+    "explanation": "Cada linha de pagamento é combinada com cada linha de item (2 x 3 = 6 linhas), então cada pagamento é somado 3 vezes. Pré-agregue cada tabela filha em uma subquery/CTE e faça join dos agregados, ou use subqueries correlacionadas. O SUM ignorar NULLs não causa a inflação, agrupar por amount muda o significado, e misturar agregações é permitido."
+  },
+  {
+    "id": "db-join-anti-join",
+    "title": "Encontrando linhas sem correspondência",
+    "question": "Qual query retorna os clientes que nunca fizeram um pedido?",
+    "options": [
+      "SELECT c.* FROM customers c INNER JOIN orders o ON o.customer_id = c.id WHERE o.id IS NULL",
+      "SELECT c.* FROM customers c RIGHT JOIN orders o ON o.customer_id = c.id WHERE c.id IS NULL",
+      "SELECT c.* FROM customers c CROSS JOIN orders o WHERE o.customer_id <> c.id",
+      "SELECT c.* FROM customers c LEFT JOIN orders o ON o.customer_id = c.id WHERE o.id IS NULL"
+    ],
+    "explanation": "Um LEFT JOIN mantém todos os clientes e preenche as colunas de pedido com NULL quando não há correspondência, então filtrar por o.id IS NULL deixa só os clientes sem correspondência (um anti-join; NOT EXISTS é equivalente). Um inner join nunca gera o.id NULL, o cross join retorna clientes combinados com pedidos de outros clientes, e a versão com RIGHT JOIN encontra pedidos sem cliente."
+  },
+  {
+    "id": "db-join-lateral",
+    "title": "Top-N por grupo com LATERAL",
+    "question": "Você precisa dos 3 pedidos mais recentes de cada cliente no PostgreSQL, usando um índice em orders(customer_id, created_at DESC). Qual construção expressa isso de forma mais direta e eficiente?",
+    "options": [
+      "GROUP BY customer_id com HAVING COUNT(*) <= 3",
+      "Subquery CROSS JOIN LATERAL em c.id com ORDER BY created_at DESC LIMIT 3",
+      "Um NATURAL JOIN de customers e orders ORDER BY created_at DESC LIMIT 3",
+      "Um FULL OUTER JOIN de customers e orders, ORDER BY created_at DESC LIMIT 3"
+    ],
+    "explanation": "LATERAL permite que uma subquery referencie colunas de itens anteriores do FROM, então ela roda por cliente e pode fazer um index scan que para após 3 linhas. Um FULL OUTER JOIN com LIMIT global retorna só 3 linhas no total, HAVING filtra grupos (não linhas dentro de um grupo), e NATURAL JOIN faz join por colunas de mesmo nome com uma ordenação global."
+  },
+  {
+    "id": "db-agg-where-having",
+    "title": "WHERE vs HAVING",
+    "question": "Você precisa dos departamentos cujo salário médio passa de 100000. Onde a condição AVG(salary) > 100000 deve ficar?",
+    "options": [
+      "Na cláusula WHERE, antes do GROUP BY",
+      "Na cláusula ON de um self-join",
+      "Na cláusula ORDER BY",
+      "Em um HAVING, após GROUP BY department"
+    ],
+    "explanation": "WHERE filtra linhas individuais antes do agrupamento e não pode referenciar agregações; HAVING filtra grupos após a agregação. ORDER BY apenas ordena, e uma cláusula ON se aplica às condições de join entre linhas, não a grupos agregados."
+  },
+  {
+    "id": "db-agg-count-star-col",
+    "title": "COUNT(*) vs COUNT(coluna)",
+    "question": "Uma tabela tem 100 linhas; 20 têm phone = NULL e as 80 restantes contêm 50 números distintos. O que COUNT(*), COUNT(phone) e COUNT(DISTINCT phone) retornam?",
+    "options": [
+      "100, 100, 50",
+      "80, 80, 50",
+      "100, 80, 50",
+      "100, 80, 51"
+    ],
+    "explanation": "COUNT(*) conta linhas, COUNT(expr) conta valores não NULL, e COUNT(DISTINCT expr) conta valores distintos não NULL, então NULL não é contado como um valor distinto. Isso dá 100, 80 e 50."
+  },
+  {
+    "id": "db-agg-filter-clause",
+    "title": "Agregação condicional",
+    "question": "No PostgreSQL, qual query retorna os totais por dia de todos os pedidos e dos pedidos reembolsados em uma única passada?",
+    "options": [
+      "SELECT day, COUNT(*) FROM orders GROUP BY day HAVING status = 'refunded'",
+      "SELECT day, COUNT(*), COUNT(*) WHERE status = 'refunded' FROM orders GROUP BY day",
+      "SELECT day, COUNT(*), COUNT(status = 'refunded') FROM orders GROUP BY day",
+      "SELECT day, COUNT(*), COUNT(*) FILTER (WHERE status = 'refunded') FROM orders GROUP BY day"
+    ],
+    "explanation": "A cláusula FILTER de agregação restringe quais linhas alimentam uma determinada agregação (equivalente a SUM(CASE WHEN ... THEN 1 ELSE 0 END)). COUNT(status = 'refunded') conta todo booleano não NULL, inclusive false; HAVING não pode referenciar uma coluna não agrupada; e WHERE não pode aparecer dentro da lista do SELECT."
+  },
+  {
+    "id": "db-adv-row-number-dedupe",
+    "title": "Linha mais recente por chave",
+    "question": "Você precisa do login mais recente de cada usuário em logins(user_id, at, ip). Qual abordagem retorna exatamente uma linha completa por usuário?",
+    "options": [
+      "SELECT user_id, MAX(at), ip FROM logins GROUP BY user_id",
+      "ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY at DESC) e manter rn = 1",
+      "SELECT DISTINCT user_id, at, ip FROM logins ORDER BY at DESC",
+      "RANK() OVER (ORDER BY at DESC) e manter rank = 1"
+    ],
+    "explanation": "ROW_NUMBER numera as linhas dentro da partição de cada usuário, então rn = 1 é exatamente uma linha mais recente por usuário (o DISTINCT ON do PostgreSQL é uma alternativa). Selecionar ip junto com MAX(at) é inválido (coluna não agrupada) no SQL padrão, RANK sem PARTITION BY ranqueia globalmente e empates geram várias linhas, e DISTINCT em todas as colunas mantém todos os logins."
+  },
+  {
+    "id": "db-adv-running-total",
+    "title": "Totais acumulados com window frames",
+    "question": "SELECT day, amount, SUM(amount) OVER (ORDER BY day) FROM sales;\nDuas linhas têm o mesmo day. Que valor a soma da janela mostra para essas linhas?",
+    "options": [
+      "Cada uma mostra um total diferente, pois as linhas são somadas uma a uma",
+      "A query falha porque uma cláusula de frame é obrigatória com ORDER BY",
+      "Ambas mostram NULL porque empates no ORDER BY são ambíguos",
+      "Ambas mostram o mesmo total, que inclui as duas linhas (frame RANGE)"
+    ],
+    "explanation": "Com ORDER BY e sem cláusula de frame, o frame padrão é RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW, que inclui todos os peers (linhas com valores iguais no ORDER BY). Use ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW para um total acumulado estritamente por linha. Não ocorrem NULLs nem erros."
+  },
+  {
+    "id": "db-adv-recursive-cte",
+    "title": "Percorrendo uma hierarquia",
+    "question": "employees(id, manager_id) guarda um organograma de profundidade desconhecida. Qual recurso de SQL recupera todos os subordinados diretos e indiretos do gerente 7 em uma única query?",
+    "options": [
+      "WITH RECURSIVE com um membro âncora UNION ALL um join recursivo",
+      "Um self-join repetido uma vez para cada nível conhecido",
+      "Uma subquery correlacionada na lista do SELECT",
+      "LAG() OVER (PARTITION BY manager_id)"
+    ],
+    "explanation": "Uma CTE recursiva começa pela âncora (subordinados diretos de 7) e faz join repetidamente de employees com as linhas da iteração anterior até não surgirem linhas novas, lidando com qualquer profundidade. Subqueries correlacionadas e LAG operam sobre uma relação fixa, e self-joins repetidos só funcionam para uma profundidade fixa e conhecida."
+  },
+  {
+    "id": "db-adv-cte-materialized",
+    "title": "Inlining de CTE no PostgreSQL",
+    "question": "No PostgreSQL 12+, WITH t AS (SELECT * FROM big) SELECT * FROM t WHERE id = 5; roda rápido usando um índice em big.id, mas depois de adicionar MATERIALIZED à CTE vira um sequential scan. Por quê?",
+    "options": [
+      "Ele impede o planner de fazer inline da CTE e de empurrar o predicado",
+      "MATERIALIZED força o cache da CTE em disco como tabela temporária sem estatísticas",
+      "MATERIALIZED desabilita todos os index scans da instrução inteira",
+      "MATERIALIZED converte a CTE em uma CTE recursiva"
+    ],
+    "explanation": "Desde o PostgreSQL 12, uma CTE não recursiva, sem efeitos colaterais e referenciada uma única vez é incorporada (inline) à query externa, para que WHERE id = 5 possa usar o índice. MATERIALIZED força a avaliação separada da CTE inteira (uma barreira de otimização). Ele não a torna recursiva nem desabilita índices em outros pontos, e a materialização não é necessariamente uma tabela temporária em disco."
+  },
+  {
+    "id": "db-tx-acid-durability",
+    "title": "Durabilidade no ACID",
+    "question": "Qual propriedade ACID garante que, depois que o COMMIT retorna sucesso, as alterações sobrevivem a uma queda subsequente?",
+    "options": [
+      "Durabilidade",
+      "Consistência",
+      "Isolamento",
+      "Atomicidade"
+    ],
+    "explanation": "Durabilidade significa que dados com commit persistem (o PostgreSQL garante isso gravando o WAL em disco antes de confirmar o commit). Atomicidade é tudo-ou-nada, consistência significa que constraints/invariantes se mantêm, e isolamento controla como transações concorrentes enxergam umas às outras."
+  },
+  {
+    "id": "db-tx-savepoint",
+    "title": "Rollback parcial com savepoints",
+    "question": "Dentro de uma transação, você insere um pedido e depois tenta um insert de auditoria opcional que pode falhar. Você quer manter o pedido mesmo se o insert de auditoria falhar. O que deve usar?",
+    "options": [
+      "SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED antes do insert de auditoria",
+      "SAVEPOINT antes do insert de auditoria e ROLLBACK TO SAVEPOINT se der erro",
+      "Rodar o insert de auditoria com autocommit desligado na mesma sessão",
+      "Dar COMMIT após o insert de auditoria e capturar o erro na aplicação"
+    ],
+    "explanation": "Savepoints permitem desfazer parte de uma transação mantendo o trabalho anterior. No PostgreSQL, sem eles um erro aborta a transação inteira, rejeitando novos comandos até o rollback. Dar commit não ajuda depois que ela foi abortada, níveis de isolamento não afetam o tratamento de erros, e configurações de autocommit não criam pontos de rollback parcial."
+  },
+  {
+    "id": "db-tx-async-commit",
+    "title": "synchronous_commit = off",
+    "question": "Para aumentar o throughput de escrita, uma equipe define synchronous_commit = off no PostgreSQL. Qual é o risco exato?",
+    "options": [
+      "Uma queda pode perder os últimos commits, mas não corrompe o banco",
+      "Constraints de foreign key e unique só são verificadas no checkpoint",
+      "Uma queda pode deixar o banco em um estado inconsistente e corrompido",
+      "Transações concorrentes podem ler dados não commitados umas das outras"
+    ],
+    "explanation": "Com commit assíncrono, o COMMIT retorna antes de o WAL ser gravado em disco, então uma queda pode perder as últimas transações (limitadas a cerca de três vezes o wal_writer_delay), mas o banco continua consistente, ao contrário de fsync = off. Isso não muda o isolamento nem a verificação de constraints."
+  },
+  {
+    "id": "db-cc-lost-update",
+    "title": "Lost update",
+    "question": "Duas requisições rodam concorrentemente em READ COMMITTED:\nSELECT balance FROM accounts WHERE id=1; -- both read 100\nUPDATE accounts SET balance = 100 + 10 WHERE id=1; -- app computed\nO saldo final é 110 em vez de 120. Qual correção é a mais simples e correta?",
+    "options": [
+      "Rodar o SELECT com NOWAIT para falhar rápido",
+      "Atualizar atomicamente: SET balance = balance + 10 WHERE id = 1",
+      "Envolver o SELECT de cada requisição em sua própria transação explícita",
+      "Adicionar um índice em accounts.id para as duas leituras terminarem antes"
+    ],
+    "explanation": "Isso é um lost update: as duas requisições calcularam a partir de uma leitura desatualizada. Um UPDATE ... SET balance = balance + 10 atômico faz o segundo escritor esperar o primeiro e reavaliar a nova versão da linha. As alternativas são SELECT ... FOR UPDATE ou versionamento otimista. Um índice, transações separadas ou NOWAIT em um SELECT simples não evitam o problema."
+  },
+  {
+    "id": "db-cc-write-skew",
+    "title": "Write skew sob snapshot isolation",
+    "question": "Regra: pelo menos um médico deve estar de plantão. Em REPEATABLE READ no PostgreSQL, Alice e Bob executam concorrentemente: verificam o COUNT(*) de médicos de plantão (ambos veem 2) e depois cada um define on_call = false na própria linha. Os dois fazem commit e ninguém fica de plantão. Qual afirmação está correta?",
+    "options": [
+      "Isto é um lost update; REPEATABLE READ deveria tê-lo bloqueado",
+      "Isto é um dirty read; READ COMMITTED o evitaria",
+      "Isto é um phantom read; um índice único o evitaria",
+      "Isto é write skew; SERIALIZABLE (SSI) abortaria uma delas"
+    ],
+    "explanation": "Cada transação atualiza uma linha diferente com base em uma premissa que a outra invalida, então o snapshot isolation não vê conflito de escrita. O SERIALIZABLE do PostgreSQL detecta o ciclo de dependências rw e faz uma delas falhar com erro de serialização (ou você pode bloquear as linhas relevantes com FOR UPDATE). Dirty reads nunca acontecem no PostgreSQL, e não há conflito na mesma linha para o REPEATABLE READ detectar."
+  },
+  {
+    "id": "db-cc-nonrepeatable-read",
+    "title": "Leitura não repetível",
+    "question": "Em READ COMMITTED, uma transação lê o preço de uma linha duas vezes e obtém valores diferentes porque outra transação fez commit de um update entre as leituras. Como se chama essa anomalia?",
+    "options": [
+      "Leitura não repetível",
+      "Leitura fantasma",
+      "Anomalia de serialização",
+      "Leitura suja"
+    ],
+    "explanation": "Uma leitura não repetível (non-repeatable read) é reler a mesma linha e ver uma alteração com commit. Uma leitura suja vê dados sem commit, uma leitura fantasma é um conjunto diferente de linhas que atendem a um predicado, e uma anomalia de serialização é um resultado inconsistente com qualquer ordem serial. READ COMMITTED permite leituras não repetíveis porque cada instrução tira um novo snapshot."
+  },
+  {
+    "id": "db-cc-skip-locked",
+    "title": "Tabela de jobs com muitos workers",
+    "question": "Dez workers consultam uma tabela jobs com SELECT ... WHERE status='pending' ORDER BY id LIMIT 1 FOR UPDATE. O throughput mal melhora em relação a um único worker. Qual é a melhor correção no PostgreSQL?",
+    "options": [
+      "Elevar o nível de isolamento para SERIALIZABLE",
+      "Usar FOR SHARE para que todos os workers bloqueiem a mesma linha",
+      "Adicionar SKIP LOCKED para cada worker pegar uma linha diferente",
+      "Trocar o FOR UPDATE por um lock ACCESS EXCLUSIVE na tabela"
+    ],
+    "explanation": "Sem SKIP LOCKED, todos os workers miram a mesma primeira linha pendente e ficam bloqueados atrás do lock uns dos outros. FOR UPDATE SKIP LOCKED pula linhas bloqueadas por outros, dando a cada worker seu próprio job. FOR SHARE permitiria processamento duplicado, SERIALIZABLE adiciona aborts, e um lock de tabela serializa tudo."
+  },
+  {
+    "id": "db-cc-deadlock",
+    "title": "Deadlocks em transferências",
+    "question": "Um endpoint de transferência bloqueia a linha da conta de origem e depois a de destino. Sob carga, o PostgreSQL aborta transações periodicamente com 'deadlock detected'. Qual é a correção mais robusta?",
+    "options": [
+      "Baixar o nível de isolamento para READ UNCOMMITTED",
+      "Aumentar o deadlock_timeout para o detector esperar bem mais",
+      "Bloquear as duas linhas sempre na mesma ordem, ex.: por id",
+      "Remover a transação e atualizar cada linha separadamente"
+    ],
+    "explanation": "Uma transferência A->B e uma B->A concorrente adquirem locks em ordens opostas e esperam uma pela outra. Adquirir os locks em uma ordem global consistente elimina o ciclo. Um deadlock_timeout maior só atrasa a detecção, READ UNCOMMITTED se comporta como READ COMMITTED no PostgreSQL e não afeta locks de linha, e remover a transação quebra a atomicidade."
+  },
+  {
+    "id": "db-idx-composite-order",
+    "title": "Ordem das colunas em um índice composto",
+    "question": "Existe um índice em orders(customer_id, created_at). Qual query consegue usá-lo de forma mais eficiente?",
+    "options": [
+      "WHERE customer_id > 10 OR created_at = '2026-01-01'",
+      "WHERE created_at > '2026-01-01'",
+      "WHERE created_at > '2026-01-01' OR customer_id = 42",
+      "WHERE customer_id = 42 AND created_at > '2026-01-01'"
+    ],
+    "explanation": "Um índice B-tree multicoluna é mais eficiente com igualdade nas colunas iniciais e um range na coluna seguinte: aqui ele pode ir direto ao customer 42 e varrer o intervalo de datas. Uma condição só em created_at não tem a coluna inicial, e condições com OR não podem ser atendidas por um único range scan deste índice."
+  },
+  {
+    "id": "db-idx-function-lower",
+    "title": "Índice não usado com LOWER()",
+    "question": "users tem um índice B-tree em email. A query WHERE LOWER(email) = 'a@b.com' faz um sequential scan. O que permite um index scan?",
+    "options": [
+      "Rodar ANALYZE users para atualizar as estatísticas",
+      "CREATE INDEX ON users (email) INCLUDE (id)",
+      "CREATE INDEX ON users (LOWER(email))",
+      "CREATE INDEX ON users USING hash (email)"
+    ],
+    "explanation": "Um índice em email não corresponde à expressão LOWER(email); um índice de expressão em LOWER(email) corresponde. Um índice hash continua sendo sobre a coluna crua, ANALYZE não torna utilizável um índice inutilizável, e INCLUDE adiciona colunas de payload para scans cobertos sem mudar a chave."
+  },
+  {
+    "id": "db-idx-explain-analyze",
+    "title": "Lendo linhas reais vs estimadas",
+    "question": "Qual comando mostra tanto as contagens de linhas estimadas pelo planner quanto as contagens reais de linhas e os tempos de uma query?",
+    "options": [
+      "EXPLAIN",
+      "ANALYZE",
+      "EXPLAIN ANALYZE",
+      "EXPLAIN (COSTS OFF)"
+    ],
+    "explanation": "EXPLAIN mostra apenas o plano estimado; EXPLAIN ANALYZE de fato executa a instrução e reporta linhas reais, loops e tempo por nó, que é como você identifica estimativas erradas. ANALYZE sozinho coleta estatísticas da tabela, e COSTS OFF oculta as estimativas de custo. Lembre-se de que EXPLAIN ANALYZE realmente executa escritas, então envolva DML em uma transação que sofre rollback."
+  },
+  {
+    "id": "db-idx-misestimate",
+    "title": "Diagnosticando estimativas erradas do planner",
+    "question": "O EXPLAIN ANALYZE mostra: Nested Loop (rows=1 estimated, actual rows=480000) conduzindo um Index Scan interno executado 480000 vezes. A query leva 40s. Qual é a causa raiz mais provável a investigar primeiro?",
+    "options": [
+      "O nó de nested loop é sempre mais lento que um hash join",
+      "work_mem está alto demais, forçando um nested loop",
+      "Estatísticas velhas ou insuficientes subestimando muito as linhas",
+      "O índice interno está corrompido e precisa ser recriado com REINDEX"
+    ],
+    "explanation": "O planner escolheu um nested loop porque esperava 1 linha externa; com 480000 linhas reais, um hash join ou merge join seria muito melhor. Rode ANALYZE, aumente o statistics target ou adicione estatísticas estendidas para colunas correlacionadas. Não há sinal de corrupção, work_mem baixo (não alto) desencoraja hash joins, e nested loops são ideais para entradas externas pequenas."
+  },
+  {
+    "id": "db-idx-partial",
+    "title": "Índice parcial",
+    "question": "Uma tabela tasks de 50M linhas tem apenas ~2000 linhas com status = 'pending', e os workers sempre consultam WHERE status = 'pending' ORDER BY priority. Qual índice é mais eficiente?",
+    "options": [
+      "CREATE INDEX ON tasks (status)",
+      "CREATE INDEX ON tasks USING brin (status)",
+      "CREATE INDEX ON tasks (priority) WHERE status = 'pending'",
+      "CREATE INDEX ON tasks (status, priority, id, created_at)"
+    ],
+    "explanation": "Um índice parcial armazena apenas as linhas que atendem ao seu predicado, então é minúsculo, barato de manter e atende diretamente ao scan ordenado. Um índice só em status ainda precisa de um sort e guarda 50M entradas; um composto largo indexa todas as linhas; e BRIN funciona melhor para valores correlacionados com a ordem física, não para um status de baixa cardinalidade."
+  },
+  {
+    "id": "db-idx-covering",
+    "title": "Index-only scan ainda acessando o heap",
+    "question": "Uma query usa um index-only scan em (customer_id) INCLUDE (total), mas o EXPLAIN (ANALYZE, BUFFERS) mostra 'Heap Fetches: 950000' em uma tabela muito atualizada. Qual é a causa provável?",
+    "options": [
+      "O índice é do tipo hash, que não pode ser covering",
+      "Colunas INCLUDE são sempre buscadas no heap",
+      "O visibility map está defasado porque o VACUUM não rodou",
+      "Index-only scans são desabilitados em tabelas com mais de 1M linhas"
+    ],
+    "explanation": "Index-only scans só evitam o heap em páginas marcadas como all-visible no visibility map; updates frequentes limpam esses bits até que o VACUUM (ou o autovacuum) os marque de novo. Colunas INCLUDE ficam armazenadas no índice, não existe limite por quantidade de linhas, e a sintaxe INCLUDE aqui implica um B-tree, que suporta scans cobertos."
+  },
+  {
+    "id": "db-model-3nf",
+    "title": "Anomalia de atualização",
+    "question": "Uma tabela orders armazena customer_email em cada linha de pedido. Quando um cliente muda de email, alguns pedidos antigos ficam com o endereço antigo. Qual princípio de design foi violado?",
+    "options": [
+      "Indexação: customer_email precisa de um índice único",
+      "Sharding: orders deveria ser particionada por cliente",
+      "Desnormalização: o email deveria ser copiado para mais tabelas",
+      "Normalização: os dados do cliente ficam só em customers"
+    ],
+    "explanation": "Repetir um atributo do cliente em cada pedido cria anomalias de atualização; normalizá-lo em uma tabela customers referenciada por foreign key armazena o fato uma única vez. Mais cópias pioram o problema, sharding trata de escala, e um índice único em orders.customer_email impediria, indevidamente, vários pedidos por cliente."
+  },
+  {
+    "id": "db-model-check-exclusion",
+    "title": "Evitando reservas sobrepostas",
+    "question": "Uma tabela de reservas de salas nunca pode conter duas reservas da mesma sala com intervalos de tempo sobrepostos, mesmo sob inserts concorrentes. Qual é a solução mais robusta no PostgreSQL?",
+    "options": [
+      "Uma constraint CHECK comparando start_time e end_time",
+      "Uma verificação via SELECT na aplicação antes de cada INSERT em READ COMMITTED",
+      "Uma constraint UNIQUE em (room_id, start_time)",
+      "Uma constraint EXCLUDE com GiST em (room_id WITH =, during WITH &&)"
+    ],
+    "explanation": "Exclusion constraints garantem que nenhum par de linhas satisfaça os operadores dados, aqui mesma sala e intervalo sobreposto, com aplicação atômica pelo banco (é preciso o btree_gist para o = em um escalar). CHECK só enxerga uma linha, UNIQUE pega inícios idênticos mas não sobreposições, e verificar antes de inserir sofre race conditions sob concorrência."
+  },
+  {
+    "id": "db-scale-replica-lag",
+    "title": "Read-your-writes com réplicas",
+    "question": "Depois de atualizar o perfil, os usuários às vezes veem os dados antigos porque as leituras vão para read replicas assíncronas. Qual abordagem corrige isso para o usuário afetado?",
+    "options": [
+      "Adicionar mais read replicas para espalhar a carga",
+      "Aumentar o connection pool em todas as read replicas",
+      "Ler do primary por um breve período após a escrita do usuário",
+      "Migrar as read replicas de replicação por streaming para lógica"
+    ],
+    "explanation": "Réplicas assíncronas ficam atrás do primary, quebrando a consistência read-your-writes. Direcionar as leituras do usuário ao primary por um breve período (ou esperar até a réplica aplicar o LSN da escrita) a restaura. Mais réplicas, outro tipo de replicação ou pools maiores não eliminam o lag."
+  },
+  {
+    "id": "db-scale-pgbouncer-modes",
+    "title": "Cuidados com o transaction pooling",
+    "question": "Depois de colocar o PgBouncer em modo transaction pooling na frente do PostgreSQL, uma aplicação que usa SET em nível de sessão e advisory locks de sessão passa a se comportar de forma errática. Por quê?",
+    "options": [
+      "O PgBouncer reescreve todo comando SET de sessão como SET LOCAL",
+      "Advisory locks não são suportados pelo PostgreSQL atrás de qualquer proxy",
+      "Transações podem ir para outra conexão e perder o estado de sessão",
+      "O modo transaction desabilita prepared statements no nível do servidor"
+    ],
+    "explanation": "No transaction pooling, uma conexão do servidor volta ao pool após cada transação, então estados de sessão como valores de SET e advisory locks de sessão podem se aplicar a outro cliente ou desaparecer. Use session pooling ou alternativas com escopo de transação (SET LOCAL, pg_advisory_xact_lock). O PgBouncer não reescreve SET, e advisory locks funcionam bem com session pooling."
+  },
+  {
+    "id": "db-scale-shard-key",
+    "title": "Escolhendo uma shard key",
+    "question": "Um SaaS multi-tenant faz sharding da tabela events. Shard keys propostas: created_at, um UUID aleatório, tenant_id ou event_type. A maioria das queries filtra por tenant, e os tamanhos dos tenants são moderadamente desiguais. Qual chave geralmente é a melhor, e com qual ressalva?",
+    "options": [
+      "event_type, já que tem baixa cardinalidade e é fácil de rotear",
+      "Um UUID aleatório, já que faz toda query atingir um único shard",
+      "created_at, já que chaves ordenadas no tempo espalham as escritas",
+      "tenant_id, de olho em tenants muito grandes que virem hotspots"
+    ],
+    "explanation": "Fazer sharding por tenant_id mantém os dados de cada tenant em um shard, então a maioria das queries atinge um único shard; a ressalva é que um tenant enorme pode virar um hot shard que precisa de tratamento especial. created_at, por ser monotônico, manda todas as escritas novas para um shard, um UUID aleatório espalha as escritas mas força scatter-gather nas queries por tenant, e event_type, com baixa cardinalidade, limita a distribuição."
+  },
+  {
+    "id": "db-nosql-redis-sorted-set",
+    "title": "Estrutura de dados do Redis para rankings",
+    "question": "Qual tipo de dado do Redis foi projetado para um ranking que precisa retornar os 10 melhores jogadores por pontuação de forma eficiente?",
+    "options": [
+      "List (LPUSH / LRANGE)",
+      "Sorted set (ZADD / ZRANGE ... REV)",
+      "Hash (HSET / HGETALL)",
+      "Set (SADD / SMEMBERS)"
+    ],
+    "explanation": "Sorted sets mantêm os membros ordenados por score, então inserir é O(log N) e buscar os N primeiros é rápido. Lists são ordenadas por inserção, hashes são mapas de campo-valor e sets não têm ordem, então todos exigiriam ordenar no cliente."
+  },
+  {
+    "id": "db-nosql-redis-lock",
+    "title": "Aquisição segura de chave no Redis",
+    "question": "Um worker precisa reivindicar uma chave de job no Redis apenas se ninguém a detém, com expiração automática se o worker morrer. Qual comando único faz isso atomicamente?",
+    "options": [
+      "SET job:42 worker-7 XX EX 30",
+      "SET job:42 worker-7 NX PX 30000",
+      "SETNX job:42 worker-7 seguido de EXPIRE job:42 30",
+      "GET job:42 e depois SET job:42 worker-7 se vazio"
+    ],
+    "explanation": "SET com NX (só se não existir) e PX/EX (expiração) é atômico, então não há janela em que a chave exista sem TTL. SETNX mais EXPIRE são dois comandos, e uma queda entre eles deixa uma chave permanente; GET seguido de SET tem race condition; XX só define quando a chave já existe. Libere com um script de compare-and-delete que verifica o valor."
+  },
+  {
+    "id": "db-nosql-mongo-embed",
+    "title": "Embedding vs referência no MongoDB",
+    "question": "No MongoDB, um post de blog tem algumas poucas tags sempre lidas junto com o post, e também comentários que podem chegar a dezenas de milhares. Qual modelo é mais adequado?",
+    "options": [
+      "Embutir as tags; comentários em coleção própria referenciando o post",
+      "Referenciar tags de uma coleção separada; embutir todos os comentários no post",
+      "Embutir as tags e todos os comentários no documento do post",
+      "Guardar tudo em coleções separadas unidas com $lookup"
+    ],
+    "explanation": "Embuta dados pequenos e limitados que são lidos juntos; referencie dados ilimitados e crescentes para evitar documentos enormes e o limite de 16 MB por documento BSON. Embutir todos os comentários arrisca crescimento ilimitado, e separar as tags adiciona lookups desnecessários para dados sempre lidos com o post."
+  },
+  {
+    "id": "db-nosql-redis-eviction",
+    "title": "Redis usado como cache e como store",
+    "question": "Uma instância Redis com maxmemory configurado guarda tanto entradas de cache (com TTL) quanto dados de sessão (sem TTL). Sob pressão de memória, você quer que apenas as entradas de cache sejam removidas. Qual política corresponde?",
+    "options": [
+      "allkeys-random",
+      "noeviction",
+      "volatile-lru",
+      "allkeys-lru"
+    ],
+    "explanation": "As políticas volatile-* só fazem eviction de chaves que têm expiração definida, então as chaves de sessão sem TTL são mantidas. allkeys-lru e allkeys-random podem remover sessões, e noeviction rejeita escritas quando a memória enche. Um design mais limpo a longo prazo é usar instâncias separadas para cache e para dados duráveis."
+  },
+  {
+    "id": "db-sql-upsert",
+    "title": "Upsert no PostgreSQL",
+    "question": "Você precisa inserir uma linha em counters(key PRIMARY KEY, n) ou incrementar n se a chave existir, atomicamente sob concorrência. Qual instrução faz isso?",
+    "options": [
+      "INSERT ... ON CONFLICT (key) DO UPDATE SET n = counters.n + 1",
+      "UPDATE ... SET n = n + 1 e, se nenhuma linha mudar, INSERT",
+      "MERGE INTO counters ... sem constraint única em key",
+      "INSERT ... ON CONFLICT DO NOTHING seguido de um retry na aplicação"
+    ],
+    "explanation": "INSERT ... ON CONFLICT DO UPDATE é um upsert atômico que depende do índice único para arbitrar conflitos. DO NOTHING pula o incremento, UPDATE seguido de INSERT tem race condition (duas sessões podem inserir), e o MERGE no PostgreSQL ainda pode falhar com unique violations sob inserts concorrentes e precisa de uma chave única para fazer sentido."
+  },
+  {
+    "id": "db-tx-isolation-default",
+    "title": "Isolamento padrão do PostgreSQL",
+    "question": "Qual é o nível de isolamento de transação padrão no PostgreSQL?",
+    "options": [
+      "READ UNCOMMITTED",
+      "REPEATABLE READ",
+      "SERIALIZABLE",
+      "READ COMMITTED"
+    ],
+    "explanation": "O PostgreSQL usa READ COMMITTED por padrão, em que cada instrução vê os dados com commit feito antes de ela começar. READ UNCOMMITTED é aceito, mas se comporta como READ COMMITTED, enquanto REPEATABLE READ e SERIALIZABLE precisam ser solicitados explicitamente."
+  },
+  {
+    "id": "db-agg-group-by-functional",
+    "title": "Agrupando pela primary key",
+    "question": "No PostgreSQL, SELECT u.id, u.name, COUNT(o.id) FROM users u LEFT JOIN orders o ON o.user_id = u.id GROUP BY u.id; roda sem erro. Por que u.name é permitido sem estar no GROUP BY?",
+    "options": [
+      "Colunas do lado esquerdo de um LEFT JOIN são isentas de agrupamento",
+      "u.name depende funcionalmente de u.id, a primary key de users",
+      "O PostgreSQL escolhe um valor arbitrário de name, como o modo permissivo do MySQL",
+      "COUNT() agrupa implicitamente por todas as colunas da lista do SELECT"
+    ],
+    "explanation": "O PostgreSQL permite colunas não agrupadas quando elas dependem funcionalmente das colunas agrupadas, o que ele reconhece quando a primary key de uma tabela está no GROUP BY. Ele não escolhe valores arbitrários, não existe isenção para lados do join, e agregações nunca adicionam agrupamento implícito."
+  },
+  {
+    "id": "perf-fund-percentiles",
+    "title": "Por que usar percentis",
+    "question": "A latência média de uma API é de 120 ms, mas os usuários reclamam de lentidão. Qual métrica revela melhor a experiência das requisições mais lentas?",
+    "options": [
+      "Latência média",
+      "Latência mediana (p50)",
+      "Latência p99",
+      "Requisições por segundo"
+    ],
+    "explanation": "Médias e medianas escondem a cauda; o p99 mostra o que o 1% mais lento das requisições experimenta, o que muitas vezes domina a percepção do usuário e as chamadas com fan-out. Throughput (requisições por segundo) mede volume, não a latência individual."
+  },
+  {
+    "id": "perf-fund-littles-law",
+    "title": "Lei de Little para capacidade",
+    "question": "Um serviço atende 200 requisições/segundo com latência média de 250 ms. Pela Lei de Little, aproximadamente quantas requisições estão em andamento, em média?",
+    "options": [
+      "800",
+      "50",
+      "200",
+      "0.8"
+    ],
+    "explanation": "Lei de Little: concorrência L = taxa de chegada lambda x tempo no sistema W = 200/s x 0.25 s = 50. Isso ajuda a dimensionar thread pools e connection pools: se a latência dobra com carga constante, as requisições em andamento também dobram."
+  },
+  {
+    "id": "perf-fund-queueing-utilization",
+    "title": "Latência perto da saturação",
+    "question": "A latência de um serviço CPU-bound fica estável até 70% de utilização e então dispara em 90%, enquanto o throughput quase não sobe. O que melhor explica isso?",
+    "options": [
+      "O scheduler do SO para de fazer time-slicing acima de 90% de utilização",
+      "A largura de banda da rede é consumida pela latência extra",
+      "O atraso de fila cresce de forma não linear perto de 100% de uso",
+      "O garbage collector se desativa acima de 80% de CPU"
+    ],
+    "explanation": "Na teoria das filas, o tempo de espera cresce aproximadamente na proporção de u/(1-u), então perto da saturação pequenos aumentos de carga geram filas grandes. É por isso que planos de capacidade mantêm folga e por que load shedding ajuda. As afirmações sobre GC, largura de banda e scheduler não refletem como os sistemas se comportam."
+  },
+  {
+    "id": "perf-prof-flamegraph",
+    "title": "Lendo um flame graph",
+    "question": "Em um flame graph de CPU, o que a largura de um frame representa?",
+    "options": [
+      "A fração das amostras com essa função na stack",
+      "O número de chamadores distintos da função",
+      "A quantidade de memória que a função alocou",
+      "O horário em que a função foi chamada pela primeira vez"
+    ],
+    "explanation": "Flame graphs agregam stacks amostradas; a largura é a fração das amostras que incluem aquele frame, então frames largos indicam para onde vai o tempo de CPU (de forma inclusiva). O eixo x não é uma linha do tempo, e flame graphs de CPU padrão não codificam alocações nem número de chamadores."
+  },
+  {
+    "id": "perf-prof-microbench",
+    "title": "Armadilhas de microbenchmarks",
+    "question": "Um desenvolvedor mede um método com um Stopwatch em volta de uma única chamada em um build de debug e conclui que a versão B é 3x mais rápida que a A. Por que isso não é confiável, e o que é melhor?",
+    "options": [
+      "Builds de debug são mais rápidos, então os resultados exageram a diferença",
+      "Ignora warmup, JIT e ruído; use BenchmarkDotNet em Release",
+      "Stopwatch é impreciso abaixo de um segundo; use DateTime.Now",
+      "Uma chamada basta, mas ela precisa rodar em outra máquina"
+    ],
+    "explanation": "Medições únicas em Debug ignoram o warmup do JIT, a tiered compilation, o GC e o ruído entre execuções. Harnesses de benchmark rodam em Release, fazem warmup, executam muitas iterações e reportam estatísticas como média e erro. DateTime.Now é menos preciso que Stopwatch, e builds de Debug costumam ser mais lentos, não mais rápidos."
+  },
+  {
+    "id": "perf-prof-production-trace",
+    "title": "Profiling de uma lentidão em produção",
+    "question": "Um serviço .NET em produção apresenta CPU alta apenas sob tráfego real, e o problema não se reproduz localmente. Qual é o primeiro passo mais adequado?",
+    "options": [
+      "Adicionar timestamps com Console.WriteLine em todos os métodos e fazer redeploy",
+      "Anexar um debugger e percorrer as requisições passo a passo em produção",
+      "Rodar um microbenchmark do método suspeito em um notebook",
+      "Coletar um trace de CPU do processo em execução com dotnet-trace"
+    ],
+    "explanation": "Profilers por amostragem como o dotnet-trace capturam onde a CPU é gasta com baixo overhead em um processo em execução, o ideal para problemas que só aparecem sob carga real. Breakpoints do debugger pausam o processo, logging generalizado distorce os tempos e exige redeploys, e benchmarks em notebook podem não reproduzir as condições de produção."
+  },
+  {
+    "id": "perf-mem-loh",
+    "title": "Pressão no large object heap",
+    "question": "Uma API .NET aloca um novo buffer byte[] de 200 KB por requisição, e coletas de gen2 são frequentes. Qual mudança reduz melhor essa pressão?",
+    "options": [
+      "Marcar a variável do buffer como static readonly por requisição",
+      "Alocar buffers de 50 KB quatro vezes em vez de um de 200 KB",
+      "Chamar GC.Collect() no fim de cada requisição",
+      "Alugar buffers do ArrayPool<byte>.Shared e devolvê-los"
+    ],
+    "explanation": "Objetos de 85.000 bytes ou mais vão para o large object heap, que é coletado junto com a gen2, então alocações no LOH por requisição provocam coletas caras. O pooling reutiliza buffers e evita as alocações. Forçar o GC piora as coisas, dividir os buffers continua alocando por requisição, e um buffer static compartilhado não é thread-safe entre requisições."
+  },
+  {
+    "id": "perf-mem-generational",
+    "title": "Hipótese geracional do GC",
+    "question": "Por que garbage collectors geracionais, como o do .NET, coletam a gen0 com muito mais frequência que a gen2?",
+    "options": [
+      "A maioria dos objetos morre jovem; varrer só os novos recupera lixo barato",
+      "A gen2 fica armazenada em disco e é cara de ler",
+      "Objetos da gen0 são maiores, então consomem a memória mais rápido",
+      "A gen0 contém só campos static, que mudam com muita frequência"
+    ],
+    "explanation": "A hipótese geracional diz que a maioria das alocações tem vida curta, então coletar com frequência a pequena geração jovem é barato e produtivo, enquanto objetos de vida longa são promovidos e varridos raramente. Objetos da gen0 não são maiores, a gen2 fica em memória, e campos static são raízes, não objetos da gen0."
+  },
+  {
+    "id": "perf-mem-leak-cache",
+    "title": "Memória crescendo sem limite",
+    "question": "A memória de um serviço cresce continuamente por dias até ele ser morto por OOM. Um heap dump mostra milhões de entradas em um Dictionary static usado como cache com chave pelo id da requisição. Qual é a correção certa?",
+    "options": [
+      "Chamar GC.Collect() quando a memória passar de 80% do limite",
+      "Trocar para Server GC para que as coletas rodem com mais frequência",
+      "Aumentar o limite de memória do container e reiniciar toda noite",
+      "Usar um cache limitado, com limite de tamanho e expiração"
+    ],
+    "explanation": "Objetos alcançáveis a partir de uma raiz static nunca são coletados, então um dicionário sem limite é um vazamento de memória gerenciada. Um cache limitado (limite de tamanho, eviction, TTL) restringe o crescimento; usar o id da requisição como chave também dá uma taxa de acerto quase nula. Mais memória e reinícios só adiam a queda, e configurações de GC não liberam objetos alcançáveis."
+  },
+  {
+    "id": "perf-db-n-plus-one",
+    "title": "Identificando queries N+1",
+    "question": "Um endpoint lista 100 blogs e, dentro de um loop, acessa blog.Posts, que carrega os posts via lazy loading. O log de SQL mostra 101 queries. Como se chama esse problema?",
+    "options": [
+      "O problema de queries N+1",
+      "Um lost update",
+      "Uma explosão cartesiana",
+      "Esgotamento do connection pool"
+    ],
+    "explanation": "Uma query busca N pais e depois N queries adicionais buscam a coleção de filhos de cada um, adicionando um round trip por item. Corrija com eager loading (Include), uma projeção ou uma query em lote com IN. A explosão cartesiana é o problema oposto, de um único join duplicando linhas, e esgotamento de pool e lost updates não têm relação."
+  },
+  {
+    "id": "perf-db-cartesian-split",
+    "title": "Explosão cartesiana com eager loading",
+    "question": "Uma query do EF Core faz .Include(o => o.Items).Include(o => o.Payments) para 1000 pedidos com média de 20 itens e 10 pagamentos. Ela é lenta e transfere result sets enormes. O que ajuda mais?",
+    "options": [
+      "Aumentar o command timeout do banco para 120 segundos",
+      "Trocar os dois Include por lazy loading proxies",
+      "Adicionar AsNoTracking() para evitar o change tracking",
+      "Usar AsSplitQuery() para carregar cada coleção à parte"
+    ],
+    "explanation": "Incluir duas coleções irmãs em um único JOIN retorna cerca de 20 x 10 = 200 linhas por pedido, duplicando dados (explosão cartesiana). Split queries carregam cada coleção separadamente, ao custo de mais round trips e sem a consistência de um snapshot único. AsNoTracking reduz overhead, mas não o número de linhas, lazy loading reintroduz o N+1, e timeouts escondem o custo."
+  },
+  {
+    "id": "perf-db-pool-exhaustion",
+    "title": "Timeouts do connection pool",
+    "question": "Sob carga, uma aplicação registra 'Timeout expired. The timeout period elapsed prior to obtaining a connection from the pool', enquanto a CPU do banco está em apenas 20%. Qual é a causa mais provável?",
+    "options": [
+      "O banco ficou sem espaço em disco para novas conexões de clientes",
+      "As queries SQL estão usando índices demais",
+      "Conexões vazam ou ficam presas durante chamadas externas lentas",
+      "O pool é pequeno demais para qualquer volume de tráfego"
+    ],
+    "explanation": "Com baixa carga no banco, o pool geralmente fica sem conexões porque elas não são devolvidas a tempo: falta de dispose/using, ou uma conexão ou transação mantida aberta enquanto se aguarda uma chamada HTTP. Corrija o tempo de vida primeiro; aumentar o pool às cegas pode sobrecarregar o banco. Espaço em disco e quantidade de índices não causam timeouts ao obter conexões do pool."
+  },
+  {
+    "id": "perf-db-pool-sizing",
+    "title": "Connection pools superdimensionados",
+    "question": "Quarenta instâncias da aplicação usam, cada uma, um pool de 100 conexões contra um único servidor PostgreSQL com 8 cores. Nos picos, o throughput cai e a latência sobe. Qual mudança tem mais chance de ajudar?",
+    "options": [
+      "Desativar o autovacuum durante os picos para liberar CPU para as queries",
+      "Dar a cada instância sua própria read replica, independentemente das escritas",
+      "Diminuir pools ou usar PgBouncer, com backends ativos perto do total de cores",
+      "Aumentar max_connections para 8000 para nenhuma instância esperar conexão"
+    ],
+    "explanation": "Cada conexão do PostgreSQL é um processo backend; milhares de conexões ativas causam context switching, contenção de locks e pressão de memória, então o throughput cai. Um número pequeno de conexões ativas, próximo ao número de cores, com enfileiramento em um pooler, costuma ser mais rápido. Mais conexões pioram a contenção, réplicas não ajudam nas escritas, e desativar o autovacuum causa bloat."
+  },
+  {
+    "id": "perf-db-select-star",
+    "title": "Buscando colunas demais",
+    "question": "Uma tela de listagem precisa apenas de id e title, mas a query do ORM carrega as entidades inteiras, incluindo uma grande coluna de texto body. Qual é a principal melhoria de performance?",
+    "options": [
+      "Projetar só as duas colunas: Select(p => new { p.Id, p.Title })",
+      "Adicionar um índice na coluna body",
+      "Carregar as entidades uma a uma com Find() para manter cada query pequena",
+      "Envolver a query em uma transação serializable"
+    ],
+    "explanation": "A projeção reduz I/O, tráfego de rede e custo de materialização, e pode permitir index-only scans. Indexar body não diminui o payload, o nível de isolamento não tem relação, e carregar linhas uma de cada vez introduz round trips N+1."
+  },
+  {
+    "id": "perf-cache-stampede",
+    "title": "Cache stampede",
+    "question": "Uma chave muito acessada com TTL de 60s expira e 2000 requisições concorrentes dão cache miss ao mesmo tempo, todas rodando a mesma query cara e sobrecarregando o banco. Qual mitigação ataca isso diretamente?",
+    "options": [
+      "Agrupar os misses para que um só chamador recalcule o valor",
+      "Comprimir o valor em cache para reduzir memória",
+      "Baixar o TTL para 10 segundos para as entradas ficarem mais frescas",
+      "Replicar o valor em mais nós de cache para redundância"
+    ],
+    "explanation": "Um stampede (dogpile) acontece quando muitos chamadores regeneram a mesma entrada expirada ao mesmo tempo. Locking single-flight, servir conteúdo stale enquanto revalida ou refresh antecipado probabilístico limitam o recálculo a um só chamador. TTLs menores causam mais stampedes, replicação não impede os misses concorrentes, e compressão não tem relação."
+  },
+  {
+    "id": "perf-cache-redis-pipeline",
+    "title": "Muitas chamadas pequenas ao Redis",
+    "question": "Uma requisição faz 500 chamadas GET sequenciais ao Redis, cada uma com ~0,5 ms de latência de round trip. Qual mudança reduz mais o tempo?",
+    "options": [
+      "Aumentar a configuração maxmemory do Redis",
+      "Agrupar as leituras com MGET ou pipelining",
+      "Usar um connection pool maior com as mesmas chamadas sequenciais",
+      "Trocar os valores de strings para hashes"
+    ],
+    "explanation": "O tempo é dominado por 500 round trips de rede (cerca de 250 ms). MGET ou pipelining enviam os comandos em um lote, então você paga aproximadamente um RTT. Mudar tipos de dados ou memória não reduz round trips, e um pool maior não ajuda quando as chamadas são emitidas sequencialmente."
+  },
+  {
+    "id": "perf-cache-compression",
+    "title": "Trade-off da compressão de respostas",
+    "question": "Quando habilitar compressão de respostas HTTP (gzip/Brotli) costuma ajudar mais?",
+    "options": [
+      "Servidores com CPU saturada enviando streams de vídeo binário",
+      "Respostas com menos de 100 bytes em uma rede local",
+      "Payloads de texto grandes, como JSON, em links lentos",
+      "Imagens pequenas já comprimidas, como JPEG"
+    ],
+    "explanation": "Texto comprime bem, então a compressão reduz o tempo de transferência de JSON/HTML maiores, especialmente em links lentos. Formatos já comprimidos ganham pouco, respostas minúsculas não se beneficiam, e em servidores limitados por CPU o custo da compressão pode prejudicar."
+  },
+  {
+    "id": "perf-load-test-types",
+    "title": "Load test vs stress test vs soak test",
+    "question": "Você quer descobrir se vazamentos de memória ou degradação lenta aparecem quando o sistema roda sob carga normal por 8 horas. Que tipo de teste é esse?",
+    "options": [
+      "Stress test",
+      "Smoke test",
+      "Spike test",
+      "Soak test"
+    ],
+    "explanation": "Um soak test (teste de resistência) roda carga típica por um longo período para expor vazamentos, esgotamento de recursos e degradação. Spike tests aplicam picos repentinos, smoke tests verificam a funcionalidade básica com carga mínima, e stress tests vão além da capacidade normal para encontrar pontos de ruptura."
+  },
+  {
+    "id": "perf-load-open-model",
+    "title": "Coordinated omission",
+    "question": "Um teste de carga usa 50 virtual users que esperam cada resposta antes de enviar a próxima requisição. Quando o sistema fica lento, o teste reporta menos requisições, mas o p99 quase não muda. Qual é o problema?",
+    "options": [
+      "O percentil p99 é grosseiro demais; reporte o p50",
+      "Virtual users compartilham cookies, então as respostas vêm do cache",
+      "Coordinated omission; use um executor aberto, por arrival rate",
+      "O teste precisa de mais think time entre requisições para ser realista"
+    ],
+    "explanation": "Em um modelo fechado, respostas lentas freiam o próprio gerador de carga, que subamostra os períodos lentos (coordinated omission). Executors de modelo aberto, como constant-arrival-rate, continuam injetando requisições a uma taxa fixa, expondo a latência real de fila. Mais think time piora o efeito, e trocar para p50 esconde ainda mais a cauda."
+  },
+  {
+    "id": "perf-load-thresholds",
+    "title": "Critérios de pass/fail em testes de carga",
+    "question": "Você quer que um teste de carga no CI falhe automaticamente se a latência p95 passar de 300 ms ou a taxa de erros passar de 1%. Qual recurso do k6 oferece isso?",
+    "options": [
+      "Groups, que dividem as métricas por seção lógica",
+      "Checks, que abortam o teste na primeira asserção que falhar",
+      "Tags, que marcam requisições lentas como falhas",
+      "Thresholds, ex.: http_req_duration: ['p(95)<300']"
+    ],
+    "explanation": "Thresholds definem critérios de pass/fail sobre métricas, e um threshold que falha faz o k6 sair com código diferente de zero no CI. Checks registram resultados de asserções, mas não falham a execução por si só, enquanto groups e tags organizam métricas sem definir critérios."
+  },
+  {
+    "id": "perf-fund-tail-fanout",
+    "title": "Latência de cauda em escala",
+    "question": "Uma requisição faz fan-out para 100 shards de backend em paralelo e espera por todos. Cada shard tem p99 de 50 ms. Aproximadamente que fração das requisições de usuários verá pelo menos um shard mais lento que o seu p99?",
+    "options": [
+      "Cerca de 1%",
+      "Cerca de 63%",
+      "Cerca de 99%",
+      "Cerca de 10%"
+    ],
+    "explanation": "A probabilidade de todas as 100 chamadas serem mais rápidas que o p99 é 0.99^100, cerca de 0,366, então cerca de 63% das requisições atingem pelo menos um shard lento. É por isso que o fan-out amplifica a latência de cauda e por que técnicas como hedged requests importam."
+  }
+]

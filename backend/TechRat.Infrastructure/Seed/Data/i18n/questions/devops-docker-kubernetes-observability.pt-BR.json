@@ -1,0 +1,1058 @@
+[
+  {
+    "id": "devops-shell-pipefail-masks-failure",
+    "title": "Falha de pipeline escondida pelo set -e",
+    "question": "Uma etapa de CI executa `set -e` e depois `curl -s https://example.com/dump | gzip > dump.gz`. O download retorna um erro de conexão, mas a etapa passa e um arquivo vazio é publicado. Por quê?",
+    "options": [
+      "O curl sempre sai com status 0, a menos que `--fail-fast` seja passado, mesmo com erros de rede",
+      "`set -e` é ignorado dentro de runners de CI, então nenhuma falha de comando interrompe o script",
+      "Sem `set -o pipefail`, o status do pipeline é o do último comando (gzip), que teve sucesso",
+      "Redirecionar a saída com `>` reseta `$?` para 0, então o shell não enxerga nenhuma falha anterior"
+    ],
+    "explanation": "Por padrão, o Bash reporta como status de um pipeline o status do seu último comando, então um curl que falhou é mascarado por um gzip bem-sucedido e o `set -e` nunca é acionado. `set -o pipefail` faz o pipeline retornar o status diferente de zero mais à direita. `set -e` funciona normalmente em CI, o curl retorna valor diferente de zero em erros de conexão, e o redirecionamento não reseta status."
+  },
+  {
+    "id": "devops-shell-uncatchable-signal",
+    "title": "Sinal que um processo não consegue tratar",
+    "question": "Um processo problemático instala handlers para a maioria dos sinais e os ignora. Qual sinal tem garantia de encerrá-lo por não poder ser capturado, bloqueado nem ignorado?",
+    "options": [
+      "SIGINT",
+      "SIGKILL",
+      "SIGTERM",
+      "SIGHUP"
+    ],
+    "explanation": "SIGKILL (assim como SIGSTOP) não pode ser capturado, bloqueado nem ignorado, então o kernel sempre encerra o processo. SIGTERM, SIGINT e SIGHUP podem ser tratados ou ignorados pelo processo, e é por isso que o SIGTERM é o primeiro passo educado de um graceful shutdown."
+  },
+  {
+    "id": "devops-shell-chmod-750",
+    "title": "Interpretando chmod 750",
+    "question": "Depois de executar `chmod 750 deploy.sh`, quais permissões o arquivo tem?",
+    "options": [
+      "Dono leitura/escrita/execução, grupo leitura/escrita, outros só execução",
+      "Dono leitura/escrita, grupo leitura/execução, outros só leitura",
+      "Dono leitura/execução, grupo leitura/escrita/execução, outros sem acesso",
+      "Dono leitura/escrita/execução, grupo leitura/execução, outros sem acesso"
+    ],
+    "explanation": "Cada dígito octal corresponde a dono, grupo e outros; 7 = rwx (4+2+1), 5 = r-x (4+1) e 0 = nenhuma permissão. Os distratores atribuem os dígitos de forma errada, por exemplo lendo 5 como rw- (que seria 6)."
+  },
+  {
+    "id": "devops-ci-core-practice",
+    "title": "Essência da integração contínua",
+    "question": "Qual prática é mais essencial para a integração contínua?",
+    "options": [
+      "Mudanças pequenas entram na mainline com frequência, cada uma verificada por build e testes automatizados",
+      "Os testes rodam todas as noites em um servidor dedicado, e não a cada commit, para economizar recursos",
+      "Um release manager integra manualmente todas as branches do time no fim de cada sprint",
+      "Cada dev trabalha em uma feature branch de longa duração que é mergeada quando a feature fica pronta"
+    ],
+    "explanation": "CI significa integrar na mainline pelo menos diariamente, com cada integração verificada por um build automatizado e autotestável, para que problemas de integração apareçam enquanto ainda são pequenos. Branches de longa duração e merges no fim da sprint adiam a dor da integração, e testar só à noite atrasa o feedback em até um dia."
+  },
+  {
+    "id": "devops-ci-overlapping-deploys",
+    "title": "Workflows de deploy sobrepostos",
+    "question": "Dois pushes rápidos na `main` iniciam duas execuções de deploy no GitHub Actions. A execução mais antiga termina por último e sobrescreve produção com o build antigo. Qual é a correção idiomática?",
+    "options": [
+      "Adicionar `timeout-minutes` ao job de deploy para que execuções lentas sejam canceladas antes de sobrescrever produção",
+      "Marcar o workflow com `continue-on-error: true` para que a execução mais nova tenha precedência automaticamente",
+      "Usar uma estratégia `matrix` para que cada commit faça deploy no seu próprio runner isolado, em paralelo",
+      "Adicionar um grupo de `concurrency` (ex.: por ambiente) para que só uma execução de deploy rode por vez"
+    ],
+    "explanation": "Um grupo de `concurrency` garante no máximo um job ou workflow em execução por grupo, e com `cancel-in-progress` a execução obsoleta é cancelada; isso serializa os deploys para um ambiente. Timeouts não ordenam execuções, uma matrix aumenta o paralelismo e `continue-on-error` só controla o tratamento de falhas."
+  },
+  {
+    "id": "devops-ci-oidc-cloud-auth",
+    "title": "Substituindo chaves de nuvem estáticas no CI",
+    "question": "Uma revisão de segurança aponta chaves de acesso de nuvem de longa duração guardadas como secrets do repositório para deploys a partir do GitHub Actions. Qual design melhor as elimina e ao mesmo tempo limita quem pode fazer deploy?",
+    "options": [
+      "Criptografar as chaves com uma passphrase GPG guardada em um segundo secret e descriptografá-las durante o job",
+      "Rotacionar as chaves mensalmente com um workflow agendado e guardá-las como secrets da organização com acesso restrito",
+      "Usar OIDC com `id-token: write` e fazer a nuvem confiar só em tokens cujas claims batem com este repo e ambiente",
+      "Mover as chaves para o arquivo do workflow em base64 e restringir o repositório à visibilidade privada"
+    ],
+    "explanation": "Com OIDC, o job obtém um token assinado de curta duração, e o provedor de nuvem o troca por credenciais temporárias somente se claims como `sub` (repo, branch, ambiente) baterem com a política de confiança, então não existe nenhum secret de longa duração. Rotação e criptografia extra ainda deixam credenciais estáticas para serem roubadas, e base64 em um arquivo não é proteção nenhuma."
+  },
+  {
+    "id": "devops-artifacts-build-once",
+    "title": "Build uma vez, promova em todo lugar",
+    "question": "Um pipeline recompila a aplicação a partir do código-fonte separadamente para staging e para produção. Um bug aparece só em produção, embora staging tenha passado. Qual prática evita essa classe de problema?",
+    "options": [
+      "Gerar um único artefato imutável e versionado e promover exatamente esse artefato por todos os ambientes",
+      "Recompilar para produção com um cache de dependências limpo para sempre incluir as versões mais recentes das bibliotecas",
+      "Rodar a suíte de testes completa de novo após o rebuild de produção em vez de confiar nos resultados de staging",
+      "Dar a produção uma branch própria para que seus builds fiquem isolados das mudanças da branch de staging"
+    ],
+    "explanation": "Recompilar por ambiente pode produzir um binário diferente (dependências, toolchains e flags que divergem), então o que foi testado não é o que vai para produção. Promover um único artefato imutável, como a engenharia de release recomenda com builds reproduzíveis e versionados, garante que staging testou exatamente os bits que rodam em produção. Caches limpos e branches por ambiente aumentam a divergência em vez de eliminá-la."
+  },
+  {
+    "id": "devops-artifacts-cache-key",
+    "title": "Chave de cache de dependências no CI",
+    "question": "Um workflow Node.js usa `actions/cache` para `~/.npm`. Qual chave de cache traz dependências novas quando elas mudam e reaproveita o cache nos demais casos?",
+    "options": [
+      "`npm-${{ runner.os }}-${{ github.workflow }}-${{ github.run_id }}`",
+      "`npm-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}`",
+      "`npm-${{ runner.os }}-static`",
+      "`npm-${{ runner.os }}-${{ github.sha }}`"
+    ],
+    "explanation": "Fazer o hash do lockfile muda a chave exatamente quando o conjunto resolvido de dependências muda, então lockfiles inalterados acertam o cache. Chaves montadas a partir do SHA do commit ou do ID da execução mudam a cada execução e quase nunca acertam, enquanto uma chave estática nunca se atualiza e continua servindo dependências desatualizadas."
+  },
+  {
+    "id": "devops-artifacts-semver-patch",
+    "title": "Incremento de versão semântica para um bug fix",
+    "question": "Uma biblioteca na versão 2.4.1 publica uma correção de bug retrocompatível e nada mais. Pelo Semantic Versioning, qual é a próxima versão?",
+    "options": [
+      "2.4.1-1",
+      "2.4.2",
+      "3.0.0",
+      "2.5.0"
+    ],
+    "explanation": "O SemVer incrementa o PATCH para correções de bugs retrocompatíveis, o MINOR para novas funcionalidades retrocompatíveis e o MAJOR para breaking changes. Um sufixo com hífen indica uma pré-release, que tem precedência menor que 2.4.1, então não seria uma release mais nova."
+  },
+  {
+    "id": "devops-iac-plan-purpose",
+    "title": "O que o terraform plan faz",
+    "question": "Antes de alterar a infraestrutura de produção, você quer ver o que o Terraform criaria, atualizaria ou destruiria sem fazer nenhuma mudança. Qual comando você executa?",
+    "options": [
+      "terraform apply -refresh-only",
+      "terraform init -upgrade",
+      "terraform validate",
+      "terraform plan"
+    ],
+    "explanation": "`terraform plan` compara a configuração com o state e com a infraestrutura real e mostra as ações propostas sem executá-las. `validate` só verifica a sintaxe e a consistência interna, `init -upgrade` atualiza providers e módulos, e `apply -refresh-only` pode atualizar o state."
+  },
+  {
+    "id": "devops-iac-state-locking",
+    "title": "terraform apply concorrente",
+    "question": "Dois engenheiros executam `terraform apply` contra o mesmo ambiente ao mesmo tempo, a partir dos seus notebooks, usando um state file em um bucket compartilhado sem locking. Recursos acabam duplicados e o state é corrompido. O que evita isso?",
+    "options": [
+      "Commitar o arquivo `terraform.tfstate` no Git para que conflitos de merge revelem mudanças concorrentes",
+      "Adicionar `depends_on` entre todos os recursos para que o Terraform serialize as operações",
+      "Um backend com state locking, para que uma segunda operação espere ou falhe enquanto o lock existir",
+      "Executar `terraform fmt` antes de cada apply para que as duas configurações fiquem textualmente idênticas"
+    ],
+    "explanation": "Com locking habilitado, o Terraform adquire um lock para qualquer operação que possa escrever no state, então applies concorrentes não conseguem se intercalar. Formatação não tem efeito sobre o state, commitar o state no Git expõe secrets e ainda permite condições de corrida, e `depends_on` só ordena recursos dentro de uma única execução."
+  },
+  {
+    "id": "devops-iac-count-index-shift",
+    "title": "Removendo um item de uma lista com count",
+    "question": "Buckets são criados com `count = length(var.names)` e `name = var.names[count.index]`, onde names = [\"logs\", \"media\", \"backups\"]. Você remove \"logs\" da lista. O que o plan mostra?",
+    "options": [
+      "\"media\" e \"backups\" descem um índice, então são substituídos e um bucket é destruído",
+      "Só o bucket \"logs\" é destruído, porque o Terraform associa as instâncias pelo atributo name",
+      "Nada muda até você executar `terraform state rm` manualmente para o bucket de logs",
+      "O Terraform se recusa a gerar o plan porque listas com `count` não podem encolher depois de criadas"
+    ],
+    "explanation": "Instâncias criadas com `count` são identificadas pelo índice, então remover o primeiro elemento desloca todos os seguintes: o índice 0 agora quer \"media\", o índice 1 quer \"backups\" e o índice 2 é destruído. Usar `for_each` com um set ou map identifica as instâncias por strings estáveis, então só a chave removida é destruída."
+  },
+  {
+    "id": "devops-iac-sensitive-in-state",
+    "title": "Valores sensíveis e o state do Terraform",
+    "question": "Um módulo recebe a senha do banco de dados por uma variável marcada com `sensitive = true`. O time conclui que a senha não fica mais armazenada em nenhum lugar legível. Por que isso está errado?",
+    "options": [
+      "O Terraform grava todos os valores sensíveis em um arquivo `.tfvars.secret` separado no diretório de trabalho",
+      "Sensitive só oculta os valores na saída do plan e da CLI; o valor continua registrado no state file",
+      "Sensitive só se aplica a outputs, então variáveis marcadas como sensitive aparecem em texto puro no plan",
+      "Valores sensíveis são criptografados no state com uma chave que é exibida na saída do apply"
+    ],
+    "explanation": "Marcar um valor como sensitive o oculta na saída do plan e do apply, mas o Terraform ainda o armazena no state, que fica em texto puro localmente. Por isso o state precisa ser tratado como sensível: guardado em um backend com criptografia em repouso e controle de acesso rígido. O Terraform não criptografa valores do state por conta própria nem cria arquivos paralelos de secrets."
+  },
+  {
+    "id": "devops-config-twelve-factor",
+    "title": "Onde fica a configuração",
+    "question": "Segundo a metodologia Twelve-Factor App, onde deve ficar a configuração que varia entre deploys (URLs de banco de dados, credenciais)?",
+    "options": [
+      "Em constantes compiladas dentro do binário da aplicação",
+      "Em um arquivo de config commitado junto ao código para cada ambiente",
+      "Em variáveis de ambiente, estritamente separadas do código",
+      "Em branches por ambiente do repositório de código-fonte"
+    ],
+    "explanation": "O Twelve-Factor exige separação estrita entre configuração e código e recomenda variáveis de ambiente, que mudam a cada deploy sem alterar o código e dificilmente são commitadas por acidente. Constantes, branches por ambiente e arquivos de config commitados acoplam a configuração ao código e tendem a vazar credenciais."
+  },
+  {
+    "id": "devops-secrets-leaked-commit",
+    "title": "Chave de API enviada a um repositório público",
+    "question": "Um desenvolvedor faz push de uma chave de API em um repositório público no GitHub e a remove no commit seguinte, um minuto depois. Qual é a ação mais importante?",
+    "options": [
+      "Tratar a chave como comprometida: revogá-la e rotacioná-la já, depois limpar o histórico",
+      "Reescrever o histórico do Git com force push, o que remove a chave de todas as cópias por completo",
+      "Tornar o repositório privado para que a chave no histórico não fique mais acessível",
+      "Nada mais; o commit seguinte removeu a chave antes que alguém pudesse tê-la visto"
+    ],
+    "explanation": "Depois do push, um secret pode ser copiado por scrapers em segundos e persiste no histórico, em forks e em clones, então a única suposição segura é que ele foi comprometido: revogue e rotacione primeiro. Apagá-lo em um commit posterior, tornar o repo privado ou reescrever o histórico não invalida as cópias que já existem."
+  },
+  {
+    "id": "devops-secrets-fork-pr",
+    "title": "Secrets em pull requests vindos de forks",
+    "question": "O workflow de um projeto open source roda em `pull_request`. Testes que chamam uma API externa com `${{ secrets.API_TOKEN }}` passam nas branches dos mantenedores, mas falham nos PRs de forks de contribuidores. Por quê?",
+    "options": [
+      "PRs de forks rodam em runners macOS, que não conseguem ler secrets do repositório",
+      "O secret precisa ser declarado de novo no fork do contribuidor com o mesmo nome para ser herdado",
+      "Secrets expiram após 24 horas, e os PRs de contribuidores costumam rodar depois que o token expirou",
+      "Exceto o GITHUB_TOKEN, os secrets não são repassados aos runners quando o workflow vem de um fork"
+    ],
+    "explanation": "O GitHub não repassa os secrets do repositório (exceto o `GITHUB_TOKEN`, que é somente leitura) para workflows disparados por forks, para que código não confiável não consiga exfiltrá-los. Secrets não expiram por tempo, o sistema operacional do runner é irrelevante, e os secrets do próprio fork nunca são usados pelo repositório upstream."
+  },
+  {
+    "id": "devops-deploy-blue-green",
+    "title": "Rollback em deploy blue/green",
+    "question": "Em um deploy blue/green, a nova versão no ambiente green apresenta erros logo após a troca. Como o rollback costuma ser feito?",
+    "options": [
+      "Recompilar a versão anterior a partir do código-fonte e fazer o deploy dela de novo no ambiente green",
+      "Apontar o roteador ou o load balancer de volta para o ambiente blue, que continua rodando",
+      "Transferir gradualmente 5% do tráfego por minuto do green de volta para o blue",
+      "Restaurar os servidores do ambiente green a partir do backup da noite anterior"
+    ],
+    "explanation": "O blue/green mantém dois ambientes prontos para produção e move o tráfego trocando o roteador, então o rollback é voltar para o ambiente antigo, ocioso mas intacto. Recompilar ou restaurar backups é lento, e a transferência gradual de tráfego descreve uma abordagem canary, não a troca do blue/green."
+  },
+  {
+    "id": "devops-deploy-canary-criteria",
+    "title": "Análise de canary e critérios de rollback",
+    "question": "Um canary recebe 5% do tráfego. Sua taxa de erro é 0,9%, enquanto os outros 95% da frota ficam em 0,3%; a latência parece semelhante. Qual abordagem de avaliação é correta?",
+    "options": [
+      "Promovê-lo, já que 0,9% de erro ainda está abaixo de um limiar típico de alerta de 1% para o serviço",
+      "Esperar o canary chegar a 50% do tráfego para que a taxa de erro seja estatisticamente relevante",
+      "Compará-lo a um baseline na mesma janela com limiares predefinidos e fazer rollback se violados",
+      "Ignorar a taxa de erro, porque a latência, o golden signal principal, não mudou"
+    ],
+    "explanation": "A análise de canary compara o canary com uma população de controle nas mesmas métricas e na mesma janela de tempo, com critérios de rollback definidos antecipadamente; uma taxa de erro 3x maior é uma regressão clara. Um limiar absoluto esconde regressões relativas, ampliar a exposição antes de decidir anula o propósito do canary, e erros importam tanto quanto latência."
+  },
+  {
+    "id": "devops-deploy-feature-flag-killswitch",
+    "title": "Feature flags vs novo deploy",
+    "question": "Um novo fluxo de checkout foi lançado de forma oculta atrás de um release toggle e depois habilitado para todos os usuários. Ele começa a causar falhas de pagamento. Qual é a mitigação segura mais rápida que as feature flags permitem?",
+    "options": [
+      "Reverter o merge commit e esperar o pipeline fazer build e deploy da versão antiga",
+      "Escalar o deployment para zero réplicas até o problema com o provedor de pagamento ser investigado",
+      "Remover o toggle do código para que nenhum usuário consiga mais acessar o novo fluxo",
+      "Desligar o toggle para que o fluxo antigo volte a ser servido sem nenhum deploy"
+    ],
+    "explanation": "Feature toggles desacoplam deploy de release, então uma release pode ser desfeita alterando a configuração em segundos. Reverter e refazer o deploy funciona, mas é mais lento, escalar para zero causa uma indisponibilidade total, e remover o toggle também exige mudança de código e deploy."
+  },
+  {
+    "id": "devops-deploy-expand-contract",
+    "title": "Mudanças de schema com rollback sem downtime",
+    "question": "Uma release renomeia a coluna `fullname` para `display_name` em uma única migration e faz deploy via blue/green. Quando a nova versão se comporta mal, voltar para o blue falha porque o blue ainda consulta `fullname`. Qual abordagem evita isso?",
+    "options": [
+      "Expand/contract: criar a nova coluna, gravar nas duas, migrar leitores e remover a antiga numa release futura",
+      "Envolver o rename em uma transação para que ele possa ser revertido automaticamente se o green falhar",
+      "Rodar a migration só depois que o tráfego for para o green, para que o blue nunca veja o novo schema",
+      "Dar ao blue e ao green cópias separadas do banco e mesclar os dados depois que a release for validada"
+    ],
+    "explanation": "O expand/contract (parallel change) mantém o schema compatível tanto com a versão antiga quanto com a nova durante a transição, então qualquer uma pode atender tráfego e o rollback continua possível. Migrar depois da troca ainda quebra o blue no rollback, bancos separados geram escritas divergentes difíceis de reconciliar, e uma transação já commitada não pode ser desfeita depois."
+  },
+  {
+    "id": "docker-layers-copy-order",
+    "title": "Dependências reinstaladas a cada mudança de código",
+    "question": "Este Dockerfile reinstala todos os pacotes npm sempre que qualquer arquivo de código muda:\nFROM node:22\nWORKDIR /app\nCOPY . .\nRUN npm ci\nCMD [\"node\", \"server.js\"]\nQual mudança melhor restaura o cache do build?",
+    "options": [
+      "Mover `WORKDIR /app` para depois de `COPY . .` para que a layer de cópia não invalide mais o cache",
+      "Copiar package.json e package-lock.json, rodar npm ci e só então copiar o resto do código",
+      "Adicionar `--no-cache` ao docker build para que o Docker pare de verificar quais arquivos mudaram",
+      "Trocar `npm ci` por `npm install` para que os pacotes sejam reaproveitados do build anterior"
+    ],
+    "explanation": "Uma layer de COPY é invalidada quando qualquer arquivo copiado muda, e todas as layers seguintes são reconstruídas, então copiar todo o código antes do `npm ci` amarra a instalação de dependências a cada edição de código. Copiar primeiro só os manifestos permite que a layer de instalação continue em cache até as dependências mudarem. `npm install` não reaproveita layers anteriores, `--no-cache` desativa o cache por completo, e a ordem do WORKDIR é irrelevante."
+  },
+  {
+    "id": "docker-layers-invalidation-cascade",
+    "title": "O que um cache miss faz com as layers seguintes",
+    "question": "Durante um `docker build`, o cache da terceira instrução de um Dockerfile com dez instruções é invalidado. O que acontece com as instruções de quatro a dez?",
+    "options": [
+      "Só as instruções RUN são reconstruídas; as instruções COPY e ENV são reaproveitadas",
+      "O Docker reconstrói só a layer final e reaproveita as intermediárias",
+      "Elas são reaproveitadas do cache desde que o texto da própria instrução não tenha mudado",
+      "Todas são reconstruídas, porque cada layer depende das layers anteriores"
+    ],
+    "explanation": "Layers são empilhadas sobre as layers-pai, então quando uma layer muda, todas as seguintes precisam ser reconstruídas, mesmo que o texto da instrução seja idêntico. É por isso que etapas que mudam pouco devem ficar no topo do Dockerfile e as que mudam com frequência, perto do final."
+  },
+  {
+    "id": "docker-layers-deleted-file-size",
+    "title": "Apagando arquivos em uma layer posterior",
+    "question": "Um Dockerfile tem `RUN curl -o /tmp/sdk.tar.gz <url> && tar -xzf /tmp/sdk.tar.gz -C /opt` e, duas instruções depois, `RUN rm /tmp/sdk.tar.gz`. A imagem continua 600 MB maior do que o esperado. Por quê?",
+    "options": [
+      "O Docker comprime arquivos apagados em uma layer de lixeira que só é removida por `docker image prune`",
+      "Arquivos em /tmp são sempre copiados para a layer final, independentemente de serem apagados",
+      "Layers são imutáveis: o rm só adiciona um whiteout, e o arquivo ainda vai na layer anterior",
+      "O rm roda como usuário não-root e falha silenciosamente ao apagar arquivos do root"
+    ],
+    "explanation": "Cada instrução cria uma nova layer somente leitura, e apagar um arquivo em uma layer posterior apenas o mascara; os bytes continuam na layer que os adicionou. Faça download, extração e remoção no mesmo RUN, ou use um multi-stage build e copie só o resultado. O prune remove imagens não usadas, não dados dentro de uma layer, e /tmp não tem tratamento especial."
+  },
+  {
+    "id": "docker-layers-apt-update-stale",
+    "title": "Layer separada para apt-get update",
+    "question": "Um Dockerfile tem `RUN apt-get update` em uma linha e `RUN apt-get install -y curl` na seguinte. Semanas depois, `nginx` é adicionado à linha de install e o build falha com erros 404 para pacotes. Qual é a causa?",
+    "options": [
+      "A layer do `apt-get update` em cache é reaproveitada, então o índice desatualizado aponta para versões removidas",
+      "Adicionar um pacote invalida a imagem base, que precisa ser baixada de novo com `--pull`",
+      "O apt-get não instala mais de um pacote por instrução RUN sem `--fix-missing`",
+      "O Docker não faz cache de linhas RUN que usam a rede, então o update roda em outro build context"
+    ],
+    "explanation": "Como o `apt-get update` é uma instrução própria e inalterada, o Docker reaproveita a layer em cache, e a linha de install modificada roda contra um índice desatualizado. As boas práticas do Docker recomendam `RUN apt-get update && apt-get install -y ...` em uma única instrução, para que qualquer mudança de pacote também atualize o índice. Vários pacotes por RUN funcionam bem, e RUNs que usam a rede entram no cache normalmente."
+  },
+  {
+    "id": "docker-containers-pid1-signals",
+    "title": "docker stop lento com CMD em shell form",
+    "question": "Uma imagem usa `CMD node server.js` (shell form). O `docker stop` sempre leva cerca de 10 segundos e a aplicação nunca executa seu handler de shutdown para SIGTERM. O que está acontecendo?",
+    "options": [
+      "O Node.js ignora SIGTERM por padrão, a menos que seja iniciado com a flag `--signals`",
+      "O docker stop envia SIGINT, que o Node.js só trata quando está conectado a um TTY",
+      "`/bin/sh -c` é o PID 1 e não repassa o SIGTERM, então o Docker envia SIGKILL após o timeout",
+      "A restart policy do container intercepta o SIGTERM e o segura pelo grace period de 10 segundos"
+    ],
+    "explanation": "No shell form, o comando roda sob `/bin/sh -c`, que vira o PID 1 e não repassa sinais ao processo filho, então a aplicação nunca recebe o SIGTERM e é morta após o timeout padrão de 10 segundos. Use o exec form `CMD [\"node\", \"server.js\"]` (ou um init como `--init`) para que a aplicação seja o PID 1. O docker stop envia SIGTERM por padrão, e restart policies não interceptam sinais."
+  },
+  {
+    "id": "docker-containers-writable-layer",
+    "title": "Dados na layer gravável do container",
+    "question": "Uma aplicação grava arquivos enviados em /data dentro de um container sem nenhum volume montado. O que acontece com esses arquivos depois de um `docker rm` no container?",
+    "options": [
+      "São preservados em um volume anônimo que o Docker cria automaticamente para /data",
+      "São perdidos, porque a layer gravável do container é apagada junto com ele",
+      "São incorporados à imagem, então o próximo container criado a partir dela os enxerga",
+      "Só sobrevivem até o daemon do Docker reiniciar e depois são apagados"
+    ],
+    "explanation": "As escritas vão para uma layer gravável fina que pertence ao container e é removida junto com ele; parar o container a mantém, removê-lo não. Imagens nunca são modificadas por containers em execução, e volumes anônimos só são criados quando uma instrução VOLUME ou um mount pede um. Use um volume para dados que precisam persistir."
+  },
+  {
+    "id": "docker-containers-restart-policy",
+    "title": "always vs unless-stopped",
+    "question": "Você executou `docker stop` manualmente em um container antes de o host reiniciar. Depois que o daemon do Docker sobe de novo, qual restart policy mantém esse container parado?",
+    "options": [
+      "unless-stopped",
+      "always",
+      "on-failure:3",
+      "on-failure"
+    ],
+    "explanation": "`unless-stopped` se comporta como `always`, exceto que um container parado manualmente continua parado mesmo depois que o daemon reinicia. Com `always`, o container é iniciado de novo quando o daemon reinicia. `on-failure` só reinicia em saídas diferentes de zero e não expressa a intenção da parada manual."
+  },
+  {
+    "id": "docker-dockerfile-multistage-purpose",
+    "title": "Por que usar multi-stage builds",
+    "question": "A imagem de um serviço Go tem 1,2 GB porque contém a toolchain completa do compilador. Qual é o principal benefício de reescrevê-la como um multi-stage build?",
+    "options": [
+      "Os stages sempre rodam em hosts de build separados e em paralelo, tornando o build várias vezes mais rápido",
+      "Cada stage é enviado como uma tag separada para que os clientes escolham qual baixar",
+      "Multi-stage builds comprimem as layers de forma mais agressiva que builds de stage único",
+      "O stage final copia só o binário compilado, então a toolchain não vai na imagem publicada"
+    ],
+    "explanation": "Multi-stage builds permitem compilar em um stage de build pesado e usar `COPY --from=<stage>` para levar só os artefatos para um stage de runtime mínimo, reduzindo o tamanho e a superfície de ataque. Os stages não rodam em hosts separados, não são enviados como tags separadas por padrão, e a compressão não é afetada."
+  },
+  {
+    "id": "docker-dockerfile-entrypoint-cmd",
+    "title": "Sobrescrevendo argumentos do CMD",
+    "question": "Uma imagem tem `ENTRYPOINT [\"python\", \"app.py\"]` e `CMD [\"--port\", \"8080\"]`. O que roda com `docker run myimg --port 9000`?",
+    "options": [
+      "python app.py --port 8080 --port 9000",
+      "python app.py --port 9000",
+      "--port 9000",
+      "python app.py --port 8080"
+    ],
+    "explanation": "Com ENTRYPOINT em exec form, o CMD fornece os argumentos padrão, e quaisquer argumentos passados ao `docker run` substituem o CMD por completo, enquanto o entrypoint permanece. Ou seja, os padrões são descartados em vez de receber os novos argumentos no final, e o entrypoint só é substituído com `--entrypoint`."
+  },
+  {
+    "id": "docker-dockerfile-arg-before-from",
+    "title": "ARG declarado antes do FROM",
+    "question": "Um Dockerfile começa com `ARG NODE_VERSION=22`, depois `FROM node:${NODE_VERSION}` e então `RUN echo \"v=$NODE_VERSION\"`. O FROM usa a versão 22, mas o RUN imprime `v=`. Por quê?",
+    "options": [
+      "A variável precisa ser referenciada como `${{NODE_VERSION}}` dentro de instruções RUN",
+      "Valores de ARG só ficam disponíveis em instruções ENV, nunca em comandos RUN",
+      "Imagens base resetam todas as variáveis de build, então o valor precisa ser passado de novo com --build-arg",
+      "Um ARG antes do FROM fica fora de qualquer stage; redeclare `ARG NODE_VERSION` após o FROM para usá-lo"
+    ],
+    "explanation": "Um ARG declarado antes do primeiro FROM pode ser usado nas linhas FROM, mas não está no escopo dentro do stage de build. Adicionar um `ARG NODE_VERSION` simples dentro do stage traz o valor padrão para o escopo. ARGs podem ser usados em RUN, a sintaxe com chaves duplas é de outras ferramentas, e --build-arg não é necessário quando existe um valor padrão."
+  },
+  {
+    "id": "docker-dockerfile-dockerignore",
+    "title": "Builds lentos por causa de um contexto grande",
+    "question": "O `docker build .` gasta muito tempo transferindo o build context, e o `COPY . .` invalida o cache mesmo quando nenhum código mudou. O repositório contém node_modules, .git e arquivos de log locais. Qual é a melhor correção?",
+    "options": [
+      "Adicionar um .dockerignore excluindo node_modules, .git e logs do build context",
+      "Usar ADD em vez de COPY, porque o ADD ignora arquivos que já existem na imagem",
+      "Executar `docker builder prune` antes de cada build para limpar dados antigos do contexto",
+      "Passar `--squash` para que todos os arquivos sejam combinados em uma única layer no build"
+    ],
+    "explanation": "Tudo o que está no contexto é enviado ao builder e considerado pelo `COPY . .`, então diretórios que mudam muito, como .git e logs, deixam a transferência lenta e quebram o cache. Um arquivo .dockerignore os remove do contexto. O prune só descarta cache, o ADD não tem esse comportamento de ignorar arquivos, e o squash não reduz o contexto."
+  },
+  {
+    "id": "docker-net-localhost-between-containers",
+    "title": "Conectando a um container de banco de dados",
+    "question": "Um container de API e um container Postgres chamado `db` rodam na mesma rede bridge definida pelo usuário. A API está configurada com `DB_HOST=localhost` e recebe `connection refused`. O que resolve?",
+    "options": [
+      "Publicar o Postgres com `-p 5432:5432` para que o localhost dentro do container da API encaminhe para ele",
+      "Mudar os dois containers para o driver de rede `none` para compartilharem uma interface de loopback",
+      "Definir DB_HOST=db; containers em uma rede definida pelo usuário se resolvem pelo nome",
+      "Adicionar `EXPOSE 5432` à imagem da API para que ela alcance a porta 5432 no localhost"
+    ],
+    "explanation": "Cada container tem seu próprio network namespace, então localhost se refere ao próprio container da API. Redes bridge definidas pelo usuário oferecem DNS embutido, então o banco é acessível como `db`. Publicar uma porta a mapeia no host, não dentro de outros containers, o driver `none` remove a rede, e EXPOSE é apenas documentação."
+  },
+  {
+    "id": "docker-net-port-publish",
+    "title": "Significado de -p 8080:80",
+    "question": "O que `docker run -p 8080:80 nginx` faz?",
+    "options": [
+      "Mapeia a porta 8080 do host para a porta 80 dentro do container",
+      "Mapeia a porta 80 do host para a porta 8080 dentro do container",
+      "Expõe as portas 8080 a 80 do container apenas para outros containers",
+      "Limita o container a 80 Mbps de banda com um burst de 8080"
+    ],
+    "explanation": "A sintaxe de publicação é `HOST_PORT:CONTAINER_PORT`, então requisições à porta 8080 do host são encaminhadas para o nginx escutando na porta 80 dentro do container. A ordem costuma ser confundida, e -p não tem nada a ver com faixas de portas ou largura de banda."
+  },
+  {
+    "id": "docker-vol-bind-mount-obscures",
+    "title": "Bind mount esconde o conteúdo da imagem",
+    "question": "Para desenvolvimento local, você executa `docker run -v $(pwd):/app myapp`. A imagem rodou `npm ci` em /app/node_modules durante o build, mas agora a aplicação falha com `Cannot find module 'express'`. Por quê?",
+    "options": [
+      "Volumes são montados antes de as layers da imagem serem extraídas, apagando o node_modules",
+      "A saída do npm ci fica em uma layer separada com a qual bind mounts não se mesclam",
+      "O bind mount esconde o /app da imagem, incluindo node_modules, atrás do diretório do host",
+      "Bind mounts são somente leitura por padrão, então o Node não consegue carregar pacotes do node_modules"
+    ],
+    "explanation": "Montar em um diretório não vazio esconde o conteúdo existente enquanto o mount existir, então o container vê só a pasta do host, que não tem node_modules. Uma correção comum é um volume adicional para /app/node_modules. Bind mounts são de leitura e escrita por padrão, e a ordem de extração das layers não é o problema."
+  },
+  {
+    "id": "docker-compose-depends-on-healthy",
+    "title": "depends_on não espera a prontidão",
+    "question": "No Compose, `web` tem `depends_on: [db]`. Em um `docker compose up` do zero, o web cai porque o Postgres ainda não está aceitando conexões. Qual é a correção nativa do Compose?",
+    "options": [
+      "Listar o db antes do web no YAML, porque o Compose inicia os serviços na ordem do arquivo",
+      "Dar ao db um healthcheck e usar `depends_on: { db: { condition: service_healthy } }`",
+      "Adicionar `restart: always` ao db para que o Compose o inicie duas vezes antes do web",
+      "Usar `links: [db]` em vez de depends_on, que espera até a porta estar aberta"
+    ],
+    "explanation": "O depends_on simples só ordena a inicialização dos containers; ele não espera a dependência ficar pronta. Com um healthcheck no db e `condition: service_healthy`, o Compose espera o status de saúde antes de criar o web. Restart policies e os links legados não garantem prontidão, e a ordem no arquivo é irrelevante."
+  },
+  {
+    "id": "docker-compose-service-dns",
+    "title": "Service discovery no Compose",
+    "question": "Um arquivo Compose define os serviços `api` e `redis` sem redes customizadas. Como o `api` deve acessar o Redis?",
+    "options": [
+      "Usar o ID do container do redis, que o Compose grava nas variáveis de ambiente do api",
+      "Usar `localhost`, porque o Compose roda todos os serviços em um único network namespace compartilhado",
+      "Usar o endereço IP da máquina host com a porta publicada no serviço redis",
+      "Usar o hostname `redis`; o Compose coloca os serviços em uma rede padrão com DNS por nome"
+    ],
+    "explanation": "O Compose cria uma rede padrão para o projeto e cada serviço entra nela, ficando acessível pelo nome do serviço. Os serviços não compartilham um network namespace, rotear pelo IP do host cria uma dependência desnecessária de portas publicadas, e o Compose não injeta IDs de containers."
+  },
+  {
+    "id": "docker-compose-dotenv-interpolation",
+    "title": "Arquivo .env vs ambiente do container",
+    "question": "Um projeto tem um arquivo `.env` com `API_KEY=abc` ao lado do compose.yaml. O serviço `app` não tem entradas `environment` nem `env_file`, e dentro do container `API_KEY` não está definida. Por quê?",
+    "options": [
+      "O Compose só lê o .env quando iniciado explicitamente com a flag `--env-file .env`",
+      "Variáveis no .env precisam do prefixo `COMPOSE_` para ficarem visíveis dentro dos containers",
+      "O .env do projeto só alimenta a interpolação de ${VAR} no arquivo Compose; não é injetado nos containers",
+      "O arquivo .env só é aplicado a serviços construídos a partir de um Dockerfile local, nunca a imagens baixadas de um registry"
+    ],
+    "explanation": "O Compose lê o .env do projeto para substituir variáveis no próprio arquivo Compose; um container só recebe as variáveis declaradas via `environment` ou `env_file`, por exemplo `environment: [API_KEY=${API_KEY}]`. O .env padrão é lido sem flags, prefixos não são necessários, e a origem da imagem é irrelevante."
+  },
+  {
+    "id": "docker-registry-digest-pinning",
+    "title": "Tags vs digests",
+    "question": "Produção baixou `myorg/api:1.4` duas vezes, com uma semana de intervalo, e recebeu imagens diferentes, porque alguém fez push de um hotfix com a mesma tag. Como os deploys podem referenciar uma imagem de forma imutável?",
+    "options": [
+      "Adicionar `--disable-content-trust` para que o registry recuse sobrescrever tags",
+      "Usar a tag `latest`, que os registries travam depois que a imagem é baixada por algum cliente",
+      "Baixar com `--platform linux/amd64`, o que fixa a imagem em um único build",
+      "Baixar por digest, ex.: `myorg/api@sha256:<digest>`, que identifica o conteúdo exato"
+    ],
+    "explanation": "Tags são ponteiros mutáveis que podem ser movidos para outro conteúdo, enquanto um digest é um hash do conteúdo, então baixar por digest sempre traz a mesma imagem. `latest` é só mais uma tag mutável, desativar o content trust enfraquece a verificação em vez de travar tags, e a flag de plataforma só seleciona uma arquitetura."
+  },
+  {
+    "id": "docker-registry-tag-target",
+    "title": "Para qual registry vai um push",
+    "question": "Você executa `docker tag app:1.0 registry.example.com:5000/team/app:1.0` e depois `docker push registry.example.com:5000/team/app:1.0`. Para onde a imagem é enviada?",
+    "options": [
+      "Para o registry em registry.example.com:5000, no repositório team/app",
+      "Só para o armazenamento local de imagens, já que um número de porta no nome a marca como local",
+      "Para o Docker Hub, em uma conta de usuário chamada registry.example.com",
+      "Para todos os registries configurados na lista registry-mirrors do daemon"
+    ],
+    "explanation": "O prefixo com o hostname (e porta opcional) em uma referência de imagem seleciona o registry; nomes sem ele usam o Docker Hub (docker.io) por padrão. Mirrors só são usados para pulls do Docker Hub, e uma porta no nome não torna a referência local."
+  },
+  {
+    "id": "docker-sec-build-secrets",
+    "title": "Passando um token para um build",
+    "question": "Um build precisa de um token privado do npm. O Dockerfile usa `ARG NPM_TOKEN` e `RUN npm ci` com o token no .npmrc. Por que isso é arriscado e o que é preferível?",
+    "options": [
+      "Valores de ARG são registrados pelo registry no push; troque por ENV, que é criptografado na imagem",
+      "Build args podem persistir nos metadados e no histórico da imagem; use `RUN --mount=type=secret`",
+      "Build args são limitados a 64 caracteres; use um COPY multilinha do arquivo de token em vez disso",
+      "ARG é seguro, mas o npm ci o ignora; passe o token por uma porta publicada durante o build"
+    ],
+    "explanation": "Build arguments e variáveis de ambiente não foram feitos para secrets: seus valores podem ser expostos pelo histórico da imagem ou pela provenance e copiados para layers. Secret mounts deixam o valor disponível só para a etapa RUN que precisa dele, sem persisti-lo. ENV é pior, porque permanece na imagem final, e copiar o arquivo o grava em uma layer."
+  },
+  {
+    "id": "docker-sec-oom-exit-137",
+    "title": "Container sai com código 137",
+    "question": "Um container iniciado com `docker run -m 256m` processa um arquivo grande e sai com código 137; `docker inspect` mostra `OOMKilled: true`. O que aconteceu?",
+    "options": [
+      "A aplicação chamou exit(137) depois de capturar ela mesma uma exceção de falta de memória",
+      "Ficou sem espaço em disco na layer gravável e o Docker o parou de forma graciosa",
+      "Passou do limite de 256 MB de memória, e o OOM killer do kernel enviou SIGKILL",
+      "O Docker o reiniciou porque usou mais de 256 MB de swap durante a inicialização"
+    ],
+    "explanation": "Com um limite rígido de memória, ultrapassá-lo aciona o OOM killer do kernel; o código de saída 137 é 128 + 9, o que significa que o processo foi morto por SIGKILL. Falta de disco e exceções da aplicação geram erros diferentes, e `OOMKilled: true` identifica explicitamente o limite de memória."
+  },
+  {
+    "id": "docker-sec-docker-socket",
+    "title": "Montando o socket do Docker",
+    "question": "Um container auxiliar de CI roda com `-v /var/run/docker.sock:/var/run/docker.sock` e como usuário não-root dentro do container. Por que isso ainda é um risco grave?",
+    "options": [
+      "Montar o socket desativa o perfil seccomp do container, liberando todas as system calls",
+      "Quem controla o socket pode pedir ao daemon um container privilegiado com a raiz do host montada",
+      "O acesso ao socket permite ler os logs de outros containers, que podem conter credenciais",
+      "O socket só expõe metadados somente leitura dos containers, mas esses metadados incluem variáveis de ambiente"
+    ],
+    "explanation": "O daemon do Docker roda com privilégios de root, e sua API permite que um cliente inicie containers com mounts e privilégios arbitrários, o que na prática é root no host, independentemente do usuário dentro do container. Ler logs ou metadados é possível, mas subestima o risco, e o mount não altera o seccomp."
+  },
+  {
+    "id": "k8s-arch-etcd",
+    "title": "Onde o estado do cluster é armazenado",
+    "question": "Qual componente do control plane é o key-value store consistente e altamente disponível que guarda todos os dados do cluster Kubernetes?",
+    "options": [
+      "kube-controller-manager",
+      "kubelet",
+      "kube-scheduler",
+      "etcd"
+    ],
+    "explanation": "O etcd é o armazenamento por trás de todos os dados do cluster, e o API server é o único componente que conversa diretamente com ele. O scheduler atribui pods a nodes, o controller manager executa os loops de reconciliação e o kubelet roda em cada node para gerenciar os pods."
+  },
+  {
+    "id": "k8s-arch-cluster-scoped",
+    "title": "Recursos com escopo de cluster",
+    "question": "Qual destes recursos tem escopo de cluster e, portanto, não pode pertencer a um namespace?",
+    "options": [
+      "Node",
+      "ConfigMap",
+      "Service",
+      "Deployment"
+    ],
+    "explanation": "Nodes, PersistentVolumes, StorageClasses e os próprios namespaces têm escopo de cluster. ConfigMaps, Services e Deployments pertencem a namespaces, então o mesmo nome pode existir em namespaces diferentes."
+  },
+  {
+    "id": "k8s-arch-drain-pdb",
+    "title": "Drain de node bloqueado",
+    "question": "Durante um upgrade de node, `kubectl drain` trava ao fazer a evicção dos pods de um Deployment com 3 réplicas que tem um PodDisruptionBudget com `minAvailable: 3`. Por que, e qual é a correção certa?",
+    "options": [
+      "O drain espera os liveness probes dos pods falharem antes da evicção; desative os probes",
+      "O drain não consegue fazer evicção de pods de Deployment; apague o Deployment e recrie após o upgrade",
+      "O PDB só se aplica a StatefulSets, então o travamento é causado pela falta de uma toleration",
+      "A evicção violaria o PDB (zero disrupções permitidas); reduza o minAvailable ou adicione réplicas"
+    ],
+    "explanation": "O drain usa a Eviction API, que respeita PodDisruptionBudgets; com minAvailable igual ao número de réplicas, nenhuma disrupção voluntária é permitida, então a evicção é recusada indefinidamente. Permita pelo menos uma disrupção (ou escale antes). O drain faz evicção de pods de Deployment, PDBs se aplicam a quaisquer pods selecionados, e os probes não têm relação com isso."
+  },
+  {
+    "id": "k8s-workloads-deployment-replicaset",
+    "title": "O que um Deployment gerencia",
+    "question": "Quando você cria um Deployment, qual objeto ele cria e gerencia diretamente para manter rodando o número desejado de Pods?",
+    "options": [
+      "Um Job",
+      "Um DaemonSet",
+      "Um ReplicaSet",
+      "Um StatefulSet"
+    ],
+    "explanation": "Um Deployment gerencia ReplicaSets, um por revisão do pod template, e cada ReplicaSet mantém a contagem de Pods; é isso que permite rolling updates e rollbacks. StatefulSets, DaemonSets e Jobs são controllers de workload separados, com garantias diferentes."
+  },
+  {
+    "id": "k8s-workloads-statefulset",
+    "title": "Workload para um banco de dados replicado",
+    "question": "Você roda um banco de dados replicado com 3 membros, em que cada membro precisa de um hostname estável (db-0, db-1, db-2) e de um disco persistente próprio que o acompanhe quando for reagendado. Qual workload se encaixa?",
+    "options": [
+      "Um ReplicaSet com um Service ClusterIP e volumes emptyDir",
+      "Um StatefulSet com volumeClaimTemplates e um headless Service",
+      "Um Deployment com 3 réplicas compartilhando um PersistentVolumeClaim",
+      "Um DaemonSet fixado em três nodes com label usando volumes hostPath"
+    ],
+    "explanation": "StatefulSets dão a cada Pod uma identidade ordinal estável e um nome de rede via headless Service, e os volumeClaimTemplates criam um PVC dedicado por réplica, que é reanexado à mesma identidade. Deployments tratam Pods como intercambiáveis, hostPath amarra os dados a um node e emptyDir é apagado junto com o Pod."
+  },
+  {
+    "id": "k8s-workloads-daemonset",
+    "title": "Um agente por node",
+    "question": "Você precisa que um agente de envio de logs rode exatamente um Pod em cada node, inclusive em nodes adicionados depois. Qual workload você deve usar?",
+    "options": [
+      "DaemonSet",
+      "StatefulSet",
+      "CronJob",
+      "Deployment com réplicas iguais ao número de nodes"
+    ],
+    "explanation": "Um DaemonSet garante que todos os nodes (ou os selecionados) rodem uma cópia de um Pod e adiciona Pods automaticamente a nodes novos. Um Deployment com número fixo de réplicas não garante um por node nem se adapta a mudanças nos nodes, e StatefulSets e CronJobs resolvem outros problemas."
+  },
+  {
+    "id": "k8s-workloads-imagepullbackoff",
+    "title": "Pod travado em ImagePullBackOff",
+    "question": "Um Pod novo mostra `ImagePullBackOff`, e `kubectl describe pod` reporta `pull access denied` para `registry.corp.io/team/api:2.3`. A tag existe. Qual é a correção mais provável?",
+    "options": [
+      "Definir `restartPolicy: Always` para que o kubelet continue tentando até o pull funcionar",
+      "Aumentar o limite de memória do container para que a imagem possa ser descompactada no node",
+      "Adicionar um readiness probe para que o Pod espere o registry ficar disponível",
+      "Criar um Secret com credenciais do registry e referenciá-lo em imagePullSecrets"
+    ],
+    "explanation": "`pull access denied` para uma tag existente indica que o node não está autenticado no registry privado; os Pods fornecem credenciais via imagePullSecrets, diretamente ou pela ServiceAccount. Limites de memória valem depois que o container inicia, o kubelet já tenta de novo com back-off, e os probes só rodam depois do pull da imagem."
+  },
+  {
+    "id": "k8s-svc-selector-mismatch",
+    "title": "Service sem endpoints",
+    "question": "Requisições ao Service `web` dão timeout. `kubectl get endpointslices -l kubernetes.io/service-name=web` não mostra endpoints, enquanto os Pods estão Running e Ready com o label `app: web-api`. O selector do Service é `app: web`. O que está errado?",
+    "options": [
+      "Services ClusterIP precisam de um Ingress na frente antes de os endpoints serem preenchidos",
+      "O selector do Service não bate com os labels dos Pods, então nenhum Pod vira endpoint",
+      "Services só roteiam para Pods criados antes do Service, então os Pods precisam ser recriados",
+      "Os Pods precisam de um hostPort para que o Service consiga encaminhar tráfego a eles"
+    ],
+    "explanation": "Um Service seleciona Pods por label, e as EndpointSlices listam só os Pods Ready que batem com ele; `app: web` não é igual a `app: web-api`, então não há nenhum. hostPort não tem relação, Services pegam os Pods independentemente da ordem de criação, e ClusterIP funciona sem Ingress."
+  },
+  {
+    "id": "k8s-svc-clusterip-default",
+    "title": "Tipo padrão de Service",
+    "question": "Você cria um Service sem especificar `type`. Como ele fica acessível?",
+    "options": [
+      "Por um ClusterIP virtual acessível só de dentro do cluster",
+      "Por uma porta aberta no IP de cada node",
+      "Por um CNAME de DNS apontando para um hostname externo",
+      "Por um load balancer do provedor de nuvem com IP público"
+    ],
+    "explanation": "ClusterIP é o tipo padrão e expõe o Service apenas em um IP virtual interno. LoadBalancer provisiona um load balancer externo, NodePort abre uma porta em cada node e ExternalName retorna um registro CNAME."
+  },
+  {
+    "id": "k8s-svc-cross-namespace-dns",
+    "title": "Chamando um Service em outro namespace",
+    "question": "Um Pod no namespace `shop` chama `http://payments:8080` e recebe uma falha de resolução de DNS. O Service `payments` fica no namespace `billing`. Qual endereço ele deve usar?",
+    "options": [
+      "payments:8080 depois de adicionar o namespace billing aos labels do Pod",
+      "payments.svc.billing.cluster.local",
+      "payments.billing (ou payments.billing.svc.cluster.local)",
+      "billing.payments (ou billing.payments.svc.cluster.local)"
+    ],
+    "explanation": "O DNS do cluster cria `<service>.<namespace>.svc.<cluster-domain>`, e um nome simples só é resolvido dentro do próprio namespace do cliente, via search path. As outras formas invertem ou posicionam errado os componentes, e labels não afetam os domínios de busca do DNS."
+  },
+  {
+    "id": "k8s-svc-networkpolicy-no-effect",
+    "title": "NetworkPolicy sem efeito",
+    "question": "Você aplica uma NetworkPolicy que seleciona os Pods do banco de dados com `policyTypes: [Ingress]` e nenhuma regra de ingress, mas todos os Pods continuam conseguindo se conectar ao banco. Qual é o motivo mais provável?",
+    "options": [
+      "NetworkPolicies só passam a valer depois que os Pods selecionados são reiniciados",
+      "Uma policy sem regras de ingress libera todo o tráfego; você precisa listar cada origem negada",
+      "O plugin de rede não implementa NetworkPolicy, então o objeto é aceito mas não é aplicado",
+      "NetworkPolicies só se aplicam ao tráfego que entra no cluster por um Ingress controller"
+    ],
+    "explanation": "A NetworkPolicy é aplicada pelo plugin CNI; sem um plugin compatível, criar o recurso não tem efeito. Com um plugin compatível, selecionar Pods para Ingress sem nenhuma regra nega todo o ingress para eles, então a policy em si é um default-deny válido. Não é preciso reiniciar nada, e as policies também controlam o tráfego entre Pods."
+  },
+  {
+    "id": "k8s-svc-gateway-api",
+    "title": "Ingress vs Gateway API",
+    "question": "Um time de plataforma quer que os donos da infraestrutura gerenciem os load balancers enquanto os times de aplicação anexam rotas HTTP de forma independente, com recursos como match por header e divisão de tráfego. Por que a Gateway API é a escolha recomendada em vez do Ingress?",
+    "options": [
+      "O Ingress foi removido das versões atuais do Kubernetes e não funciona mais em clusters novos",
+      "O Ingress só suporta tráfego TCP, e a Gateway API é a única forma de rotear HTTP",
+      "A Gateway API roda sem nenhum controller, enquanto o Ingress exige que um seja instalado antes",
+      "Ela divide papéis entre GatewayClass, Gateway e HTTPRoute, e o Ingress está congelado em favor dela"
+    ],
+    "explanation": "A Gateway API é orientada a papéis, permitindo que provedores de infraestrutura, operadores do cluster e desenvolvedores de aplicação sejam donos de recursos separados, e suporta nativamente roteamento mais rico. A API do Ingress está congelada: continua GA e suportada, mas não ganha novos recursos. Ambas precisam de uma implementação de controller, e o Ingress, na verdade, é focado em HTTP."
+  },
+  {
+    "id": "k8s-config-env-not-refreshed",
+    "title": "Mudança no ConfigMap não aparece",
+    "question": "Você altera a chave `LOG_LEVEL` de um ConfigMap de info para debug. Os Pods a consomem via `envFrom` e continuam logando em info por horas. Por quê?",
+    "options": [
+      "O envFrom só lê ConfigMaps na criação do Deployment, então o Deployment precisa ser apagado",
+      "Env vars de ConfigMap são definidas quando o container inicia e só mudam após um restart",
+      "ConfigMaps são imutáveis por padrão, então a atualização foi rejeitada silenciosamente",
+      "Atualizações de ConfigMap são propagadas só uma vez por dia pelo sync loop do kubelet"
+    ],
+    "explanation": "ConfigMaps consumidos como variáveis de ambiente não são atualizados automaticamente; dispare um rollout, por exemplo com `kubectl rollout restart`. Valores montados como volumes (sem subPath) são atualizados em algum momento, normalmente dentro do período de sync do kubelet mais o atraso do cache, não diariamente. ConfigMaps são mutáveis, a menos que `immutable: true` esteja definido."
+  },
+  {
+    "id": "k8s-secrets-base64-not-encryption",
+    "title": "Quão protegidos são os Secrets por padrão",
+    "question": "Um desenvolvedor argumenta que é seguro compartilhar Secrets do Kubernetes em manifests porque os valores parecem embaralhados. O que é correto?",
+    "options": [
+      "Os valores só são codificados em base64 e ficam sem criptografia no etcd por padrão; ative criptografia em repouso",
+      "Os valores são criptografados com AES pelo API server, com uma chave por namespace, antes de irem para o etcd",
+      "Os valores passam por hash, então não podem ser decodificados nem por um admin do cluster",
+      "Os valores são criptografados nos manifests, mas descriptografados ao serem gravados no etcd, por desempenho"
+    ],
+    "explanation": "Base64 é uma codificação, não criptografia: qualquer pessoa que consiga ler o manifest ou o objeto consegue decodificá-lo. O Kubernetes armazena Secrets sem criptografia no etcd, a menos que a criptografia em repouso esteja configurada, então o acesso deve ser restringido com RBAC, e secrets não devem ser commitados em manifests em texto puro."
+  },
+  {
+    "id": "k8s-storage-wait-for-first-consumer",
+    "title": "PVC Pending: aguardando o primeiro consumidor",
+    "question": "Um PVC novo fica `Pending` com o evento `waiting for first consumer to be created before binding`. Nenhum Pod o usa ainda. O que isso significa?",
+    "options": [
+      "É esperado: a StorageClass usa WaitForFirstConsumer e adia o binding até um Pod usá-lo",
+      "O cluster não tem StorageClass padrão, então o PVC nunca terá binding sem edições manuais",
+      "O access mode do PVC conflita com a StorageClass, e o claim precisa ser recriado",
+      "O tamanho pedido excede todos os PersistentVolumes disponíveis e precisa ser reduzido"
+    ],
+    "explanation": "Com `volumeBindingMode: WaitForFirstConsumer`, o binding e o provisionamento esperam até que um Pod que usa o PVC seja agendado, para que o volume seja criado em uma topologia (zona) onde o Pod pode rodar. O claim faz o binding assim que existe um consumidor. As outras causas geram eventos diferentes, como nenhum volume compatível ou falhas de provisionamento."
+  },
+  {
+    "id": "k8s-storage-pvc-lifecycle",
+    "title": "Sobrevivência dos dados entre restarts de Pod",
+    "question": "Um Pod grava dados em um volume `emptyDir` e em outro caminho baseado em um PersistentVolumeClaim. O Pod é apagado e o Deployment cria um substituto. Quais dados continuam disponíveis?",
+    "options": [
+      "Ambos, porque o Pod substituto tem o mesmo nome e reaproveita os volumes",
+      "Só os dados do PVC; o emptyDir é apagado de vez quando o Pod é removido",
+      "Nenhum, porque Deployments sempre provisionam volumes novos para Pods novos",
+      "Só os dados do emptyDir, porque ficam guardados no node que rodava o Pod"
+    ],
+    "explanation": "O emptyDir vive exatamente enquanto o Pod existir no seu node; apagar o Pod apaga os dados. Um PVC é um objeto independente, então o Pod substituto monta o mesmo claim e o PersistentVolume associado. Pods substitutos recebem nomes novos, e Deployments referenciam claims existentes em vez de criar novos."
+  },
+  {
+    "id": "k8s-probes-liveness-crashloop",
+    "title": "Aplicação lenta para iniciar em CrashLoopBackOff",
+    "question": "Um serviço Java leva cerca de 90 segundos para iniciar. Seu liveness probe tem `periodSeconds: 10`, `failureThreshold: 3` e nenhum atraso inicial. Os Pods entram em CrashLoopBackOff, e os eventos mostram `Liveness probe failed` e depois `Killing`. Qual é a melhor correção?",
+    "options": [
+      "Definir `restartPolicy: Never` para que o kubelet pare de matar o container após falhas no probe",
+      "Reduzir `timeoutSeconds` para 1 para que cada liveness probe responda mais rápido na inicialização",
+      "Remover o readiness probe para que o liveness só seja avaliado depois que o Pod estiver Ready",
+      "Adicionar um startupProbe com folga suficiente (ex.: failureThreshold 12, periodSeconds 10)"
+    ],
+    "explanation": "O liveness probe falha três vezes cerca de 30 segundos após o início, então o kubelet mata o container antes de ele terminar de subir, repetidamente. Um startupProbe desativa os checks de liveness e readiness até ter sucesso, dando espaço para inicializações lentas sem enfraquecer o liveness depois. O readiness não controla o liveness, `Never` impede totalmente a recuperação, e timeouts menores tornam as falhas mais prováveis."
+  },
+  {
+    "id": "k8s-probes-readiness-failure",
+    "title": "O que um readiness com falha faz",
+    "question": "O readiness probe de um container começa a falhar enquanto o liveness probe continua passando. O que o Kubernetes faz?",
+    "options": [
+      "Faz a evicção do Pod e o reagenda em outro node",
+      "Marca o Deployment como falho e faz rollback para a revisão anterior",
+      "Tira o Pod dos endpoints do Service até o probe voltar a passar",
+      "Reinicia o container quando o limite de falhas é atingido"
+    ],
+    "explanation": "O readiness só controla se um Pod recebe tráfego: um Pod que não está pronto é removido dos endpoints do Service, mas não é reiniciado. Reiniciar é a ação para liveness probes com falha, e nenhum dos dois probes dispara evicção ou rollback automático."
+  },
+  {
+    "id": "k8s-probes-liveness-dependency",
+    "title": "Liveness probe verificando o banco de dados",
+    "question": "O endpoint de liveness de todos os Pods verifica a conectividade com um PostgreSQL compartilhado. Durante um failover de 5 minutos do banco, todos os Pods reiniciam repetidamente e o serviço demora a se recuperar depois. Qual é o erro de design?",
+    "options": [
+      "O check do banco deveria estar em um startupProbe, que se repete durante toda a vida do Pod",
+      "O liveness probe deveria usar um check TCP contra o PostgreSQL em vez de chamar um endpoint HTTP",
+      "Liveness probes deveriam ter failureThreshold 1 para que os restarts aconteçam mais cedo",
+      "O liveness deve checar só a saúde do próprio container; falhas de dependências não devem reiniciá-lo"
+    ],
+    "explanation": "Reiniciar não resolve uma dependência externa, então amarrar o liveness a ela transforma uma instabilidade da dependência em uma tempestade de restarts em toda a frota, com caches frios e picos de conexões. Mantenha o liveness restrito à saúde do processo (por exemplo, detecção de deadlock) e reflita problemas de dependências pelo readiness ou por respostas degradadas, com cuidado. Startup probes só rodam até o primeiro sucesso."
+  },
+  {
+    "id": "k8s-probes-startup-gates-others",
+    "title": "Comportamento dos probes durante a inicialização",
+    "question": "Um container define startup, liveness e readiness probes. Enquanto o startup probe ainda não teve sucesso, o que acontece com os outros dois probes?",
+    "options": [
+      "Nenhum roda; os checks de liveness e readiness só começam depois que o startup probe passa",
+      "O readiness roda normalmente, mas o liveness fica pausado até o startup probe ter sucesso",
+      "Eles rodam em paralelo, e o sucesso de qualquer um marca o startup probe como aprovado",
+      "Eles rodam, mas suas falhas só são registradas como avisos até a fase de inicialização terminar"
+    ],
+    "explanation": "Quando um startup probe está configurado, os probes de liveness e readiness ficam desativados até ele ter sucesso; se o startup probe esgotar seu failureThreshold, o container é morto e tratado conforme sua restart policy. Os outros probes não conseguem encurtar esse processo, e o readiness não é avaliado enquanto isso, então o Pod continua não pronto."
+  },
+  {
+    "id": "k8s-resources-oomkilled",
+    "title": "Container OOMKilled",
+    "question": "Um Pod reinicia repetidamente. `kubectl describe` mostra `Last State: Terminated, Reason: OOMKilled, Exit Code: 137` e `limits.memory: 512Mi`. O node tem bastante memória livre. Qual é a causa?",
+    "options": [
+      "O request de memória é menor que o limit, o que faz o scheduler matar o Pod",
+      "O node ficou sem memória e o kubelet fez a evicção do Pod de menor prioridade",
+      "O uso de memória do container passou do seu próprio limit de 512Mi, e o kernel o matou",
+      "O limit de CPU foi excedido, o que o Kubernetes reporta como OOMKilled por causa dos cgroups"
+    ],
+    "explanation": "Um limit de memória é aplicado pelo kernel via cgroups: ultrapassá-lo faz o container ser morto pelo OOM killer mesmo que o node tenha memória livre. A evicção por pressão no node mostra outro motivo (Evicted), requests abaixo dos limits são normais, e exceder um limit de CPU causa throttling, não encerramento."
+  },
+  {
+    "id": "k8s-resources-cpu-throttling",
+    "title": "Picos de latência com CPU média baixa",
+    "question": "Uma API sensível a latência tem `limits.cpu: 500m`. A CPU média parece estar em 300m, mas a latência p99 dispara durante bursts e as métricas de throttling sobem. O que explica isso?",
+    "options": [
+      "O scheduler move o Pod para outro node sempre que o uso passa do limit",
+      "Os bursts passam do limit de CPU dentro dos períodos de controle, então o container sofre throttling",
+      "Limits de CPU reservam capacidade, então outros Pods ficam lentos e o node inteiro fica saturado",
+      "Passar do limit de CPU faz o kubelet reiniciar o container, causando quedas breves"
+    ],
+    "explanation": "CPU é um recurso compressível: quando um container atinge seu limit de CPU, o kernel aplica throttling pelo resto do período de controle, o que as médias escondem, mas a latência de cauda revela. Ele não é morto, reiniciado nem reagendado. Reservar capacidade é papel dos requests, não dos limits."
+  },
+  {
+    "id": "k8s-resources-hpa-no-requests",
+    "title": "HPA não consegue calcular a utilização de CPU",
+    "question": "Um HPA tem como alvo 70% de utilização de CPU, mas `kubectl get hpa` mostra `<unknown>/70%` e ele nunca escala. O metrics-server está saudável. Qual é a causa mais provável?",
+    "options": [
+      "Alvos de utilização de CPU só funcionam quando os limits de CPU são iguais aos requests (QoS Guaranteed)",
+      "Os containers não têm requests de CPU, e a utilização é um percentual dos requests",
+      "O HPA precisa ter como alvo um ReplicaSet, e não um Deployment, para ler métricas de CPU",
+      "O HPA precisa de no mínimo 3 réplicas antes de começar a coletar métricas"
+    ],
+    "explanation": "A utilização de recursos para o HPA é o uso atual dividido pelo request do container; se os containers não têm request de CPU, a utilização não pode ser calculada. HPAs normalmente têm Deployments como alvo, os limits não precisam ser iguais aos requests, e não existe mínimo de três réplicas."
+  },
+  {
+    "id": "k8s-resources-scheduling-by-requests",
+    "title": "Pending apesar de nodes ociosos",
+    "question": "Um Pod pedindo 4Gi de memória fica Pending com `0/5 nodes are available: Insufficient memory`, mas o monitoramento mostra todos os nodes usando menos de 40% da RAM. Por quê?",
+    "options": [
+      "O monitoramento inclui swap, então o uso real de RAM é maior que o exibido",
+      "Pods que pedem mais de 2Gi precisam de uma PriorityClass antes de serem agendados",
+      "O scheduler só considera nodes cujo uso real de memória está abaixo de 25% para Pods novos",
+      "O agendamento usa a soma dos requests, não o uso real, e os requests estão perto da capacidade"
+    ],
+    "explanation": "O scheduler garante que a soma dos requests em um node fique abaixo da sua capacidade alocável, independentemente da utilização real. Requests superdimensionados em Pods existentes podem, portanto, bloquear o agendamento em nodes que parecem ociosos; ajustar os requests ou adicionar capacidade resolve. As outras afirmações não são regras do scheduler."
+  },
+  {
+    "id": "k8s-resources-qos-eviction",
+    "title": "Ordem de evicção sob pressão de memória",
+    "question": "Um node entra em pressão de memória. O Pod A não tem requests nem limits, o Pod B tem requests abaixo dos limits e está usando mais que o request, e o Pod C tem requests iguais aos limits em todos os containers. Em que ordem o kubelet normalmente faz a evicção?",
+    "options": [
+      "Os três ao mesmo tempo, já que QoS só afeta o agendamento",
+      "B primeiro, porque exceder requests é tratado como violação de política",
+      "A primeiro, depois B, e C (Guaranteed) por último",
+      "C primeiro, já que Pods Guaranteed reservam mais memória"
+    ],
+    "explanation": "A é BestEffort, B é Burstable e C é Guaranteed. Na evicção por pressão no node, o kubelet classifica os Pods por uso acima dos requests, depois por prioridade e depois por uso relativo aos requests, o que na prática remove Pods BestEffort e Burstable acima do request antes dos Guaranteed. A classe de QoS, portanto, afeta diretamente a evicção, e não só o agendamento."
+  },
+  {
+    "id": "k8s-rollout-surge-math",
+    "title": "Cálculo de surge em rolling update",
+    "question": "Um Deployment tem 10 réplicas com `maxSurge: 25%` e `maxUnavailable: 25%`. Durante um rolling update, qual é o máximo de Pods no total e o mínimo de Pods disponíveis?",
+    "options": [
+      "No máximo 13 Pods no total e pelo menos 8 disponíveis",
+      "No máximo 13 Pods no total e pelo menos 7 disponíveis",
+      "No máximo 12 Pods no total e pelo menos 8 disponíveis",
+      "No máximo 12 Pods no total e pelo menos 7 disponíveis"
+    ],
+    "explanation": "Percentuais de maxSurge são arredondados para cima (25% de 10 = 2,5 -> 3), então podem existir até 13 Pods; o maxUnavailable é arredondado para baixo (2,5 -> 2), então pelo menos 8 precisam continuar disponíveis. Misturar as direções de arredondamento produz as outras combinações."
+  },
+  {
+    "id": "k8s-rollout-undo",
+    "title": "Rollback de um Deployment",
+    "question": "Uma nova imagem do Deployment `web` está causando erros. Qual comando o retorna para a revisão anterior?",
+    "options": [
+      "kubectl rollout pause deployment/web",
+      "kubectl rollout undo deployment/web",
+      "kubectl scale deployment/web --replicas=0",
+      "kubectl delete replicaset -l app=web"
+    ],
+    "explanation": "`kubectl rollout undo` faz o rollback do Deployment para a revisão anterior guardada no histórico de ReplicaSets. Pausar só interrompe novas mudanças, apagar ReplicaSets faz o controller recriar o atual, e escalar para zero causa indisponibilidade sem restaurar a versão antiga."
+  },
+  {
+    "id": "k8s-rollout-progress-deadline",
+    "title": "Rollout travado em uma versão ruim",
+    "question": "O readiness probe de uma nova versão nunca passa. Depois de `progressDeadlineSeconds`, o Deployment mostra `Progressing=False, reason ProgressDeadlineExceeded`. O que o Kubernetes faz em seguida?",
+    "options": [
+      "Apaga o novo ReplicaSet e pausa o Deployment até alguém retomá-lo manualmente",
+      "Escala o ReplicaSet antigo para zero para forçar os novos Pods a ficarem prontos",
+      "Faz rollback automático para a última revisão em que todos os Pods estavam prontos",
+      "Nada automático: reporta a condição, e você ou uma ferramenta precisa fazer o rollback"
+    ],
+    "explanation": "Os controllers de Deployment apenas expõem o ProgressDeadlineExceeded como uma condição de status; eles não fazem rollback. Como o maxUnavailable limita quantos Pods antigos são removidos, a capacidade se mantém, e ferramentas de CI/CD ou de progressive delivery podem agir sobre a condição (por exemplo, `kubectl rollout status` saindo com código diferente de zero e depois `rollout undo`)."
+  },
+  {
+    "id": "obs-log-structured",
+    "title": "Por que usar logs estruturados",
+    "question": "Um time troca linhas de log em texto livre por logs JSON com campos como `level`, `order_id` e `duration_ms`. Qual é o principal benefício?",
+    "options": [
+      "Os campos podem ser filtrados e agregados de forma confiável, sem regex frágil",
+      "Logs JSON são sempre menores em disco que logs equivalentes em texto puro",
+      "Logs estruturados não são afetados pelo nível de log, então nada é descartado",
+      "Logs JSON dispensam métricas, porque cada campo vira uma série temporal"
+    ],
+    "explanation": "Logs estruturados carregam campos nomeados que os backends de log conseguem indexar, consultar e agregar de forma consistente. JSON costuma ser maior que texto puro, os níveis de log continuam valendo, e logs não substituem métricas, que são mais baratas para agregações ao longo do tempo."
+  },
+  {
+    "id": "obs-log-trace-correlation",
+    "title": "Ligando logs a traces",
+    "question": "Durante um incidente, você encontra um trace lento, mas não consegue achar os logs correspondentes da aplicação entre milhões de linhas. Qual mudança torna essa navegação confiável?",
+    "options": [
+      "Subir o nível de log para DEBUG durante incidentes para poder inspecionar muito mais linhas",
+      "Gravar logs e spans na mesma tabela do banco para que compartilhem uma chave primária",
+      "Incluir o trace_id e o span_id ativos em todo registro de log emitido dentro de um span",
+      "Logar o corpo completo da requisição para associá-lo ao trace pelo conteúdo"
+    ],
+    "explanation": "Quando os registros de log carregam os IDs de trace e de span do contexto atual, os backends conseguem navegar com precisão entre um trace e seus logs; os log bridges do OpenTelemetry fazem isso automaticamente. Associar pelo conteúdo não é confiável e arrisca vazar dados, uma tabela compartilhada é desnecessária, e mais linhas de DEBUG dificultam a busca."
+  },
+  {
+    "id": "obs-metrics-golden-signals",
+    "title": "Os quatro golden signals",
+    "question": "Qual conjunto lista os quatro golden signals de monitoramento do livro de SRE do Google?",
+    "options": [
+      "Requisições, retries, timeouts, restarts",
+      "Disponibilidade, durabilidade, throughput, custo",
+      "CPU, memória, disco, rede",
+      "Latência, tráfego, erros, saturação"
+    ],
+    "explanation": "O livro de SRE recomenda latência, tráfego, erros e saturação como os sinais centrais voltados ao usuário de um serviço. Métricas brutas de recursos como CPU e memória são úteis para saturação, mas são causas, e não uma visão completa da experiência do usuário."
+  },
+  {
+    "id": "obs-metrics-high-cardinality",
+    "title": "Labels de métricas causando explosão no Prometheus",
+    "question": "Depois de uma release, o uso de memória do Prometheus cresce dez vezes e as queries dão timeout. A release adicionou os labels `user_id` e `request_path` (URLs brutas com IDs) a `http_requests_total`. Qual é o problema?",
+    "options": [
+      "Valores de label com mais de 32 caracteres obrigam o Prometheus a desativar a compressão da métrica",
+      "Adicionar labels a uma métrica existente a reseta, então o Prometheus relê todas as amostras históricas",
+      "Cada combinação única de labels é uma série temporal, então labels ilimitados explodem a cardinalidade",
+      "Counters não podem ter mais de dois labels, então o Prometheus os armazena como histogramas"
+    ],
+    "explanation": "Cada conjunto distinto de valores de labels cria uma nova série temporal, então IDs de usuário e paths brutos com IDs embutidos geram milhões de séries, que consomem memória e deixam as queries lentas. A orientação do Prometheus é evitar labels de alta cardinalidade; use templates de rota como `/orders/{id}` e coloque detalhes por usuário em logs ou traces. As outras afirmações não descrevem o comportamento do Prometheus."
+  },
+  {
+    "id": "obs-metrics-histogram-aggregation",
+    "title": "Agregando percentis de latência",
+    "question": "Cada uma de 20 réplicas exporta um Summary com o p99 de latência pré-calculado. Um dashboard faz a média dos 20 valores de p99 para mostrar o p99 do serviço todo. Por que isso está errado e o que é melhor?",
+    "options": [
+      "A média está ok, mas a mediana dos 20 valores de p99 deveria ser usada para reduzir ruído",
+      "Quantis não podem ser somados em média; exporte histogramas e use histogram_quantile nos buckets somados",
+      "Summaries já agregam entre réplicas, então cada instância reporta o p99 global",
+      "O p99 deveria ser trocado pela latência média, que pode ser agregada com exatidão entre todas as instâncias"
+    ],
+    "explanation": "Quantis pré-calculados de instâncias separadas não podem ser combinados estatisticamente; a média dos p99 não é o p99 de todas as requisições. Os buckets de histograma são counters que podem ser somados entre instâncias antes de calcular o quantil. Médias são agregáveis, mas escondem o comportamento de cauda que o p99 deveria mostrar."
+  },
+  {
+    "id": "obs-metrics-counter-rate",
+    "title": "Consultando um counter",
+    "question": "Um dashboard plota o valor bruto de `http_requests_total` e mostra quedas repentinas a zero sempre que os pods reiniciam. Como o throughput de requisições deve ser consultado?",
+    "options": [
+      "Usar `rate(http_requests_total[5m])`, uma taxa por segundo que trata resets do counter",
+      "Usar `max_over_time(http_requests_total[5m])` para esconder as quedas causadas por restarts dos pods",
+      "Usar `avg(http_requests_total)` entre os pods para que um único reset se dilua na média",
+      "Converter o counter em gauge para que restarts não resetem mais o valor"
+    ],
+    "explanation": "Counters só aumentam e são resetados quando o processo reinicia, então o valor bruto raramente é útil; `rate()` calcula o aumento por segundo e se ajusta automaticamente aos resets. Max-over-time e médias continuam plotando totais acumulados, e gauges servem para valores que sobem e descem, não para contagem de eventos."
+  },
+  {
+    "id": "obs-trace-broken-propagation",
+    "title": "Traces quebrados em pedaços desconectados",
+    "question": "O Service A chama o Service B via HTTP. Ambos têm instrumentação OpenTelemetry, mas na UI de traces os spans de B sempre aparecem como traces raiz separados. A usa um wrapper de cliente HTTP feito em casa. Qual é a causa mais provável?",
+    "options": [
+      "A não injeta o contexto de trace (o header traceparent) nas requisições de saída",
+      "B faz sampling de 100%, o que o obriga a criar um novo span raiz para cada requisição",
+      "Os spans de B são exportados com outro service.name, o que os separa em traces diferentes",
+      "Os dois serviços usam linguagens diferentes, que o OpenTelemetry não consegue ligar"
+    ],
+    "explanation": "A propagação de contexto exige que quem chama injete o contexto de trace atual na requisição e que quem é chamado o extraia; clientes customizados sem instrumentação pulam a injeção, então B não tem pai e inicia um span raiz. A propagação via W3C Trace Context independe de linguagem, o sampling não cria raízes, e o service.name só identifica o serviço que emitiu o span."
+  },
+  {
+    "id": "obs-trace-traceparent-format",
+    "title": "Conteúdo do header traceparent",
+    "question": "Que informações o header HTTP `traceparent` do W3C carrega?",
+    "options": [
+      "Trace ID, ID do usuário, ID da sessão e um token de autenticação",
+      "Versão, trace ID, ID do span pai e trace flags (como sampled)",
+      "Nome do serviço, endpoint, horário de início e duração do span chamador",
+      "Uma lista de todos os IDs de span no caminho da raiz até o serviço atual"
+    ],
+    "explanation": "O traceparent tem quatro campos: version, trace-id, parent-id (o ID do span de quem chamou) e trace-flags, em que a flag sampled é a principal. Nomes de span, tempos e dados de usuário não são propagados nesse header; estado específico de fornecedor vai em `tracestate`, e pares chave-valor da aplicação vão no baggage."
+  },
+  {
+    "id": "obs-trace-async-messaging",
+    "title": "Tracing através de uma fila de mensagens",
+    "question": "Um serviço de pedidos publica eventos no Kafka, e um serviço de fulfilment os consome em lotes. Os traces terminam no producer. Como o contexto deve ser propagado?",
+    "options": [
+      "Fazer o consumer consultar o backend de tracing do producer para pegar o trace ID ativo mais recente e reutilizá-lo",
+      "Colocar o trace ID na chave da mensagem para que o Kafka roteie todos os spans de um trace para uma partição",
+      "Injetar o contexto nos headers da mensagem ao publicar, extraí-lo ao consumir e usar span links nos lotes",
+      "Ativar 100% de sampling no consumer para que ele entre automaticamente nos traces do producer"
+    ],
+    "explanation": "A propagação de contexto funciona em qualquer transporte, desde que o contexto seja injetado em um carrier, aqui os headers da mensagem, e extraído do outro lado. Um consumer em lote processa mensagens de muitos traces, então span links associam o seu span a cada contexto de origem. Chaves controlam o particionamento, não o tracing, e o sampling não recria um contexto ausente."
+  },
+  {
+    "id": "obs-trace-tail-sampling",
+    "title": "Mantendo traces de erros raros",
+    "question": "Head sampling a 1% mantém os custos baixos, mas quase nunca captura traces de um erro raro no checkout. Você implanta tail sampling em várias réplicas do OpenTelemetry Collector que mantêm todos os traces com erro. As policies parecem perder erros aleatoriamente. Por quê?",
+    "options": [
+      "As decisões de tail sampling são tomadas por span, então os spans de erro são mantidos, mas os pais são descartados",
+      "Collectors não conseguem inspecionar o status dos spans, então o tail sampling por erro depende de correlação com logs",
+      "Tail sampling só funciona quando o head sampling está totalmente desativado em todos os SDKs",
+      "Os spans de um trace caem em réplicas diferentes; roteie por trace ID (ex.: um load-balancing exporter) para que uma réplica veja o trace inteiro"
+    ],
+    "explanation": "O tail sampling decide depois de ver todos ou quase todos os spans de um trace, então todos os spans de um trace precisam chegar à mesma instância do sampler; com round-robin simples, cada réplica vê fragmentos e pode perder o span de erro. Uma camada que faz load balancing por trace ID resolve isso. O head sampling pode coexistir (embora precise manter traces suficientes), o status é visível para os collectors, e as decisões são por trace."
+  },
+  {
+    "id": "obs-slo-sla-difference",
+    "title": "SLI, SLO e SLA",
+    "question": "Qual afirmação distingue corretamente SLI, SLO e SLA?",
+    "options": [
+      "SLI é o indicador medido, SLO a meta para ele, e SLA um acordo com consequências se não for cumprido",
+      "SLA é a meta interna, SLO é o contrato assinado com os clientes, e SLI é a multa paga",
+      "SLI é a meta, SLO é o valor medido, e SLA é o dashboard que compara os dois",
+      "Os três são o mesmo percentual de uptime reportado para públicos diferentes"
+    ],
+    "explanation": "Um SLI é uma medida quantitativa do nível de serviço (por exemplo, a fração de requisições bem-sucedidas), um SLO é um valor ou faixa-alvo para esse SLI, e um SLA é um contrato explícito ou implícito com consequências, como créditos, quando não é cumprido. SLOs costumam ser mais rígidos que SLAs para deixar uma margem de segurança."
+  },
+  {
+    "id": "obs-slo-error-budget-minutes",
+    "title": "Error budget para 99,9% em 30 dias",
+    "question": "Um serviço tem um SLO de disponibilidade de 99,9% em uma janela de 30 dias medida em tempo. Quanto tempo de indisponibilidade total o error budget permite?",
+    "options": [
+      "Cerca de 7,2 horas",
+      "Cerca de 43 segundos",
+      "Cerca de 43 minutos",
+      "Aproximadamente 4,3 minutos"
+    ],
+    "explanation": "O error budget é 1 - SLO = 0,1% da janela: 30 dias x 24 h x 60 min x 0,001 = 43,2 minutos. 4,3 minutos corresponde a 99,99%, e 7,2 horas a 99%."
+  },
+  {
+    "id": "obs-slo-burn-rate",
+    "title": "Interpretando um burn rate",
+    "question": "Um serviço com SLO de 99,9% em 30 dias tem uma taxa de erro sustentada de 1,44% durante uma hora. Quanto do error budget mensal essa hora consumiu?",
+    "options": [
+      "Cerca de 14,4%",
+      "Cerca de 0,1%",
+      "Cerca de 1,4%",
+      "Cerca de 2%"
+    ],
+    "explanation": "O burn rate é a taxa de erro dividida pela taxa do budget: 1,44% / 0,1% = 14,4. Queimar a 14,4x durante 1 das 720 horas consome 14,4/720 = 2% do budget, e é por isso que o SRE workbook associa um burn rate de 14,4 em uma hora a uma página por consumo de 2% do budget."
+  },
+  {
+    "id": "obs-slo-budget-exhausted",
+    "title": "Error budget esgotado",
+    "question": "Na metade do mês, um serviço já usou 100% do seu error budget depois de várias releases ruins. Sob uma error budget policy típica, o que acontece?",
+    "options": [
+      "A meta do SLO é reduzida pelo resto do mês para que o budget restante volte a ficar positivo",
+      "Releases de features são suspensas, exceto correções de confiabilidade, até o serviço voltar ao SLO",
+      "Nada muda até o SLA também ser violado e os clientes terem direito a créditos",
+      "O time de plantão é substituído, já que o budget mede o desempenho do time"
+    ],
+    "explanation": "Uma error budget policy torna o budget acionável: quando ele se esgota, as mudanças são congeladas, exceto trabalho P0 e de confiabilidade, até a confiabilidade se recuperar, equilibrando velocidade e estabilidade. Mudar a meta anula seu propósito, o SLO existe para agir antes de o SLA ser violado, e budgets são sobre o serviço, não sobre culpados."
+  },
+  {
+    "id": "obs-slo-multiwindow-alerts",
+    "title": "Alertas de burn rate com múltiplas janelas",
+    "question": "Um alerta de SLO dispara com `1h burn rate > 14.4`. Depois que uma queda curta é corrigida, o alerta continua disparando por quase uma hora, incomodando o plantão. Seguindo o SRE workbook, o que melhora isso?",
+    "options": [
+      "Exigir também que uma janela curta (ex.: 5m) passe do mesmo burn rate, para o alerta se resolver logo após a recuperação",
+      "Adicionar `for: 1h` à regra para que o alerta só dispare depois que a condição estiver estável",
+      "Trocar o alerta de burn rate por um limiar estático sobre a contagem bruta de respostas 5xx",
+      "Aumentar a janela para 6h para que um pico breve não consiga mais levar o burn rate acima de 14,4"
+    ],
+    "explanation": "Alertas multiwindow e multi-burn-rate combinam uma janela longa, para significância, com uma janela curta (cerca de 1/12 dela) que confirma que o budget ainda está sendo queimado, então o alerta para logo depois que o problema termina. Uma janela de 6h reduz a velocidade de detecção, limiares brutos ignoram o volume de tráfego, e `for: 1h` atrasa a detecção sem resolver o tempo de reset."
+  },
+  {
+    "id": "obs-alert-symptoms-not-causes",
+    "title": "O que deve acionar o plantão",
+    "question": "O plantão é acionado dezenas de vezes por semana por `CPU > 80%` em hosts individuais, embora os usuários raramente percebam algum impacto. Qual é a melhor abordagem de alertas?",
+    "options": [
+      "Desativar os alertas no horário comercial, já que os engenheiros vão perceber os problemas de qualquer forma",
+      "Acionar para toda métrica de recurso, mas enviar para um canal compartilhado em vez de pessoas",
+      "Baixar o limiar para 70% para que os problemas sejam pegos mais cedo, antes de virarem incidentes",
+      "Acionar por sintomas visíveis ao usuário, como taxa de erro e latência contra SLOs, e usar métricas de causa no diagnóstico"
+    ],
+    "explanation": "Acionamentos devem ser urgentes, acionáveis e ligados ao impacto no usuário; alertar por sintomas pega problemas independentemente da causa e reduz o ruído. CPU alta é uma causa muitas vezes inofensiva, então pertence aos dashboards e às investigações. Baixar limiares ou espalhar alertas aumenta a fadiga."
+  },
+  {
+    "id": "obs-alert-for-clause",
+    "title": "A cláusula for em regras de alerta",
+    "question": "Uma regra de alerta do Prometheus tem `expr: job:errors:ratio5m > 0.05` e `for: 10m`. A condição fica verdadeira por 7 minutos e depois se torna falsa. O que acontece?",
+    "options": [
+      "O alerta dispara quando a condição se torna falsa, resumindo a janela de 7 minutos",
+      "O alerta dispara após 7 minutos, porque mais da metade dos 10 minutos já passou",
+      "O alerta fica pending por 7 minutos e depois é resetado sem nunca disparar",
+      "O alerta dispara imediatamente e se resolve sozinho depois de 10 minutos"
+    ],
+    "explanation": "Com `for`, um alerta fica no estado pending até a expressão ser verdadeira continuamente durante todo o período; se ela se tornar falsa antes, o alerta volta a inactive sem disparar. Isso filtra picos breves, mas adiciona atraso na detecção, então os períodos devem ser escolhidos com cuidado."
+  },
+  {
+    "id": "obs-incident-commander",
+    "title": "Papel do incident commander",
+    "question": "Durante uma grande indisponibilidade, vários engenheiros depuram em paralelo, ninguém atualiza os stakeholders e duas pessoas fazem rollback de serviços diferentes ao mesmo tempo. Qual papel de gestão de incidentes resolve isso?",
+    "options": [
+      "Um release manager que congela todos os deploys até a próxima release agendada",
+      "Um incident commander que coordena tudo, atribui papéis e delega o trabalho",
+      "Um DBA que aprova toda mudança em produção durante o incidente",
+      "Um autor de postmortem que documenta a linha do tempo enquanto o incidente ainda acontece"
+    ],
+    "explanation": "O modelo de gestão de incidentes do Google atribui um incident commander que mantém o estado geral, delega os papéis de operações, comunicação e planejamento e evita ações descoordenadas, como rollbacks conflitantes. Postmortems vêm depois da resolução, e os outros papéis não fornecem coordenação geral."
+  }
+]

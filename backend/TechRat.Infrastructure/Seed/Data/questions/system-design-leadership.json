@@ -332,7 +332,7 @@
     "options": [
       "Switch all replicas to synchronous replication so they can never lag at all",
       "Add more read replicas so each one has less load and replicates faster",
-      "Send a user's reads to the primary briefly after they write",
+      "Route a user's reads to the primary for a short time after they write",
       "Cache profile pages in a CDN so the reads no longer hit the replicas"
     ],
     "correctIndex": 2,
@@ -451,7 +451,7 @@
     "options": [
       "Each partition is split so all 12 instances share the messages",
       "Every instance receives all messages, doubling the total work done",
-      "Six instances receive partitions and the other six sit idle",
+      "Six instances get one partition each and the other six sit idle",
       "Kafka automatically creates 6 more partitions to match the group"
     ],
     "correctIndex": 2,
@@ -570,7 +570,7 @@
     "options": [
       "One shared GraphQL schema that every client team edits as needed",
       "Gateway Routing based on the User-Agent header to the same handlers",
-      "Backends for Frontends: a dedicated backend per client type",
+      "Backends for Frontends: a dedicated backend for each client type",
       "Moving all aggregation logic into the mobile and web clients"
     ],
     "correctIndex": 2,
@@ -621,7 +621,7 @@
     "options": [
       "Switch to a fixed retry interval of 1s so recovery happens sooner",
       "Remove the backoff entirely and retry immediately after each failure",
-      "Add random jitter to each client's backoff delays",
+      "Add random jitter to each client's exponential backoff delays",
       "Increase the number of retries from 4 to 10 on every client"
     ],
     "correctIndex": 2,
@@ -755,7 +755,7 @@
     "title": "Deduplicating at-least-once messages",
     "question": "A consumer receives at-least-once messages and must apply each balance update exactly once. It records processed message IDs in a table. Why must that insert be in the same database transaction as the balance update?",
     "options": [
-      "A crash between separate writes causes a duplicate or a lost update",
+      "A crash between two separate writes causes a duplicate or a lost update",
       "Because message IDs are only unique within a single transaction scope",
       "Because the broker requires a transaction ID to acknowledge the message",
       "Because separate transactions would deadlock on the processed-ID table"
@@ -792,7 +792,7 @@
       "W=1 and R=1, since each replica is checked eventually",
       "W=1 and R=2, since reads use more replicas than writes",
       "W=2 and R=1, since writes reach a majority of replicas",
-      "W=2 and R=2, since R + W > N"
+      "W=2 and R=2, since R + W > N means quorums overlap"
     ],
     "correctIndex": 3,
     "explanation": "Overlap is guaranteed when R + W > N: any 2 replicas read must include at least one of the 2 that acknowledged the write. With R + W = 3 or less, as in the other options, a read can hit only replicas that missed the latest write.",
@@ -893,7 +893,7 @@
     "options": [
       "Choreography, with each service reacting to the events of the previous step",
       "Two-phase commit across all nine services involved in the process",
-      "Orchestration, with a coordinator that owns workflow state",
+      "Orchestration, with a central coordinator that owns the workflow state",
       "A single shared database that all nine services update directly"
     ],
     "correctIndex": 2,
@@ -909,7 +909,7 @@
     "question": "During a booking saga, the hotel is reserved before the flight step fails and compensates. Meanwhile, a reporting service read the hotel reservation and emailed a confirmation. What property of sagas caused this, and what is a common countermeasure?",
     "options": [
       "Sagas lack durability; persist each step's result to disk before continuing",
-      "Sagas lack isolation; mark records PENDING until the saga completes",
+      "Sagas lack isolation; mark records as PENDING until the whole saga completes",
       "Sagas lack atomicity within a service; wrap each local step in two transactions",
       "Sagas lack ordering; publish every step's events to the same Kafka partition"
     ],
@@ -944,7 +944,7 @@
     "options": [
       "Event notification: keep the ID-only event and increase customer service replicas",
       "Synchronous RPC: have customer service call shipping directly on every change",
-      "Event-carried state transfer: put the new address in the event itself",
+      "Event-carried state transfer: include the new address in the event itself",
       "Batching: deliver the ID-only events once per hour to reduce call volume"
     ],
     "correctIndex": 2,
@@ -959,7 +959,7 @@
     "title": "Event sourcing load times",
     "question": "An event-sourced Account aggregate has 200,000 events, and loading it by replaying all of them takes seconds. What is the usual fix that preserves the event log?",
     "options": [
-      "Store periodic snapshots and replay only events after the latest one",
+      "Store periodic snapshots and replay only the events after the latest one",
       "Delete events older than 30 days once they have been applied to the account",
       "Merge all events into a single updated event that is rewritten on each change",
       "Switch the aggregate to a CRUD table and drop the event store entirely"
@@ -1011,7 +1011,7 @@
     "question": "A business needs an RTO of a few minutes after a regional failure, but cannot afford running full production capacity in two regions. Which DR strategy fits best?",
     "options": [
       "Backup and restore: recreate everything from backups in the second region",
-      "Warm standby: a smaller, running copy that scales up on failover",
+      "Warm standby: a scaled-down but running copy that scales up on failover",
       "Multi-site active/active: serve full traffic from both regions at all times",
       "Pilot light: replicate data only and provision the app tier during a disaster"
     ],
@@ -1114,7 +1114,7 @@
     "options": [
       "Sort by the server's arrival time on whichever gateway received each message",
       "Synchronise all client clocks with NTP before allowing users to send",
-      "Assign per-conversation sequence numbers at a single owner",
+      "Assign per-conversation sequence numbers at a single owning partition",
       "Sort by message ID generated as a random UUIDv4 on each device"
     ],
     "correctIndex": 2,
@@ -1129,7 +1129,7 @@
     "title": "Video streaming: smooth playback",
     "question": "A video platform serves one 1080p MP4 file per video. Mobile users on weak networks see constant buffering. What is the standard design?",
     "options": [
-      "Transcode to several bitrates and serve adaptive HLS segments",
+      "Transcode to several bitrates and serve adaptive HLS/DASH segments",
       "Serve the single 1080p file from more origin servers in each region",
       "Compress the 1080p file harder so it is smaller for every viewer",
       "Stream the video over WebSockets so frames arrive with less overhead"
@@ -1166,7 +1166,7 @@
       "Fan out on read for all users, computing every feed from scratch on each request",
       "Fan out on write for all users, but add more workers for celebrity posts",
       "Store all posts in one table and sort by timestamp for every feed request",
-      "Hybrid: precompute most feeds, merge celebrity posts at read time"
+      "Hybrid: precompute most feeds and merge celebrity posts in at read time"
     ],
     "correctIndex": 3,
     "explanation": "Precomputed feeds (a materialized view) make reads cheap but are expensive to update for huge follower counts. A hybrid keeps precomputation for most authors and pulls high-follower authors' posts at read time. Pure fan-out on read makes every feed load expensive, more workers still perform 50M writes per post, and a global sort does not scale.",
@@ -1181,7 +1181,7 @@
     "question": "A notification service sends one-time login codes and marketing campaigns through the same queue. During a 10M-message campaign, login codes arrive 40 minutes late. What design fixes this?",
     "options": [
       "Add more consumers to the shared queue only while campaigns are running",
-      "Separate priority queues with dedicated consumers for urgent codes",
+      "Separate priority queues, with dedicated consumers for the urgent codes",
       "Send marketing messages first so the queue drains faster for login codes",
       "Lower the message size limit so each campaign message is processed faster"
     ],
@@ -1232,7 +1232,7 @@
     "question": "Each of 20 API gateway instances enforces 100 requests/s per API key in local memory, so a client can actually reach 2,000/s. What design enforces a true global limit?",
     "options": [
       "Use sticky sessions so each API key always reaches the same gateway instance",
-      "Atomic per-key counters in a shared Redis, e.g. INCR plus EXPIRE",
+      "Atomic per-key counters in a shared Redis store, e.g. INCR plus EXPIRE",
       "Divide the limit by 20 and enforce 5 requests/s locally on every instance",
       "Let each instance sync its counters to the others every 60 seconds"
     ],
@@ -1249,7 +1249,7 @@
     "question": "A game with 10M players needs real-time score updates and fast 'what is my rank' queries. Recomputing ranks with SQL ORDER BY on each request is too slow. Which approach fits best?",
     "options": [
       "A Redis list with LPUSH for updates and a full LRANGE scan for each rank",
-      "A Redis sorted set with ZINCRBY updates and ZREVRANK lookups",
+      "A Redis sorted set, using ZINCRBY for updates and ZREVRANK for ranks",
       "A Redis hash of player to score, sorting all entries on each rank query",
       "A nightly batch job that writes every player's rank into the SQL table"
     ],
@@ -1299,7 +1299,7 @@
     "title": "Marking optional comments",
     "question": "In a code review you want to point out a minor style polish that the author may ignore. How should you signal that the comment is not blocking?",
     "options": [
-      "Prefix it with something like 'Nit:' or 'Optional:'",
+      "Prefix the comment with a label like 'Nit:' or 'Optional:'",
       "Add it as a blocking comment so the author is sure to read it",
       "Leave it out entirely, since minor comments are never useful",
       "Send it privately in chat so it doesn't appear in the review"
@@ -1336,7 +1336,7 @@
       "The full design specification and API contract for the affected systems",
       "Meeting minutes listing everyone who attended the architecture review",
       "A list of tasks and owners needed to implement the chosen architecture",
-      "The decision, its context, options considered and consequences"
+      "The decision, its context, the options considered and its consequences"
     ],
     "correctIndex": 3,
     "explanation": "An ADR is a brief record of one significant decision: what was decided, why (context and forces), which options were considered and what consequences are expected. That lets future engineers understand the reasoning. Full specs, attendance lists and task plans belong in other artifacts.",
@@ -1367,7 +1367,7 @@
     "title": "Big-bang rewrite vs incremental migration",
     "question": "A team proposes freezing features for 18 months to rewrite a revenue-critical monolith from scratch. As tech lead, which alternative best reduces risk while still modernising?",
     "options": [
-      "Migrate feature by feature behind a facade (Strangler Fig)",
+      "Strangler Fig: move features one by one behind a facade that routes traffic",
       "Approve the rewrite but double the team size so it finishes in nine months",
       "Do the rewrite in parallel and switch all traffic over on a single launch day",
       "Reject any modernisation and keep patching the monolith as long as possible"
@@ -1438,7 +1438,7 @@
       "Keep the finding but remove Sam's name so the document is anonymous",
       "Add a corrective action requiring Sam to complete extra training",
       "Remove the finding, since blameless postmortems avoid discussing actions",
-      "Ask why the system allowed an unchecked production migration"
+      "Ask why the system allowed an unchecked migration to reach production"
     ],
     "correctIndex": 3,
     "explanation": "Blameless postmortems assume people acted reasonably with the information and tools they had, and look for the systemic contributing factors such as missing guardrails, confusing tooling or absent review. Anonymising still frames it as individual fault, singling out training blames the person, and omitting the event hides what happened.",
@@ -1540,7 +1540,7 @@
       "You drive the keyboard while the junior watches and takes notes",
       "You each work on separate files and compare results at the end",
       "The junior drives alone and you review the result in the pull request",
-      "The junior types while you navigate, guiding with ideas"
+      "The junior types while you navigate, explaining ideas as you go"
     ],
     "correctIndex": 3,
     "explanation": "Strong-style pairing's rule is that for an idea to go from your head into the computer it must go through someone else's hands; having the less experienced person drive keeps them engaged and learning. Watching passively, working apart or reviewing only afterwards miss the real-time guidance.",
@@ -1557,7 +1557,7 @@
       "Push the fix to their branch yourself so the PR can merge immediately",
       "Approve the PR and fix the query later without mentioning it",
       "Reject the PR with 'this query is wrong' and no further explanation",
-      "Explain the problem and why, then let them design the fix"
+      "Explain the problem and why it matters, then let them design the fix"
     ],
     "correctIndex": 3,
     "explanation": "Pointing out the issue and its reasoning while letting the author find the solution helps them learn; explicit directions are still appropriate when learning isn't the priority. Silently fixing it removes the learning, approving bad code hurts code health, and unexplained rejection is discouraging and unhelpful.",
@@ -1574,7 +1574,7 @@
       "Architecture is independent of team structure if interfaces are well documented",
       "Add a dedicated integration team to coordinate the three specialist teams",
       "Split the codebase first, and team communication patterns will follow it",
-      "Form a cross-functional team that owns payments end to end"
+      "Form one cross-functional team that owns the payments service end to end"
     ],
     "correctIndex": 3,
     "explanation": "Conway's Law observes that systems mirror the communication structures of the organisations that build them, so teams split by layer tend to produce layered, coupled systems. Aligning a cross-functional team to the desired service boundary (the inverse Conway manoeuvre) supports that architecture. Documentation and coordination teams do not remove the cross-team dependencies.",

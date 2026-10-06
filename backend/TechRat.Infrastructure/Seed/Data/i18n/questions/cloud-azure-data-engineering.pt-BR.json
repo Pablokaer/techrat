@@ -1,0 +1,974 @@
+[
+  {
+    "id": "cloud-iaas-guest-os-patching",
+    "title": "Quem aplica patches no SO convidado de VMs IaaS?",
+    "question": "Seu time executa uma aplicação em máquinas virtuais IaaS em uma nuvem pública. Pelo modelo de responsabilidade compartilhada, quem é responsável por aplicar patches no sistema operacional convidado?",
+    "options": [
+      "O fornecedor do hypervisor",
+      "Seu time, o cliente",
+      "O provedor de nuvem, automaticamente",
+      "Ninguém; imagens IaaS nunca precisam de patches"
+    ],
+    "explanation": "No IaaS, o provedor protege os hosts físicos, a rede e o hypervisor, mas tudo do SO convidado para cima (patches, runtime, aplicação, dados) é responsabilidade do cliente. A responsabilidade só passa para o provedor conforme você migra para PaaS e SaaS, onde o provedor gerencia o SO por você."
+  },
+  {
+    "id": "cloud-paas-deploy-code",
+    "title": "Escolhendo o modelo de serviço certo",
+    "question": "Um time pequeno quer fazer deploy do código da sua própria aplicação web, mas não quer provisionar servidores, aplicar patches em sistemas operacionais nem gerenciar runtimes. Qual modelo de serviço se encaixa melhor?",
+    "options": [
+      "Colocation em um data center",
+      "Software as a Service (SaaS)",
+      "Infrastructure as a Service (IaaS)",
+      "Platform as a Service (PaaS)"
+    ],
+    "explanation": "PaaS permite que você traga seu código enquanto o provedor gerencia o SO, o runtime e a infraestrutura de escalabilidade. IaaS ainda deixaria o gerenciamento de SO e runtime com o time, SaaS é uma aplicação pronta que você consome em vez de implantar, e colocation significa ser dono do hardware."
+  },
+  {
+    "id": "cloud-serverless-cold-start",
+    "title": "Picos de latência após períodos ociosos",
+    "question": "Uma API em funções serverless tem latência p50 de 40 ms, mas a primeira requisição após ~15 minutos sem tráfego leva 2-3 segundos. Qual é a causa mais provável e uma mitigação padrão?",
+    "options": [
+      "Expiração do cache DNS; reduza o TTL do registro DNS da API para manter as consultas atualizadas",
+      "Cold start; mantenha capacidade aquecida com provisioned concurrency ou instâncias mínimas",
+      "Renegociação da sessão TLS; troque a API de HTTPS para HTTP puro para evitá-la",
+      "Contenção de locks no banco; adicione um índice na tabela mais consultada"
+    ],
+    "explanation": "Depois de um período ocioso, a plataforma recolhe os ambientes de execução, então a próxima requisição paga pela criação de um novo e pela execução do código de inicialização (um cold start). Provisioned concurrency (Lambda) ou instâncias mínimas (Cloud Run, Functions premium/flex) mantêm ambientes aquecidos prontos. DNS, locks ou TLS não teriam uma correlação tão clara com o tempo ocioso."
+  },
+  {
+    "id": "cloud-spot-instances-batch",
+    "title": "Capacidade barata para jobs interrompíveis",
+    "question": "Um job batch noturno usa checkpoints e pode ser reiniciado a qualquer momento. Você quer reduzir o custo de computação ao máximo. Qual opção de compra se encaixa?",
+    "options": [
+      "Instâncias spot, que o provedor pode recolher com pouco aviso",
+      "Instâncias sob demanda cobradas por segundo e sem compromisso",
+      "Hosts dedicados reservados exclusivamente para sua conta",
+      "Instâncias bare-metal compradas com um plano de reserva de três anos"
+    ],
+    "explanation": "Capacidade spot usa a capacidade ociosa do provedor com um grande desconto, em troca de as instâncias poderem ser interrompidas com um aviso curto. Isso é aceitável para trabalho batch tolerante a falhas e com checkpoints. Hosts dedicados e reservas bare-metal custam mais, e sob demanda é flexível, mas tem preço cheio."
+  },
+  {
+    "id": "cloud-stateless-sessions-autoscale",
+    "title": "Usuários deslogados após scale-in",
+    "question": "Uma aplicação web atrás de um load balancer com autoscaling guarda as sessões de login na memória de cada instância. Usuários são deslogados aleatoriamente, principalmente quando o grupo faz scale-in ou acontece um deploy. Qual é a melhor correção?",
+    "options": [
+      "Mover o estado da sessão para um store externo, como um cache ou banco",
+      "Desativar o autoscaling para que o número de instâncias e sessões nunca mude",
+      "Aumentar a memória de cada instância para que as sessões sejam despejadas menos",
+      "Reduzir o idle timeout do load balancer para que as sessões renovem mais rápido"
+    ],
+    "explanation": "Estado local da instância desaparece quando a instância é removida, e as requisições podem cair em outra instância. Externalizar o estado da sessão torna as instâncias descartáveis, que é o que computação elástica e container/serverless pressupõem. Desativar o autoscaling perde a elasticidade, mais memória não sobrevive ao encerramento da instância e timeouts não movem estado."
+  },
+  {
+    "id": "cloud-lambda-long-running-job",
+    "title": "Um job de 40 minutos no AWS Lambda",
+    "question": "Um time quer mover para o AWS Lambda uma etapa de transcodificação de vídeo que leva de 30 a 45 minutos por arquivo. Qual é o principal problema?",
+    "options": [
+      "Invocações do Lambda expiram após 15 minutos; use containers ou computação batch",
+      "O Lambda só suporta linguagens interpretadas, então binários do FFmpeg não rodam",
+      "Funções Lambda são limitadas a 1 vCPU, então a transcodificação sofreria throttling",
+      "O Lambda não lê objetos do S3, então os arquivos precisam ser movidos antes para o EFS"
+    ],
+    "explanation": "Uma invocação do Lambda pode rodar por no máximo 900 segundos; trabalho mais longo é encerrado. Jobs longos se encaixam em ECS/Fargate, AWS Batch ou um workflow do Step Functions sobre pedaços menores. O Lambda lê do S3 nativamente, suporta imagens de container e runtimes customizados, e escala vCPU com a memória configurada além de um único core."
+  },
+  {
+    "id": "cloud-object-storage-uploads",
+    "title": "Armazenando imagens enviadas por usuários",
+    "question": "Uma aplicação precisa armazenar milhões de imagens enviadas por usuários, que são gravadas uma vez, lidas com frequência e servidas por URLs HTTP. Qual tipo de armazenamento é o encaixe natural?",
+    "options": [
+      "O disco efêmero local dos servidores web",
+      "Object storage (por exemplo, Amazon S3 ou Azure Blob Storage)",
+      "Uma tabela de banco relacional com uma coluna BLOB",
+      "Volumes de block storage anexados a cada servidor web"
+    ],
+    "explanation": "Object storage foi projetado para grandes quantidades de objetos imutáveis, escala praticamente sem limite, é altamente durável e é endereçável via HTTP. Volumes de bloco ficam presos a instâncias, guardar imagens em um banco relacional o incha e torna a escalabilidade cara, e discos efêmeros perdem dados quando as instâncias são substituídas."
+  },
+  {
+    "id": "cloud-storage-lifecycle-archive",
+    "title": "Retendo logs raramente lidos por anos",
+    "question": "Logs de auditoria são lidos com frequência por 30 dias, quase nunca após 90 dias, mas precisam ser retidos por 7 anos. Para logs antigos, uma recuperação em até 12 horas é aceitável. Qual é a abordagem mais econômica?",
+    "options": [
+      "Uma lifecycle policy que move objetos para infrequent-access e depois para archive",
+      "Manter tudo na classe de armazenamento standard com versionamento ativado",
+      "Copiar logs com mais de 90 dias para o banco transacional principal",
+      "Guardar logs antigos em volumes de bloco provisionados e mantidos desanexados das VMs"
+    ],
+    "explanation": "Regras de lifecycle movem objetos automaticamente para classes mais baratas conforme envelhecem; classes de arquivamento têm custo de armazenamento muito baixo em troca de atrasos e taxas de recuperação, o que combina com a tolerância de 12 horas. Armazenamento standard com versionamento custa mais, volumes desanexados ainda cobram a capacidade provisionada e um banco transacional é o lugar mais caro para dados frios."
+  },
+  {
+    "id": "cloud-dynamodb-hot-partition",
+    "title": "Throttling com a data como partition key",
+    "question": "Uma tabela DynamoDB de eventos usa a data do evento (ex.: 2026-10-05) como partition key. As escritas sofrem muito throttling, embora a capacidade total consumida esteja bem abaixo da capacidade da tabela. Por quê?",
+    "options": [
+      "A tabela precisa de um global secondary index antes de aceitar escritas",
+      "Tabelas on-demand aplicam throttling a toda requisição de escrita maior que 1 KB",
+      "O DynamoDB não armazena mais de um item por valor de partition key",
+      "As escritas de hoje vão todas para uma partition key, criando uma partição quente"
+    ],
+    "explanation": "O throughput é distribuído entre partições pela partition key, e cada partição tem seus próprios limites. Uma chave de baixa cardinalidade que concentra o tráfego atual (como a data de hoje) manda todas as escritas para uma única partição. Usar uma chave de alta cardinalidade ou write sharding (ex.: date#random-suffix) espalha a carga. Itens podem compartilhar uma partition key via sort keys, e GSIs ou tamanho de item não são a causa aqui."
+  },
+  {
+    "id": "cloud-nacl-stateless-return-traffic",
+    "title": "Entrada liberada, respostas bloqueadas",
+    "question": "Em uma VPC, a network ACL de uma subnet permite TCP 443 de entrada vindo de qualquer lugar, e o security group da instância também permite 443 de entrada. Os clientes ainda recebem timeout. As regras de saída da NACL só permitem a porta 443. O que está errado?",
+    "options": [
+      "Security groups são stateless e precisam de uma regra de saída explícita para a porta 443",
+      "NACLs só podem ser associadas a load balancers, nunca a subnets",
+      "NACLs são stateless, então a saída precisa liberar as portas efêmeras dos clientes",
+      "A porta 443 de entrada precisa de um NAT gateway na subnet para aceitar conexões"
+    ],
+    "explanation": "Network ACLs avaliam cada direção de forma independente, então o tráfego de retorno para a faixa de portas efêmeras do cliente (ex.: 1024-65535) precisa ser liberado explicitamente na saída. Security groups são stateful e permitem o tráfego de retorno automaticamente. NACLs atuam no nível da subnet, e NAT gateways servem para tráfego iniciado de dentro para fora, não para tráfego de entrada."
+  },
+  {
+    "id": "cloud-l7-path-routing",
+    "title": "Roteando /api e /static de forma diferente",
+    "question": "Você precisa de um único endpoint público que envie requisições /api/* para um serviço e /static/* para outro, com base no path HTTP. De que tipo de load balancer você precisa?",
+    "options": [
+      "Um NAT gateway com regras de port forwarding",
+      "Um load balancer de camada 7 (aplicação)",
+      "Um registro DNS round-robin",
+      "Um load balancer de camada 4 (rede)"
+    ],
+    "explanation": "Roteamento por path exige inspecionar requisições HTTP, que é o que load balancers de camada 7 como o AWS ALB fazem. Um balanceador de camada 4 só enxerga IPs, portas e protocolos, DNS round-robin não enxerga paths, e um NAT gateway fornece conectividade de saída em vez de balanceamento de carga."
+  },
+  {
+    "id": "cloud-s3-gateway-endpoint-nat-cost",
+    "title": "Conta enorme de NAT por tráfego do S3",
+    "question": "Instâncias em subnets privadas leem terabytes por dia do S3 na mesma região através de um NAT gateway, e as cobranças de processamento de dados do NAT dominam a fatura. Qual é a correção mais simples?",
+    "options": [
+      "Mover as instâncias para subnets públicas e anexar um Elastic IP a cada uma",
+      "Ativar o S3 Transfer Acceleration no bucket para acelerar as leituras",
+      "Adicionar um gateway VPC endpoint do S3 para o tráfego não passar pelo NAT",
+      "Trocar o NAT gateway por uma NAT instance em um tipo de instância maior"
+    ],
+    "explanation": "Um gateway endpoint para o S3 adiciona uma rota que mantém o tráfego do S3 na rede da AWS sem passar pelo NAT gateway, e gateway endpoints não têm cobrança adicional. Mover instâncias para subnets públicas enfraquece a segurança, o tamanho do NAT não muda a cobrança de processamento por GB, e o Transfer Acceleration é voltado a uploads de clientes distantes."
+  },
+  {
+    "id": "cloud-target-tracking-scaling",
+    "title": "Autoscaling para uma meta de utilização",
+    "question": "Você quer que um Auto Scaling group adicione ou remova instâncias automaticamente para manter a CPU média em torno de 50%, sem escrever limites de step manualmente. Qual tipo de política se encaixa?",
+    "options": [
+      "Target tracking scaling",
+      "Simple scaling com um único alarme",
+      "Mudanças manuais da capacidade desejada",
+      "Scheduled scaling"
+    ],
+    "explanation": "Target tracking funciona como um termostato: você escolhe uma métrica e um valor-alvo, e o serviço cria e gerencia os alarmes e ajustes para manter a métrica perto dele. Scheduled scaling só reage ao horário, mudanças manuais não reagem a nada, e simple scaling exige que você mesmo defina limites e ajustes fixos."
+  },
+  {
+    "id": "cloud-iam-role-instead-of-keys",
+    "title": "Access keys em um arquivo de configuração no EC2",
+    "question": "Uma aplicação no EC2 lê access keys da AWS de um arquivo de configuração para chamar S3 e SQS. Qual é a substituição recomendada?",
+    "options": [
+      "Criar um IAM user separado por instância, cada um com suas próprias access keys de longa duração",
+      "Embutir as access keys na AMI para que nunca apareçam no controle de versão",
+      "Anexar uma IAM role (instance profile) para o SDK obter credenciais temporárias",
+      "Guardar as mesmas access keys em uma variável de ambiente em vez de um arquivo"
+    ],
+    "explanation": "IAM roles para EC2 entregam credenciais de curta duração pelo instance metadata service e as rotacionam automaticamente, eliminando por completo segredos de longa duração. Mover as chaves para variáveis de ambiente ou para a AMI ainda deixa credenciais estáticas que podem vazar, e IAM users por instância multiplicam o problema."
+  },
+  {
+    "id": "cloud-iam-explicit-deny",
+    "title": "Allow e deny na mesma ação",
+    "question": "A identity policy de um usuário permite s3:DeleteObject em um bucket, mas um permissions boundary ou SCP anexado tem um Deny explícito para s3:DeleteObject. O que acontece quando o usuário exclui um objeto?",
+    "options": [
+      "A requisição é permitida, porque identity policies têm precedência",
+      "Vence a policy anexada mais recentemente",
+      "A requisição só é permitida se MFA tiver sido usado",
+      "A requisição é negada, porque um deny explícito vence qualquer allow"
+    ],
+    "explanation": "A avaliação de policies da AWS começa com um deny implícito, um allow é necessário para conceder acesso e qualquer Deny explícito aplicável sempre vence. A ordem de anexação e o tipo de policy não permitem que um allow o sobreponha, e MFA só importa se uma condição da policy fizer referência a ele."
+  },
+  {
+    "id": "cloud-secret-rotation-outage",
+    "title": "Indisponibilidade durante a rotação da senha do banco",
+    "question": "Depois de ativar a rotação automática da senha do banco de dados, uma aplicação falha por alguns minutos a cada rotação: ela lê o segredo uma vez na inicialização e continua usando-o. Qual mudança elimina melhor a indisponibilidade?",
+    "options": [
+      "Desativar a rotação e usar uma senha bem mais longa para compensar",
+      "Rebuscar o segredo em falha de autenticação; rotacionar com usuários alternados",
+      "Reiniciar todas as instâncias manualmente logo antes de cada rotação agendada",
+      "Embutir a senha na imagem do container para que ela esteja sempre disponível"
+    ],
+    "explanation": "A rotação troca a credencial por baixo de uma aplicação em execução, então os clientes precisam atualizá-la; uma estratégia de usuários alternados mantém válidas as credenciais do usuário anterior durante a troca, para que os clientes em andamento continuem funcionando. Desativar a rotação abre mão de segurança, reinícios manuais são frágeis, e embutir segredos em imagens é inseguro e ainda fica desatualizado após a rotação."
+  },
+  {
+    "id": "cloud-rpo-definition",
+    "title": "O que o RPO mede",
+    "question": "Uma empresa define um RPO de 15 minutos para o banco de dados de pedidos. O que isso significa?",
+    "options": [
+      "No máximo 15 minutos de dados podem ser perdidos, contados para trás a partir da falha",
+      "O sistema precisa estar totalmente no ar em até 15 minutos após qualquer queda",
+      "Todo backup precisa ser retido por pelo menos 15 minutos",
+      "O failover para o site secundário precisa ser testado a cada 15 minutos"
+    ],
+    "explanation": "Recovery Point Objective é a perda de dados máxima aceitável, expressa como o tempo desde o último ponto recuperável. O tempo para restaurar o serviço é o Recovery Time Objective (RTO). Retenção e frequência de testes são preocupações separadas."
+  },
+  {
+    "id": "cloud-dr-strategy-warm-standby",
+    "title": "Escolhendo uma estratégia de DR",
+    "question": "Uma carga de trabalho precisa de RTO de poucos minutos e RPO de segundos após uma indisponibilidade regional, mas a empresa não vai pagar por capacidade active/active completa em duas regiões. Qual estratégia de DR se encaixa melhor?",
+    "options": [
+      "Multi-site active/active com capacidade total nas duas regiões",
+      "Backup e restore a partir de snapshots diários copiados para a segunda região",
+      "Pilot light, só com dados replicados e servidores criados no failover",
+      "Warm standby: uma cópia reduzida, mas totalmente funcional, rodando na segunda região"
+    ],
+    "explanation": "Warm standby mantém um ambiente menor em execução que pode receber tráfego imediatamente e escalar, dando RTO em minutos com dados replicados para um RPO de segundos. Backup e restore dá RTO e RPO de horas, pilot light precisa de tempo para provisionar e iniciar serviços, e active/active atende às metas, mas é a opção cara que foi descartada."
+  },
+  {
+    "id": "cloud-az-vs-region-failure",
+    "title": "O que multi-AZ cobre e o que não cobre",
+    "question": "Uma aplicação roda em três availability zones de uma região com um banco de dados zone-redundant. Para qual evento este design NÃO foi projetado para sobreviver?",
+    "options": [
+      "Uma partição de rede isolando uma zona",
+      "Perda de um único host rodando uma instância da aplicação",
+      "Uma falha de energia no data center de uma zona",
+      "Uma indisponibilidade regional que afeta todas as zonas"
+    ],
+    "explanation": "Availability zones são data centers fisicamente separados, com energia, refrigeração e rede independentes dentro de uma região, então distribuir entre elas tolera falhas de host e de zona. Sobreviver à indisponibilidade de uma região inteira exige um design multi-região com um processo de failover definido."
+  },
+  {
+    "id": "cloud-async-replication-data-loss",
+    "title": "Perda de dados após failover entre regiões",
+    "question": "O banco de dados primário replica de forma assíncrona para outra região, com lag típico de 5 segundos. A região primária falha e você faz failover. O que você deve esperar?",
+    "options": [
+      "A réplica fica inutilizável até a região primária se recuperar totalmente",
+      "Commits dos últimos segundos antes da falha podem ser perdidos (RPO > 0)",
+      "O failover é impossível porque a replicação não é síncrona",
+      "Nenhuma perda de dados, porque a replicação assíncrona confirma cada commit nas duas regiões"
+    ],
+    "explanation": "Com replicação assíncrona, o primário confirma os commits antes que eles cheguem à réplica, então tudo o que estiver dentro da janela de lag é perdido no failover. Replicação síncrona entre regiões evitaria isso, mas adiciona latência de escrita. A réplica ainda pode ser promovida; você está trocando um RPO pequeno por desempenho."
+  },
+  {
+    "id": "cloud-dr-logical-corruption",
+    "title": "Um DELETE errado replicado para todo lado",
+    "question": "Uma migration com bug executou DELETE sem cláusula WHERE no banco primário. As réplicas multi-região e o standby zone-redundant mostram as mesmas linhas faltando em segundos. O que o plano de DR deveria ter incluído?",
+    "options": [
+      "Mais réplicas em regiões adicionais para aumentar a disponibilidade em incidentes",
+      "Point-in-time restore de backups isolados, pois a replicação copia o DELETE",
+      "TTLs de DNS menores para que o tráfego pudesse ir para outra região mais rápido",
+      "Uma réplica síncrona, que teria rejeitado o comando DELETE destrutivo"
+    ],
+    "explanation": "Replicação e HA protegem contra falhas de infraestrutura, não contra escritas erradas: um DELETE válido é replicado como qualquer outra mudança. A recuperação exige backups com point-in-time restore para antes do incidente, e cópias imutáveis ou isoladas também protegem contra ransomware. Réplicas síncronas, mais regiões ou failover de DNS mais rápido conteriam os mesmos dados excluídos."
+  },
+  {
+    "id": "cloud-golden-signals",
+    "title": "Os quatro golden signals",
+    "question": "De acordo com as orientações de SRE do Google, qual conjunto forma os quatro golden signals para monitorar um sistema voltado ao usuário?",
+    "options": [
+      "Uptime, throughput, custo, headcount",
+      "CPU, memória, disco, rede",
+      "Latência, tráfego, erros, saturação",
+      "Logs, métricas, traces, profiles"
+    ],
+    "explanation": "O livro de SRE recomenda latência, tráfego, erros e saturação como o conjunto mínimo a monitorar em sistemas voltados ao usuário, porque descrevem o que os usuários vivenciam e o quão perto o sistema está dos seus limites. Métricas de recursos do host são causas úteis, não sintomas, e logs/métricas/traces são tipos de telemetria, e não sinais."
+  },
+  {
+    "id": "cloud-slo-burn-rate-alerting",
+    "title": "Alertar por CPU vs por error budget",
+    "question": "Um time de plantão é acionado sempre que a CPU passa de 80%, mas a maioria dos alertas não exige ação e uma indisponibilidade recente com CPU baixa passou despercebida. Que abordagem de alertas a prática de SRE recomenda no lugar?",
+    "options": [
+      "Reduzir o limite de CPU para 60% para que problemas sejam detectados bem antes",
+      "Acionar o plantão a cada linha de log ERROR emitida por qualquer serviço em produção",
+      "Remover o acionamento e confiar em uma revisão diária do dashboard",
+      "Alertar pela burn rate do error budget do SLO, com base em sintomas do usuário"
+    ],
+    "explanation": "Alertas de burn rate disparam quando os usuários estão de fato sendo afetados rápido o suficiente para ameaçar o SLO, o que melhora a precisão e o recall em relação a limites de recursos. Um limite de CPU menor gera mais ruído, acionar o plantão a cada linha de erro é inviável, e dashboards sozinhos deixam passar incidentes urgentes."
+  },
+  {
+    "id": "aws-sqs-visibility-timeout",
+    "title": "Mensagens do SQS processadas duas vezes",
+    "question": "Os workers levam cerca de 2 minutos para processar cada mensagem do SQS, e o visibility timeout da fila é de 30 segundos. Muitas mensagens são processadas duas vezes. O que está acontecendo?",
+    "options": [
+      "O long polling está fazendo workers lerem a mesma mensagem simultaneamente",
+      "Filas standard do SQS entregam de propósito cada mensagem exatamente duas vezes",
+      "A dead-letter queue está fazendo redrive das mensagens de volta para a fila de origem",
+      "A mensagem reaparece antes do fim do processamento, e outro worker a recebe"
+    ],
+    "explanation": "Enquanto um consumidor processa uma mensagem, ela fica oculta pelo visibility timeout; se não for excluída a tempo, ela reaparece e outro consumidor a recebe. Configure o timeout acima do tempo de processamento (ou estenda-o durante o trabalho) e mantenha os handlers idempotentes, já que filas standard são at-least-once de qualquer forma. Long polling e DLQs não causam esse padrão."
+  },
+  {
+    "id": "aws-sqs-fifo-message-group",
+    "title": "Ordenação por cliente no SQS",
+    "question": "Eventos de conta precisam ser processados em ordem por cliente, mas clientes diferentes podem ser processados em paralelo. Como você consegue isso com o SQS?",
+    "options": [
+      "Usar uma fila standard com uma única thread consumidora",
+      "Usar uma fila FIFO com um message group ID fixo para todas as mensagens",
+      "Usar uma fila FIFO e definir o message group ID como o ID do cliente",
+      "Usar uma fila standard e ordenar as mensagens por timestamp no consumidor"
+    ],
+    "explanation": "Filas FIFO preservam a ordem dentro de um message group e permitem que grupos diferentes sejam processados em paralelo, atendendo à ordenação por cliente. Uma fila standard oferece apenas ordenação best-effort, ordenar no cliente não resolve lacunas, e um único grupo serializa todos os clientes."
+  },
+  {
+    "id": "aws-rds-multi-az-vs-read-replica",
+    "title": "Read replica vs Multi-AZ",
+    "question": "Um time adicionou uma read replica do RDS em outra AZ esperando que ela fornecesse failover automático caso a instância primária falhasse. Qual é a falha nesse raciocínio?",
+    "options": [
+      "Read replicas são assíncronas e para leitura; failover automático exige Multi-AZ",
+      "Read replicas não podem ser criadas em uma AZ diferente da AZ da instância primária",
+      "Standbys Multi-AZ só existem no Aurora, não no RDS padrão",
+      "Failover automático exige duas read replicas em regiões diferentes"
+    ],
+    "explanation": "O RDS Multi-AZ mantém um standby síncrono e faz failover automaticamente, normalmente mantendo o mesmo endpoint. Read replicas replicam de forma assíncrona e precisam ser promovidas (perdendo escritas em andamento) - elas existem principalmente para desafogar leituras. Réplicas podem ficar em outras AZs ou regiões, e o Multi-AZ está disponível para os engines padrão do RDS."
+  },
+  {
+    "id": "aws-lambda-sqs-partial-batch",
+    "title": "Uma poison message reprocessa o lote inteiro",
+    "question": "Uma função Lambda consome o SQS em lotes de 10. Uma mensagem malformada faz a função lançar uma exceção, então as 10 mensagens voltam para a fila e são reprocessadas repetidamente. Qual é a melhor correção?",
+    "options": [
+      "Definir o batch size como 10.000 para diluir cada falha entre mais mensagens",
+      "Capturar a exceção e retornar sucesso para que o lote seja excluído",
+      "Definir o visibility timeout como zero para que os retries ocorram na hora",
+      "Ativar ReportBatchItemFailures, retornar os IDs com falha e adicionar uma DLQ"
+    ],
+    "explanation": "Com partial batch responses, o Lambda exclui as mensagens bem-sucedidas e apenas as falhas reportadas voltam a ficar visíveis; uma redrive policy move mensagens que falham repetidamente para uma DLQ. Engolir erros perde dados silenciosamente, lotes maiores aumentam o raio de impacto, e visibility timeout zero causa processamento duplicado imediato."
+  },
+  {
+    "id": "aws-s3-block-public-access",
+    "title": "Proteção em toda a conta contra buckets públicos",
+    "question": "A equipe de segurança quer garantir que nenhum bucket S3 de uma conta possa se tornar público por ACLs ou bucket policies, nem por engano. Qual recurso fornece essa proteção?",
+    "options": [
+      "S3 Block Public Access no nível da conta",
+      "S3 Transfer Acceleration em todos os buckets",
+      "S3 Versioning com MFA Delete ativado",
+      "S3 Intelligent-Tiering para todos os novos objetos"
+    ],
+    "explanation": "As configurações do Block Public Access sobrepõem ACLs e bucket policies que concederiam acesso público, e defini-las no nível da conta cobre buckets existentes e futuros. Versioning protege contra sobrescritas, Transfer Acceleration acelera uploads e Intelligent-Tiering otimiza o custo de armazenamento."
+  },
+  {
+    "id": "gcp-resource-hierarchy",
+    "title": "Hierarquia de recursos do Google Cloud",
+    "question": "No Google Cloud, uma role do IAM concedida em uma pasta se aplica a quais recursos?",
+    "options": [
+      "Só aos recursos daquela pasta criados depois da concessão da role",
+      "Só ao objeto da pasta, não aos projetos ou recursos dentro dela",
+      "A todos os projetos e recursos abaixo daquela pasta, por herança",
+      "A todos os projetos da organização, independentemente da pasta"
+    ],
+    "explanation": "A hierarquia do Google Cloud é organização > pastas > projetos > recursos, e as allow policies são herdadas para baixo, então uma concessão em uma pasta se aplica a tudo abaixo dela. Ela não alcança pastas irmãs, e a herança cobre recursos existentes e novos da mesma forma."
+  },
+  {
+    "id": "gcp-workload-identity-federation",
+    "title": "Deploys de CI sem chaves de service account",
+    "question": "Um pipeline do GitHub Actions faz deploy no Google Cloud usando uma chave JSON de service account baixada e guardada como secret do repositório. Qual é a alternativa recomendada sem chaves?",
+    "options": [
+      "Rotacionar a chave JSON toda semana e mantê-la no secret do repositório",
+      "Criar uma conta de usuário para o pipeline e guardar a senha dela",
+      "Workload Identity Federation com tokens de curta duração via OIDC",
+      "Conceder a role Owner a allUsers no projeto de deploy"
+    ],
+    "explanation": "O Workload Identity Federation confia nos tokens de um provedor de identidade externo (como o OIDC do GitHub) e emite credenciais de curta duração, eliminando chaves de longa duração que podem vazar. Rotacionar chaves reduz esse risco, mas não o elimina, contas de usuário não são feitas para workloads, e conceder roles a allUsers é uma falha de segurança grave."
+  },
+  {
+    "id": "gcp-cloud-run-concurrency",
+    "title": "Código não thread-safe no Cloud Run",
+    "question": "Um serviço legado migrado para o Cloud Run começa a produzir respostas corrompidas sob carga, embora funcionasse bem com uma requisição por vez. O código usa estado global mutável. Qual configuração é a mais relevante?",
+    "options": [
+      "Instâncias mínimas, cujo padrão é 80 e que devem ser definidas como 0",
+      "O request timeout, que precisa ser elevado ao máximo de 60 minutos",
+      "Máximo de requisições simultâneas por instância (padrão 80); defina como 1",
+      "Cobrança com CPU sempre alocada, que desativa o multithreading por instância"
+    ],
+    "explanation": "Ao contrário do FaaS clássico, uma instância do Cloud Run atende muitas requisições ao mesmo tempo (concorrência padrão de 80), então estado global compartilhado pode ser corrompido. Definir a concorrência como 1 restaura a semântica de uma requisição por instância, ao custo de mais instâncias; a melhor correção a longo prazo é remover o estado mutável compartilhado. Instâncias mínimas, timeouts e modo de cobrança não alteram a concorrência."
+  },
+  {
+    "id": "gcp-pubsub-ordering-keys",
+    "title": "Entrega ordenada no Pub/Sub",
+    "question": "Um publisher define uma ordering key por conta nas mensagens do Pub/Sub, mas os subscribers ainda veem eventos fora de ordem para a mesma conta. Qual é a peça que mais provavelmente está faltando?",
+    "options": [
+      "A ordenação exige que um dead-letter topic esteja configurado",
+      "A ordenação de mensagens não foi ativada na subscription",
+      "O tópico precisa de exatamente uma partição por ordering key",
+      "Ordering keys só funcionam com push subscriptions"
+    ],
+    "explanation": "O Pub/Sub só entrega em ordem mensagens com a mesma ordering key quando a subscription tem a ordenação de mensagens ativada; publicar com chaves não basta. A ordenação funciona com pull e push, tópicos do Pub/Sub não têm partições gerenciadas pelo usuário, e dead-letter topics não têm relação com isso."
+  },
+  {
+    "id": "az-compute-container-apps-choice",
+    "title": "Containers orientados a eventos que escalam a zero",
+    "question": "Um time tem uma dúzia de microsserviços em containers que consomem filas do Service Bus e devem escalar a zero quando ociosos. Eles querem escalonamento no estilo KEDA e Dapr, mas não querem operar Kubernetes. Qual serviço do Azure se encaixa melhor?",
+    "options": [
+      "Azure Container Apps",
+      "Azure Virtual Machine Scale Sets",
+      "Azure Kubernetes Service",
+      "Azure App Service em um plano Premium"
+    ],
+    "explanation": "O Container Apps é uma plataforma serverless de containers construída sobre Kubernetes, KEDA e Dapr, com escalonamento orientado a eventos, incluindo escala a zero, e sem cluster para gerenciar. O AKS oferece os mesmos blocos, mas você opera o cluster, o App Service é otimizado para aplicações web e não para escala a zero orientada a filas, e VM scale sets são IaaS."
+  },
+  {
+    "id": "az-compute-aks-kubernetes-api",
+    "title": "Quando você precisa do AKS",
+    "question": "Um time de plataforma precisa instalar operators customizados com CRDs, rodar DaemonSets para um agente de segurança e usar kubectl diretamente contra o cluster. Qual opção de computação do Azure suporta isso?",
+    "options": [
+      "Azure App Service for Containers",
+      "Azure Container Apps",
+      "Azure Functions Flex Consumption",
+      "Azure Kubernetes Service (AKS)"
+    ],
+    "explanation": "O AKS fornece um control plane do Kubernetes gerenciado com acesso total à API do Kubernetes, então CRDs, operators e DaemonSets funcionam. O Container Apps esconde deliberadamente a API do Kubernetes, e Functions e App Service são opções PaaS de nível mais alto sem acesso no nível do cluster."
+  },
+  {
+    "id": "az-compute-app-service-slots",
+    "title": "Deploys sem downtime no App Service",
+    "question": "Você quer fazer deploy de uma nova versão de uma aplicação web no App Service, aquecê-la, testá-la e então trocar o tráfego de produção com um rollback fácil. Qual recurso foi feito para isso?",
+    "options": [
+      "Fazer scale-out para mais instâncias",
+      "Ativar o Always On",
+      "Deployment slots com swap",
+      "Reiniciar a aplicação após cada deploy"
+    ],
+    "explanation": "Deployment slots são aplicações ativas com seus próprios hostnames; você faz deploy em staging, aquece e valida, depois faz swap com produção, e faz swap de volta para o rollback. Scale-out e Always On não isolam uma nova versão, e reiniciar causa downtime."
+  },
+  {
+    "id": "az-compute-durable-fan-out",
+    "title": "Fan-out/fan-in com estado no Functions",
+    "question": "Uma aplicação do Functions precisa processar 5.000 documentos em paralelo, esperar todos terminarem e então agregar os resultados; o workflow pode levar horas e precisa sobreviver a reinícios do host. Qual é a abordagem idiomática?",
+    "options": [
+      "Uma função com timer trigger que consulta uma variável estática para saber se terminou",
+      "Uma única função com HTTP trigger que percorre todos os documentos em um loop",
+      "Orquestração do Durable Functions usando o padrão fan-out/fan-in",
+      "Guardar o progresso na pasta temporária local de cada instância da função"
+    ],
+    "explanation": "Orquestradores do Durable Functions salvam checkpoints do seu estado no storage, podem iniciar muitas activity functions em paralelo, aguardar todas e retomar após reinícios. Uma única função HTTP longa esbarra em timeouts, e variáveis estáticas e arquivos temporários locais não sobrevivem a scale-out nem a reinícios."
+  },
+  {
+    "id": "az-compute-app-service-web-app",
+    "title": "Hospedando uma aplicação web padrão",
+    "question": "Uma aplicação web ASP.NET Core existente precisa de TLS gerenciado, domínios customizados, autoscale e CI/CD fácil, e o time não tem experiência com containers nem orquestração. Qual serviço é a escolha mais direta?",
+    "options": [
+      "Azure App Service",
+      "Azure Batch",
+      "Azure Kubernetes Service",
+      "Azure Virtual Machines"
+    ],
+    "explanation": "O App Service é um PaaS totalmente gerenciado para aplicações web e APIs, com TLS, domínios customizados, autoscale e integrações de deploy embutidos, e roda código sem exigir containers. AKS e VMs adicionam overhead operacional, e o Azure Batch é para jobs paralelos em larga escala."
+  },
+  {
+    "id": "az-data-storage-redundancy-gzrs",
+    "title": "Redundância de storage para falha de zona e de região",
+    "question": "Uma storage account precisa sobreviver à perda de uma availability zone sem perda de dados para escritas síncronas e também manter uma cópia em uma região secundária para desastres regionais. Qual opção de redundância se encaixa?",
+    "options": [
+      "Locally redundant storage (LRS)",
+      "Zone-redundant storage (ZRS)",
+      "Geo-zone-redundant storage (GZRS)",
+      "Geo-redundant storage (GRS)"
+    ],
+    "explanation": "O GZRS replica de forma síncrona entre três zonas na região primária e de forma assíncrona para uma região secundária. O ZRS não tem região secundária, o GRS usa LRS (um único data center) na região primária, e o LRS protege apenas contra falhas de hardware dentro de um data center."
+  },
+  {
+    "id": "az-data-blob-archive-rehydrate",
+    "title": "Lendo um blob arquivado",
+    "question": "Um blob na camada de acesso Archive precisa ser lido por uma aplicação hoje. O que precisa acontecer antes?",
+    "options": [
+      "A storage account precisa antes ser convertida para desempenho premium",
+      "Nada; blobs no Archive podem ser lidos diretamente, só que a um preço maior",
+      "Ele precisa ser reidratado para uma camada online, o que pode levar horas",
+      "O blob precisa ser copiado para um Azure file share antes de poder ser lido"
+    ],
+    "explanation": "A camada Archive é offline: os dados não podem ser lidos até que o blob seja reidratado para uma camada online, seja mudando sua camada ou copiando-o, o que pode levar muitas horas dependendo da prioridade. Contas premium e file shares não têm relação com a reidratação."
+  },
+  {
+    "id": "az-data-sql-failover-group-listener",
+    "title": "Mantendo connection strings após geo-failover",
+    "question": "Um Azure SQL Database usa active geo-replication. Após um failover regional, todas as aplicações tiveram de ser reconfiguradas com o novo nome do servidor. Qual recurso evita isso?",
+    "options": [
+      "Ativar a camada de computação serverless com auto-pause nos dois servidores",
+      "Aumentar o período de retenção de backup de longo prazo do banco",
+      "Failover groups, cujos listener endpoints seguem o primário atual",
+      "Uma configuração zone-redundant nos bancos primário e secundário"
+    ],
+    "explanation": "Failover groups envolvem a geo-replicação com listener endpoints DNS estáveis que redirecionam para o primário atual após o failover, então as connection strings não mudam. Zone redundancy protege dentro de uma região, a retenção de backup afeta restores e o serverless afeta a cobrança de computação."
+  },
+  {
+    "id": "az-data-postgres-pgbouncer",
+    "title": "Conexões demais no PostgreSQL",
+    "question": "Uma aplicação serverless cria muitas conexões de curta duração com o Azure Database for PostgreSQL flexible server e atinge os limites de conexão, com CPU alta por causa da rotatividade de conexões. Qual opção embutida ajuda mais?",
+    "options": [
+      "Ativar o PgBouncer embutido e conectar pela porta 6432",
+      "Mudar o servidor para a camada de computação burstable para absorver picos",
+      "Desativar o SSL no servidor para que cada conexão seja mais barata de abrir",
+      "Aumentar max_connections muito acima da capacidade de memória do servidor"
+    ],
+    "explanation": "O flexible server inclui o PgBouncer, que multiplexa muitas conexões de clientes em um pool menor de conexões com o servidor; os clientes se conectam à porta 6432 no mesmo host. Aumentar max_connections além da memória causa instabilidade, uma camada burstable reduz a capacidade, e desativar o TLS é inseguro."
+  },
+  {
+    "id": "az-mi-replace-connection-string",
+    "title": "Removendo uma connection string do storage",
+    "question": "Uma aplicação no App Service lê blobs usando uma connection string da storage account com a chave da conta nas app settings. Qual é a forma recomendada de remover esse segredo?",
+    "options": [
+      "Mover a connection string para um arquivo local ignorado pelo Git no servidor",
+      "Usar uma managed identity com uma role de data plane como Storage Blob Data Reader",
+      "Dar à aplicação a role Owner na storage account e continuar usando a chave",
+      "Usar um SAS token sem data de expiração, guardado nas app settings"
+    ],
+    "explanation": "Managed identities permitem que a aplicação obtenha tokens do Microsoft Entra sem nenhum segredo armazenado, e roles RBAC de data plane concedem apenas o acesso a blobs necessário. Arquivos locais e SAS tokens sem expiração continuam sendo segredos de longa duração, e Owner é uma role de management plane ampla demais."
+  },
+  {
+    "id": "az-mi-user-assigned",
+    "title": "Identidade system-assigned vs user-assigned",
+    "question": "Oito Container Apps precisam usar a mesma identidade para acessar um Key Vault, e as role assignments da identidade precisam persistir mesmo quando aplicações individuais são excluídas e recriadas. Qual opção se encaixa?",
+    "options": [
+      "As contas de usuário do Entra dos próprios desenvolvedores",
+      "Uma managed identity system-assigned em cada aplicação",
+      "Uma managed identity user-assigned anexada às oito aplicações",
+      "Um service principal com client secret nas settings de cada aplicação"
+    ],
+    "explanation": "Uma identidade user-assigned é um recurso independente do Azure, com ciclo de vida próprio, que pode ser compartilhado por vários recursos, então as role assignments sobrevivem a novos deploys das aplicações. Identidades system-assigned ficam presas a um recurso e são excluídas junto com ele, client secrets reintroduzem credenciais e contas pessoais não devem ser usadas por workloads."
+  },
+  {
+    "id": "az-keyvault-references-app-service",
+    "title": "Segredos do Key Vault nas app settings",
+    "question": "Como uma aplicação no App Service pode consumir um segredo do Key Vault como uma app setting comum, sem alterar o código da aplicação?",
+    "options": [
+      "Ativar o acesso de rede público no vault para a aplicação lê-lo anonimamente",
+      "Montar o Key Vault como um drive de rede nas instâncias do App Service",
+      "Copiar o valor do segredo para a app setting a cada deploy",
+      "Usar uma Key Vault reference resolvida pela managed identity da aplicação"
+    ],
+    "explanation": "Key Vault references permitem que o App Service resolva app settings a partir do Key Vault em runtime usando a managed identity da aplicação, então o código lê uma variável de ambiente comum. Copiar valores perde a rotação centralizada, vaults não podem ser montados como drives e o Key Vault nunca permite leitura anônima de segredos."
+  },
+  {
+    "id": "az-keyvault-reader-403",
+    "title": "403 ao ler um segredo com Key Vault Reader",
+    "question": "Uma managed identity tem a role 'Key Vault Reader' em um vault com RBAC habilitado, mas um GET em um segredo retorna 403 Forbidden. Qual é a correção?",
+    "options": [
+      "Conceder 'Reader' no resource group, que inclui acesso ao data plane",
+      "Esperar até 24 horas para a role assignment se propagar até o vault",
+      "Atribuir 'Key Vault Secrets User'; Key Vault Reader só cobre metadados",
+      "Adicionar uma access policy, pois vaults RBAC ainda avaliam access policies primeiro"
+    ],
+    "explanation": "Key Vault Reader se limita a metadados; ler o conteúdo de segredos é uma ação de data plane concedida por roles como Key Vault Secrets User. A propagação de roles normalmente leva minutos, não um dia. Com o modelo de permissão RBAC, access policies não são avaliadas, e a role genérica Reader cobre apenas o management plane."
+  },
+  {
+    "id": "az-msg-event-hubs-telemetry",
+    "title": "Ingestão de telemetria em alto volume",
+    "question": "Milhões de dispositivos IoT enviam telemetria que precisa ser ingerida com throughput muito alto, retida por alguns dias e processada por vários consumidores de stream processing independentes. Qual serviço do Azure se encaixa melhor?",
+    "options": [
+      "Azure Event Grid",
+      "Azure Event Hubs",
+      "Azure Queue Storage",
+      "Filas do Azure Service Bus"
+    ],
+    "explanation": "O Event Hubs é uma plataforma de streaming de eventos particionada e de alto throughput, com retenção e consumer groups independentes, semelhante ao Kafka. O Service Bus é para mensageria transacional de negócio, o Event Grid roteia eventos discretos para handlers em vez de reter streams, e o Queue Storage não tem semântica de streaming nem múltiplos consumer groups."
+  },
+  {
+    "id": "az-msg-service-bus-sessions",
+    "title": "Processamento de pedidos ordenado e confiável",
+    "question": "Comandos de pedidos precisam ser processados de forma confiável, com dead-lettering e detecção de duplicatas, e todos os comandos do mesmo pedido precisam ser tratados em sequência por um consumidor de cada vez. Qual design se encaixa?",
+    "options": [
+      "Event Hubs com um único consumer group e checkpointing",
+      "Custom topic do Event Grid com um subscriber webhook",
+      "Blob Storage com processamento do change feed",
+      "Fila do Service Bus com sessions, usando o ID do pedido como session ID"
+    ],
+    "explanation": "O Service Bus oferece recursos de mensageria corporativa (DLQ, detecção de duplicatas, transações), e as sessions garantem processamento FIFO e exclusivo por session ID. O Event Grid não oferece garantias de ordem, o Event Hubs fornece ordem por partição, mas não settlement por mensagem nem DLQs, e o change feed de blobs não é uma fila de comandos."
+  },
+  {
+    "id": "az-msg-event-grid-blob-created",
+    "title": "Reagindo a novos blobs",
+    "question": "Você quer que uma função rode sempre que um novo blob for enviado a uma storage account, com entrega baseada em push e sem polling. Qual serviço foi feito para isso?",
+    "options": [
+      "Azure Data Factory",
+      "Azure Event Grid",
+      "Azure Service Bus",
+      "Azure Event Hubs"
+    ],
+    "explanation": "O Event Grid é um serviço de roteamento de eventos baseado em push que publica nativamente eventos do Blob Storage, como BlobCreated, para subscribers como o Functions. O Event Hubs é para streams de alto volume, o Service Bus é para mensagens que o seu código envia, e o Data Factory é uma ferramenta de integração de dados."
+  },
+  {
+    "id": "az-msg-peek-lock-lock-lost",
+    "title": "Mensagens vão para a DLQ apesar do sucesso",
+    "question": "Um consumidor do Service Bus usa peek-lock com lock duration de 30 segundos. Os handlers levam cerca de 90 segundos. As mensagens são reentregues repetidamente e acabam na dead-letter queue com MaxDeliveryCountExceeded. Qual é a causa?",
+    "options": [
+      "A dead-letter queue está cheia e está devolvendo mensagens para a fila principal",
+      "As sessions estão desativadas, o que faz toda mensagem expirar após 30 segundos",
+      "O peek-lock exclui cada mensagem ao recebê-la, então os retries vêm do remetente",
+      "O lock expira antes de o handler terminar, então a mensagem é reentregue"
+    ],
+    "explanation": "No modo peek-lock, a mensagem fica bloqueada pela lock duration; se não for liquidada a tempo, o lock é perdido, a mensagem volta a ficar disponível e o delivery count aumenta até atingir o MaxDeliveryCount e ela ir para a dead-letter queue. Corrija renovando os locks (auto-lock-renewal do SDK) ou aumentando a lock duration. Receive-and-delete é o modo que remove as mensagens ao recebê-las."
+  },
+  {
+    "id": "az-msg-duplicate-detection-idempotency",
+    "title": "Duplicatas apesar da detecção de duplicatas",
+    "question": "Uma fila tem a detecção de duplicatas ativada e os remetentes definem o MessageId como o ID de negócio. Mesmo assim, o time vê um pedido processado duas vezes depois que um consumidor caiu logo após gravar no banco, mas antes de completar a mensagem. Por quê?",
+    "options": [
+      "A detecção só bloqueia envios duplicados; o consumidor precisa ser idempotente",
+      "Cada renovação de lock zera de novo a janela de detecção de duplicatas",
+      "O MessageId precisa ser um GUID gerado pelo SDK, não um ID de negócio, para a detecção valer",
+      "A detecção de duplicatas exige que o particionamento esteja desativado para funcionar"
+    ],
+    "explanation": "A detecção de duplicatas impede que a fila aceite duas vezes o mesmo MessageId, o que cobre retries do remetente. Ela não consegue impedir a reentrega da mesma mensagem quando o consumidor não a liquida, então os efeitos colaterais precisam ser idempotentes (ex.: upsert pela chave do pedido ou uma tabela de inbox). Qualquer MessageId estável controlado pela aplicação funciona, e esse é justamente o objetivo do recurso."
+  },
+  {
+    "id": "az-net-front-door-vs-app-gateway",
+    "title": "Camada 7 global vs regional",
+    "question": "Uma aplicação web está implantada em East US e West Europe. Você precisa de um único ponto de entrada global com WAF, terminação TLS na borda, cache e failover automático entre regiões. Qual serviço se encaixa?",
+    "options": [
+      "Azure Load Balancer",
+      "Azure Application Gateway",
+      "Azure Front Door",
+      "Azure VPN Gateway"
+    ],
+    "explanation": "O Front Door é um ponto de entrada global de camada 7 na borda da Microsoft, com WAF, cache e failover entre regiões baseado em health probes. O Application Gateway é um load balancer regional de camada 7, o Load Balancer é regional de camada 4, e o VPN Gateway conecta redes em vez de servir tráfego web público."
+  },
+  {
+    "id": "az-net-private-endpoint-dns",
+    "title": "Private endpoint ainda resolve para IP público",
+    "question": "Você criou um private endpoint para um servidor Azure SQL e desativou o acesso de rede público. A aplicação em uma VNet com peering agora falha porque myserver.database.windows.net ainda resolve para um IP público. O que está faltando?",
+    "options": [
+      "Uma private DNS zone privatelink.database.windows.net vinculada à VNet",
+      "Uma regra de NSG liberando a saída na porta 1433 para a service tag Internet",
+      "Um service endpoint para Microsoft.Sql na subnet da aplicação na VNet",
+      "Um IP público anexado à interface de rede do private endpoint"
+    ],
+    "explanation": "Private endpoints dependem de DNS: o nome público precisa resolver via CNAME para a zona privatelink, o que exige uma private DNS zone (ou DNS customizado) vinculada a cada VNet que faz a resolução. Liberar saída para a Internet não ajuda quando o acesso público está desativado, private endpoints não têm IPs públicos, e service endpoints são um mecanismo diferente."
+  },
+  {
+    "id": "az-net-load-balancer-l4",
+    "title": "Balanceando tráfego TCP para VMs",
+    "question": "Você precisa distribuir tráfego TCP de um servidor de jogos não HTTP entre VMs em uma região, com latência muito baixa. Qual serviço do Azure foi feito para isso?",
+    "options": [
+      "Azure Load Balancer",
+      "Azure Application Gateway",
+      "Azure API Management",
+      "Azure Front Door"
+    ],
+    "explanation": "O Azure Load Balancer opera na camada 4 para TCP e UDP dentro de uma região, com alto throughput e baixa latência. Front Door e Application Gateway são serviços HTTP(S) de camada 7, e o API Management é um API gateway para APIs HTTP."
+  },
+  {
+    "id": "az-mon-log-analytics-kql",
+    "title": "Consultando logs coletados",
+    "question": "Onde você escreve consultas KQL para analisar logs coletados pelo Azure Monitor e pelo Application Insights (baseado em workspace)?",
+    "options": [
+      "Azure Advisor",
+      "Somente no Azure Resource Graph Explorer",
+      "No navegador de containers de blob da storage account",
+      "No Log Analytics, em um workspace do Azure Monitor Logs"
+    ],
+    "explanation": "O Azure Monitor Logs armazena os dados em workspaces do Log Analytics, consultados com Kusto Query Language pelo Log Analytics. O Advisor dá recomendações, o Resource Graph consulta metadados de recursos e um navegador de blobs não consegue consultar telemetria."
+  },
+  {
+    "id": "az-mon-sampling-cost",
+    "title": "Reduzindo o custo do Application Insights",
+    "question": "Os custos de ingestão do Application Insights de uma API de alto tráfego estão altos demais. Você ativa o sampling. Por que você ainda pode confiar nas contagens de requisições e seguir traces completos das operações amostradas?",
+    "options": [
+      "O sampling só descarta telemetria de exceções, mantendo todas as requisições",
+      "A telemetria descartada fica em uma camada mais barata e é mesclada na consulta",
+      "O sampling comprime a telemetria no cliente sem descartar nenhum item",
+      "O sampling mantém ou descarta operações inteiras por trace ID e pondera os itens"
+    ],
+    "explanation": "O sampling do Application Insights mantém ou descarta operações inteiras juntas com base no trace ID, então requisições, dependências e logs relacionados continuam correlacionados, e cada item retido representa vários itens, de modo que as métricas são ajustadas. Ele descarta dados permanentemente e não se limita a exceções."
+  },
+  {
+    "id": "az-mon-metric-alert",
+    "title": "Alerta quase em tempo real sobre taxa de erros",
+    "question": "Você quer ser notificado em cerca de um minuto quando a contagem de HTTP 5xx de um App Service ultrapassar um limite em uma janela de 5 minutos, e quer evitar o custo de consultas de log. Qual tipo de alerta se encaixa?",
+    "options": [
+      "Um alerta de log search rodando a cada 24 horas",
+      "Uma regra de metric alert na métrica de plataforma Http5xx",
+      "Um alerta do Service Health",
+      "Um alerta de activity log em escritas de recursos"
+    ],
+    "explanation": "Metric alerts avaliam métricas de plataforma com frequência, com baixa latência e sem custo de consulta de log, o que os torna ideais para condições de limite como contagens de 5xx. Alertas de log search são para consultas complexas, alertas de activity log disparam em eventos do control plane e alertas do Service Health informam incidentes da plataforma Azure."
+  },
+  {
+    "id": "de-etl-vs-elt",
+    "title": "O que torna um pipeline ELT",
+    "question": "O que diferencia ELT de ETL?",
+    "options": [
+      "Os dados brutos são carregados primeiro no destino e transformados lá",
+      "O ELT nunca transforma dados; ele só replica as tabelas de origem",
+      "O ELT sempre roda em streaming, enquanto o ETL sempre roda em batch noturno",
+      "Os dados são transformados em um servidor separado antes de serem carregados"
+    ],
+    "explanation": "No ELT, os dados extraídos são carregados brutos em um warehouse ou lakehouse e transformados ali, aproveitando a computação escalável do destino e mantendo o histórico bruto. O ETL transforma em um engine intermediário antes de carregar. Ambos transformam dados e ambos podem ser batch ou quase tempo real."
+  },
+  {
+    "id": "de-idempotent-reruns",
+    "title": "Reexecuções duplicam linhas",
+    "question": "Um job diário acrescenta as vendas de ontem a uma tabela. Quando ele é reexecutado após uma falha parcial, as linhas ficam duplicadas. Que mudança de design torna as reexecuções seguras?",
+    "options": [
+      "Tornar a carga idempotente, ex.: sobrescrever a partição do dia ou usar MERGE",
+      "Deixar as reexecuções acrescentarem e rodar um job de dedup uma vez por semana",
+      "Aumentar o timeout do job para que ele nunca falhe no meio do caminho",
+      "Desativar os retries para que o job nunca rode duas vezes para o mesmo dia"
+    ],
+    "explanation": "Tarefas idempotentes produzem o mesmo resultado não importa quantas vezes rodem para um dado intervalo, normalmente substituindo a partição daquele intervalo ou fazendo upsert por chaves. Limitar retries reduz a confiabilidade, a dedup semanal deixa dados errados no meio-tempo e timeouts maiores não evitam todas as falhas."
+  },
+  {
+    "id": "de-cdc-vs-updated-at",
+    "title": "Cargas incrementais que perdem exclusões",
+    "question": "Um pipeline incremental extrai linhas WHERE updated_at > last_run. Analistas descobrem que registros excluídos na origem ainda existem no warehouse, e algumas atualizações rápidas se perdem. Que abordagem resolve as duas coisas?",
+    "options": [
+      "Mudar a tabela do warehouse para um formato colunar, como Parquet",
+      "Rodar a consulta baseada em timestamp a cada poucos minutos em vez de diariamente",
+      "Change data capture baseado em log, lendo o log de transações do banco",
+      "Adicionar um índice em updated_at no banco de origem"
+    ],
+    "explanation": "Consultas por timestamp não enxergam exclusões físicas e dependem de as aplicações preencherem updated_at corretamente. O CDC baseado em log (ex.: Debezium) transmite cada mudança commitada, incluindo exclusões, em ordem. Rodar com mais frequência ou indexar só deixa a consulta falha mais rápida, e o formato de armazenamento não muda o que é extraído."
+  },
+  {
+    "id": "de-event-time-vs-processing-time",
+    "title": "Contando eventos mobile por hora",
+    "question": "Aplicativos mobile guardam eventos offline e os enviam horas depois. Você precisa de contagens precisas das ações dos usuários por hora em que aconteceram. Em qual tempo as janelas devem se basear?",
+    "options": [
+      "Ingestion time, quando o broker recebeu o evento",
+      "Processing time, quando o stream processor trata o evento",
+      "Event time, o timestamp em que a ação ocorreu no dispositivo",
+      "O horário de relógio da consulta do dashboard"
+    ],
+    "explanation": "O event time reflete quando algo de fato aconteceu, então as janelas continuam corretas mesmo quando os dados chegam atrasados ou fora de ordem. Processing time e ingestion time colocariam os eventos guardados na hora do envio, distorcendo os resultados. Event time exige tratar dados atrasados, normalmente com watermarks."
+  },
+  {
+    "id": "de-watermark-late-data",
+    "title": "Eventos atrasados e watermarks",
+    "question": "Um job do Spark Structured Streaming agrega janelas de event time de 5 minutos com withWatermark(\"eventTime\", \"10 minutes\"). Um evento chega 40 minutos depois do maior event time já visto. O que acontece?",
+    "options": [
+      "Ele está atrás do watermark, então pode ser descartado e não ser contado",
+      "A consulta falha com uma exceção de dados atrasados e precisa ser reiniciada",
+      "Ele é sempre adicionado à sua janela e o resultado é emitido de novo",
+      "Ele é atribuído à janela aberta atual em vez da sua janela original"
+    ],
+    "explanation": "O watermark (maior event time visto menos 10 minutos) diz ao engine por quanto tempo manter o estado da janela para dados atrasados; dados mais antigos que isso não têm agregação garantida e normalmente são descartados, o que limita o estado. O Spark não falha com dados atrasados nem os reatribui a outra janela."
+  },
+  {
+    "id": "de-streaming-dedup-state",
+    "title": "Estado de dedup em streaming cresce para sempre",
+    "question": "Um job de streaming chama dropDuplicates(\"eventId\") em um stream de eventos sem watermark. Ao longo de semanas, o tamanho do state store e o tempo dos checkpoints crescem até o job ficar instável. Qual é a correção?",
+    "options": [
+      "Mudar o output mode de append para complete na consulta de dedup",
+      "Adicionar um watermark e deduplicar por eventId mais event time para expirar chaves",
+      "Reparticionar o stream em uma única partição para todo o estado ficar em um lugar",
+      "Aumentar o trigger interval para que menos micro-batches precisem rodar"
+    ],
+    "explanation": "Sem watermark, o engine precisa lembrar de todo eventId para sempre para detectar duplicatas, então o estado cresce sem limite. Um watermark permite descartar chaves mais antigas que o limite, aceitando que duplicatas muito atrasadas não sejam detectadas. Trigger intervals, modo complete ou uma única partição não limitam o estado, e alguns o pioram."
+  },
+  {
+    "id": "de-exactly-once-side-effects",
+    "title": "Exactly-once e efeitos colaterais externos",
+    "question": "Um job do Flink com checkpointing e modo exactly-once chama uma API HTTP externa de pagamentos para cada evento. Após uma falha e restauração, alguns clientes são cobrados duas vezes. Por quê?",
+    "options": [
+      "Checkpoints só são feitos quando o job encerra de forma limpa, não periodicamente",
+      "O exactly-once cobre o estado do engine, não chamadas externas repetidas no restore",
+      "O exactly-once é desativado automaticamente sempre que o paralelismo passa de 1",
+      "O cliente HTTP fez retry porque o exactly-once exige UDP"
+    ],
+    "explanation": "Na recuperação, o engine volta ao último checkpoint e reprocessa a entrada, o que é consistente para o estado interno e para sinks que participam de two-phase commit. Chamadas a sistemas externos feitas desde o checkpoint acontecem de novo, então precisam de idempotency keys ou de um padrão transacional/outbox. O paralelismo não desativa a garantia, e os checkpoints são feitos periodicamente."
+  },
+  {
+    "id": "de-batch-vs-streaming-choice",
+    "title": "Quando o streaming vale a pena",
+    "question": "Qual requisito justifica mais claramente um pipeline de streaming em vez de um job batch noturno?",
+    "options": [
+      "Reconstruir uma tabela de dimensão de clientes uma vez por dia",
+      "Sinalizar transações fraudulentas de cartão em segundos",
+      "Arquivar os logs de aplicação do ano passado em cold storage",
+      "Gerar um relatório financeiro mensal para a diretoria"
+    ],
+    "explanation": "Streaming adiciona complexidade operacional, então compensa quando os resultados precisam estar disponíveis com baixa latência, como na detecção de fraudes. Relatórios mensais, reconstruções diárias de dimensões e arquivamento são cargas naturalmente batch, em que horas de latência são aceitáveis."
+  },
+  {
+    "id": "de-warehouse-vs-lake",
+    "title": "Warehouse ou data lake",
+    "question": "Cientistas de dados querem guardar com baixo custo clickstream bruto em JSON, imagens e extrações CSV para análises futuras ainda não definidas. Qual arquitetura de armazenamento atende melhor essa necessidade?",
+    "options": [
+      "Um cluster de cache em memória com persistência ativada",
+      "Um data lake em object storage com dados brutos em formatos nativos",
+      "Um banco OLTP ajustado para transações em alto volume",
+      "Um data warehouse relacional modelado de antemão como um star schema fixo"
+    ],
+    "explanation": "Data lakes armazenam grandes volumes de dados brutos estruturados, semiestruturados e não estruturados a baixo custo, com schema-on-read, ideal para uso exploratório e de ML. Um warehouse é melhor para dados curados e estruturados para BI, com schema-on-write, enquanto bancos OLTP e caches não foram feitos para armazenamento analítico barato em volume."
+  },
+  {
+    "id": "de-lakehouse-acid-table-format",
+    "title": "Leitores veem dados escritos pela metade",
+    "question": "Vários jobs Spark gravam arquivos Parquet diretamente nas mesmas pastas do lake enquanto consultas de BI os leem. Os leitores às vezes veem resultados parciais, e jobs que falham deixam arquivos órfãos. O que resolve isso?",
+    "options": [
+      "Adotar um table format com log de transações, como Delta Lake ou Iceberg",
+      "Agendar todos os leitores de BI só à noite, depois que os writers terminarem",
+      "Aumentar os limites de throughput e de requisições da conta de object storage",
+      "Trocar os arquivos de Parquet para CSV para cada escrita ser um único append"
+    ],
+    "explanation": "Table formats como Delta Lake e Iceberg adicionam um log de transações ou camada de metadados para que as escritas façam commit atomicamente, os leitores vejam snapshots consistentes e arquivos sem commit sejam ignorados - a base de um lakehouse. O formato de arquivo por baixo não fornece transações, agendar apenas esconde o problema, e throughput não tem relação com consistência."
+  },
+  {
+    "id": "de-scd-type-2",
+    "title": "Atributos históricos em uma dimensão",
+    "question": "Relatórios de vendas precisam mostrar cada pedido com a região do cliente no momento do pedido, mesmo depois que os clientes se mudam. Como a dimensão de clientes deve ser modelada?",
+    "options": [
+      "SCD Type 1: sobrescrever a região no lugar sempre que o cliente se mudar",
+      "SCD Type 2: uma nova linha por mudança, com datas de vigência e surrogate keys",
+      "Eliminar a dimensão e guardar a região em cada linha de fato como texto livre",
+      "Manter a região só no banco OLTP de origem e fazer join com ele ao vivo"
+    ],
+    "explanation": "O SCD Type 2 preserva o histórico versionando as linhas da dimensão com intervalos de validade e surrogate keys, para que os fatos apontem para a versão válida naquele momento. O Type 1 sobrescreve o histórico, joins ao vivo com o OLTP mostram valores atuais e sobrecarregam a produção, e texto livre nos fatos perde consistência."
+  },
+  {
+    "id": "de-kafka-ordering-key",
+    "title": "Garantias de ordenação no Kafka",
+    "question": "Os eventos de cada conta bancária precisam ser consumidos na ordem em que foram produzidos. Como você consegue isso com um tópico Kafka de várias partições?",
+    "options": [
+      "Colocar todos os consumidores do tópico em um único consumer group",
+      "Ativar log compaction no tópico para que os eventos fiquem em ordem",
+      "Nada extra, pois o Kafka ordena os eventos globalmente entre todas as partições de um tópico",
+      "Usar o ID da conta como chave da mensagem para os eventos dela irem à mesma partição"
+    ],
+    "explanation": "O Kafka garante ordenação apenas dentro de uma partição, e o particionador padrão mapeia a mesma chave para a mesma partição. Não há ordenação entre partições, consumer groups afetam como as partições são compartilhadas e compaction controla a retenção por chave, não a ordenação."
+  },
+  {
+    "id": "de-kafka-consumer-group-idle",
+    "title": "Mais consumidores do que partições",
+    "question": "Um tópico tem 6 partições. Para aumentar o throughput, o time roda 10 instâncias consumidoras no mesmo consumer group. O que acontece?",
+    "options": [
+      "Só 6 consumidores recebem partições; os outros 4 ficam ociosos como reserva",
+      "Cada partição é dividida entre consumidores para que os 10 dividam a carga",
+      "Todos os 10 consumidores recebem todas as mensagens",
+      "O grupo não inicia até o número de consumidores igualar o de partições"
+    ],
+    "explanation": "Dentro de um consumer group, cada partição é atribuída a exatamente um consumidor, então o paralelismo é limitado pelo número de partições; os consumidores extras ficam ociosos até que um rebalance lhes atribua trabalho. Receber todas as mensagens exigiria consumer groups separados. Para escalar mais, aumente as partições."
+  },
+  {
+    "id": "de-kafka-acks-min-isr",
+    "title": "acks=all com brokers fora do ar",
+    "question": "Um tópico tem replication factor 3 e min.insync.replicas=2; os producers usam acks=all. Duas das três réplicas de uma partição ficam offline. O que acontece com as escritas nessa partição?",
+    "options": [
+      "As escritas ficam em buffer no broker líder até as réplicas voltarem",
+      "O Kafka reduz automaticamente o replication factor da partição para 1",
+      "As escritas funcionam só com o líder, e as réplicas se atualizam quando voltarem",
+      "Os producers recebem erros NotEnoughReplicas; troca-se disponibilidade por segurança"
+    ],
+    "explanation": "Com acks=all, o líder só confirma quando pelo menos min.insync.replicas réplicas estão em sincronia; com apenas uma restante, a escrita é rejeitada. Essa combinação evita perda de dados por confirmar escritas mantidas por um único broker. O Kafka nunca altera o replication factor silenciosamente, e brokers não guardam em buffer escritas rejeitadas."
+  },
+  {
+    "id": "de-kafka-read-committed",
+    "title": "Consumidores veem dados de transações abortadas",
+    "question": "Um producer usa transações do Kafka para gravar em dois tópicos de forma atômica. Consumidores downstream às vezes processam registros de transações que depois foram abortadas. Qual é a causa provável?",
+    "options": [
+      "Os consumidores não definiram isolation.level=read_committed",
+      "Transações só funcionam quando os dois tópicos têm uma partição",
+      "Transações exigem acks=1 no producer para fazer commit",
+      "Registros abortados só são filtrados quando o tópico é compactado"
+    ],
+    "explanation": "Producers transacionais ainda gravam os registros no log; marcadores indicam commit ou abort. Os consumidores precisam usar isolation.level=read_committed para ver apenas dados commitados, enquanto o padrão read_uncommitted retorna tudo. Transações exigem idempotência e acks=all, e funcionam entre várias partições e tópicos."
+  },
+  {
+    "id": "de-kafka-add-partitions-keys",
+    "title": "Adicionando partições a um tópico com chave",
+    "question": "Um tópico com chave que depende de ordenação por chave passa de 12 para 24 partições. Que risco o time deve esperar?",
+    "options": [
+      "O tópico fica somente leitura até um rebalance completo das partições terminar",
+      "Os consumidores perdem seus offsets commitados em todas as partições existentes",
+      "Chaves podem ir para novas partições, quebrando a ordem por chave na mudança",
+      "Os registros existentes são automaticamente rehasheados e movidos para as novas partições"
+    ],
+    "explanation": "O Kafka nunca move dados existentes quando partições são adicionadas, mas o mapeamento de chave para partição (hash módulo número de partições) muda para novos registros, então os eventos antigos e novos de uma chave podem ficar em partições diferentes. Planeje o número de partições de antemão para tópicos com chave. O tópico continua aceitando escritas e os offsets commitados das partições existentes permanecem."
+  },
+  {
+    "id": "de-kafka-log-compaction",
+    "title": "Mantendo o valor mais recente por chave",
+    "question": "Um tópico guarda atualizações de perfil de clientes com o ID do cliente como chave. Novos serviços precisam reconstruir o estado atual de todos os clientes sem manter cada atualização histórica para sempre. Qual configuração do tópico se encaixa?",
+    "options": [
+      "retention.ms=-1 com cleanup.policy=delete para manter cada atualização",
+      "Um replication factor de 1 para reduzir o armazenamento usado por atualizações antigas",
+      "Um valor maior de segment.bytes para que menos arquivos de segmento antigos sejam mantidos",
+      "cleanup.policy=compact, que mantém pelo menos o registro mais recente por chave"
+    ],
+    "explanation": "Log compaction remove registros mais antigos de uma chave enquanto mantém o valor mais recente, então um consumidor pode reconstruir o estado atual a partir do tópico. Retenção infinita baseada em delete mantém cada atualização, o replication factor afeta a durabilidade e não a retenção, e o tamanho do segmento só muda o layout dos arquivos."
+  },
+  {
+    "id": "de-schema-backward-compatible-change",
+    "title": "Uma mudança Avro backward-compatible",
+    "question": "O schema Avro de um tópico está registrado com compatibilidade BACKWARD, ou seja, consumidores usando o novo schema precisam ler dados gravados com o schema anterior. Qual mudança é permitida?",
+    "options": [
+      "Adicionar um campo novo sem valor default",
+      "Adicionar um campo novo com valor default",
+      "Renomear um campo existente sem um alias",
+      "Mudar o tipo de um campo de long para string"
+    ],
+    "explanation": "Quando um leitor com o novo schema encontra dados antigos sem um campo, o Avro preenche o default, então adicionar um campo com default é backward compatible. Sem default, o leitor não tem valor para usar, mudanças de tipo incompatíveis falham na resolução, e renomeações sem alias parecem a remoção de um campo mais a adição de um novo campo obrigatório."
+  },
+  {
+    "id": "de-delta-check-constraints",
+    "title": "Barrando linhas inválidas na escrita",
+    "question": "Um bug upstream começou a enviar quantidades negativas, que poluíram silenciosamente uma tabela Delta Lake usada por dashboards. Qual recurso no nível da tabela rejeitaria essas escritas?",
+    "options": [
+      "Fazer Z-ordering da tabela por quantity para isolar os negativos",
+      "Uma CHECK constraint (ex.: quantity >= 0) que faz falhar escritas inválidas",
+      "Rodar VACUUM com um período de retenção menor após cada carga",
+      "Ativar o change data feed da tabela para bloquear mudanças de linhas inválidas"
+    ],
+    "explanation": "CHECK constraints do Delta Lake são validadas em cada escrita, e uma transação com linhas que as violam falha, então dados ruins nunca ficam visíveis. Z-ordering é uma otimização de layout, o change data feed expõe mudanças de linhas e o VACUUM exclui arquivos antigos - nenhum deles valida dados."
+  },
+  {
+    "id": "de-parquet-columnar-pruning",
+    "title": "Por que o Parquet acelera analytics",
+    "question": "Uma consulta lê 3 colunas de uma tabela de 200 colunas e filtra por uma data. Por que o Parquet costuma ser muito mais rápido que CSV aqui?",
+    "options": [
+      "Ele ordena automaticamente cada arquivo pela primary key da tabela na escrita",
+      "Ele é colunar, e estatísticas de row group permitem pular dados que não batem",
+      "Ele armazena dados sem compressão, então nenhuma decodificação é necessária",
+      "Ele mantém um índice B-tree em cada coluna, como uma tabela de banco relacional"
+    ],
+    "explanation": "O Parquet armazena os valores de cada coluna juntos, permitindo column pruning e compressão eficiente, e seus metadados guardam estatísticas min/max por row group para predicate pushdown. Ele normalmente é comprimido, não ordena dados automaticamente e não mantém índices B-tree."
+  },
+  {
+    "id": "de-small-files-compaction",
+    "title": "Milhares de arquivos minúsculos",
+    "question": "Um job de streaming grava um novo arquivo Parquet por partição a cada 30 segundos, produzindo milhões de arquivos de poucos KB cada. As consultas sobre a tabela ficaram lentas. Qual é o remédio padrão?",
+    "options": [
+      "Compactá-los periodicamente em arquivos maiores, ex.: com Delta OPTIMIZE",
+      "Adicionar mais colunas de partição para espalhar os arquivos em mais pastas",
+      "Converter os arquivos para JSON para que novos registros sejam anexados no lugar",
+      "Desativar a compressão para que cada arquivo pequeno seja mais rápido de abrir e ler"
+    ],
+    "explanation": "Cada arquivo adiciona overhead de listagem, abertura e metadados, e arquivos minúsculos comprimem mal, então muitos arquivos pequenos prejudicam o desempenho. A compactação os reescreve em arquivos de tamanho adequado, e triggers mais longos reduzem a criação de novos. Mais colunas de partição criam ainda mais arquivos pequenos, e JSON ou desativar a compressão pioram as leituras."
+  },
+  {
+    "id": "de-partition-high-cardinality",
+    "title": "Particionando por user_id",
+    "question": "Uma tabela de eventos em um data lake é particionada por user_id (milhões de usuários). As consultas normalmente filtram por intervalo de datas, e o planejamento das consultas ficou extremamente lento. Qual é o layout melhor?",
+    "options": [
+      "Particionar por um bucket de hash aleatório para que todos os arquivos tenham tamanho igual",
+      "Remover todo o particionamento e depender de full scans da tabela inteira",
+      "Particionar por user_id e pelo timestamp do evento truncado ao segundo",
+      "Particionar pela data do evento e clusterizar ou ordenar por user_id dentro delas"
+    ],
+    "explanation": "Colunas de partição devem ter cardinalidade baixa a moderada e se alinhar aos filtros frequentes; milhões de partições geram um overhead enorme de metadados e arquivos minúsculos. Partições por data fazem pruning eficiente em consultas por intervalo, e clusterizar por user_id ainda ajuda buscas por usuário. Partições mais finas pioram o problema, enquanto full scans ou partições aleatórias eliminam o pruning."
+  },
+  {
+    "id": "de-airflow-catchup",
+    "title": "Uma nova DAG cria centenas de execuções",
+    "question": "Uma nova DAG do Airflow tem agendamento diário, start_date definido para um ano atrás e catchup=True. Assim que ela é despausada, o scheduler cria centenas de DAG runs. Por quê?",
+    "options": [
+      "O Airflow refaz a primeira execução uma vez por dia do deslocamento do start_date",
+      "O scheduler duplica execuções toda vez que o arquivo da DAG é reprocessado",
+      "Agendamentos diários sempre fazem backfill de exatamente um ano por padrão",
+      "O catchup agenda uma execução para cada data interval perdido desde o start_date"
+    ],
+    "explanation": "Com o catchup ativado, o scheduler cria DAG runs para cada intervalo desde o start_date que ainda não rodou. Defina catchup=False (o padrão nas versões recentes do Airflow) ou um start_date recente, e use backfills explícitos quando precisar do histórico. Retries e o parsing de arquivos não criam novas DAG runs."
+  },
+  {
+    "id": "de-airflow-xcom-large-data",
+    "title": "Passando um DataFrame grande entre tasks",
+    "question": "Uma task envia um DataFrame de 2 GB para o XCom para que a próxima task o use, e o banco de metadados está sofrendo. Qual é o padrão recomendado?",
+    "options": [
+      "Juntar todas as tasks em uma única task para que o XCom não seja necessário",
+      "Serializar com pickle e comprimir o DataFrame antes de enviá-lo ao XCom",
+      "Aumentar o tamanho do disco do banco de metadados",
+      "Gravar os dados em storage externo e passar só o caminho deles via XCom"
+    ],
+    "explanation": "XComs servem para pequenos pedaços de metadados; por padrão, ficam no banco de metadados do Airflow. Dados grandes devem ir para storage externo, com as tasks trocando apenas referências, ou usar um XCom backend customizado. Discos maiores e pickle não corrigem o mau uso, e juntar tasks perde retries e observabilidade."
+  },
+  {
+    "id": "de-airflow-top-level-code",
+    "title": "Scheduler lento por causa dos arquivos de DAG",
+    "question": "Arquivos de DAG consultam um banco de dados no nível do módulo para montar uma lista de tabelas, e o parsing de DAGs do scheduler fica lento e sobrecarrega esse banco. O que as boas práticas do Airflow recomendam?",
+    "options": [
+      "Envolver a consulta ao banco no nível do módulo em um bloco try/except",
+      "Juntar todas as DAGs em um único arquivo para que ele seja processado só uma vez",
+      "Mover código caro de nível superior para tasks, pois os arquivos são relidos sempre",
+      "Aumentar o intervalo de processamento dos arquivos de DAG para uma vez por semana"
+    ],
+    "explanation": "O DAG processor faz o parsing dos arquivos de DAG com frequência, então qualquer código de nível superior roda a cada parsing, atrasando o agendamento e sobrecarregando sistemas externos. Trabalho caro pertence às tasks executadas em runtime. Fazer parsing raramente atrasa a detecção de mudanças, try/except não reduz o custo e um arquivo gigante é mais lento para processar."
+  }
+]

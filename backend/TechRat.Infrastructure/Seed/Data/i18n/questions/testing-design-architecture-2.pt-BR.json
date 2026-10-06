@@ -1,0 +1,590 @@
+[
+  {
+    "id": "test-e2e-playwright-role-locators",
+    "title": "Locators resilientes no Playwright",
+    "question": "Os testes do Playwright usam seletores como `page.locator('.btn-primary.mt-2')` e quebram toda vez que os designers mudam as classes CSS. O que o Playwright recomenda no lugar?",
+    "options": [
+      "Trocar para seletores XPath, que são mais estáveis que classes CSS",
+      "Adicionar waitForTimeout antes de cada clique para as novas classes carregarem",
+      "Usar locators voltados ao usuário, como getByRole com um nome acessível",
+      "Localizar elementos por coordenadas em pixels tiradas de um screenshot"
+    ],
+    "explanation": "O Playwright recomenda locators baseados no que usuários e tecnologias assistivas percebem, como page.getByRole('button', { name: 'Pay' }). Eles sobrevivem a mudanças de estilo e layout. XPath e cadeias longas de CSS continuam presos à estrutura do DOM, esperas fixas tratam de timing e não de seletores frágeis, e coordenadas em pixels são ainda mais frágeis."
+  },
+  {
+    "id": "test-int-configure-test-services",
+    "title": "Substituindo um serviço no WebApplicationFactory",
+    "question": "Os testes de integração usam WebApplicationFactory<Program>. A aplicação registra IPaymentGateway como um cliente HTTP real de um provedor de pagamentos, então os testes batem no sandbox do provedor e ficam lentos. Você quer o pipeline real, mas um gateway fake. Qual é a abordagem padrão?",
+    "options": [
+      "Usar WithWebHostBuilder e ConfigureTestServices para substituir o registro do gateway",
+      "Adicionar um branch `if (IsTest)` na classe do gateway que pula a chamada HTTP de saída",
+      "Abandonar os testes de integração e testar o controller com todas as dependências mockadas",
+      "Definir ASPNETCORE_ENVIRONMENT como Development para o sandbox do provedor responder mais rápido"
+    ],
+    "explanation": "ConfigureTestServices roda depois dos registros da própria aplicação, então um teste pode substituir um serviço por um dublê enquanto roteamento, middleware, DI e serialização continuam reais. Um branch só para testes vaza preocupações de teste para o código de produção. Trocar por testes unitários com mocks perde a cobertura de integração, e mudar o nome do ambiente não impede a chamada externa."
+  },
+  {
+    "id": "test-int-shared-db-isolation",
+    "title": "Isolando testes que compartilham um banco",
+    "question": "Os testes de integração compartilham um único banco de testes PostgreSQL. Cada teste passa quando roda sozinho, mas em uma execução completa alguns falham porque linhas inseridas por testes anteriores mudam contagens e violam chaves únicas. Qual é a correção mais robusta?",
+    "options": [
+      "Rodar os testes em ordem alfabética para as dependências de dados ficarem previsíveis",
+      "Repetir cada teste que falha até três vezes no CI até a execução ficar verde",
+      "Trocar esses testes para o provider in-memory do EF Core para evitar o banco compartilhado",
+      "Isolar cada teste: rollback de uma transação por teste ou reset dos dados entre testes"
+    ],
+    "explanation": "O guia do EF Core para testes contra um banco real observa que testes que gravam dados interferem uns nos outros. As correções comuns são envolver cada teste em uma transação que nunca recebe commit ou limpar o banco entre os testes (por exemplo, com Respawn). Uma ordem fixa cria acoplamento oculto, retries escondem o problema e o provider in-memory se comporta de forma diferente do PostgreSQL, o que anula o propósito do teste."
+  },
+  {
+    "id": "cc-message-chains-demeter",
+    "title": "Cadeias longas de navegação",
+    "question": "Código como `order.GetCustomer().GetAddress().GetCountry().GetVatRate()` aparece em vários lugares. Qualquer mudança em como Address guarda países quebra todos eles. Que smell é esse?",
+    "options": [
+      "Feature Envy, porque o método usa os dados de outra classe",
+      "Message Chains, que violam a Lei de Demeter",
+      "Primitive Obsession, porque as taxas de IVA são decimals simples",
+      "Speculative Generality, por causa de abstrações não usadas"
+    ],
+    "explanation": "Uma cadeia longa de chamadas de navegação acopla o cliente ao formato inteiro do grafo de objetos. Esse é o smell Message Chains, e a Lei de Demeter ('fale só com seus amigos imediatos') alerta contra ele. As correções típicas são Hide Delegate ou mover o comportamento para que Order responda à pergunta sozinho. Feature Envy trata de um método que usa mais os dados de outra classe do que os seus, e os outros smells não descrevem cadeias de navegação."
+  },
+  {
+    "id": "cc-divergent-change-cohesion",
+    "title": "Uma classe, muitos motivos para mudar",
+    "question": "InvoiceService é editada quando as regras de impostos mudam, quando o layout do PDF muda e quando o schema do banco muda. Desenvolvedores trabalhando em funcionalidades diferentes vivem tendo conflitos de merge nesse arquivo. Que smell é esse, e qual é a correção usual?",
+    "options": [
+      "Shotgun Surgery; incorporar as classes relacionadas em InvoiceService",
+      "Middle Man; remover InvoiceService e chamar seus delegates diretamente",
+      "Lazy Class; incorporar InvoiceService ao seu único chamador",
+      "Divergent Change; aplicar Extract Class para cada motivo de mudança"
+    ],
+    "explanation": "Divergent Change significa que uma classe muda por muitos motivos não relacionados, sinal de baixa coesão. Extract Class dá a impostos, renderização e persistência seus próprios lugares, então cada mudança toca uma classe focada. Shotgun Surgery é o problema oposto (uma mudança força edições em muitas classes), e Middle Man e Lazy Class descrevem classes que fazem pouco demais."
+  },
+  {
+    "id": "cc-middle-man-overcorrection",
+    "title": "Hide Delegate demais",
+    "question": "Para seguir a Lei de Demeter, uma equipe aplicou Hide Delegate em todo lugar. Agora CustomerFacade tem 25 métodos de uma linha que só repassam para Customer.Account, e cada nova funcionalidade de Account exige mais um wrapper. O que sugerem as orientações de refatoração?",
+    "options": [
+      "Aplicar Remove Middle Man aqui e deixar os clientes chamarem o delegate direto",
+      "Continuar adicionando wrappers, já que chamar um delegate direto quebra o encapsulamento",
+      "Fazer CustomerFacade repassar qualquer chamada via reflection para ter um só método",
+      "Transformar cada método de repasse em um extension method de Customer"
+    ],
+    "explanation": "Esconder delegates troca o acoplamento à estrutura por indireção extra. Quando uma classe basicamente só repassa chamadas, ela vira o smell Middle Man, e a refatoração Remove Middle Man de Fowler deixa os clientes falarem direto com o delegate quando isso for mais claro. O equilíbrio certo muda conforme o código evolui. Repasse via reflection e extension methods mantêm a camada inútil e a tornam mais difícil de acompanhar."
+  },
+  {
+    "id": "cc-dry-knowledge-definition",
+    "title": "O que o DRY realmente diz",
+    "question": "O princípio DRY, de The Pragmatic Programmer, costuma ser mal interpretado como 'nunca tenha duas linhas de código parecidas'. O que ele realmente afirma?",
+    "options": [
+      "Cada função não deve ser maior do que cabe em uma única tela",
+      "Todo código copiado e colado deve sempre virar um único helper comum",
+      "Cada conhecimento tem uma única representação, autoritativa",
+      "Cada classe deve depender só de abstrações e nunca de classes concretas"
+    ],
+    "explanation": "Hunt e Thomas definem o DRY assim: todo conhecimento deve ter uma representação única, inequívoca e autoritativa dentro de um sistema. Trata-se de conhecimento, não de texto: código parecido que codifica regras diferentes pode ficar separado, enquanto uma regra repetida no código, no schema e na configuração é duplicação real. As outras opções descrevem tamanho de função, uma regra mecânica de copiar e colar e o Princípio da Inversão de Dependência."
+  },
+  {
+    "id": "cc-yagni-not-refactoring",
+    "title": "YAGNI e refatoração",
+    "question": "Em um code review, um colega rejeita uma mudança que divide um método de 600 linhas e adiciona testes, dizendo 'YAGNI, ninguém pediu isso'. Segundo a descrição de Yagni feita por Fowler, esse é um uso válido do princípio?",
+    "options": [
+      "Sim; todo trabalho que não esteja ligado a uma user story cai no YAGNI",
+      "Não; YAGNI mira funcionalidades presumidas, não deixar o código fácil de mudar",
+      "Sim; refatorar só deve acontecer quando uma nova funcionalidade exigir",
+      "Não; YAGNI só vale para escolhas de infraestrutura, nunca para código de aplicação"
+    ],
+    "explanation": "Fowler afirma que o Yagni não se aplica a esforços que tornam o software mais fácil de modificar. Refatoração, código autotestável e integração contínua mantêm o código maleável, e essa maleabilidade é o que torna seguro adiar funcionalidades. As outras opções estendem o YAGNI a todo trabalho que não é funcionalidade ou inventam um limite de escopo que o princípio não tem."
+  },
+  {
+    "id": "cc-yagni-cost-of-carry",
+    "title": "Custos de uma funcionalidade presumida",
+    "question": "Uma equipe construiu a 'precificação de pirataria' dois meses antes de ser necessária e, quando chegou a hora, ela estava exatamente certa. Pela análise de Yagni de Fowler, quais custos construí-la antes ainda gerou?",
+    "options": [
+      "Nenhum, porque a funcionalidade saiu correta logo da primeira vez",
+      "Só o custo de reparo, já que o código vai precisar ser reescrito depois",
+      "Só o custo de construção, porque houve esforço para escrever o código",
+      "Custo de atraso de outras features e custo de carregá-la nas mudanças"
+    ],
+    "explanation": "Fowler mostra que mesmo uma funcionalidade presumida que dá certo tem dois custos: custo de atraso (funcionalidades mais valiosas lançadas depois porque o esforço foi para outro lugar) e custo de carregamento (o código extra torna toda outra mudança mais difícil até a funcionalidade ser de fato usada). O custo de reparo se aplica quando o palpite está errado. Dizer que há 'só' o custo de construção ignora esses dois."
+  },
+  {
+    "id": "dp-factory-method-subclass-creates",
+    "title": "Subclasses decidem o que criar",
+    "question": "Uma classe base Logistics tem PlanDelivery(), que chama um CreateTransport() abstrato. RoadLogistics o sobrescreve para retornar um Truck, e SeaLogistics retorna um Ship. Que padrão é esse?",
+    "options": [
+      "Factory Method",
+      "Abstract Factory",
+      "Builder",
+      "Prototype"
+    ],
+    "explanation": "O Factory Method coloca um método de criação em uma classe base e deixa as subclasses decidirem qual produto concreto criar, enquanto a classe base trabalha só com a interface do produto. O Abstract Factory usa um objeto factory separado para criar famílias de produtos relacionados, o Builder constrói um objeto complexo passo a passo e o Prototype cria objetos por clonagem."
+  },
+  {
+    "id": "dp-prototype-shallow-clone",
+    "title": "Prototype com MemberwiseClone",
+    "question": "ReportTemplate.Clone() retorna `(ReportTemplate)MemberwiseClone()`. Depois de clonar, adicionar uma coluna a `copy.Columns` (uma List<Column>) também a adiciona ao template original. Por quê?",
+    "options": [
+      "MemberwiseClone não copia nada, então retorna a mesma referência de objeto",
+      "List<T> é um value type, então sofre boxing e é compartilhada pelos dois",
+      "MemberwiseClone faz uma cópia rasa, então os dois compartilham a lista",
+      "O garbage collector junta objetos idênticos após a clonagem para poupar memória"
+    ],
+    "explanation": "Object.MemberwiseClone cria um novo objeto e copia seus campos. Para campos de tipo referência, ele copia a referência, não o objeto apontado, então os dois templates compartilham a mesma List. Um Prototype com membros de referência mutáveis precisa de uma cópia profunda desses campos, por exemplo uma nova lista de colunas clonadas. List<T> é um tipo referência, e MemberwiseClone retorna, sim, um novo objeto."
+  },
+  {
+    "id": "dp-composite-tree",
+    "title": "Arquivos e pastas com uma só interface",
+    "question": "Um explorador de arquivos precisa calcular o tamanho total de qualquer item. Uma pasta contém arquivos e outras pastas, aninhados em qualquer profundidade, e o código cliente não deve se importar se tem um arquivo ou uma pasta. Qual padrão se encaixa?",
+    "options": [
+      "Decorator",
+      "Composite",
+      "Flyweight",
+      "Bridge"
+    ],
+    "explanation": "O Composite monta estruturas em árvore e permite que os clientes tratem objetos individuais (File) e grupos (Folder) da mesma forma, por meio de uma interface comum. Folder.GetSize() simplesmente soma os tamanhos dos filhos de forma recursiva. O Decorator envolve um objeto para adicionar comportamento, o Flyweight compartilha estado entre muitos objetos e o Bridge separa uma abstração de sua implementação."
+  },
+  {
+    "id": "dp-flyweight-shared-state",
+    "title": "Um milhão de árvores na memória",
+    "question": "Uma cena de floresta renderiza 1.000.000 de objetos Tree. Cada um guarda sua própria cópia de uma malha e textura de 2 MB, além da própria posição x/y, e o jogo fica sem memória. Qual padrão resolve isso, e como?",
+    "options": [
+      "Prototype: clonar uma árvore já montada para cada posição e acelerar a criação",
+      "Proxy: carregar a malha de cada árvore de forma lazy quando ela for desenhada",
+      "Singleton: manter uma única instância de Tree e movê-la entre os desenhos",
+      "Flyweight: compartilhar malha e textura, mantendo a posição por árvore"
+    ],
+    "explanation": "O Flyweight separa o estado intrínseco (a malha e a textura, pesadas e imutáveis, guardadas uma vez em um TreeType compartilhado) do estado extrínseco (a posição), que fica em cada árvore ou é passado como parâmetro. Clonar ainda duplica os dados pesados, o carregamento lazy ainda termina com um milhão de cópias quando as árvores ficam visíveis, e uma única instância em movimento não consegue representar várias árvores ao mesmo tempo."
+  },
+  {
+    "id": "dp-visitor-tradeoff",
+    "title": "O que o Visitor facilita e dificulta",
+    "question": "Um compilador usa o padrão Visitor sobre as classes de nós da sua AST, com os visitors TypeChecker, Optimizer e CodeGen. Qual é o principal tradeoff que a equipe aceita com esse design?",
+    "options": [
+      "Novas operações são fáceis de adicionar, mas cada novo tipo de nó exige mudar todos os visitors",
+      "Novos tipos de nó são fáceis de adicionar, mas cada nova operação exige editar todas as classes de nó",
+      "As operações rodam mais rápido, mas os nós não podem mais ser guardados em uma estrutura de árvore",
+      "Ele elimina o double dispatch, mas todo visitor passa a precisar de reflection para achar os tipos"
+    ],
+    "explanation": "O Visitor tira as operações das classes de elementos, então adicionar uma operação significa adicionar um novo visitor sem tocar nos nós. O custo é que todo visitor tem um método por elemento concreto, então adicionar ou remover uma classe de nó força mudanças em todos os visitors. A segunda opção descreve o tradeoff oposto, o de métodos polimórficos comuns, e o Visitor depende de double dispatch via Accept em vez de eliminá-lo."
+  },
+  {
+    "id": "dp-dbcontext-is-unit-of-work",
+    "title": "DbContext e Unit of Work",
+    "question": "No EF Core, uma requisição carrega duas entidades, altera as duas, adiciona uma terceira e então chama SaveChanges() uma vez. Qual padrão o DbContext já implementa aqui?",
+    "options": [
+      "Active Record, já que cada entidade salva a si mesma no banco",
+      "Apenas Identity Map, sem rastrear as mudanças que são feitas",
+      "Unit of Work, rastreando mudanças e gravando todas juntas",
+      "Table Data Gateway, com um objeto gateway para cada tabela"
+    ],
+    "explanation": "O DbContext rastreia as mudanças nas entidades que carregou e grava todos os inserts, updates e deletes em uma única chamada a SaveChanges, que é o padrão Unit of Work. A documentação da Microsoft diz que uma instância de DbContext foi projetada para uma única unidade de trabalho. Entidades do EF não salvam a si mesmas (Active Record), e embora o DbContext também mantenha um identity map, ele claramente rastreia mudanças."
+  },
+  {
+    "id": "dp-repository-getall-in-memory",
+    "title": "Filtrando depois de GetAll()",
+    "question": "OrderRepository.GetAll() retorna `_db.Orders.ToList()`. Um serviço chama `repo.GetAll().Where(o => o.CustomerId == id)`. Com 3 milhões de pedidos, o endpoint fica lento e o uso de memória dispara. O que está acontecendo?",
+    "options": [
+      "O EF Core não consegue traduzir a comparação de CustomerId e lança exceção",
+      "O Where roda em SQL, mas a falta de um índice deixa o table scan lento",
+      "O EF Core faz cache de todos os pedidos na primeira chamada, que é a única lenta",
+      "ToList() executa a consulta, então todos os pedidos carregam e o Where filtra em memória"
+    ],
+    "explanation": "ToList() materializa a tabela inteira, e o Where seguinte é LINQ to Objects comum rodando em memória. O repositório deveria expor consultas que revelem a intenção, como GetByCustomer(id), ou compor o filtro antes de materializar, para que o EF Core o traduza para SQL. A comparação é traduzível, o filtro nunca chega ao SQL e o EF Core não faz cache de conjuntos de resultados entre requisições dessa forma."
+  },
+  {
+    "id": "dp-repository-specification",
+    "title": "Domando a explosão de métodos no repositório",
+    "question": "OrderRepository cresceu para 40 métodos como GetPaidOrdersByCustomerSortedByDatePaged(...), cada um uma pequena variação de outro. Qual padrão do guia de DDD da Microsoft empacota esses critérios de consulta como objetos reutilizáveis?",
+    "options": [
+      "Unit of Work, agrupando todos os métodos de consulta em uma transação",
+      "Specification, reunindo critérios, includes e paginação em um objeto",
+      "Identity Map, fazendo cache de cada resultado pelo nome do método",
+      "Data Mapper, movendo cada método de consulta para seu próprio mapper"
+    ],
+    "explanation": "O padrão Query Specification define uma consulta (critérios, includes, ordenação, paginação) como um objeto, então um único método genérico do repositório consegue avaliar qualquer specification em vez de ganhar um método por variação. Unit of Work trata de gravar mudanças juntas, Identity Map garante uma única instância em memória por linha e Data Mapper mapeia objetos para tabelas."
+  },
+  {
+    "id": "arch-layered-bll-depends-on-dal",
+    "title": "Por que a lógica de negócio precisa de um banco",
+    "question": "Em uma aplicação em camadas tradicional, a camada de negócio referencia diretamente a camada de acesso a dados. Os testes unitários das regras de preço precisam de um banco de testes só para rodar. Qual é a causa raiz, segundo o guia de arquitetura da Microsoft?",
+    "options": [
+      "As dependências de compilação vão de cima para baixo, então o negócio depende do acesso a dados",
+      "A camada de apresentação é fina demais, então as regras de negócio vazaram para as consultas SQL",
+      "As camadas foram implantadas em tiers separados, então os testes precisam cruzar a rede",
+      "A camada de acesso a dados usa um ORM, e ORMs não podem ser usados em testes unitários"
+    ],
+    "explanation": "A Microsoft observa que, nas camadas tradicionais, as dependências de compilação vão de cima para baixo: a UI depende da camada de negócio, que depende do acesso a dados. A lógica de negócio passa a depender de detalhes do acesso a dados e muitas vezes de um banco real, o que dificulta os testes. A Clean Architecture inverte isso fazendo o núcleo definir interfaces que a infraestrutura implementa. Tiers são uma questão de deploy, e ORMs podem ser abstraídos."
+  },
+  {
+    "id": "arch-layers-to-tiers-chatty",
+    "title": "Movendo uma camada para seu próprio tier",
+    "question": "Para escalar, uma equipe tira a camada de negócio de uma aplicação web do processo do servidor web e a coloca em VMs separadas atrás de uma API interna. Uma página que fazia 40 chamadas de negócio granulares passou de 150 ms para 2 s. Qual é a principal causa?",
+    "options": [
+      "A regra de camadas fechadas agora força cada chamada a passar duas vezes pelos dados",
+      "As novas VMs não têm o cache de JIT em processo, então cada chamada é recompilada sob demanda",
+      "Cada chamada agora cruza uma fronteira de tier, com um salto de rede e serialização",
+      "Tiers separados sempre desativam o pool de conexões com o servidor de banco"
+    ],
+    "explanation": "Camadas são uma divisão lógica; tiers, uma divisão física. O guia N-tier da Microsoft observa que a separação física pode melhorar escalabilidade e resiliência, mas adiciona latência da comunicação pela rede. Quarenta chamadas verbosas em processo viraram quarenta chamadas remotas, cada uma pagando custos de rede e serialização. Use chamadas de granularidade grossa entre fronteiras de tier ou mantenha as camadas no mesmo processo."
+  },
+  {
+    "id": "arch-layered-conway-teams",
+    "title": "Equipes organizadas por camada",
+    "question": "Uma organização tem uma equipe de UI, uma de API e uma de banco de dados. Toda funcionalidade para o cliente precisa de trabalho das três, os repasses levam semanas e o sistema continua espelhando essa divisão em três camadas horizontais. Que mudança as discussões sobre a Lei de Conway sugerem?",
+    "options": [
+      "Criar uma quarta equipe de integração para coordenar cada repasse entre camadas",
+      "Organizar as equipes por capacidades de negócio para a arquitetura segui-las",
+      "Juntar as três camadas em um único projeto, mantendo as três equipes",
+      "Exigir que cada equipe publique sua camada como um microsserviço separado"
+    ],
+    "explanation": "A Lei de Conway diz que os sistemas espelham a estrutura de comunicação da organização que os constrói. A Manobra Inversa de Conway muda a estrutura das equipes para favorecer a arquitetura desejada, por exemplo com equipes multifuncionais alinhadas a capacidades de negócio que conseguem entregar uma funcionalidade de ponta a ponta. Uma equipe de coordenação adiciona mais repasses, juntar o código sem mudar as equipes mantém a divisão de comunicação e transformar camadas em serviços só distribui o mesmo problema."
+  },
+  {
+    "id": "arch-clean-onion-hex-common-core",
+    "title": "O que Clean, Onion e Hexagonal têm em comum",
+    "question": "Clean Architecture, Onion Architecture e Hexagonal Architecture usam vocabulários diferentes. Qual ideia central elas compartilham?",
+    "options": [
+      "Cada camada só pode chamar a camada imediatamente abaixo dela",
+      "O schema do banco é projetado primeiro e depois orienta o modelo de domínio",
+      "UI, lógica de negócio e dados precisam rodar em tiers separados",
+      "A lógica de negócio fica no centro, com as dependências apontando para dentro"
+    ],
+    "explanation": "O guia de arquitetura da Microsoft observa que esse estilo já teve muitos nomes, incluindo Hexagonal, Ports-and-Adapters, Onion e Clean Architecture. Em todos eles, o núcleo da aplicação (domínio e regras de negócio) fica no centro e não depende de UI nem de infraestrutura; as dependências apontam para dentro. As outras opções descrevem camadas fechadas, design centrado em dados e tiers físicos."
+  },
+  {
+    "id": "arch-hex-tests-drive-ports",
+    "title": "Testes de aceitação em uma aplicação hexagonal",
+    "question": "A arquitetura hexagonal de Cockburn diz que uma aplicação deve poder ser conduzida igualmente por usuários, programas, testes automatizados ou scripts batch. Na prática, como os testes de aceitação usam isso?",
+    "options": [
+      "Chamam os ports primários diretamente, com adapters em memória nos ports secundários",
+      "Conduzem a aplicação só pelo navegador, já que a UI é o verdadeiro ponto de entrada",
+      "Consultam o banco de produção para checar se cada caso de uso gravou suas linhas",
+      "Substituem o domínio por mocks, para que só o código dos adapters seja exercitado"
+    ],
+    "explanation": "Em Ports and Adapters, um harness de testes é só mais um adapter driving que chama os ports da aplicação. Do lado driven, adapters de teste como repositórios em memória ou enviadores de e-mail fake substituem a infraestrutura real, então o comportamento de negócio é testado sem UI nem banco. Testes só pelo navegador perdem esse benefício, dados de produção não são seguros e mockar o domínio não testa nada que importe."
+  },
+  {
+    "id": "arch-hex-leaky-port",
+    "title": "Um port moldado pelo banco de dados",
+    "question": "Em uma aplicação hexagonal, o núcleo define `IOrderStore` com `ExecuteSql(string sql)` e `IQueryable<OrderRow> Rows()`, em que OrderRow é a classe de tabela do EF Core. Qual é o principal problema de design?",
+    "options": [
+      "Ports devem ser declarados no projeto Infrastructure, não no núcleo",
+      "Interfaces declaradas no núcleo nunca podem ter mais de um método",
+      "O port é moldado pelo banco, então o núcleo fica preso à persistência",
+      "IQueryable não pode ser retornado entre assemblies, então não compila"
+    ],
+    "explanation": "Um port deve expressar o que a aplicação precisa nos termos dela, como GetPendingOrders(customerId) ou Save(order), para que qualquer adapter possa implementá-lo. Expor SQL puro e tipos de linha do EF amarra o núcleo a uma tecnologia e torna impraticável um adapter em memória ou alternativo. Ports pertencem ao núcleo, não existe regra de um método só, e IQueryable funciona bem entre assemblies."
+  },
+  {
+    "id": "arch-modmono-what-it-is",
+    "title": "Definindo um monólito modular",
+    "question": "Uma equipe descreve seu sistema como um 'monólito modular'. Qual descrição se encaixa melhor?",
+    "options": [
+      "Muitos serviços pequenos, cada um com seu próprio banco e pipeline de deploy",
+      "Uma unidade implantável, dividida em módulos com fronteiras explícitas e impostas",
+      "Uma base de código em que qualquer classe pode chamar qualquer outra sem restrição",
+      "Um monólito que está sendo substituído aos poucos por funções serverless"
+    ],
+    "explanation": "Um monólito modular é implantado como uma única unidade, mas dividido internamente em módulos, normalmente por capacidade de negócio, cada um com seus próprios dados e uma API pública, com fronteiras que são impostas. O MonolithFirst de Fowler enfatiza construir o monólito com atenção cuidadosa à modularidade. A primeira opção descreve microsserviços, a terceira um big ball of mud e a quarta uma migração em andamento."
+  },
+  {
+    "id": "arch-modmono-in-process-events",
+    "title": "Reagindo entre módulos sem ciclos",
+    "question": "Em um monólito modular, quando um cliente é excluído, o módulo Orders precisa cancelar os pedidos em aberto desse cliente. Orders já depende da API pública do módulo Customers, e a equipe não quer nenhuma dependência de Customers de volta para Orders. Qual é uma boa abordagem?",
+    "options": [
+      "Customers chama o OrderService interno de Orders via reflection",
+      "Customers apaga linhas das tabelas de Orders na mesma chamada SQL",
+      "Juntar os módulos Customers e Orders em um só para eliminar o ciclo",
+      "Customers publica um evento CustomerDeleted que Orders assina"
+    ],
+    "explanation": "Publicar um evento, em processo por meio de um mediator ou por um barramento com outbox, permite que Customers anuncie o que aconteceu sem saber quem reage, enquanto Orders o trata dentro do próprio módulo. Isso evita um ciclo de dependência e mantém cada módulo dono dos seus dados. Reflection só esconde a dependência, gravar nas tabelas de outro módulo quebra a posse dos dados e juntar módulos corrói a modularidade."
+  },
+  {
+    "id": "arch-eda-event-vs-command",
+    "title": "Eventos versus comandos",
+    "question": "Qual mensagem é melhor descrita como um evento, e não como um comando?",
+    "options": [
+      "OrderShipped, avisando a quem interessar que o pedido saiu do armazém",
+      "ShipOrder, pedindo ao serviço de armazém que despache um pedido específico",
+      "ReserveStock, enviado ao Inventory para que ele reserve os itens de um carrinho",
+      "SendInvoiceEmail, direcionado ao serviço Notifications para executar"
+    ],
+    "explanation": "Um evento registra um fato que já aconteceu, normalmente nomeado no passado, e o publicador não sabe nem se importa com quem reage a ele. Um comando é uma instrução enviada a um receptor específico, do qual se espera que faça algo. No estilo event notification de Fowler, o sistema de origem não espera resposta. ShipOrder, ReserveStock e SendInvoiceEmail são todos comandos imperativos."
+  },
+  {
+    "id": "arch-eda-poison-message-dlq",
+    "title": "Lidando com uma poison message",
+    "question": "Um consumidor de uma fila do Service Bus quebra em uma mensagem malformada. A mensagem volta para a fila e é reprocessada repetidamente, desperdiçando processamento e enchendo os logs. Qual é o tratamento padrão?",
+    "options": [
+      "Apagar a fila e recriá-la sempre que aparecer uma mensagem malformada",
+      "Desativar os retries para que toda mensagem com falha seja descartada no primeiro erro",
+      "Mandá-la para a dead-letter após o max delivery count, depois inspecionar e corrigir",
+      "Aumentar a duração do lock para o consumidor ter mais tempo com a mensagem"
+    ],
+    "explanation": "O Service Bus move uma mensagem para a subfila de dead-letter quando sua contagem de entregas passa do max delivery count da fila, então uma poison message para de consumir recursos e de bloquear o trabalho. Os operadores podem então inspecioná-la, corrigi-la e reenviá-la. Descartar mensagens perde dados, recriar a fila é destrutivo e um lock mais longo não corrige conteúdo malformado."
+  },
+  {
+    "id": "arch-eda-kafka-add-partitions",
+    "title": "Ordenação depois de adicionar partições no Kafka",
+    "question": "Eventos de pedidos usam orderId como chave em um tópico Kafka com 6 partições, então os eventos de cada pedido são consumidos em ordem. Durante um pico, a equipe aumenta o tópico para 12 partições. Logo depois, alguns consumidores processam OrderShipped antes de OrderPaid. Por quê?",
+    "options": [
+      "O Kafka embaralha todas as mensagens armazenadas entre as 12 partições em ordem aleatória",
+      "Adicionar partições muda o mapeamento de chave para partição das novas mensagens",
+      "Os consumidores perdem os offsets confirmados no resize e reprocessam tudo do início",
+      "A ordenação é por tópico, e mais partições fazem ele reordenar entre brokers"
+    ],
+    "explanation": "Com particionamento por chave (hash da chave módulo o número de partições), adicionar partições não move os dados existentes, mas novos eventos com a mesma chave podem cair em outra partição. Os eventos anteriores de um pedido ficam na partição antiga, enquanto os mais novos são consumidos de forma independente a partir de outra, e a ordenação quebra. A documentação do Kafka alerta sobre isso; planeje o número de partições com antecedência ou migre para um novo tópico. O Kafka garante ordem por partição, não por tópico."
+  },
+  {
+    "id": "arch-ddd-reference-aggregates-by-id",
+    "title": "Contenção entre agregados",
+    "question": "O agregado Order guarda um objeto Customer completo, e PlaceOrder atualiza o Order e os LoyaltyPoints do cliente em uma única transação. Sob carga, conflitos de concorrência em clientes muito ativos abortam muitos pedidos. Qual orientação de DDD sobre agregados resolve isso?",
+    "options": [
+      "Incorporar Customer ao agregado Order para que uma única raiz proteja os dois",
+      "Usar isolamento serializable para que as atualizações conflitantes entrem em fila",
+      "Tornar Customer um value object dentro de Order, copiado a cada atualização",
+      "Referenciar Customer por ID, alterar um agregado por transação, usar eventos"
+    ],
+    "explanation": "Agregados são fronteiras de consistência. Eles devem referenciar outros agregados pela identidade (o Order do eShop da Microsoft guarda só um BuyerId), e uma transação normalmente deve alterar um único agregado, com efeitos colaterais em outros tratados por eventos de domínio e consistência eventual. Juntar cria um agregado enorme com mais contenção, isolamento serializable aumenta os conflitos e um cliente tem identidade, então não é um value object."
+  },
+  {
+    "id": "arch-gateway-routing-single-endpoint",
+    "title": "Um endpoint, vários serviços",
+    "question": "Os clientes chamam https://api.shop.example/orders, /catalog e /cart. Um único endpoint encaminha cada caminho para o serviço de backend certo, então os serviços podem mudar de lugar ou ser divididos sem que os clientes mudem. Que padrão é esse?",
+    "options": [
+      "Gateway Offloading",
+      "Gateway Aggregation",
+      "Gateway Routing",
+      "Sidecar"
+    ],
+    "explanation": "Gateway Routing expõe vários serviços por um único endpoint e roteia cada requisição usando informações de camada 7, como o caminho, o que desacopla os clientes da localização dos serviços. Gateway Offloading move preocupações transversais como TLS e autenticação para o gateway, Gateway Aggregation combina várias chamadas ao backend em uma resposta e Sidecar implanta componentes auxiliares ao lado de um serviço."
+  },
+  {
+    "id": "arch-gateway-aggregation-partial-failure",
+    "title": "Um backend lento em uma agregação",
+    "question": "Um gateway agrega 5 chamadas ao backend para uma página de produto. O serviço de recomendações às vezes trava por 30 s, e a página inteira dá timeout, embora as outras 4 chamadas tenham respondido em 80 ms. Qual é a melhor mudança no gateway?",
+    "options": [
+      "Timeouts por chamada e devolver dados parciais ou em cache se uma falhar",
+      "Chamar os 5 serviços em sequência para que um lento não afete os outros",
+      "Aumentar o timeout do gateway para 60 s para a chamada de recomendações sempre terminar",
+      "Repetir a chamada de recomendações imediatamente em um loop apertado até responder"
+    ],
+    "explanation": "O guia de Gateway Aggregation da Microsoft diz que, se uma chamada demora demais, pode ser aceitável dar timeout e devolver dados parciais, com dados em cache como failover, junto com padrões de resiliência como circuit breakers. Chamadas em sequência pioram a latência, um timeout maior deixa a página lenta para todos e loops apertados de retry adicionam carga a um serviço que já está com dificuldades."
+  },
+  {
+    "id": "arch-cqrs-core-idea",
+    "title": "A ideia central do CQRS",
+    "question": "Qual é a ideia central do CQRS (Command Query Responsibility Segregation)?",
+    "options": [
+      "Toda mudança de estado deve sempre ser guardada como evento imutável em um log",
+      "Usar um modelo para atualizar informações diferente do modelo usado para lê-las",
+      "Comandos devem sempre ser processados de forma assíncrona por um broker",
+      "Toda consulta deve ter cache para que as leituras nunca cheguem ao banco principal"
+    ],
+    "explanation": "Fowler descreve o CQRS como usar, para atualizar informações, um modelo diferente do que você usa para lê-las. Event sourcing costuma ser combinado com ele, mas é um padrão separado. Processamento assíncrono via broker e cache são escolhas opcionais de implementação, não a definição."
+  },
+  {
+    "id": "arch-es-compensating-event",
+    "title": "Corrigindo um evento errado",
+    "question": "Em um razão contábil com event sourcing, um evento DepositMade registrou 1.000 em vez de 100 por causa de um bug na UI. Os auditores precisam do histórico completo. Como o erro deve ser corrigido?",
+    "options": [
+      "Atualizar o evento DepositMade armazenado para 100 e reconstruir as projeções",
+      "Apagar o evento e reprocessar o stream como se ele nunca tivesse acontecido",
+      "Alterar a projeção diretamente e deixar o stream de eventos intocado",
+      "Anexar um evento compensatório ao stream, como uma correção de -900"
+    ],
+    "explanation": "O event store é append-only e seus eventos são fatos imutáveis. O guia de Event Sourcing da Microsoft diz que a única forma de desfazer ou corrigir uma mudança é adicionar um evento compensatório, o que também mantém uma trilha de auditoria da correção. Editar ou apagar eventos quebra o histórico e os consumidores que já os processaram, e uma correção só na projeção se perde na próxima reconstrução."
+  },
+  {
+    "id": "arch-cqrs-overkill-crud",
+    "title": "CQRS para uma aplicação CRUD pequena",
+    "question": "Uma pequena aplicação administrativa interna faz CRUD simples em 8 tabelas e é construída por uma equipe de 3 desenvolvedores. Um arquiteto propõe CQRS com event sourcing e armazenamentos de leitura separados. Sobre o que o artigo de Fowler sobre CQRS alerta?",
+    "options": [
+      "Na maioria dos sistemas ele traz complexidade arriscada; use só onde compensa",
+      "O CQRS é obrigatório quando a aplicação tem mais de cinco tabelas ou dois devs",
+      "O CQRS deve sempre vir com event sourcing, senão as leituras ficam desatualizadas",
+      "O CQRS só funciona com bancos NoSQL, então as tabelas atuais precisam ser migradas"
+    ],
+    "explanation": "Fowler alerta que, na maioria dos sistemas, o CQRS adiciona complexidade arriscada e só deve ser aplicado a partes específicas de um sistema em que claramente ajuda, como domínios complexos ou cargas de leitura e escrita muito diferentes. Uma aplicação CRUD simples ganha pouco. O CQRS não tem limite de tamanho, não exige event sourcing e funciona com bancos relacionais."
+  },
+  {
+    "id": "arch-serverless-lambda-billing",
+    "title": "Como funções serverless são cobradas",
+    "question": "Qual afirmação descreve melhor como as funções AWS Lambda são executadas e cobradas?",
+    "options": [
+      "Você aluga uma VM de tamanho fixo por mês e paga mesmo quando ela fica ociosa",
+      "Você aplica patches no sistema operacional, e a cobrança é por licença instalada",
+      "A AWS executa sob demanda e escala; você paga por requisições e tempo de execução",
+      "Cada função roda em um servidor dedicado que você dimensiona antecipadamente"
+    ],
+    "explanation": "O Lambda executa seu código sem que você provisione ou gerencie servidores, escala automaticamente com a demanda e cobra pelas requisições e pelo tempo de computação usado, sem compromisso antecipado. Opções como Provisioned Concurrency adicionam cobranças por capacidade pré-aquecida, mas o modelo básico é pagar pelo uso. Alugar VMs fixas e aplicar patches no SO descrevem infraestrutura como serviço."
+  },
+  {
+    "id": "arch-serverless-lambda-max-duration",
+    "title": "Um job de duas horas no Lambda",
+    "question": "Uma equipe move um job de transcodificação de vídeo de 2 horas para uma única função AWS Lambda. Ele sempre falha no meio do caminho. Qual é o principal problema, e o que se encaixa melhor?",
+    "options": [
+      "O Lambda não tem acesso à rede, então o job precisa ler o vídeo do disco local",
+      "O Lambda tem um tempo máximo por invocação; use contêineres ou o Batch",
+      "O Lambda só roda Node.js, então a transcodificação precisa ser reescrita em JavaScript",
+      "O Lambda limita a memória a 128 MB, então vídeos grandes estouram a memória"
+    ],
+    "explanation": "Uma invocação padrão do Lambda pode rodar por no máximo 15 minutos (900 segundos), então um job de 2 horas é interrompido. Trabalhos longos se encaixam melhor em contêineres (ECS ou Fargate), no AWS Batch ou divididos em partes menores orquestradas pelo Step Functions. O Lambda tem acesso à rede, suporta vários runtimes e a memória é configurável muito acima de 128 MB."
+  },
+  {
+    "id": "arch-serverless-durable-fan-out",
+    "title": "Trabalho paralelo com um resumo",
+    "question": "Uma aplicação Azure Functions precisa processar 500 arquivos enviados em paralelo e depois produzir um único resumo quando todos terminarem, e precisa sobreviver a um restart do host no meio do caminho. Qual padrão do Durable Functions se encaixa?",
+    "options": [
+      "Function chaining",
+      "Async HTTP APIs",
+      "Monitor",
+      "Fan-out/fan-in"
+    ],
+    "explanation": "No fan-out/fan-in, um orquestrador inicia muitas activity functions em paralelo, espera todas terminarem e agrega os resultados. O Durable Functions faz checkpoints do progresso, então o trabalho continua após restarts. Function chaining executa etapas uma após a outra, Async HTTP APIs permitem que clientes façam polling de operações longas e Monitor implementa loops recorrentes de polling."
+  },
+  {
+    "id": "test-unit-three-part-naming",
+    "title": "Nomeando testes unitários",
+    "question": "As boas práticas de testes unitários da Microsoft recomendam uma convenção de nomes para testes de Calculator.Add. Qual nome a segue?",
+    "options": [
+      "Add_SingleNumber_ReturnsSameNumber",
+      "Test1_Add",
+      "AddTest_Works",
+      "CalculatorTests_RunAllScenariosTogether"
+    ],
+    "explanation": "O guia diz que o nome de um teste deve ter três partes: o método testado, o cenário em teste e o comportamento esperado. Nomes assim documentam o comportamento e deixam as falhas fáceis de ler em um relatório de testes. Nomes como Test1_Add ou AddTest_Works não dizem nada sobre o cenário nem sobre o resultado esperado."
+  },
+  {
+    "id": "test-unit-xunit-parallel-static-state",
+    "title": "Testes instáveis entre classes do xUnit",
+    "question": "Testes em PricingTests e DiscountTests alteram o mesmo `TaxConfig.Rate` estático. Cada classe passa quando roda sozinha, mas em uma execução completa do xUnit os testes falham de vez em quando. Qual é a causa mais provável?",
+    "options": [
+      "O xUnit roda os testes de cada classe em threads paralelas aleatórias",
+      "O xUnit reutiliza uma única instância da classe para todos os testes",
+      "Cada classe é sua própria collection, roda em paralelo e divide estado estático",
+      "O xUnit faz cache de campos estáticos entre execuções, e valores antigos persistem"
+    ],
+    "explanation": "Por padrão, o xUnit trata cada classe de testes como uma test collection. Os testes de uma mesma collection rodam um após o outro, mas collections diferentes rodam em paralelo, então duas classes alterando o mesmo campo estático entram em race condition. Corrija removendo o estado estático compartilhado (injete a configuração) ou colocando as duas classes na mesma collection nomeada. O xUnit cria uma nova instância da classe por teste e não faz cache de estáticos entre execuções."
+  },
+  {
+    "id": "test-doubles-spy-records-calls",
+    "title": "Um dublê que registra chamadas",
+    "question": "Um FakeAuditLog escrito à mão implementa IAuditLog. Ele só adiciona cada entrada recebida a uma lista. Depois de rodar o código, o teste verifica que a lista contém uma entrada 'OrderCancelled'. Nos termos de Meszaros, o que FakeAuditLog realmente é?",
+    "options": [
+      "Um dummy, já que só é passado adiante e não tem comportamento real",
+      "Um spy, já que registra as chamadas para o teste verificar depois",
+      "Um fake, já que tem uma implementação funcional da interface",
+      "Um mock, já que foi configurado antes com as chamadas esperadas"
+    ],
+    "explanation": "O resumo de Fowler sobre Meszaros: spies são stubs que também registram informações sobre como foram chamados, para que o teste as verifique depois. Um fake tem uma implementação funcional, mas simplificada, como um banco em memória, e um mock é pré-programado com expectativas que ele mesmo verifica. Apesar do nome, essa classe só registra chamadas, o que faz dela um spy."
+  },
+  {
+    "id": "test-pyramid-avoid-duplication",
+    "title": "Verificações duplicadas no nível de UI",
+    "question": "Os testes unitários já cobrem todas as 14 regras de validação do endpoint de cadastro. A equipe também tem 14 testes de navegador, um por regra, que levam 20 minutos. O que aconselha a pirâmide de testes prática?",
+    "options": [
+      "Manter os 14 testes de navegador, já que testes de UI são a única prova real",
+      "Apagar os testes unitários, já que os de navegador já cobrem as regras",
+      "Manter poucos testes de UI para a integração e cortar os que duplicam os unitários",
+      "Levar as 14 regras para JavaScript para os testes de navegador rodarem mais rápido"
+    ],
+    "explanation": "A pirâmide de testes prática alerta contra duplicar testes entre níveis. Se um teste de nível mais baixo já cobre uma regra, prefira-o ali e mantenha os testes de nível mais alto focados no que os níveis mais baixos não conseguem pegar, como a UI estar ligada ao backend. Manter os 14 testes de UI lentos adiciona custo sem nova cobertura, e apagar os testes unitários rápidos inverte a pirâmide."
+  },
+  {
+    "id": "test-tdd-classicist-ripple",
+    "title": "TDD clássico versus mockista",
+    "question": "A equipe A pratica TDD com colaboradores reais sempre que possível e usa dublês só para os incômodos, como e-mail. A equipe B mocka todos os colaboradores da classe em teste. Segundo 'Mocks Aren't Stubs', de Fowler, que tradeoff a equipe A aceita?",
+    "options": [
+      "Um bug em uma classe muito usada pode fazer vários testes não relacionados falharem",
+      "Os testes nunca conseguem verificar comportamento, só o estado final dos objetos",
+      "Cada refatoração de chamadas internas quebra mais testes do que na suíte da equipe B",
+      "Ela não consegue escrever testes até todos os colaboradores estarem implementados"
+    ],
+    "explanation": "Fowler observa que, com testes clássicos, um bug em um objeto muito usado pode se propagar e fazer muitos testes falharem, o que dificulta localizar a falha, enquanto testes mockistas isolam cada classe. Por outro lado, testes mockistas se acoplam à implementação, então refatorar chamadas internas tende a quebrar mais testes da equipe B. Classicistas ainda podem usar stubs para colaboradores inacabados e verificam comportamento por meio do estado."
+  },
+  {
+    "id": "test-design-equivalence-partitioning",
+    "title": "Partições de equivalência para uma faixa",
+    "question": "Um campo de quantidade de pedido aceita inteiros de 1 a 100. Usando particionamento de equivalência, qual é o conjunto mínimo de valores de teste mais sensato?",
+    "options": [
+      "1, 2, 3, 4 e 5, para checar as quantidades de pedido mais comuns",
+      "Todos os inteiros de 1 a 100, para garantir que nada fique de fora",
+      "Só 50, já que um valor válido representa toda a faixa válida",
+      "Um valor por partição: por exemplo -5, 50 e 150"
+    ],
+    "explanation": "O particionamento de equivalência divide as entradas em classes que o software deve tratar da mesma forma e testa um valor de cada uma, incluindo as partições inválidas abaixo de 1 e acima de 100. Testar só valores válidos deixa de fora as classes inválidas, e testar tudo é desperdício. A análise de valor-limite então acrescenta as bordas (0, 1, 100, 101)."
+  },
+  {
+    "id": "test-design-pairwise-combinations",
+    "title": "Combinações de configuração demais",
+    "question": "O checkout precisa ser testado em 4 navegadores, 3 meios de pagamento, 4 moedas e 3 opções de frete: 144 combinações completas. A maioria dos bugs de interação envolve só dois parâmetros. Qual técnica reduz a suíte mantendo uma boa cobertura?",
+    "options": [
+      "Amostragem aleatória de 10 combinações, rodada com uma nova seed toda noite",
+      "Testes pairwise (combinatórios) que cobrem todo par de valores",
+      "Testar só o navegador, meio de pagamento, moeda e opção de frete padrão",
+      "Particionamento de equivalência dos navegadores, juntando-os em uma só classe"
+    ],
+    "explanation": "A pesquisa do NIST sobre testes combinatórios mostrou que a maioria das falhas é disparada por um ou dois parâmetros interagindo. Um covering array pairwise inclui cada par de valores de parâmetros pelo menos uma vez, aqui cerca de 16 testes em vez de 144. Amostragem aleatória pode deixar pares de fora, testar só os padrões ignora as interações e juntar navegadores assume que todos se comportam igual."
+  },
+  {
+    "id": "test-adv-property-based-basics",
+    "title": "O que são testes baseados em propriedades",
+    "question": "Como os testes baseados em propriedades (por exemplo, com Hypothesis ou FsCheck) diferem dos testes unitários baseados em exemplos?",
+    "options": [
+      "Você define uma regra que deve valer e a ferramenta gera muitas entradas para testá-la",
+      "Você grava tráfego real de produção e o reproduz contra o novo build",
+      "Você altera o código em teste aleatoriamente para ver se algum teste falha",
+      "Você só faz asserções sobre as propriedades (getters) do objeto, não sobre seus métodos"
+    ],
+    "explanation": "Em testes baseados em propriedades, você descreve um invariante, como 'ordenar retorna uma lista ordenada com os mesmos elementos', e a biblioteca gera muitas entradas e depois reduz qualquer falha a um exemplo mínimo. Alterar o código aleatoriamente para ver se os testes percebem é teste de mutação, reproduzir tráfego é outra técnica e 'propriedades' aqui significa regras gerais, não getters do C#."
+  },
+  {
+    "id": "test-adv-pact-provider-states",
+    "title": "Dados ausentes na verificação do Pact",
+    "question": "Uma interação do Pact diz 'given user 42 exists, GET /users/42 returns 200 with a name'. Durante a verificação do provedor, o banco de testes dele está vazio, então ele retorna 404. Qual é a solução prevista pelo Pact?",
+    "options": [
+      "Editar o arquivo do pact à mão para esperar 404 quando faltarem dados",
+      "Apontar a verificação para produção, onde o usuário 42 com certeza existe",
+      "Implementar um provider state handler que cria o usuário 42 antes da chamada",
+      "Remover a cláusula 'given' para a interação não depender mais de dados"
+    ],
+    "explanation": "Provider states são as pré-condições de uma interação, como um Given em um cenário. O consumidor nomeia o estado e, durante a verificação, o provedor executa um handler de setup de estado (por exemplo, criando o usuário 42) antes de a requisição ser reproduzida. Editar o pact esconde a expectativa real do consumidor, produção é insegura e instável, e remover o estado deixa o contrato ambíguo."
+  },
+  {
+    "id": "test-perf-spike-ticket-sale",
+    "title": "Pico repentino de usuários",
+    "question": "Os ingressos de um show começam a ser vendidos às 10:00. O tráfego salta de 200 para 20.000 usuários em menos de um minuto e depois cai. Qual tipo de teste simula isso?",
+    "options": [
+      "Teste de soak",
+      "Smoke test",
+      "Teste de carga média",
+      "Teste de spike"
+    ],
+    "explanation": "O k6 descreve o teste de spike como uma verificação de se o sistema sobrevive e mantém o desempenho sob picos repentinos e massivos de tráfego, como vendas de ingressos ou lançamentos de produtos. Um teste de soak roda por um período prolongado, um smoke test usa carga mínima como verificação básica e um teste de carga média modela o tráfego típico."
+  },
+  {
+    "id": "test-perf-breakpoint-capacity",
+    "title": "Encontrando o limite do sistema",
+    "question": "Antes da Black Friday, a equipe quer saber a taxa máxima de requisições que a API de checkout aguenta antes que erros e latência fiquem inaceitáveis. Nos termos do k6, qual teste aumenta a carga gradualmente até o sistema falhar?",
+    "options": [
+      "Teste de breakpoint",
+      "Smoke test",
+      "Teste de soak",
+      "Teste de spike"
+    ],
+    "explanation": "Um teste de breakpoint aumenta a carga gradualmente, até níveis irrealisticamente altos se necessário, para descobrir onde o sistema começa a falhar. Isso mostra os limites de capacidade e os pontos fracos. Smoke tests usam carga mínima, testes de soak mantêm a carga por muito tempo e testes de spike aplicam um pico repentino e curto."
+  },
+  {
+    "id": "test-perf-load-generator-saturated",
+    "title": "Latência que vem do gerador de carga",
+    "question": "Uma execução do k6 reporta a latência p95 subindo de 200 ms para 1,8 s conforme os VUs aumentam, mas os servidores da API ficam em 30% de CPU e as métricas de latência do lado do servidor continuam estáveis. A única VM geradora de carga mostra 100% de CPU. Qual é a explicação mais provável?",
+    "options": [
+      "A API tem uma contenção de locks oculta que as métricas de CPU não conseguem mostrar",
+      "O gerador de carga está saturado, então a latência extra vem do lado do cliente",
+      "O k6 mede só o tempo de DNS lookup, então o jitter da rede domina os resultados",
+      "O p95 não faz sentido acima de 1.000 VUs, então a execução deve reportar só médias"
+    ],
+    "explanation": "As orientações do k6 sobre testes grandes alertam que, quando o k6 usa 100% da CPU do gerador de carga, o teste sofre throttling e reporta tempos de resposta maiores que não vêm do sistema em teste. A latência estável no servidor confirma isso. Corrija com um gerador de carga maior ou distribuído e sempre monitore os recursos do próprio gerador. Contenção de locks apareceria na latência do servidor, e médias escondem a cauda em vez de resolver qualquer coisa."
+  }
+]

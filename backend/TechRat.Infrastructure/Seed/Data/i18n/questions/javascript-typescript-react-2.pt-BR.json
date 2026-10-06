@@ -1,0 +1,914 @@
+[
+  {
+    "id": "js-types-null-undefined-loose-equality",
+    "title": "Igualdade entre null e undefined",
+    "question": "O que isto imprime?\n\nconsole.log(null == undefined, null === undefined);",
+    "options": [
+      "true true",
+      "false false",
+      "true false",
+      "false true"
+    ],
+    "explanation": "A igualdade frouxa tem uma regra especial que trata null e undefined como iguais entre si (e a mais nada), então `null == undefined` é true. A igualdade estrita também compara tipos, e null e undefined são tipos diferentes, então `===` dá false. É por isso que `x == null` é um idioma comum para verificar os dois de uma vez."
+  },
+  {
+    "id": "js-types-default-sort-string-coercion",
+    "title": "O sort padrão converte para strings",
+    "question": "O que isto imprime?\n\nconsole.log([10, 1, 2].sort());",
+    "options": [
+      "[1, 2, 10]",
+      "[10, 2, 1]",
+      "[2, 1, 10]",
+      "[1, 10, 2]"
+    ],
+    "explanation": "Sem uma função de comparação, Array.prototype.sort converte os elementos em strings e os compara por unidades de código UTF-16, então \"10\" fica antes de \"2\". Os números não são comparados numericamente, e por isso [1, 2, 10] está errado. Passe um comparador como `(a, b) => a - b` para ordenar números pelo valor."
+  },
+  {
+    "id": "js-types-object-is-negative-zero",
+    "title": "Object.is vs igualdade estrita",
+    "question": "O que isto imprime?\n\nconsole.log(-0 === 0, Object.is(-0, 0), Object.is(NaN, NaN));",
+    "options": [
+      "true true false",
+      "false false true",
+      "true false true",
+      "true true true"
+    ],
+    "explanation": "A igualdade estrita trata +0 e -0 como iguais e NaN como diferente de tudo, inclusive de si mesmo. Object.is usa o algoritmo SameValue, que distingue -0 de +0 e trata NaN como igual a NaN. O React usa Object.is para comparar state e dependências, então esses casos extremos importam na prática."
+  },
+  {
+    "id": "js-scope-declaration-vs-expression-hoisting",
+    "title": "Hoisting de declarações vs expressões",
+    "question": "O que isto imprime?\n\nconsole.log(typeof a, typeof b);\nfunction a() {}\nvar b = function () {};",
+    "options": [
+      "\"function\" \"function\"",
+      "\"undefined\" \"undefined\"",
+      "\"function\" \"undefined\"",
+      "Lança um ReferenceError para b"
+    ],
+    "explanation": "Declarações de função sofrem hoisting junto com o corpo, então `a` já é uma função antes da sua linha. Com `var b = function () {}`, só a declaração var sofre hoisting e é inicializada com undefined; a função é atribuída quando aquela linha roda. Se b tivesse sido declarado com let ou const, `typeof b` lançaria erro porque b estaria na sua temporal dead zone."
+  },
+  {
+    "id": "js-scope-default-parameter-own-scope",
+    "title": "Escopo de parâmetros default",
+    "question": "O que isto imprime?\n\nlet x = 1;\nfunction f(read = () => x) {\n  let x = 2;\n  return read();\n}\nconsole.log(f());",
+    "options": [
+      "1",
+      "2",
+      "undefined",
+      "Um ReferenceError, porque x está na sua TDZ"
+    ],
+    "explanation": "Expressões de parâmetros default são avaliadas em um escopo próprio, que fica entre o escopo externo e o corpo da função. A arrow function captura esse escopo de parâmetros, onde não existe x, então resolve x para o `let x = 1` externo. O `let x = 2` do corpo é uma binding separada que a closure nunca enxerga."
+  },
+  {
+    "id": "js-class-private-field-outside-access",
+    "title": "Campos privados de classe acessados de fora",
+    "question": "O que acontece quando este script é carregado?\n\nclass Counter { #count = 0; }\nconst c = new Counter();\nconsole.log(c.#count);",
+    "options": [
+      "Imprime 0",
+      "Imprime undefined",
+      "Um SyntaxError é gerado antes de qualquer código rodar",
+      "Lança um TypeError em runtime quando a linha do log executa"
+    ],
+    "explanation": "Nomes privados como #count só são válidos lexicamente dentro do corpo da classe que os declara. Referenciar `c.#count` fora dela é um SyntaxError antecipado (early error), então o script inteiro falha no parse e nada executa. Ao contrário da antiga convenção do underscore, campos realmente privados não podem ser lidos de fora, nem com notação de colchetes."
+  },
+  {
+    "id": "js-proto-for-in-inherited-keys",
+    "title": "for...in vs Object.keys",
+    "question": "O que isto imprime?\n\nconst base = { a: 1 };\nconst o = Object.create(base);\no.b = 2;\nconst keys = [];\nfor (const k in o) keys.push(k);\nconsole.log(Object.keys(o), keys);",
+    "options": [
+      "[\"b\", \"a\"] [\"b\", \"a\"]",
+      "[\"b\"] [\"b\", \"a\"]",
+      "[\"b\"] [\"b\"]",
+      "[\"a\", \"b\"] [\"b\"]"
+    ],
+    "explanation": "Object.keys retorna só as chaves string próprias e enumeráveis do objeto, então dá [\"b\"]. Um loop for...in também percorre a cadeia de protótipos e visita propriedades enumeráveis herdadas, primeiro as próprias, então coleta \"b\" e depois \"a\". É por isso que loops for...in costumam ser protegidos com Object.hasOwn ou substituídos por Object.keys/entries."
+  },
+  {
+    "id": "js-this-arrow-in-object-literal",
+    "title": "Arrow function como método de objeto",
+    "question": "Em um ES module, por que `obj.get()` lança erro em vez de retornar 1?\n\nconst obj = { n: 1, get: () => this.n };",
+    "options": [
+      "Arrow functions não podem ser guardadas como propriedades de object literals em módulos",
+      "Dentro de uma arrow, this se refere à própria arrow function, não a obj",
+      "Arrows herdam o this do escopo externo, que aqui é undefined",
+      "Módulos congelam object literals, então suas propriedades não podem ser lidas via this"
+    ],
+    "explanation": "Arrow functions não têm `this` próprio; elas o capturam lexicamente de onde são definidas. No nível superior de um ES module, `this` é undefined, então `this.n` lança um TypeError. Use a sintaxe de método (`get() { return this.n; }`) quando a função precisar do objeto em que é chamada."
+  },
+  {
+    "id": "js-functions-arrow-arguments-lexical",
+    "title": "arguments dentro de uma arrow function",
+    "question": "O que isto imprime?\n\nfunction outer() {\n  const inner = () => arguments[0];\n  return inner(\"b\");\n}\nconsole.log(outer(\"a\"));",
+    "options": [
+      "\"a\"",
+      "\"b\"",
+      "undefined",
+      "ReferenceError: arguments is not defined"
+    ],
+    "explanation": "Arrow functions não têm um objeto `arguments` próprio, assim como não têm `this` próprio. A referência é resolvida lexicamente para os arguments da função comum que as envolve, que pertencem a `outer(\"a\")`. Dentro de arrows, use rest parameters (`(...args) => args[0]`) para acessar os próprios argumentos."
+  },
+  {
+    "id": "js-this-new-ignores-bound-this",
+    "title": "new com uma bound function",
+    "question": "O que isto imprime?\n\nfunction Person(name) { this.name = name; }\nconst Bound = Person.bind({ name: \"bound\" });\nconst p = new Bound(\"Ada\");\nconsole.log(p.name, p instanceof Person);",
+    "options": [
+      "\"bound\" false",
+      "\"Ada\" false",
+      "\"Ada\" true",
+      "TypeError: Bound is not a constructor"
+    ],
+    "explanation": "Uma bound function ainda pode ser usada com `new`; nesse caso o this vinculado é ignorado e um objeto novo é criado a partir do prototype da função alvo. Assim, `this.name` é definido como \"Ada\" no novo objeto, e o objeto herda de Person.prototype, tornando instanceof true. Só os argumentos pré-vinculados, e não o this vinculado, sobrevivem a uma chamada com new."
+  },
+  {
+    "id": "js-modules-default-and-named-import",
+    "title": "Importando exports default e nomeados",
+    "question": "greet.js contém `export default function greet() {}` e `export const VERSION = 1;`. Qual instrução importa os dois?",
+    "options": [
+      "const { greet, VERSION } = import(\"./greet.js\");",
+      "import greet, { VERSION } from \"./greet.js\";",
+      "import * as greet, VERSION from \"./greet.js\";",
+      "import { default, VERSION } from \"./greet.js\";"
+    ],
+    "explanation": "O export default é importado sem chaves, com qualquer nome local, e exports nomeados vão entre chaves, então `import greet, { VERSION }` está correto. O `import()` dinâmico retorna uma promise do namespace do módulo, então desestruturá-lo de forma síncrona produz valores undefined. Um namespace import não pode ser seguido de um nome solto, e `default` precisa ser renomeado (`{ default as greet }`) porque é uma palavra reservada."
+  },
+  {
+    "id": "js-modules-evaluated-once-singleton",
+    "title": "Módulos são avaliados uma vez",
+    "question": "config.js imprime \"init\" no nível superior e exporta um objeto `settings` mutável. header.js e footer.js importam esse módulo, e main.js importa os dois. O que acontece?",
+    "options": [
+      "\"init\" é impresso duas vezes e cada arquivo ganha sua cópia de settings",
+      "\"init\" é impresso duas vezes, mas settings é compartilhado por ser exportado",
+      "\"init\" é impresso uma vez, e os dois arquivos compartilham o mesmo settings",
+      "\"init\" é impresso uma vez, mas cada importador recebe uma cópia congelada de settings"
+    ],
+    "explanation": "Um módulo é buscado, linkado e avaliado só uma vez por module map; todo import posterior da mesma URL resolvida recebe a mesma instância do módulo. Por isso o código de nível superior roda uma vez, e todos os importadores veem o mesmo objeto exportado, o que faz módulos se comportarem naturalmente como singletons. Exports são live bindings, não cópias, e não são congelados."
+  },
+  {
+    "id": "js-modules-strict-implicit-global",
+    "title": "Módulos são sempre strict",
+    "question": "Um script legado começa com `total = 0;` (sem declaração). Depois de carregá-lo com `<script type=\"module\">`, ele lança erro. Por quê?",
+    "options": [
+      "Módulos não podem declarar variáveis no nível superior do arquivo",
+      "Module scripts rodam antes de o DOM existir, então os globais de window ainda não existem",
+      "type=\"module\" exige que toda variável de nível superior seja exportada",
+      "Código de módulo é sempre strict mode, então isso é um ReferenceError"
+    ],
+    "explanation": "ES modules estão sempre em strict mode, sem precisar de 'use strict'. Em strict mode, atribuir a um identificador não declarado lança um ReferenceError em vez de criar um global silenciosamente. Declare a variável com let/const, ou anexe-a explicitamente a globalThis se ela realmente precisar ser global."
+  },
+  {
+    "id": "js-modules-circular-import-tdz",
+    "title": "Imports circulares e a TDZ",
+    "question": "main.js executa `import \"./a.js\";`. O que acontece?\n\n// a.js\nimport { b } from \"./b.js\";\nexport const a = \"A\";\nconsole.log(b);\n\n// b.js\nimport { a } from \"./a.js\";\nexport const b = \"B\";\nconsole.log(a);",
+    "options": [
+      "b.js lança um ReferenceError porque a ainda está na sua TDZ",
+      "Imprime \"A\" e depois \"B\"",
+      "Imprime undefined e depois \"B\"",
+      "O carregamento falha com um SyntaxError apontando a dependência circular"
+    ],
+    "explanation": "Módulos são avaliados em profundidade, então b.js (uma dependência de a.js) roda antes do corpo de a.js. A binding `a` já está linkada, mas `export const a` ainda não executou, então lê-la é um ReferenceError de temporal dead zone. Ciclos são permitidos em ES modules; eles só funcionam quando as bindings cíclicas não são lidas durante a avaliação, por exemplo quando são usadas dentro de funções chamadas depois."
+  },
+  {
+    "id": "js-dom-textcontent-vs-innerhtml",
+    "title": "Renderizando texto do usuário com segurança",
+    "question": "Um widget de comentários faz `el.innerHTML = comment;`. Um usuário posta `<img src=x onerror=alert(1)>` e o script executa. Qual é a correção segura mais simples?",
+    "options": [
+      "Atribuir com `el.textContent = comment;`",
+      "Envolver a atribuição em um bloco try/catch",
+      "Executar `encodeURIComponent(comment)` antes de atribuir",
+      "Atribuir com `el.outerHTML = comment;`"
+    ],
+    "explanation": "innerHTML faz o parse da string como HTML, então o markup do atacante com event handlers executa (XSS). textContent insere o valor como texto puro e nunca faz parse dele. encodeURIComponent é para componentes de URL e mostraria texto embaralhado, e outerHTML faz parse de HTML assim como innerHTML."
+  },
+  {
+    "id": "js-dom-event-delegation",
+    "title": "Event delegation para itens dinâmicos",
+    "question": "Uma lista de tarefas adiciona um listener de clique a cada `li` no carregamento da página. Itens adicionados depois nunca respondem a cliques. Qual abordagem corrige isso sem refazer o bind a cada inserção?",
+    "options": [
+      "Passar `{ once: true }` ao adicionar o listener de cada item",
+      "Um listener no `ul` pai usando `event.target.closest(\"li\")`",
+      "Registrar os listeners na fase de captura com `{ capture: true }`",
+      "Usar atributos onclick inline, que se aplicam a elementos futuros automaticamente"
+    ],
+    "explanation": "Eventos de clique fazem bubbling, então um único listener em um ancestral estável vê cliques em qualquer descendente, inclusive os adicionados depois; `closest(\"li\")` encontra qual item foi clicado. Isso é event delegation. `once` remove os listeners após uma chamada, capture só muda a fase, e listeners existentes nunca se anexam sozinhos a novos nós."
+  },
+  {
+    "id": "js-dom-live-htmlcollection-loop",
+    "title": "HTMLCollection viva em um loop",
+    "question": "Só um elemento sim, outro não perde a classe. Por quê?\n\nconst items = document.getElementsByClassName(\"active\");\nfor (let i = 0; i < items.length; i++) {\n  items[i].classList.remove(\"active\");\n}",
+    "options": [
+      "A coleção é viva, então encolhe cada vez que uma classe é removida",
+      "classList.remove é assíncrono e pula elementos que ainda estão pendentes",
+      "O loop precisa de var em vez de let para iterar coleções do DOM corretamente",
+      "Índices de HTMLCollection começam em 1, então o primeiro elemento é pulado"
+    ],
+    "explanation": "getElementsByClassName retorna uma HTMLCollection viva, que se atualiza conforme o DOM muda. Remover a classe tira o elemento da coleção, deslocando os itens restantes um índice para baixo enquanto i continua incrementando, então um elemento sim, outro não é pulado. Use querySelectorAll (uma NodeList estática), Array.from(items) ou um loop enquanto items.length > 0."
+  },
+  {
+    "id": "js-fetch-credentials-cross-origin",
+    "title": "Enviando cookies em fetch cross-origin",
+    "question": "Uma SPA em app.example.com chama `fetch(\"https://api.example.com/me\")`. A API autentica com um cookie de sessão, mas as requisições chegam sem ele. O que é necessário?",
+    "options": [
+      "Passar `mode: \"no-cors\"` para o navegador anexar os cookies à requisição",
+      "Passar `credentials: \"include\"`, e a API precisa permitir credentials para essa origem",
+      "Definir o header `Cookie` manualmente no objeto init do fetch",
+      "Definir `cache: \"no-store\"` para os cookies não serem removidos de requisições em cache"
+    ],
+    "explanation": "O fetch usa `credentials: \"same-origin\"` por padrão, e um subdomínio diferente é outra origem, então os cookies não são enviados. Com `credentials: \"include\"` o navegador os envia, e o servidor precisa responder com `Access-Control-Allow-Credentials: true` e um Allow-Origin explícito (não *). Cookie é um header de requisição proibido, e no-cors gera uma resposta opaca que a página não consegue ler."
+  },
+  {
+    "id": "js-errors-typeerror-null-property",
+    "title": "Tipo de erro ao acessar propriedade de null",
+    "question": "Qual erro nativo isto lança?\n\nconst user = null;\nconsole.log(user.name);",
+    "options": [
+      "ReferenceError",
+      "TypeError",
+      "RangeError",
+      "SyntaxError"
+    ],
+    "explanation": "Ler uma propriedade de null ou undefined lança um TypeError, porque o valor não é de um tipo que tenha propriedades. ReferenceError é para identificadores não declarados, RangeError para valores fora do intervalo como `new Array(-1)`, e SyntaxError para código que não pode ser parseado. Optional chaining (`user?.name`) evita o erro."
+  },
+  {
+    "id": "js-errors-settimeout-not-caught",
+    "title": "try/catch em volta de um callback de timer",
+    "question": "O que acontece?\n\ntry {\n  setTimeout(() => { throw new Error(\"boom\"); }, 0);\n} catch (e) {\n  console.log(\"caught\");\n}",
+    "options": [
+      "Nada é capturado; vira uma exceção não tratada",
+      "\"caught\" é impresso quando o timer dispara",
+      "\"caught\" é impresso na hora, antes de o callback do timer rodar",
+      "setTimeout rejeita a promise que retorna com o erro"
+    ],
+    "explanation": "try/catch só cobre código que roda de forma síncrona dentro do bloco try. O callback roda depois, em uma nova call stack, quando o try já terminou, então o throw não é capturado. Coloque o try/catch dentro do callback, ou envolva o timer em uma promise e use await. setTimeout retorna um id de timer, não uma promise."
+  },
+  {
+    "id": "js-errors-return-without-await",
+    "title": "return vs return await dentro de try",
+    "question": "fetchData() retorna uma promise que rejeita. O que `await load()` faz?\n\nasync function load() {\n  try {\n    return fetchData();\n  } catch {\n    return \"fallback\";\n  }\n}",
+    "options": [
+      "Resolve para \"fallback\"",
+      "Rejeita com o erro de fetchData",
+      "Resolve para undefined",
+      "Resolve para o objeto da promise ainda pendente"
+    ],
+    "explanation": "`return fetchData()` devolve a promise sem aguardá-la, então o bloco try termina normalmente e o catch nunca roda; o resultado da função async então adota a rejeição. Escrever `return await fetchData()` faz a rejeição ser lançada dentro do try, e o catch retorna \"fallback\". Uma função async nunca resolve para um objeto promise; ela sempre o achata."
+  },
+  {
+    "id": "js-errors-node-late-rejection-handler",
+    "title": "Handler de rejeição tardio derruba o Node",
+    "question": "Um serviço Node.js 22 cai na inicialização com uma unhandled rejection, embora o erro pareça tratado:\n\nconst cfg = loadRemoteConfig(); // rejects after ~50 ms\nawait warmCaches();            // takes ~2 s\ntry { use(await cfg); } catch { useDefaults(); }\n\nO que está acontecendo?",
+    "options": [
+      "cfg rejeitou sem handler anexado, e o modo padrão do Node então lança",
+      "warmCaches engoliu a rejeição, então cfg resolveu silenciosamente para undefined",
+      "Top-level await não é suportado no Node.js, então o bloco try é pulado",
+      "Rejeições dentro de blocos try sempre escapam, a menos que .catch() seja encadeado"
+    ],
+    "explanation": "Quando cfg rejeita, nada está aguardando essa promise nem chamou .then/.catch nela ainda, então, depois que a fila de microtasks esvazia, o Node reporta uma unhandled rejection. Desde o Node 15, o modo padrão `--unhandled-rejections=throw` a lança como exceção não capturada e o processo encerra, muito antes de o try ser alcançado. Anexe um handler imediatamente, por exemplo aguardando os dois com Promise.all/allSettled."
+  },
+  {
+    "id": "js-memory-gc-reachability",
+    "title": "Quando objetos são coletados pelo garbage collector",
+    "question": "Quando o garbage collector de uma engine JavaScript moderna pode liberar um objeto?",
+    "options": [
+      "Quando nenhuma raiz, como um global ou a stack, consegue alcançá-lo",
+      "Assim que sua contagem de referências chega a zero, mesmo dentro de um ciclo",
+      "Quando a função que criou o objeto retorna",
+      "Só depois que toda variável que o referencia é definida como null"
+    ],
+    "explanation": "Engines modernas usam mark-and-sweep: a partir das raízes (globais, a call stack atual), marcam tudo o que é alcançável e liberam o resto. Contagem de referências pura não consegue liberar ciclos, e objetos sobrevivem à função que os criou sempre que uma closure ou outro objeto ainda os referencia. Definir variáveis como null é desnecessário quando elas simplesmente saem de escopo."
+  },
+  {
+    "id": "js-perf-debounce-search",
+    "title": "Debounce em um handler caro",
+    "question": "Uma caixa de busca roda um filtro caro a cada evento `input`, e a digitação fica travada. Os resultados só importam quando o usuário pausa. Qual técnica se encaixa melhor?",
+    "options": [
+      "Fazer throttle do handler para rodar no máximo uma vez por animation frame",
+      "Tornar o handler async para que o filtro não bloqueie mais a digitação",
+      "Fazer debounce do handler para rodar quando a digitação pausa por ~300 ms",
+      "Escutar keydown em vez de input para que o handler dispare menos vezes"
+    ],
+    "explanation": "Debounce adia a chamada até os eventos pararem de chegar por um intervalo definido, então o filtro roda uma vez depois que o usuário pausa. Throttle continua rodando repetidamente enquanto o usuário digita, só que com menos frequência. Marcar uma função como async não tira o trabalho de CPU da main thread, e keydown dispara pelo menos tantas vezes quanto input."
+  },
+  {
+    "id": "js-perf-layout-thrashing",
+    "title": "Layout síncrono forçado",
+    "question": "Este loop leva 400 ms para 1.000 cards. Qual é a causa principal?\n\nfor (const card of cards) {\n  const h = card.offsetHeight;\n  card.style.height = h + 10 + \"px\";\n}",
+    "options": [
+      "Leituras e escritas intercaladas forçam um layout síncrono a cada iteração",
+      "offsetHeight é lento porque precisa arredondar valores subpixel para inteiros",
+      "Cada atribuição de style.height dispara na hora um repaint completo da página",
+      "Iterar uma NodeList com for...of é bem mais lento que um for clássico"
+    ],
+    "explanation": "Escrever um estilo invalida o layout, e a próxima leitura de offsetHeight força o navegador a recalcular o layout de forma síncrona, uma vez por card. Isso é layout thrashing. Agrupe todas as leituras primeiro e depois todas as escritas (ou agende as escritas com requestAnimationFrame) para o layout rodar uma vez. O paint é adiado para o próximo frame, não feito a cada atribuição."
+  },
+  {
+    "id": "js-perf-async-does-not-yield",
+    "title": "async não torna trabalho de CPU não bloqueante",
+    "question": "`async function processAll(items)` faz um cálculo pesado de CPU para 200.000 itens em um loop for simples, sem nenhum await dentro. A página congela até terminar. Por quê, e o que ajuda?",
+    "options": [
+      "Ainda roda na main thread; ceda o controle entre blocos ou use um Worker",
+      "Funções async só rodam em segundo plano dentro de Workers; habilite isso com uma flag",
+      "A promise nunca é aguardada; usar await em processAll() deixa a UI continuar pintando",
+      "Loops for bloqueiam funções async; trocar por forEach as torna não bloqueantes"
+    ],
+    "explanation": "Uma função async roda de forma síncrona até o primeiro await, e esta nunca usa await, então o loop inteiro bloqueia a main thread e nenhum render ou tratamento de input acontece. Async serve para esperar I/O, não para trabalho de CPU em paralelo. Divida o trabalho em blocos e ceda o controle (setTimeout ou scheduler.yield onde houver suporte), ou mova-o para um Web Worker."
+  },
+  {
+    "id": "ts-basic-noimplicitany-parameter",
+    "title": "Parâmetro sem tipo com strict",
+    "question": "Com `strict: true`, o que o compilador reporta?\n\nfunction greet(name) {\n  return \"Hi \" + name;\n}",
+    "options": [
+      "Nada; name é inferido como string a partir da concatenação",
+      "Nada; parâmetros sem tipo assumem unknown por padrão",
+      "Falta uma anotação explícita de tipo de retorno na função",
+      "Parameter 'name' implicitly has an 'any' type"
+    ],
+    "explanation": "O TypeScript não infere tipos de parâmetros pela forma como o corpo os usa, então um parâmetro sem anotação é `any`. A checagem noImplicitAny, habilitada por strict, reporta esse any implícito como erro. Tipos de retorno são inferidos, então a falta de anotação de retorno não é erro."
+  },
+  {
+    "id": "ts-basic-mixed-array-inference",
+    "title": "Tipo inferido de um array misto",
+    "question": "Qual tipo o TypeScript infere para `items`?\n\nconst items = [1, \"two\", 3];",
+    "options": [
+      "[number, string, number]",
+      "readonly [1, \"two\", 3]",
+      "any[]",
+      "(string | number)[]"
+    ],
+    "explanation": "Para array literals, o TypeScript calcula um best common type a partir dos elementos, aqui a union string | number, e infere um array mutável dela. Tipos tupla só são inferidos com uma anotação ou `as const` (que daria a tupla literal readonly). `const` só impede reatribuir a variável; não torna o array readonly."
+  },
+  {
+    "id": "ts-basic-object-property-widening",
+    "title": "Alargamento de literais em propriedades de objeto",
+    "question": "Por que a chamada não compila, e qual é uma correção mínima?\n\ndeclare function setTheme(t: \"light\" | \"dark\"): void;\nconst cfg = { theme: \"dark\" };\nsetTheme(cfg.theme);",
+    "options": [
+      "Objetos const são congelados em profundidade, então suas propriedades precisam de spread antes",
+      "setTheme precisa de um type parameter genérico para aceitar expressões de acesso a propriedade",
+      "Unions de string literals não funcionam com propriedades de objeto; use um enum",
+      "A propriedade theme é alargada para string; declare o objeto `as const`"
+    ],
+    "explanation": "Propriedades de objetos são mutáveis, então, mesmo em um objeto const, o TypeScript infere `theme: string` em vez do literal \"dark\", e string não é atribuível a \"light\" | \"dark\". `as const` (ou anotar cfg com um tipo adequado) mantém o tipo literal. const só impede reatribuir a própria variável."
+  },
+  {
+    "id": "ts-basic-empty-object-vs-object",
+    "title": "{} vs object vs Object",
+    "question": "Em strict mode, quais linhas não compilam?\n\nconst a: {} = 42;        // (1)\nconst b: object = 42;    // (2)\nconst c: Object = \"hi\";  // (3)\nconst d: {} = null;      // (4)",
+    "options": [
+      "Só a (2)",
+      "Só a (4)",
+      "(1), (2) e (4)",
+      "(2) e (4)"
+    ],
+    "explanation": "`{}` significa qualquer valor não nulo, incluindo primitivos, então 42 funciona, mas com strictNullChecks null não é atribuível a ele. `object` significa especificamente valores não primitivos, então 42 falha. O tipo global `Object` também aceita primitivos como strings, embora `object` ou `unknown` sejam preferidos na prática."
+  },
+  {
+    "id": "ts-types-alias-union",
+    "title": "Dando nome a um tipo union",
+    "question": "Você precisa de um nome para \"um id string ou um id numérico\". Qual declaração expressa isso?",
+    "options": [
+      "type Id = string | number;",
+      "interface Id extends string, number {}",
+      "interface Id { string | number }",
+      "enum Id { string, number }"
+    ],
+    "explanation": "Type aliases podem nomear qualquer tipo, inclusive unions de primitivos. Interfaces só descrevem formatos de objeto e não podem estender tipos primitivos nem ser uma union. Um enum cria constantes nomeadas, não uma union dos tipos string e number."
+  },
+  {
+    "id": "ts-interface-readonly-property",
+    "title": "Propriedades readonly em interfaces",
+    "question": "O que acontece aqui?\n\ninterface User { readonly id: number; name: string }\nconst u: User = { id: 1, name: \"Ada\" };\nu.id = 2;",
+    "options": [
+      "Compila, porque readonly só se aplica dentro de classes",
+      "Compila, mas u.id continua 1 silenciosamente em runtime",
+      "Erro na interface: readonly exige um inicializador",
+      "Erro de compilação: id é read-only e não pode ser atribuído"
+    ],
+    "explanation": "Uma propriedade readonly pode ser definida quando o objeto é criado, mas não reatribuída depois, então `u.id = 2` é erro de compilação. readonly é apenas uma checagem no nível de tipos: não congela o objeto em runtime e funciona em interfaces e type aliases, além de classes."
+  },
+  {
+    "id": "ts-interface-index-signature-conflict",
+    "title": "Index signature vs propriedade nomeada",
+    "question": "Por que esta interface não compila?\n\ninterface Scores {\n  [player: string]: number;\n  title: string;\n}",
+    "options": [
+      "title é uma chave string, então seu tipo precisa bater com a index signature number",
+      "Index signatures em interfaces precisam usar chaves number, não string",
+      "Interfaces não podem combinar uma index signature com propriedades nomeadas explícitas",
+      "O parâmetro da index signature precisa se chamar key para o compilador aceitar"
+    ],
+    "explanation": "Uma index signature de string promete que toda propriedade com chave string tem aquele tipo de valor, e propriedades nomeadas também são chaves string, então `title: string` conflita com `number`. Propriedades nomeadas são permitidas junto com uma index signature desde que estejam em conformidade. Corrija com `number | string` ou mova title para fora do dicionário."
+  },
+  {
+    "id": "ts-interface-extends-vs-intersection-conflict",
+    "title": "Membros conflitantes: extends vs &",
+    "question": "Como o compilador trata estas declarações?\n\ninterface A { id: string }\ninterface B extends A { id: number }\ntype C = A & { id: number };",
+    "options": [
+      "As duas compilam, e id vira string | number em B e em C",
+      "As duas são erro porque os tipos de id conflitam",
+      "B é erro; C compila, mas seu id é never",
+      "B compila com id: number; C dá erro onde é declarado"
+    ],
+    "explanation": "`extends` verifica se a interface derivada é compatível com a base, então B reporta \"incorrectly extends interface A\". Uma interseção nunca dá erro na declaração; ela intersecta os tipos dos membros, então id vira string & number, que é never, e nenhum valor real satisfaz C. Essa diferença é um motivo importante para preferir extensão de interfaces em hierarquias de objetos."
+  },
+  {
+    "id": "ts-generics-inferred-return",
+    "title": "Inferindo um tipo de retorno genérico",
+    "question": "Qual é o tipo de `x`?\n\nfunction first<T>(xs: T[]): T | undefined { return xs[0]; }\nconst x = first([1, 2, 3]);",
+    "options": [
+      "number | undefined",
+      "number",
+      "1 | 2 | 3 | undefined",
+      "unknown"
+    ],
+    "explanation": "T é inferido a partir do argumento: o array literal é number[], então T é number e o tipo de retorno declarado vira number | undefined. Tipos literais como 1 | 2 | 3 são alargados para um type parameter simples, e o undefined do tipo de retorno declarado é mantido, não descartado."
+  },
+  {
+    "id": "ts-generics-usestate-null-initial",
+    "title": "Argumento genérico para state anulável",
+    "question": "Em um componente React + TypeScript, `const [user, setUser] = useState(null);` depois falha em `setUser({ name: \"Ada\" })`. Qual é a correção idiomática?",
+    "options": [
+      "Usar um inicializador lazy, useState(() => null), para adiar a inferência",
+      "Usar useState(undefined), que alarga o tipo do state para any",
+      "Adicionar um tipo de retorno ao componente para alargar o tipo do state",
+      "Passar o type argument explicitamente: useState<User | null>(null)"
+    ],
+    "explanation": "useState é genérico, e T é inferido a partir do valor inicial; null sozinho dá um state do tipo null, então nada mais pode ser atribuído. Fornecer o type argument explicitamente declara o conjunto completo de valores. Um inicializador lazy que retorna null infere o mesmo tipo, e em strict mode undefined infere undefined, não any."
+  },
+  {
+    "id": "ts-narrowing-in-operator",
+    "title": "Narrowing com o operador in",
+    "question": "Dado `type Fish = { swim(): void }` e `type Bird = { fly(): void }`, qual checagem estreita `pet: Fish | Bird` para Fish?",
+    "options": [
+      "if (typeof pet === \"Fish\")",
+      "if (pet instanceof Fish)",
+      "if (pet.swim)",
+      "if (\"swim\" in pet)"
+    ],
+    "explanation": "O operador `in` verifica uma propriedade em runtime, e o TypeScript estreita a union para os membros que a têm. typeof só retorna nomes de tipos JavaScript como \"object\", Fish é um tipo e não existe em runtime para instanceof, e `pet.swim` é erro de compilação porque swim não existe em Bird."
+  },
+  {
+    "id": "ts-narrowing-type-predicate",
+    "title": "Type guards precisam de um predicate",
+    "question": "Dentro do if, `x.toUpperCase()` continua sendo erro. Por quê?\n\nfunction isString(x: unknown): boolean {\n  return typeof x === \"string\";\n}\nfunction f(x: unknown) {\n  if (isString(x)) x.toUpperCase();\n}",
+    "options": [
+      "unknown nunca pode ser estreitado, então o parâmetro precisa ser tipado como any",
+      "Checagens com typeof só estreitam dentro de uma função, então precisam ser inline",
+      "toUpperCase precisa de uma non-null assertion, escrita como x!.toUpperCase()",
+      "O retorno boolean esconde a checagem; use `x is string`"
+    ],
+    "explanation": "Uma função declarada como retornando boolean simples não diz nada a quem chama sobre seu argumento, então não há narrowing. Declarar o tipo de retorno como o predicate `x is string` faz a chamada funcionar como type guard. Desde o TypeScript 5.5 esses predicates também podem ser inferidos, mas só quando você omite a anotação boolean explícita."
+  },
+  {
+    "id": "ts-utility-parameters-extract",
+    "title": "Reaproveitando o tipo de um parâmetro não exportado",
+    "question": "Uma biblioteca exporta `createClient(options: { url: string; retries?: number })`, mas não o tipo de options. Como reaproveitar esse tipo?",
+    "options": [
+      "type Opts = ReturnType<typeof createClient>;",
+      "type Opts = typeof createClient.options;",
+      "type Opts = InstanceType<typeof createClient>[0];",
+      "type Opts = Parameters<typeof createClient>[0];"
+    ],
+    "explanation": "Parameters<F> produz uma tupla com os tipos dos parâmetros de um tipo de função, então indexar [0] dá o tipo do objeto de options. `typeof createClient` é necessário para passar do valor ao seu tipo. ReturnType dá o que a função retorna, e InstanceType só se aplica a tipos de construtor."
+  },
+  {
+    "id": "ts-utility-readonly-shallow",
+    "title": "Readonly é raso",
+    "question": "Qual linha compila?\n\ntype Post = { title: string; tags: string[] };\nconst p: Readonly<Post> = { title: \"Hi\", tags: [] };\np.title = \"Bye\";    // (1)\np.tags.push(\"ts\");  // (2)\np.tags = [];        // (3)",
+    "options": [
+      "Nenhuma delas",
+      "Só a (2)",
+      "(2) e (3)",
+      "Só a (1)"
+    ],
+    "explanation": "Readonly<T> marca só as propriedades de nível superior como readonly, então reatribuir title ou tags é erro. O array guardado em tags continua sendo um string[] mutável, então chamar push nele compila. Para imutabilidade profunda, você precisa de readonly string[] no tipo, de `as const` ou de um helper recursivo DeepReadonly."
+  },
+  {
+    "id": "ts-utility-omit-union-not-distributive",
+    "title": "Omit em um tipo union",
+    "question": "Por que a última linha não compila?\n\ntype Shape =\n  | { kind: \"circle\"; id: string; radius: number }\n  | { kind: \"square\"; id: string; size: number };\ntype NewShape = Omit<Shape, \"id\">;\nconst s: NewShape = { kind: \"circle\", radius: 2 };",
+    "options": [
+      "Omit também remove o discriminante, então kind vira never",
+      "Object literals precisam de um cast antes de serem atribuídos a tipos Omit",
+      "Omit só aceita interfaces, então a union colapsa para um objeto vazio",
+      "Omit só mantém chaves comuns a todos os membros, então radius some"
+    ],
+    "explanation": "Omit<T, K> é construído a partir de keyof T, e keyof de uma union produz só as chaves compartilhadas por todos os membros (kind e id). O resultado é um único tipo de objeto { kind: \"circle\" | \"square\" }, então radius é uma propriedade em excesso. Use um helper distributivo como `T extends unknown ? Omit<T, K> : never` para manter as chaves próprias de cada membro."
+  },
+  {
+    "id": "ts-enum-numeric-auto-increment",
+    "title": "Auto-incremento em enum numérico",
+    "question": "Qual é o valor de `Level.High`?\n\nenum Level { Low = 1, Medium, High }",
+    "options": [
+      "2",
+      "\"High\"",
+      "undefined",
+      "3"
+    ],
+    "explanation": "Membros de um enum numérico sem inicializador recebem o valor do membro anterior mais um. Low é 1, então Medium é 2 e High é 3. Só enums de string usam valores string, e esses precisam ser inicializados explicitamente."
+  },
+  {
+    "id": "ts-modules-import-type-erased",
+    "title": "O que import type garante",
+    "question": "O que `import type { User } from \"./models\";` garante?",
+    "options": [
+      "O import é totalmente removido do JavaScript emitido",
+      "User é importado como uma classe que não pode ser instanciada",
+      "./models é carregado de forma lazy na primeira vez que User é usado",
+      "./models ainda carrega em runtime, mas só pelos seus side effects"
+    ],
+    "explanation": "`import type` só traz declarações para a checagem de tipos, e a instrução é sempre removida da saída, então ./models não é carregado em runtime por esse import. Você pode usar User em anotações, mas não como valor. Isso importa para evitar imports indesejados em runtime e para ferramentas que compilam arquivos isoladamente."
+  },
+  {
+    "id": "ts-modules-nodenext-js-extension",
+    "title": "Imports relativos com nodenext",
+    "question": "Um pacote tem `\"type\": \"module\"` e o tsconfig tem `\"module\": \"nodenext\"`. Em src/index.ts, `import { add } from \"./math\";` é um erro. O que corrige isso com a saída padrão do tsc?",
+    "options": [
+      "Definir baseUrl como \".\" para resolver paths relativos sem extensão",
+      "Trocar por um default import: import add from \"./math\"",
+      "Escrever o specifier como \"./math.js\", a extensão do arquivo emitido",
+      "Adicionar um arquivo de declaração math.d.ts ao lado de math.ts"
+    ],
+    "explanation": "O loader ESM do Node exige specifiers relativos completos, incluindo a extensão, e o tsc não reescreve paths de import por padrão. Então você escreve o specifier como ele precisa aparecer no JavaScript emitido, \"./math.js\"; o TypeScript o mapeia de volta para math.ts durante a checagem de tipos. baseUrl e arquivos de declaração não mudam as regras de resolução do Node em runtime."
+  },
+  {
+    "id": "ts-enum-node-type-stripping",
+    "title": "Enums e o type stripping do Node",
+    "question": "Rodar `node src/app.ts` com o type stripping nativo de TypeScript do Node falha com ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX em `enum Status { Active, Banned }`. Por quê?",
+    "options": [
+      "O Node exige que enums sejam declarados antes em um arquivo .d.ts separado",
+      "Enums geram JavaScript em runtime, e o Node só apaga sintaxe de tipos",
+      "Enums numéricos estão deprecated no TypeScript 5.x e precisam ser de string",
+      "O Node só remove tipos de arquivos .mts, então arquivos .ts são lidos como JavaScript puro"
+    ],
+    "explanation": "O Node executa TypeScript removendo as anotações de tipo inline sem transformar o código. Enums, namespaces com código em runtime e parameter properties geram JavaScript, então são rejeitados. Troque o enum por um objeto `as const` mais um tipo union, ou compile com tsc; a opção erasableSyntaxOnly do TypeScript 5.8 sinaliza essa sintaxe em tempo de compilação."
+  },
+  {
+    "id": "ts-advanced-keyof-typeof",
+    "title": "keyof typeof de um objeto",
+    "question": "O que é `RouteName`?\n\nconst routes = { home: \"/\", about: \"/about\" };\ntype RouteName = keyof typeof routes;",
+    "options": [
+      "\"/\" | \"/about\"",
+      "string",
+      "{ home: string; about: string }",
+      "\"home\" | \"about\""
+    ],
+    "explanation": "`typeof routes` transforma o valor no seu tipo de objeto { home: string; about: string }, e keyof então produz a union das suas chaves. Os valores (\"/\", \"/about\") exigiriam um indexed access type como `(typeof routes)[keyof typeof routes]`, e com as const eles seriam literais."
+  },
+  {
+    "id": "ts-advanced-template-literal-capitalize",
+    "title": "Template literal types sobre uma union",
+    "question": "O que é `Handler`?\n\ntype Evt = \"click\" | \"focus\";\ntype Handler = `on${Capitalize<Evt>}`;",
+    "options": [
+      "`on${Capitalize<string>}`",
+      "`on${string}`",
+      "\"onClick\" | \"onFocus\"",
+      "string"
+    ],
+    "explanation": "Template literal types se distribuem sobre unions nos seus placeholders, produzindo um string literal por membro. Capitalize coloca em maiúscula o primeiro caractere de cada um, resultando em \"onClick\" | \"onFocus\". O resultado continua sendo uma union precisa, em vez de ser alargado para string ou para um tipo padrão."
+  },
+  {
+    "id": "react-jsx-lowercase-component",
+    "title": "Nomes de componentes precisam de maiúscula",
+    "question": "Um componente é definido como `function profileCard() {...}` e usado como `<profileCard />`. Seu conteúdo nunca renderiza. Por quê?",
+    "options": [
+      "Componentes precisam ser declarados com arrow functions para renderizar",
+      "O JSX exige que o componente tenha export default antes de poder ser usado",
+      "Tags JSX minúsculas são tratadas como elementos HTML, não componentes",
+      "Tags self-closing só funcionam em elementos nativos como <img />"
+    ],
+    "explanation": "O JSX usa a capitalização para decidir o que uma tag significa: nomes minúsculos viram elementos DOM (aqui, um elemento desconhecido <profilecard>), e nomes com maiúscula referenciam variáveis de componente no escopo. Renomeie para ProfileCard. Declarações de função, named exports e tags self-closing de componentes funcionam normalmente."
+  },
+  {
+    "id": "react-jsx-inline-style-object",
+    "title": "Sintaxe de inline style no JSX",
+    "question": "Qual JSX define corretamente uma cor de texto vermelha inline?",
+    "options": [
+      "<p styles={{ color: \"red\" }}>Hi</p>",
+      "<p style={{ color: \"red\" }}>Hi</p>",
+      "<p style={{ textColor: \"red\" }}>Hi</p>",
+      "<p css={{ color: \"red\" }}>Hi</p>"
+    ],
+    "explanation": "No React, a prop style recebe um objeto JavaScript com chaves em camelCase, não uma string CSS. As chaves externas entram em JavaScript e as internas são o object literal, daí as chaves duplas. As chaves precisam ser propriedades CSS reais em camelCase (textColor não é uma), a prop se chama style e não styles, e css não é uma prop nativa do React."
+  },
+  {
+    "id": "react-jsx-fragment-key",
+    "title": "Keys em fragments",
+    "question": "Um glossário mapeia cada termo para `<><dt>{t.term}</dt><dd>{t.def}</dd></>` e o React avisa sobre keys faltando. Como você adiciona a key?",
+    "options": [
+      "Colocar key={t.id} no <dt>, o primeiro filho dentro do fragment",
+      "Usar o <Fragment key={t.id}> explícito em vez da sintaxe curta <>",
+      "Colocar key={t.id} no <dd>, já que o React lê o último filho",
+      "Passar t.id como segundo argumento do map: terms.map(render, t.id)"
+    ],
+    "explanation": "A key precisa estar no elemento mais externo retornado pelo map, que aqui é o fragment. A sintaxe curta <></> não aceita props, então use o <Fragment key={t.id}> explícito. Keys em filhos internos não identificam o item da lista, e o segundo argumento do map é o valor de this, não uma key."
+  },
+  {
+    "id": "react-pure-component-strictmode",
+    "title": "Render impuro com StrictMode",
+    "question": "Em desenvolvimento com <StrictMode>, três xícaras mostram os números de convidado 2, 4, 6 em vez de 1, 2, 3. Por quê?\n\nlet guest = 0;\nfunction Cup() {\n  guest++;\n  return <h2>Tea for guest #{guest}</h2>;\n}",
+    "options": [
+      "O StrictMode monta cada Cup duas vezes no DOM e esconde as cópias duplicadas",
+      "Variáveis de nível de módulo são resetadas pelo React entre as duas fases de commit",
+      "Cup altera uma variável externa no render, e o StrictMode renderiza duas vezes",
+      "O JSX avalia {guest} uma vez durante o render e de novo durante o commit"
+    ],
+    "explanation": "Componentes precisam ser puros: mesmas entradas, mesma saída, sem alterar variáveis preexistentes durante o render. Em desenvolvimento, o StrictMode chama as funções de componente duas vezes para expor impurezas, então cada Cup incrementa guest duas vezes. Passe o número como prop; o build de produção mostraria 1, 2, 3, mas o bug continuaria latente."
+  },
+  {
+    "id": "react-props-readonly-lift-state",
+    "title": "Alterando um valor recebido como prop",
+    "question": "Um componente filho precisa alterar um valor que recebe como prop. Qual é o jeito React de fazer isso?",
+    "options": [
+      "Atribuir o novo valor a props.value para o React renderizar o filho de novo",
+      "Elevar o state para o pai e passar um callback setter para baixo",
+      "Mutar o objeto de props e então chamar forceUpdate no filho",
+      "Usar Object.assign(props, changes) para o pai ver a atualização"
+    ],
+    "explanation": "Props são snapshots somente leitura que pertencem ao pai; mutá-las não atualiza o pai nem dispara um render de forma confiável. O pai deve guardar o state e passar tanto o valor quanto uma função para alterá-lo, assim o filho pede a mudança e o pai faz re-render com as novas props."
+  },
+  {
+    "id": "react-events-handler-called-in-render",
+    "title": "Chamando um handler em vez de passá-lo",
+    "question": "Este componente quebra com \"Too many re-renders\". Por quê?\n\n<button onClick={setOpen(true)}>Open</button>",
+    "options": [
+      "onClick espera o nome do handler como string, não uma expressão",
+      "setOpen(true) roda a cada render em vez de rodar no clique",
+      "State boolean não pode ser atualizado direto de um elemento button",
+      "O button precisa de type=\"button\" para não fazer re-render em loop"
+    ],
+    "explanation": "A expressão dentro das chaves é avaliada a cada render, então setOpen(true) é chamado durante o render, o que agenda outro render, e assim por diante. onClick precisa receber uma função: `onClick={() => setOpen(true)}`. Props de evento do JSX recebem funções, não strings."
+  },
+  {
+    "id": "react-state-mirroring-props",
+    "title": "Espelhando props no state",
+    "question": "`function Badge({ color }) { const [c, setC] = useState(color); return <span style={{ color: c }} />; }` continua mostrando a primeira cor depois que o pai passa uma nova. Por quê?",
+    "options": [
+      "Props ficam congeladas após a montagem, a menos que o pai chame forceUpdate",
+      "O React guarda objetos de style em cache, então mudanças de cor são ignoradas",
+      "Badge precisa ser envolvido em memo antes de poder receber props novas",
+      "useState só lê seu argumento no primeiro render de Badge"
+    ],
+    "explanation": "O valor inicial passado ao useState só é lido no primeiro render; renders seguintes mantêm o state guardado, então c nunca acompanha a prop color. Use a prop diretamente (ela já é reativa) ou, se realmente quiser um valor inicial, chame-a de initialColor para deixar isso explícito. Badge recebe as novas props; só as ignora."
+  },
+  {
+    "id": "react-hooks-uselayouteffect-flicker",
+    "title": "Medindo o layout antes do paint",
+    "question": "Um Tooltip renderiza em uma posição padrão, mede sua altura em useEffect e depois atualiza o state para se mover acima do alvo. Os usuários o veem por um instante no lugar errado. O que corrige o flicker?",
+    "options": [
+      "Envolver o setState em startTransition para as duas posições serem commitadas juntas",
+      "Medir em useLayoutEffect, que roda antes de o navegador pintar a tela",
+      "Mover a medição para useMemo para que ela rode durante o render",
+      "Chamar flushSync dentro do useEffect para pular o paint intermediário"
+    ],
+    "explanation": "useEffect geralmente roda depois que o navegador pintou, então a primeira posição fica visível por um frame. useLayoutEffect roda depois das mutações do DOM, mas antes do paint, e atualizações de state dentro dele são processadas de forma síncrona, então o usuário só vê a posição final. Ele bloqueia o paint, então reserve-o para medições como esta. O DOM ainda não existe durante o render."
+  },
+  {
+    "id": "react-query-enabled-dependent",
+    "title": "Queries dependentes com enabled",
+    "question": "Com TanStack Query, uma query de projetos precisa de `user.id`, que vem de outra query e começa undefined. Como evitar que ela rode cedo demais?",
+    "options": [
+      "Passar `enabled: !!user?.id` para a query esperar o id",
+      "Chamar useQuery dentro de um bloco if (user) no componente",
+      "Definir `staleTime: Infinity` até o id ficar disponível",
+      "Definir `retry: false` para a primeira requisição com falha ser ignorada"
+    ],
+    "explanation": "A opção enabled mantém uma query ociosa até ser true, que é o padrão documentado para queries dependentes. Chamar hooks condicionalmente quebra as Rules of Hooks, staleTime controla o frescor dos dados e não se a query roda, e desabilitar retries ainda dispararia a requisição inválida."
+  },
+  {
+    "id": "react-query-gctime-vs-staletime",
+    "title": "Dados em cache, mas stale",
+    "question": "Com os padrões do TanStack Query, um usuário sai da página Todos e volta 2 minutos depois. Os todos aparecem na hora, e então uma requisição de rede dispara. Por quê?",
+    "options": [
+      "O cache HTTP do navegador serviu o primeiro render, e o Query o revalidou",
+      "staleTime tem padrão de 5 minutos, mas remontar sempre força um refetch",
+      "Os dados ficam em cache por 5 min (gcTime), mas já estão stale (staleTime 0)",
+      "gcTime mantém os dados frescos por 5 minutos, mas refetchOnMount ignora isso"
+    ],
+    "explanation": "Dados de queries inativas ficam no cache por gcTime (5 minutos por padrão), então o componente remontado os renderiza imediatamente. staleTime tem padrão 0, então esses dados já estão stale, e refetchOnMount dispara um refetch em segundo plano para queries stale. Aumente o staleTime se os dados puderem ser considerados frescos por mais tempo."
+  },
+  {
+    "id": "react-usecallback-stale-empty-deps",
+    "title": "useCallback com dependências faltando",
+    "question": "Clicar em Save sempre envia o rascunho vazio inicial. Por quê?\n\nconst [draft, setDraft] = useState(\"\");\nconst handleSave = useCallback(() => save(draft), []);",
+    "options": [
+      "Captura o draft do primeiro render; adicione draft às deps",
+      "useCallback chama save imediatamente durante o render, antes de qualquer digitação",
+      "useState reseta draft sempre que um callback memoizado é invocado",
+      "save precisa ser envolvido em useMemo antes de ser passado ao useCallback"
+    ],
+    "explanation": "useCallback retorna a mesma função até uma dependência mudar. Com um array vazio, a função em cache é a do primeiro render, que capturou draft = \"\". Listar draft como dependência gera uma função nova sempre que o rascunho muda; a regra de lint exhaustive-deps detecta isso."
+  },
+  {
+    "id": "react-usememo-not-semantic-guarantee",
+    "title": "useMemo não é para side effects",
+    "question": "Um componente cria um socket com `const socket = useMemo(() => new WebSocket(url), [url]);`. Por que isso é uma má ideia?",
+    "options": [
+      "useMemo só guarda valores primitivos em cache, não objetos como sockets",
+      "useMemo roda depois do paint, então o socket conectaria tarde demais",
+      "useMemo é só uma dica de performance, e o React pode descartar o cache",
+      "Valores memoizados são congelados, então o socket não conseguiria enviar mensagens"
+    ],
+    "explanation": "O React trata o useMemo apenas como otimização e pode descartar valores em cache, recriando o socket sem nunca fechar o antigo. useMemo também não oferece cleanup. Abrir conexões é um side effect, então pertence a um useEffect com um cleanup que fecha o socket. useMemo pode guardar qualquer valor e roda durante o render."
+  },
+  {
+    "id": "react-context-default-without-provider",
+    "title": "Context sem provider",
+    "question": "`const ThemeContext = createContext(\"light\");` Um componente chama `useContext(ThemeContext)` sem nenhum provider acima dele. O que ele recebe?",
+    "options": [
+      "undefined",
+      "\"light\"",
+      "null",
+      "Lança um erro de provider ausente"
+    ],
+    "explanation": "Quando não existe um provider correspondente acima do componente, useContext retorna o valor default passado para createContext. O default nunca muda. O React não lança erro por falta de provider, e é por isso que alguns times usam null como default e lançam um erro customizado por conta própria."
+  },
+  {
+    "id": "react-ref-null-during-render",
+    "title": "Lendo uma ref de DOM durante o render",
+    "question": "Isto lança erro no primeiro render. Por quê?\n\nfunction Search() {\n  const inputRef = useRef(null);\n  inputRef.current.focus();\n  return <input ref={inputRef} />;\n}",
+    "options": [
+      "useRef precisa receber o tipo do elemento, como em useRef(HTMLInputElement)",
+      "O React só define ref.current após o commit, então ainda é null no render",
+      "focus() fica indisponível até o componente ser envolvido em forwardRef",
+      "Refs só podem ser anexadas a class components, não a elementos <input>"
+    ],
+    "explanation": "O React atribui nós DOM às refs durante a fase de commit, depois do render, então no primeiro render inputRef.current ainda é null. Acesse refs de DOM em um effect ou em um event handler, por exemplo `useEffect(() => inputRef.current.focus(), [])`. Elementos nativos aceitam refs diretamente."
+  },
+  {
+    "id": "react-context-memo-does-not-block",
+    "title": "memo e atualizações de context",
+    "question": "`const Sidebar = memo(SidebarImpl)` não recebe props, mas faz re-render sempre que o tema muda. SidebarImpl chama `useContext(ThemeContext)`. Por quê?",
+    "options": [
+      "memo é ignorado em componentes que não recebem nenhuma prop",
+      "Providers de context remontam todo descendente memoizado a cada mudança",
+      "memo só compara props; mudanças de context ainda renderizam os consumidores",
+      "useContext limpa o cache do memo sempre que algum provider da árvore renderiza"
+    ],
+    "explanation": "memo permite ao React pular um render quando as props não mudaram, mas um componente que lê um context sempre faz re-render quando o valor desse context muda. Esse é o comportamento esperado, não uma brecha no memo. Para limitar o trabalho, divida os contexts ou passe valores mais específicos para que menos componentes se inscrevam."
+  },
+  {
+    "id": "react-custom-hook-use-prefix",
+    "title": "Nomeando funções que chamam hooks",
+    "question": "Um helper `function getWindowWidth()` chama useState e useEffect, e o linter reporta um erro de Rules of Hooks. Qual é a correção?",
+    "options": [
+      "Mover a chamada de useState para dentro de um useEffect no helper",
+      "Renomeá-lo para useWindowWidth para ser tratado como Hook",
+      "Exportar o helper como default export para o linter ignorá-lo",
+      "Envolver o corpo do helper em useCallback para torná-lo um Hook"
+    ],
+    "explanation": "Hooks só podem ser chamados de componentes ou de outros Hooks, e o prefixo `use` é como o React e seu linter reconhecem um custom Hook. Renomeá-lo faz as checagens da regra se aplicarem corretamente a quem o chama. Chamar Hooks dentro de effects ou callbacks é, por si só, uma violação."
+  },
+  {
+    "id": "react-custom-hook-reactive-args",
+    "title": "Custom hooks recebem os valores mais recentes",
+    "question": "`useChatRoom({ roomId })` conecta dentro de um useEffect com `[roomId]` como dependências. Quando o pai muda roomId, o que acontece?",
+    "options": [
+      "O hook roda de novo com o novo roomId e o effect reconecta",
+      "Nada; custom hooks só leem seus argumentos na primeira montagem",
+      "O componente desmonta e remonta para que o hook possa resetar",
+      "O React lança erro, já que argumentos de hooks precisam ser constantes"
+    ],
+    "explanation": "Um custom hook é só parte do render do componente, então roda a cada render com os argumentos mais recentes. Como roomId é uma dependência do effect, o React desconecta a sala antiga no cleanup e conecta na nova. Argumentos de custom hooks são valores reativos como quaisquer outras props ou state."
+  },
+  {
+    "id": "react-custom-hook-useeffectevent",
+    "title": "Event handlers passados para custom hooks",
+    "question": "`useChatRoom({ roomId, onMessage })` lista onMessage nas deps do seu effect. Os pais passam arrows inline, então o chat reconecta a cada render do pai. No React 19.2+, qual é a correção mais limpa dentro do hook?",
+    "options": [
+      "Remover onMessage das deps e desativar ali a regra de lint exhaustive-deps",
+      "Envolver onMessage com useEffectEvent e manter as deps como [roomId]",
+      "Guardar onMessage em um useState para estabilizar sua identidade",
+      "Exigir que todo chamador envolva onMessage em useMemo com deps vazias"
+    ],
+    "explanation": "useEffectEvent cria um Effect Event que sempre vê o onMessage mais recente sem ser uma dependência, então o effect só ressincroniza quando roomId muda. Suprimir a regra de lint congela o primeiro callback (uma closure desatualizada), o state também o congelaria, e forçar memoização com deps vazias nos chamadores também os deixa desatualizados."
+  },
+  {
+    "id": "react-render-usedeferredvalue-needs-memo",
+    "title": "useDeferredValue exige memo",
+    "question": "Para manter a digitação responsiva, uma página faz `const deferred = useDeferredValue(text);` e renderiza `<SlowList text={deferred} />`. SlowList é um function component simples e a digitação continua lenta. O que está faltando?",
+    "options": [
+      "SlowList precisa de memo para o re-render urgente pulá-lo com as props antigas",
+      "useDeferredValue precisa de um timeout, como 300 ms, como segundo argumento",
+      "O input de texto precisa ser não controlado para o valor adiado ter efeito",
+      "SlowList precisa ser carregado com React.lazy dentro de um boundary de Suspense"
+    ],
+    "explanation": "A cada tecla, o React primeiro faz re-render com o valor adiado antigo e depois renderiza o novo valor em segundo plano. Sem memo, SlowList faz re-render durante esse render urgente de qualquer forma, porque o pai fez, então o trabalho caro não é evitado. Envolvê-lo em memo permite ao React pular o render quando as props não mudaram. useDeferredValue não tem um atraso fixo."
+  },
+  {
+    "id": "react-router-link-vs-anchor",
+    "title": "Links de navegação client-side",
+    "question": "Em um app com React Router, navegar com `<a href=\"/settings\">` apaga o state em memória, como um carrinho aberto. O que deve ser usado no lugar?",
+    "options": [
+      "<a href=\"#/settings\">, porque links com hash mantêm a store do app viva",
+      "<Navigate to=\"/settings\">, que é o elemento de link clicável do router",
+      "<Link to=\"/settings\">, que muda a URL sem recarregar a página inteira",
+      "<Route path=\"/settings\">, para que a própria rota trate o clique"
+    ],
+    "explanation": "Uma âncora simples faz o navegador carregar um novo documento, descartando todo o state JavaScript. Link renderiza uma âncora, mas intercepta o clique e atualiza a URL pela History API, então o app continua montado. Navigate redireciona assim que renderiza, e uma URL com hash não casa com rotas em um browser router."
+  },
+  {
+    "id": "react-forms-useactionstate-args",
+    "title": "Argumentos da action no useActionState",
+    "question": "Com `const [state, formAction, isPending] = useActionState(updateName, null);` do React 19 passado para um form, quais argumentos `updateName` recebe no envio?",
+    "options": [
+      "(formData) apenas",
+      "(event, formData)",
+      "(formData, previousState)",
+      "(previousState, formData)"
+    ],
+    "explanation": "Uma action envolvida por useActionState recebe primeiro o state anterior (ou inicial) e depois os dados do formulário, e o que ela retorna vira o novo state. Isso difere de uma form action simples, que recebe só formData. Form actions nunca recebem o evento de submit."
+  },
+  {
+    "id": "react-forms-action-auto-reset",
+    "title": "Form actions resetam campos não controlados",
+    "question": "Um `<form action={createPost}>` do React 19 usa inputs não controlados. Depois que createPost tem sucesso, os campos ficam vazios, embora nenhum código os limpe. Por quê?",
+    "options": [
+      "O navegador recarrega a página porque o form faz post para o servidor",
+      "O valor retornado por createPost substitui as props defaultValue dos inputs",
+      "O React reseta campos não controlados após uma form action bem-sucedida",
+      "useFormStatus limpa todos os inputs automaticamente quando pending vira false"
+    ],
+    "explanation": "Quando uma função é passada como action de um form, o React faz o envio sem navegar e, depois que a action tem sucesso, reseta os campos não controlados do formulário. Para manter os valores, use inputs controlados ou retorne state do useActionState e renderize-o como defaultValue. requestFormReset existe para resetar manualmente em outros casos."
+  },
+  {
+    "id": "react-error-boundary-getderivedstatefromerror",
+    "title": "Exibindo a UI de fallback",
+    "question": "Em um error boundary de classe, qual método deve trocar a UI para um fallback depois que um filho lança erro durante o render?",
+    "options": [
+      "componentWillUnmount()",
+      "shouldComponentUpdate(nextProps)",
+      "static getDerivedStateFromError(error)",
+      "getSnapshotBeforeUpdate(prevProps)"
+    ],
+    "explanation": "getDerivedStateFromError roda durante o render depois que um descendente lança erro e retorna um state como { hasError: true }, que o render usa para mostrar o fallback. componentDidCatch é seu complemento para side effects como logging. Os outros métodos de ciclo de vida não têm relação com tratamento de erros."
+  },
+  {
+    "id": "react-error-boundary-granularity",
+    "title": "Posicionando error boundaries",
+    "question": "Um único error boundary envolve o app inteiro. Uma falha no widget opcional Recommendations substitui a página toda por \"Something went wrong\". Qual é o design melhor?",
+    "options": [
+      "Adicionar boundaries separados em volta de seções independentes, como widgets",
+      "Envolver o JSX de Recommendations em try/catch para capturar erros dos filhos",
+      "Tratar em window.onerror e chamar root.render para restaurar a página",
+      "Mover o boundary para o index.html para capturar erros antes do React"
+    ],
+    "explanation": "Um error boundary substitui tudo abaixo dele pelo seu fallback, então o posicionamento dos boundaries decide quanta UI se perde. Envolver áreas independentes (widgets, painéis, rotas) permite que uma falhe enquanto o resto continua funcionando. Um try/catch em volta do JSX não captura erros lançados enquanto o React renderiza os filhos, e boundaries só existem como componentes React."
+  },
+  {
+    "id": "react-error-boundary-reset-on-navigation",
+    "title": "Resetando um boundary após navegação",
+    "question": "Um error boundary customizado envolve o outlet do router. Depois de uma falha em /reports, ele mostra o fallback, e a navegação client-side para /home continua mostrando o fallback. Por quê, e qual é uma correção comum?",
+    "options": [
+      "Boundaries só capturam uma vez por sessão, então a página precisa ser recarregada",
+      "O React guarda o fallback em cache; chame root.unmount() a cada navegação",
+      "Erros de navegação ignoram boundaries, então envolva cada Link em seu próprio boundary",
+      "O state de erro persiste; remonte-o com key={location.pathname}"
+    ],
+    "explanation": "A instância do boundary continua montada durante a navegação client-side, e seu state hasError continua true, então ele segue renderizando o fallback. Mudar sua key na troca de rota o remonta com state novo (bibliotecas oferecem resetKeys para o mesmo fim). Boundaries podem capturar qualquer número de erros depois de resetados."
+  },
+  {
+    "id": "react-error-root-oncaughterror",
+    "title": "Report central de erros no React 19",
+    "question": "No React 19, você quer que todo erro capturado por qualquer error boundary, mais todo erro de render não capturado, seja reportado ao monitoramento a partir de um só lugar. Onde você se conecta?",
+    "options": [
+      "window.addEventListener(\"error\") sozinho, já que boundaries relançam os erros",
+      "Um componentDidCatch global registrado via React.setErrorHandler()",
+      "Uma prop onError no <StrictMode> bem no topo da árvore de componentes",
+      "Nas opções do root: createRoot(container, { onCaughtError, onUncaughtError })"
+    ],
+    "explanation": "O React 19 adicionou opções de root: onCaughtError dispara para erros capturados por um error boundary, onUncaughtError para erros que nenhum boundary capturou, e onRecoverableError para erros dos quais o React se recuperou automaticamente. Erros capturados não são relançados para window, então um listener global de erros não os vê. O React não tem uma API setErrorHandler, e o StrictMode não aceita uma prop onError."
+  },
+  {
+    "id": "react-testing-user-event-await",
+    "title": "Aguardando chamadas do user-event v14",
+    "question": "Com @testing-library/user-event v14, `userEvent.click(button); expect(onSave).toHaveBeenCalled();` falha de forma intermitente. Qual é o padrão recomendado?",
+    "options": [
+      "Trocar por fireEvent.click dentro de act() e habilitar fake timers",
+      "const user = userEvent.setup(); e então await user.click(button)",
+      "Chamar userEvent.click duas vezes, já que o primeiro clique só foca",
+      "Chamar jest.useRealTimers() antes do clique para os eventos dispararem"
+    ],
+    "explanation": "No user-event v14, toda API de interação retorna uma promise, porque simula a sequência completa de eventos do navegador. Não aguardá-la deixa a asserção rodar antes de o clique terminar. A documentação recomenda criar uma sessão com userEvent.setup() antes do render e aguardar cada interação."
+  },
+  {
+    "id": "react-testing-icon-button-accessible-name",
+    "title": "Buscando um botão só com ícone",
+    "question": "`screen.getByRole(\"button\", { name: /delete/i })` não encontra um botão só com ícone que renderiza apenas um `<svg>`. Qual é a melhor correção?",
+    "options": [
+      "Trocar por getByTestId, porque queries por role ignoram conteúdo SVG",
+      "Dar ao botão um nome acessível, ex.: aria-label=\"Delete\"",
+      "Buscar com getByRole(\"img\"), já que o svg define o role",
+      "Adicionar role=\"button\" ao próprio svg para a query por role casar"
+    ],
+    "explanation": "A opção name casa com o nome acessível, e um botão só com ícone não tem nenhum, o que também é um bug real de acessibilidade para usuários de leitores de tela. Adicionar aria-label (ou texto visualmente oculto) corrige tanto o app quanto o teste. Test ids contornam o problema em vez de corrigi-lo."
+  },
+  {
+    "id": "react-testing-waitfor-side-effects",
+    "title": "Side effects dentro de waitFor",
+    "question": "Um teste faz `await waitFor(() => { fireEvent.click(retry); expect(screen.getByText(\"Done\")).toBeInTheDocument(); });` e o handler de retry às vezes roda muitas vezes. Por quê?",
+    "options": [
+      "fireEvent é assíncrono, então waitFor enfileira um clique por animation frame",
+      "getByText dispara um re-render que envia o evento de clique de novo",
+      "Quando o timeout expira, waitFor repete todos os eventos disparados nele",
+      "waitFor reexecuta o callback até passar e clica a cada nova tentativa"
+    ],
+    "explanation": "waitFor chama seu callback repetidamente, em um intervalo e a cada mutação do DOM, até ele parar de lançar erro ou estourar o timeout. Qualquer side effect dentro dele, como um clique, se repete a cada tentativa. Faça a interação uma vez antes do waitFor e deixe só asserções dentro do callback."
+  }
+]

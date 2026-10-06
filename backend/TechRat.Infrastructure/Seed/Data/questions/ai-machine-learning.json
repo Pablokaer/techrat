@@ -24,7 +24,7 @@
     "title": "Why LLMs generate token by token",
     "question": "Why does a decoder-only LLM produce its output one token at a time, even on a powerful GPU?",
     "options": [
-      "Positional encodings can only be computed after the previous token has been streamed",
+      "Positional encodings for a token can only be computed after the previous token has been streamed",
       "Each new token is sampled from a distribution conditioned on all tokens generated before it",
       "Every token must be checked against the training corpus before it can be emitted",
       "GPUs can only execute one token per forward pass, even when processing the prompt"
@@ -77,7 +77,7 @@
     "options": [
       "Raise the temperature so the model can explore alternative field values",
       "Raise max output tokens so the model has more room to reconsider values",
-      "Set top-p to 1.0 and increase temperature together to stabilise sampling",
+      "Set top-p to 1.0 and raise the temperature at the same time so that sampling stabilises",
       "Lower the temperature so sampling concentrates on the highest-probability tokens"
     ],
     "correctIndex": 3,
@@ -92,7 +92,7 @@
     "title": "Stateless chat and growing context",
     "question": "In a long support chat, per-request cost keeps rising and the bot eventually ignores instructions given in the first turns. What best explains both symptoms?",
     "options": [
-      "The API is stateless, so each turn resends the whole history, which grows toward the context limit",
+      "The API is stateless, so every turn resends the growing history toward the context limit",
       "The model fine-tunes itself on each turn, gradually overwriting the original instructions",
       "Output tokens from earlier turns are billed again at a higher rate on every new turn",
       "The provider silently switches to a smaller model once a conversation passes ten turns"
@@ -111,7 +111,7 @@
     "options": [
       "Sending the same prompt several times and keeping whichever answer appears most often",
       "Fine-tuning the model on a small labelled dataset before sending the prompt",
-      "Including a few example inputs with their ideal outputs in the prompt to demonstrate the task",
+      "Putting a few example inputs and their ideal outputs in the prompt to show the task",
       "Splitting a long prompt into several short requests to stay within the context window"
     ],
     "correctIndex": 2,
@@ -128,8 +128,8 @@
     "options": [
       "Add 'ALWAYS RETURN VALID JSON' in capital letters at the end of the prompt",
       "Increase the temperature so the model tries more output formats on each attempt",
-      "Retry the request in a loop until json.loads succeeds, without any upper limit",
-      "Use the API's structured-output mode with a JSON Schema so decoding is constrained to it"
+      "Retry the request in a loop until json.loads succeeds, with no upper limit on attempts",
+      "Use the API's structured-output mode so decoding is constrained to a JSON Schema"
     ],
     "correctIndex": 3,
     "explanation": "Structured outputs constrain generation to a supplied JSON Schema, guaranteeing syntactically valid JSON with the required keys and types. Prompt wording only lowers the failure rate, unbounded retries add cost and latency, and higher temperature makes format errors more likely.",
@@ -144,9 +144,9 @@
     "question": "You enable schema-constrained structured outputs for an order-extraction feature. Which check does your application still need to perform itself?",
     "options": [
       "That enum fields contain only one of the values listed in the schema",
-      "That all fields marked as required in the schema are present in the object",
+      "That all fields marked as required in the schema are actually present in the output object",
       "That every opening brace in the JSON has a matching closing brace",
-      "Business validity of values, such as a quantity that is a valid integer but clearly wrong"
+      "Business validity of values, e.g. a quantity that type-checks but is clearly wrong"
     ],
     "correctIndex": 3,
     "explanation": "Constrained decoding enforces the schema's syntax: well-formed JSON, required keys, types and enums. It cannot guarantee that the content is true or sensible; a hallucinated or mis-read quantity still type-checks. Semantic and business-rule validation (and handling refusals or truncated outputs) remains the application's job.",
@@ -162,8 +162,8 @@
     "options": [
       "Ask for the final number first, followed by an optional justification",
       "Lower max output tokens so the model is forced to answer more concisely",
-      "Move the whole question into the system prompt and leave the user turn empty",
-      "Let the model reason step by step (or use extended thinking) before giving the final answer"
+      "Move the whole question into the system prompt and leave the user turn completely empty",
+      "Let the model reason step by step, or use extended thinking, before the final answer"
     ],
     "correctIndex": 3,
     "explanation": "Giving the model room to work through intermediate steps (chain-of-thought or a dedicated thinking mode) measurably improves multi-step reasoning, because each step conditions on earlier ones. Forcing a terse answer removes that room, and an answer-first format commits to a number before any reasoning happens.",
@@ -194,7 +194,7 @@
     "title": "Who runs a custom tool",
     "question": "You define a custom get_weather function as a tool for an LLM. When the model decides to use it, who actually executes the function?",
     "options": [
-      "The model provider, which downloads and runs your function code automatically",
+      "The model provider, which downloads and runs your function code on its own servers",
       "The model itself, by simulating the function inside its context window",
       "The tokenizer, which converts the tool name into executable instructions",
       "Your application, after the model returns a tool call with the chosen arguments"
@@ -212,7 +212,7 @@
     "question": "Your LLM response ends with a tool call request. What should your agent loop do next?",
     "options": [
       "Show the tool call JSON to the user, since it is the model's final answer",
-      "Start a new conversation that contains only the tool result and no history",
+      "Start a new conversation that contains only the tool result and none of the history",
       "Run the tool, append its result linked to the call ID, and call the model again",
       "Run the tool and return its raw output to the user without involving the model"
     ],
@@ -229,9 +229,9 @@
     "question": "A tool your model called times out. What is the recommended way to handle this in the loop?",
     "options": [
       "Fabricate a plausible result so the user experience is not interrupted",
-      "Silently drop the tool call and continue as if it had never been requested",
+      "Silently drop the tool call and continue the loop as if it had never been requested",
       "Raise an exception that terminates the entire conversation immediately",
-      "Return a tool result flagged as an error with a clear message so the model can adapt"
+      "Return a tool result flagged as an error, with a clear message the model can act on"
     ],
     "correctIndex": 3,
     "explanation": "Sending back an error tool result (for example with an is_error flag and an informative message) lets the model retry, choose another tool or explain the problem to the user. Dropping the result leaves the call unanswered, crashing loses the session, and fabricated data creates silent correctness bugs.",
@@ -246,8 +246,8 @@
     "question": "An agent sometimes calls the same search tool 40 times with near-identical queries, burning budget without progress. Which set of safeguards addresses this best?",
     "options": [
       "Delete the search tool's description so the model is less inclined to use it",
-      "Stop sending tool results back so the model cannot get stuck reacting to them",
-      "Cap iterations and spend, detect repeated calls, and return informative 'no results' messages",
+      "Stop sending tool results back so the model cannot get stuck reacting to the same ones",
+      "Cap iterations and spend, detect repeated calls, and return clear 'no results' messages",
       "Raise the temperature so each repeated query comes out phrased differently"
     ],
     "correctIndex": 2,
@@ -264,8 +264,8 @@
     "options": [
       "Rename both tools to random identifiers so the model cannot rely on their names",
       "Remove search_customers and ask users to rephrase order questions instead",
-      "Write detailed tool descriptions stating what each tool does, when to use it and its parameters",
-      "Merge every tool into one generic tool with a free-text 'action' parameter"
+      "Write detailed descriptions of what each tool does, when to use it and its parameters",
+      "Merge every tool into one generic tool that takes a free-text 'action' parameter instead"
     ],
     "correctIndex": 2,
     "explanation": "Tool selection is driven largely by the names, descriptions and parameter docs you provide. Detailed descriptions (purpose, when to use, when not to, argument meanings) are the most effective lever. Random names remove signal, a catch-all tool makes routing harder, and removing a needed tool just breaks other flows.",
@@ -296,8 +296,8 @@
     "title": "Dot product on normalized vectors",
     "question": "Your embedding provider returns vectors normalized to length 1. Why can your vector database use dot product instead of cosine similarity?",
     "options": [
-      "For unit-length vectors the dot product equals cosine similarity, and it is cheaper to compute",
-      "Dot product ignores direction, which makes it more robust for normalized vectors",
+      "For unit-length vectors dot product equals cosine similarity and is cheaper to compute",
+      "Dot product ignores the direction of vectors, which makes it more robust for normalized ones",
       "Dot product converts the vectors to sparse form, which reduces the index size",
       "Cosine similarity is undefined for unit vectors, so dot product is required"
     ],
@@ -315,7 +315,7 @@
     "options": [
       "Vectors from different embedding models live in different spaces and are not comparable",
       "The new model has a bigger context window, so it ignores short user queries",
-      "The new model returns longer vectors, which always rank documents in reverse order",
+      "The new model returns longer vectors, which always rank the stored documents in reverse order",
       "Vector indexes cache query results, so they must be cleared after any model update"
     ],
     "correctIndex": 0,
@@ -330,7 +330,7 @@
     "title": "ANN index recall trade-off",
     "question": "Moving from exact k-NN search to an HNSW index cut latency tenfold, but recall@10 against exact search dropped from 1.0 to 0.93. What is the best interpretation and lever?",
     "options": [
-      "Approximate search trades recall for speed; raise search-time breadth (e.g. ef) to recover recall",
+      "Approximate search trades recall for speed; raise search-time ef to recover recall",
       "HNSW cannot handle cosine distance, so you must switch the metric to Euclidean",
       "HNSW only indexes the first ten vectors inserted, so you must rebuild it in batches",
       "The index has silently quantized the model's weights, so the model must be retrained"
@@ -383,8 +383,8 @@
     "options": [
       "Lower the number of results to the top 3 so the good passage is not diluted",
       "Re-embed the corpus using a smaller embedding model with fewer dimensions",
-      "Retrieve a larger candidate set and rerank it with a cross-encoder before taking the top 5",
-      "Send all 50 passages and raise the temperature so the model weighs them better"
+      "Retrieve a larger candidate set, rerank it with a cross-encoder, then take the top 5",
+      "Send all 50 passages and raise the temperature so the model weighs them against each other"
     ],
     "correctIndex": 2,
     "explanation": "Bi-encoder retrieval is fast but coarse. A cross-encoder reranker scores each query/passage pair jointly, which is far more accurate, so the usual pattern is cheap broad retrieval followed by reranking a few dozen candidates. Sending everything increases cost and noise, and smaller embeddings or fewer results do not fix ranking.",
@@ -418,7 +418,7 @@
       "Switch to character-level chunking so numbers are never separated from their sentences",
       "Drop the BM25 index because keyword matches on numbers cause the mix-ups",
       "Store only document titles in the index and let the LLM read full documents on every query",
-      "Prepend chunk-specific context such as document title, entity and period before embedding and indexing"
+      "Prepend chunk-specific context such as title, entity and period before indexing"
     ],
     "correctIndex": 3,
     "explanation": "Chunks inherit meaning from the surrounding document; once isolated they become ambiguous for both embeddings and keyword search. Enriching each chunk with a short explanatory context (contextual retrieval) restores that information before indexing. Full-document reading does not scale, character chunking worsens fragmentation, and removing BM25 lowers recall.",
@@ -435,7 +435,7 @@
       "A proprietary model format for compressing weights into a smaller context window",
       "An open protocol standardizing how AI applications connect to tools and data via servers",
       "A tokenization standard that all language model providers must implement",
-      "A fine-tuning method that adds external knowledge directly into model weights"
+      "A fine-tuning method that adds external knowledge from servers directly into model weights"
     ],
     "correctIndex": 1,
     "explanation": "MCP is an open protocol in which AI applications (hosts with MCP clients) connect to MCP servers that expose tools, resources and prompts. It standardizes integrations so one server works with many clients. It is not a model format, tokenizer or training technique.",
@@ -483,10 +483,10 @@
     "title": "Long-running agent memory",
     "question": "A coding agent working for hours keeps hitting the context window limit as tool results accumulate. Which memory strategy is most sound?",
     "options": [
-      "Clear or summarize stale tool results and persist key facts in external memory retrieved on demand",
+      "Compact stale tool results and persist key facts in an external memory read on demand",
       "Restart the agent with an empty history after every tool call to keep context small",
       "Remove the system prompt after the first turn to free tokens for tool results",
-      "Keep every message and raise max output tokens so more history fits in the window"
+      "Keep every message and raise max output tokens so that more of the history fits in the window"
     ],
     "correctIndex": 0,
     "explanation": "Effective long-horizon agents manage context: they drop or compact stale tool outputs, summarize progress, and store durable facts (notes, files, a memory store) to reload when needed. max_tokens limits output, not input. Removing the system prompt loses instructions, and wiping history loses all progress.",
@@ -502,8 +502,8 @@
     "options": [
       "Use a larger model for the agent so it remembers to run validation every time",
       "Give the agent more tools so it has more options when deciding what to do next",
-      "Implement a deterministic workflow with LLM calls at fixed steps; keep agents for open-ended tasks",
-      "Run three independent agents in parallel and keep the answer two of them agree on"
+      "Use a deterministic workflow with LLM calls at fixed steps; save agents for open-ended work",
+      "Run three independent agents in parallel and keep whichever answer at least two of them agree on"
     ],
     "correctIndex": 2,
     "explanation": "When the steps are known in advance, a predefined workflow (prompt chaining with code-enforced steps) is cheaper, faster and more reliable than letting a model plan. Agents are worth their cost and unpredictability for open-ended problems where the path cannot be hard-coded. More tools, bigger models or voting do not guarantee a required step runs.",
@@ -535,9 +535,9 @@
     "question": "You tweak a prompt to fix one customer complaint. How do you gain confidence it did not break other behaviour?",
     "options": [
       "Ask the model whether the new prompt is better than the old one",
-      "Run a versioned eval set of representative and edge cases and compare scores before shipping",
+      "Run a versioned eval set of typical and edge cases and compare scores before shipping",
       "Ship to all users and wait to see whether new complaints arrive",
-      "Try the complaining customer's input a few times and ship if it now looks right"
+      "Try the complaining customer's input a few more times and ship it if the output now looks right"
     ],
     "correctIndex": 1,
     "explanation": "Prompts behave like code: changes need regression tests. A curated, versioned dataset of typical, edge and previously failing cases, scored automatically (code checks, model graders, human review), shows whether a change helps overall. Spot checks and self-assessment miss regressions, and production-only testing exposes users to them.",
@@ -553,7 +553,7 @@
     "options": [
       "Increase the judge's temperature so its preferences average out across runs",
       "Judge each pair in both orders and count only consistent preferences, or randomize order",
-      "Always place the newer model's answer first so improvements are easier to see",
+      "Always place the newer model's answer first so that its improvements are easier to notice",
       "Use a 1 to 100 scale instead of a pairwise choice so position cannot matter"
     ],
     "correctIndex": 1,
@@ -569,9 +569,9 @@
     "question": "An LLM judge rates your assistant's answers 4.6/5 on average, yet user satisfaction is falling. The judge is the same model that generates the answers. What should you do first?",
     "options": [
       "Switch the judge to a 1 to 10 scale to get finer-grained scores",
-      "Keep using the same model as judge since it best understands its own answers",
+      "Keep using the same model as judge, since it best understands the answers it wrote itself",
       "Raise the judge's temperature so it gives harsher scores on average",
-      "Measure judge agreement against a human-labelled sample and refine the rubric or judge model"
+      "Check judge agreement with a human-labelled sample, then refine the rubric or judge"
     ],
     "correctIndex": 3,
     "explanation": "A model judge is itself a classifier that must be validated: compare its labels with human ratings on a sample, check agreement, and tighten rubrics or change judges until they align. Self-evaluation is prone to self-preference bias, and changing the scale or temperature does not fix a misaligned judge.",
@@ -586,8 +586,8 @@
     "question": "After a data migration, answer accuracy of a RAG assistant fell from 86% to 71%. How do you most efficiently find which component regressed?",
     "options": [
       "Swap in a larger generator model and see whether end-to-end accuracy recovers",
-      "Evaluate retrieval (recall@k of gold passages) separately from answer faithfulness given context",
-      "Ask users to rate answers for a week and then review the lowest-rated responses",
+      "Evaluate retrieval (recall@k of gold passages) separately from answer faithfulness",
+      "Ask users to rate answers for a week and then manually review the lowest-rated responses",
       "Re-run the same end-to-end eval several times to rule out sampling noise"
     ],
     "correctIndex": 1,
@@ -654,9 +654,9 @@
     "question": "A chat UI renders model output as Markdown. A poisoned document makes the model output an image tag whose URL contains the user's earlier messages, and the browser fetches it. What is the core weakness and fix?",
     "options": [
       "Insufficient context window; keep less conversation history in each request",
-      "Weak tokenization; switch to a tokenizer that cannot represent URLs in output",
+      "Weak tokenization; switch to a tokenizer that cannot represent any URLs in its output",
       "Model overfitting; fine-tune the model to refuse to produce Markdown images",
-      "Improper output handling; sanitize output and block auto-loading of untrusted external URLs"
+      "Improper output handling; sanitize output and block loading untrusted external URLs"
     ],
     "correctIndex": 3,
     "explanation": "LLM output is untrusted input to downstream components. Rendering it without encoding or restrictions (images, links, HTML) enables data exfiltration and XSS. The fix is in the application: sanitize or encode output, apply content security policies and allow-list image domains. Tokenizers, context length or fine-tuning do not close the channel.",
@@ -671,7 +671,7 @@
     "question": "Users say a chat assistant feels slow, although full responses complete in about 6 seconds. What improves perceived latency the most with the least change?",
     "options": [
       "Send each request twice and display whichever response finishes first",
-      "Wait for the full answer and then show it all at once with a loading animation",
+      "Wait for the full answer and then show it all at once behind a smooth loading animation",
       "Stream tokens to the UI so text appears as soon as the first tokens are generated",
       "Increase max output tokens so the model never has to stop early"
     ],
@@ -706,8 +706,8 @@
     "options": [
       "Timestamps are stripped by the API, so the cache key is computed incorrectly",
       "Caching requires temperature 0, and any other value disables cache lookups",
-      "Caches only work for prompts shorter than 1,000 tokens, so the prompt is too long",
-      "The timestamp changes the prefix on every request; move dynamic content after the static part"
+      "Caches only work for prompts shorter than 1,000 tokens, so this prompt is far too long to cache",
+      "The timestamp changes the prefix each request; move dynamic content after the static part"
     ],
     "correctIndex": 3,
     "explanation": "Prompt caches match on an exact prefix. Any change early in the prompt, such as a timestamp or per-user data, invalidates everything after it. Placing stable instructions and tool definitions first and volatile content later restores hits. Long prompts are what caching is for, and sampling settings do not affect prefix caching.",
@@ -722,8 +722,8 @@
     "question": "About 80% of an assistant's queries are simple FAQ lookups and 20% need complex reasoning; everything currently goes to the largest model. How can you cut cost without hurting quality?",
     "options": [
       "Use the largest model but cap max output tokens at 20 for every query",
-      "Route simple queries to a smaller, cheaper model and escalate complex ones, verified with evals",
-      "Send every query to the smallest model and rely on users to retry when it fails",
+      "Route simple queries to a smaller model and escalate complex ones, verified with evals",
+      "Send every query to the smallest model and rely on users to retry whenever it gives a bad answer",
       "Cache the largest model's answers forever and never call a model again"
     ],
     "correctIndex": 1,
@@ -842,7 +842,7 @@
     "options": [
       "Scaling the data before splitting makes the folds unequal in size",
       "Nothing; scaling is unsupervised, so fitting it on all data can never bias results",
-      "Data leakage: fold statistics include validation rows; fit the scaler inside a Pipeline per fold",
+      "Data leakage: scaling used validation rows; fit the scaler in a Pipeline per fold",
       "StandardScaler cannot be used with cross-validation and must be replaced by MinMaxScaler"
     ],
     "correctIndex": 2,
@@ -857,9 +857,9 @@
     "title": "Shuffled CV on time series",
     "question": "A demand-forecasting model scores excellently in shuffled K-fold cross-validation but performs much worse in production. The data is daily sales over three years. What is the most likely cause?",
     "options": [
-      "Shuffled folds let the model train on the future; use forward-chaining splits like TimeSeriesSplit",
+      "Shuffled folds let the model train on the future; use forward-chaining TimeSeriesSplit",
       "K-fold uses too few folds; increasing to 20 folds will match production results",
-      "The model needs more features, since cross-validation always overstates performance",
+      "The model needs more features, since cross-validation always overstates real-world performance",
       "Daily data must be aggregated to monthly before any cross-validation can work"
     ],
     "correctIndex": 0,
@@ -876,7 +876,7 @@
     "options": [
       "Increase the validation set to 50% of images while keeping the random split",
       "Split by patient with GroupKFold so no patient appears in both training and validation",
-      "Apply data augmentation to validation images so they differ from training ones",
+      "Apply heavy data augmentation to validation images so they look different from training ones",
       "Use StratifiedKFold so each fold has the same proportion of lesion types"
     ],
     "correctIndex": 1,
@@ -892,8 +892,8 @@
     "question": "You evaluate 500 hyperparameter configurations with 5-fold CV and report the best mean CV score as the model's expected performance. Why is this a problem and what fixes it?",
     "options": [
       "Five folds are too few; with ten folds the best score would be unbiased",
-      "Selecting the max over many configs is optimistically biased; use nested CV or an untouched test set",
-      "Mean CV scores are always pessimistic, so the reported number underestimates performance",
+      "The max over many configs is optimistically biased; use nested CV or an untouched test set",
+      "Mean CV scores are always pessimistic, so the reported number underestimates true performance",
       "CV cannot compare hyperparameters at all, so each config needs its own test set"
     ],
     "correctIndex": 1,
@@ -979,7 +979,7 @@
       "The validation set is too easy, so its loss naturally rises over time",
       "The model is overfitting; consider early stopping, regularisation or more data",
       "The learning rate is too low, so the model cannot reduce validation loss",
-      "The model is underfitting; it needs many more epochs to fit the training data"
+      "The model is underfitting; it needs many more epochs to fit the training data well"
     ],
     "correctIndex": 1,
     "explanation": "A widening gap between falling training loss and rising validation loss is the classic sign of overfitting: the model memorises training-specific noise. Early stopping at the validation minimum, regularisation, data augmentation or more data help. Underfitting would show high loss on both sets.",
@@ -1044,7 +1044,7 @@
     "title": "What logistic regression predicts",
     "question": "Despite its name, what kind of task is logistic regression typically used for?",
     "options": [
-      "Regression, by predicting unbounded continuous values such as house prices",
+      "Regression, by predicting unbounded continuous values such as house prices or salaries",
       "Clustering, by grouping unlabeled points around learned centroids",
       "Classification, by modelling the probability of a class with the logistic function",
       "Dimensionality reduction, by projecting features onto fewer components"
@@ -1078,8 +1078,8 @@
     "title": "Probabilities that are not probabilities",
     "question": "Among cases where a boosted classifier predicts 0.8, only 60% are actually positive. A downstream system multiplies these probabilities by costs to make decisions. What should you do?",
     "options": [
-      "Calibrate the model on held-out data (e.g. sigmoid or isotonic) and check a reliability curve",
-      "Increase the number of trees until the predicted probabilities become calibrated",
+      "Calibrate on held-out data (e.g. sigmoid or isotonic) and check a reliability curve",
+      "Increase the number of trees until the predicted probabilities become well calibrated on their own",
       "Rescale all scores to the range 0 to 1 with MinMaxScaler before using them",
       "Replace the probabilities with hard 0 or 1 predictions at a 0.5 threshold"
     ],
@@ -1129,7 +1129,7 @@
     "title": "Non-convex clusters with noise",
     "question": "Your 2D data forms two interleaved crescent shapes plus scattered outliers. k-means splits each crescent in half and assigns outliers to clusters. Which algorithm suits this better?",
     "options": [
-      "DBSCAN, which finds density-connected regions of any shape and labels sparse points as noise",
+      "DBSCAN, which finds dense regions of any shape and labels sparse points as noise",
       "Gaussian mixture with spherical covariance, which models curved clusters natively",
       "k-means with a larger k, which will merge the crescents automatically afterwards",
       "PCA with two components, which will separate the crescents into distinct clusters"
@@ -1148,8 +1148,8 @@
     "options": [
       "Trees compute Euclidean distances that are unaffected by feature units",
       "Trees standardise all features internally before fitting each split",
-      "Splits compare one feature against a threshold, so monotonic rescaling does not change them",
-      "Trees convert every feature to one-hot encoding before choosing any split"
+      "Splits compare one feature to a threshold, so monotonic rescaling leaves them unchanged",
+      "Trees convert every numeric feature to one-hot encoding before choosing any split point"
     ],
     "correctIndex": 2,
     "explanation": "A tree splits on rules like 'income <= 52,000'; rescaling a feature just moves the threshold, so the partitions and predictions stay the same. Distance-based and gradient-based models such as k-NN, SVMs and neural networks are the ones sensitive to scale.",
@@ -1231,8 +1231,8 @@
     "title": "Feature unavailable at prediction time",
     "question": "A churn model includes 'days_since_cancellation_request' and reaches 99% AUC offline, but is useless when predicting which active customers will churn next month. What went wrong?",
     "options": [
-      "Target leakage: the feature is only known after the outcome, so it is unavailable at prediction time",
-      "Covariate shift: active customers have different ages than churned customers",
+      "Target leakage: the feature is only known after the outcome, not at prediction time",
+      "Covariate shift: active customers have different ages and tenures than churned customers",
       "Underfitting: the model needs more features to capture churn behaviour",
       "Class imbalance: the model needs oversampling of churned customers to generalise"
     ],
@@ -1249,9 +1249,9 @@
     "question": "For a zip_code feature with 30,000 categories, you replace each zip with the mean target computed over the whole training set, then cross-validate. CV is excellent, production is much worse. What is the fix?",
     "options": [
       "Compute the mean target on the test set instead of the training set",
-      "Compute target encodings with cross-fitting so each row is encoded without its own target",
+      "Use cross-fitting so each row's encoding is computed without its own target",
       "Use one-hot encoding instead, since 30,000 columns can never overfit",
-      "Encode zip codes as their integer values, which preserves geographic order"
+      "Encode zip codes as their integer values, which preserves the geographic order of regions"
     ],
     "correctIndex": 1,
     "explanation": "Plain mean target encoding lets each row's own label flow into its feature, especially for rare categories, so the model memorises labels. Cross-fitting (as scikit-learn's TargetEncoder does in fit_transform) plus smoothing toward the global mean avoids this leakage. Using test labels is leakage of a worse kind.",
@@ -1282,8 +1282,8 @@
     "title": "Softmax before CrossEntropyLoss",
     "question": "A PyTorch classifier applies softmax in its final layer and then trains with nn.CrossEntropyLoss. Training is slow and accuracy plateaus early. What is the likely bug?",
     "options": [
-      "CrossEntropyLoss expects raw logits and applies log-softmax itself, so softmax is applied twice",
-      "CrossEntropyLoss requires one-hot float targets, so integer class labels are ignored",
+      "CrossEntropyLoss expects raw logits and applies log-softmax itself, so softmax runs twice",
+      "CrossEntropyLoss requires one-hot float targets, so integer class labels are silently ignored",
       "CrossEntropyLoss only works for regression, so MSELoss should be used instead",
       "Softmax must be replaced by sigmoid whenever there are more than two classes"
     ],
@@ -1299,7 +1299,7 @@
     "title": "Inconsistent inference results",
     "question": "A PyTorch model with dropout and batch normalisation gives different predictions for the same input on repeated calls, and validation accuracy is lower than expected. What is the most likely cause?",
     "options": [
-      "The model was not switched to model.eval(), so dropout and batch-norm stay in training mode",
+      "model.eval() was never called, so dropout and batch norm stay in training mode",
       "torch.no_grad() was used, which randomises the model weights during inference",
       "Batch normalisation always behaves randomly and should be removed for inference",
       "The optimiser was not zeroed, so gradients change the weights on each forward pass"
@@ -1318,8 +1318,8 @@
     "options": [
       "Remove the validation set so the training loop runs uninterrupted",
       "Replace the loss with accuracy, which cannot become NaN during training",
-      "Increase the learning rate so the model escapes the unstable region faster",
-      "Clip the gradient norm (e.g. clip_grad_norm_) and consider lowering the learning rate"
+      "Increase the learning rate so that the model escapes the unstable region more quickly",
+      "Clip the gradient norm (e.g. clip_grad_norm_) and consider a lower learning rate"
     ],
     "correctIndex": 3,
     "explanation": "Exploding gradients, common in RNNs over long sequences, produce huge updates that push weights to overflow. Gradient norm clipping rescales gradients above a threshold, and a smaller learning rate (or warm-up) further stabilises training. A higher learning rate worsens the problem, and accuracy is not differentiable.",

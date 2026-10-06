@@ -1,0 +1,722 @@
+[
+  {
+    "id": "os-pt-execve-replace-image",
+    "title": "Substituindo a imagem do programa",
+    "question": "Um shell fez fork de um filho para rodar ls. Qual chamada de sistema o filho usa para substituir sua própria imagem de programa pelo binário ls, mantendo o mesmo PID?",
+    "options": [
+      "fork(), que duplica o chamador em um novo processo",
+      "execve(), que carrega um novo programa no processo chamador",
+      "clone(), que cria uma thread compartilhando a memória do chamador",
+      "waitpid(), que passa o controle ao programa que está sendo aguardado"
+    ],
+    "explanation": "execve() substitui o texto, os dados, o heap e a pilha do processo chamador pelo novo programa; o PID continua o mesmo e, em caso de sucesso, a chamada nunca retorna. fork() cria um novo processo, clone() cria threads ou processos com compartilhamento seletivo, e waitpid() apenas espera uma mudança de estado de um filho."
+  },
+  {
+    "id": "os-pt-container-pid1-reaping",
+    "title": "Zumbis sob o PID 1 de um container",
+    "question": "Uma aplicação Node.js roda como PID 1 em um container e dispara shell scripts que iniciam helpers em background e depois terminam. Ao longo de dias, o ps dentro do container mostra um número crescente de helpers <defunct>. Qual é a causa e a correção usual?",
+    "options": [
+      "O runtime limita a contagem de PIDs; aumente o limite de pids na config do container",
+      "Os helpers estão presos em sono ininterrompível; aumente a prioridade de I/O do container",
+      "Órfãos vão para o systemd do host, que não vê PIDs do container; monte o /proc",
+      "Órfãos são readotados pelo PID 1, que nunca os recolhe; rode um init via --init"
+    ],
+    "explanation": "Quando um pai termina, seus filhos são readotados pelo processo init do seu PID namespace, que dentro de um container é a própria aplicação. A aplicação nunca chama wait() para filhos que ela não criou, então eles continuam zumbis. docker run --init (tini) roda um init minúsculo como PID 1 que recolhe zumbis e repassa sinais. Um limite de PIDs causa falhas de fork, não zumbis, sono ininterrompível é o estado D, e órfãos não são entregues ao init do host."
+  },
+  {
+    "id": "os-mem-same-virtual-address",
+    "title": "Mesmo endereço, valores diferentes",
+    "question": "Com o ASLR desativado, duas instâncias em execução do mesmo programa imprimem o endereço de uma variável global e ambas obtêm 0x555555558010, mas cada instância guarda um número diferente ali. Como isso é possível?",
+    "options": [
+      "A variável fica em uma biblioteca compartilhada, então a CPU faz cache de uma cópia por instância",
+      "O kernel troca o conteúdo da variável sempre que alterna entre as duas",
+      "Cada processo tem seu próprio espaço de endereçamento virtual mapeado para frames diferentes",
+      "Os endereços são impressos relativos ao binário do programa, não à memória real"
+    ],
+    "explanation": "Os endereços vistos por programas de usuário são virtuais. Cada processo tem suas próprias tabelas de páginas, então o mesmo endereço virtual é traduzido para frames físicos diferentes. O kernel não copia valores de variáveis em uma troca de contexto (ele troca as tabelas de páginas), caches de CPU não criam cópias por processo, e ponteiros são endereços virtuais reais, não offsets dentro do binário."
+  },
+  {
+    "id": "alg-sorting-heapsort-guarantee",
+    "title": "O(n log n) no pior caso com espaço O(1)",
+    "question": "Você precisa de uma ordenação por comparação para um array que garanta O(n log n) mesmo no pior caso e use apenas O(1) de memória extra. Estabilidade não é necessária. Qual algoritmo serve?",
+    "options": [
+      "Heapsort",
+      "Merge sort",
+      "Quicksort",
+      "Insertion sort"
+    ],
+    "explanation": "O heapsort constrói um max-heap dentro do array e move repetidamente o máximo para o final, com O(n log n) no pior caso e O(1) de espaço extra, embora não seja estável. O merge sort é O(n log n), mas precisa de um buffer O(n) para arrays, o quicksort degrada para O(n^2) com pivôs ruins, e o insertion sort é O(n^2)."
+  },
+  {
+    "id": "alg-sorting-external-merge-runs",
+    "title": "Ordenando dados maiores que a RAM",
+    "question": "Um job batch precisa ordenar um arquivo de 2 TB com registros de tamanho fixo em uma máquina com 32 GB de RAM. Qual abordagem é a padrão?",
+    "options": [
+      "Mapear o arquivo inteiro em memória e rodar um quicksort in-place sobre o mapeamento",
+      "Carregar os registros em blocos de 32 GB e inserir cada bloco em uma única hash table",
+      "Ordenar blocos do tamanho da RAM em runs no disco e depois fazer k-way merge",
+      "Rodar insertion sort direto no arquivo para nunca precisar de memória extra"
+    ],
+    "explanation": "O external merge sort ordena blocos que cabem na memória, grava-os como runs ordenadas e depois faz o merge das runs com um min-heap, lendo cada run sequencialmente, o que mantém o I/O majoritariamente sequencial. Quicksort sobre um mapeamento de 2 TB causa page faults aleatórios e thrashing, uma hash table não produz ordem, e insertion sort em disco exige trabalho e I/O O(n^2)."
+  },
+  {
+    "id": "alg-bs-comparisons-million",
+    "title": "Número de passos da busca binária",
+    "question": "Um array ordenado guarda 1.000.000 de chaves distintas. Aproximadamente quantas comparações a busca binária precisa, no pior caso, para encontrar uma chave ou concluir que ela não existe?",
+    "options": [
+      "Cerca de 1.000",
+      "Cerca de 500.000",
+      "Cerca de 100",
+      "Cerca de 20"
+    ],
+    "explanation": "Cada passo divide pela metade o intervalo restante, e 2^20 é cerca de 1.048.576, então cerca de 20 iterações bastam. Cerca de 1.000 é sqrt(n), o custo da jump search; 500.000 é a média de uma varredura linear; 100 não tem base no argumento de divisão pela metade."
+  },
+  {
+    "id": "alg-bs-rotated-duplicates",
+    "title": "Array rotacionado com duplicatas",
+    "question": "Buscar em um array ordenado e rotacionado de valores distintos (por exemplo, [4,5,6,1,2,3]) com uma busca binária modificada leva O(log n). Quando duplicatas são permitidas, como em [1,1,1,1,0,1,1], o que acontece com o pior caso?",
+    "options": [
+      "Continua O(log n), já que o ponto de rotação ainda é achado dividindo ao meio",
+      "Passa a O(n): quando lo, mid e hi têm valores iguais, só dá para reduzir em um",
+      "Passa a O(log^2 n), porque cada sequência de duplicatas precisa de sua própria busca binária",
+      "Passa a O(n log n), porque o array precisa ser reordenado antes da busca"
+    ],
+    "explanation": "Quando nums[lo] == nums[mid] == nums[hi], não dá para saber qual metade está ordenada ([1,1,1,1,0,1,1] versus [1,0,1,1,1,1,1]), então a correção padrão é lo++ / hi--, que degrada para O(n) quando quase todos os valores são iguais. Nenhum algoritmo consegue fazer melhor no pior caso, porque o único elemento diferente pode estar em qualquer lugar. Nem um limite log^2 nem reordenar se aplicam."
+  },
+  {
+    "id": "alg-tp-two-sum-sorted-move",
+    "title": "Two-sum em um array ordenado",
+    "question": "Em um array ordenado, você procura dois valores que somem target, com left no índice 0 e right no último índice. Se arr[left] + arr[right] for menor que target, o que você deve fazer?",
+    "options": [
+      "Mover left um passo para a direita",
+      "Mover right um passo para a esquerda",
+      "Mover os dois ponteiros em direção ao centro",
+      "Recomeçar com left no próximo índice e right no final"
+    ],
+    "explanation": "Como o array está ordenado, arr[right] já é o maior parceiro disponível para arr[left]; se mesmo essa soma é pequena demais, arr[left] não pode estar em nenhuma solução e é descartado movendo left para frente, o que aumenta a soma. Mover right diminui a soma, mover os dois pode pular uma solução, e recomeçar transforma a varredura em O(n^2)."
+  },
+  {
+    "id": "alg-tp-three-sum-complexity",
+    "title": "Custo de sort mais dois ponteiros no 3Sum",
+    "question": "Para encontrar todas as triplas únicas que somam zero em um array de n inteiros, uma solução ordena o array e, para cada índice i, roda uma varredura com dois ponteiros (left/right) sobre os elementos depois de i. Qual é a complexidade de tempo?",
+    "options": [
+      "O(n log n), dominada pela ordenação inicial",
+      "O(n^3), já que três índices são escolhidos",
+      "O(n^2): uma passada linear por índice fixo",
+      "O(n^2 log n), com uma busca binária por par"
+    ],
+    "explanation": "Ordenar custa O(n log n), e então cada um dos n índices fixos dispara uma varredura de dois ponteiros O(n), então o total é O(n^2). A ordenação não domina, o loop triplo que daria O(n^3) é evitado, e O(n^2 log n) descreve outra variante, que faz busca binária do terceiro valor para cada par."
+  },
+  {
+    "id": "alg-tp-merge-from-back",
+    "title": "Fazendo merge de arrays ordenados in-place",
+    "question": "nums1 tem tamanho m + n: suas primeiras m posições guardam valores ordenados e as últimas n estão vazias; nums2 guarda n valores ordenados. Para fazer o merge in-place em nums1, por que as soluções típicas preenchem nums1 a partir do último índice, de trás para frente?",
+    "options": [
+      "Escrever de trás para frente mantém o merge estável para chaves iguais",
+      "Ler de trás para frente permite ao loop pular comparações de valores iguais",
+      "Percorrer de trás para frente é necessário para o resultado ficar em ordem decrescente",
+      "As posições livres estão no fim, então nenhum valor não lido de nums1 é sobrescrito"
+    ],
+    "explanation": "Colocar o maior valor restante na posição livre mais alta faz o índice de escrita nunca ficar abaixo do próximo índice não lido em nums1, então o merge precisa de tempo O(m + n) e espaço extra O(1). Preencher pela frente sobrescreveria valores não lidos ou exigiria deslocamentos. Estabilidade e número de comparações não são o motivo, e o resultado continua em ordem crescente."
+  },
+  {
+    "id": "alg-tp-container-shorter-line",
+    "title": "Por que mover a linha mais baixa",
+    "question": "No problema 'container with most water', os ponteiros left e right começam nas duas pontas e area = min(h[l], h[r]) * (r - l). Por que é seguro sempre mover para dentro o ponteiro da linha mais baixa?",
+    "options": [
+      "A linha mais baixa já foi comparada com todas as outras linhas antes",
+      "Usar a linha mais baixa com um par mais próximo nunca gera área maior",
+      "Mover a linha mais alta para dentro faria a largura chegar a zero mais rápido",
+      "Linhas mais baixas aparecem mais tarde no array, então são varridas no final"
+    ],
+    "explanation": "Todo container restante que usa a linha mais baixa tem largura menor e altura limitada por essa mesma linha baixa, então nenhum pode superar a área atual; a linha mais baixa pode ser descartada sem perder o ótimo, o que dá O(n). Ela não foi comparada com todas as linhas, as larguras diminuem em um de qualquer jeito, e a posição da linha não tem relação com a altura."
+  },
+  {
+    "id": "alg-sw-fixed-window-sales",
+    "title": "Melhor total de vendas em 7 dias",
+    "question": "Você precisa da soma máxima de quaisquer 7 valores consecutivos de vendas diárias em um array de n dias. Qual é a abordagem eficiente?",
+    "options": [
+      "Ordenar o array e somar os 7 maiores valores",
+      "Recalcular do zero a soma de cada bloco de 7 dias",
+      "Manter uma soma corrente: soma o dia novo e tira o mais antigo",
+      "Fazer busca binária pelo dia inicial da melhor janela de 7 dias"
+    ],
+    "explanation": "Uma janela deslizante de tamanho fixo atualiza a soma em O(1) por passo, então a varredura inteira é O(n). Recalcular cada bloco custa O(n*k), ordenar destrói a exigência de dias consecutivos, e as somas das janelas não são monotônicas, então busca binária não se aplica."
+  },
+  {
+    "id": "alg-sw-find-anagrams",
+    "title": "Encontrando todas as janelas de anagrama",
+    "question": "Encontre todo índice inicial na string s (tamanho n) em que uma substring é anagrama de p (tamanho m, apenas letras minúsculas). Qual abordagem roda em O(n)?",
+    "options": [
+      "Deslizar uma janela de tamanho m, atualizando 26 contagens",
+      "Ordenar cada substring de tamanho m de s e comparar com p ordenado",
+      "Gerar todas as permutações de p e procurar cada uma delas em s",
+      "Expandir a janela até repetir uma letra e então reiniciá-la"
+    ],
+    "explanation": "Uma janela fixa de tamanho m com um array de 26 contadores muda apenas duas contagens por passo, e comparar (ou acompanhar quantas contagens batem) é O(26), então o total é O(n). Ordenar cada janela custa O(n * m log m), gerar permutações é O(m!), e expandir e reiniciar é a técnica da maior substring sem repetição, que não testa anagramas."
+  },
+  {
+    "id": "alg-sw-window-max-deque",
+    "title": "Máximo de cada janela",
+    "question": "Para um fluxo de n preços, você precisa gerar o máximo de cada janela de tamanho k. Qual técnica dá tempo total O(n)?",
+    "options": [
+      "Um max-heap da janela, removendo o valor mais antigo quando a janela anda",
+      "Um máximo corrente que é recalculado sempre que o máximo antigo sai da janela",
+      "Uma BST balanceada com os valores da janela, consultada pelo maior elemento",
+      "Uma deque de índices com valores decrescentes, removendo os velhos da frente"
+    ],
+    "explanation": "A deque monotônica descarta valores menores pelo fim antes de inserir (eles nunca serão um máximo futuro) e remove o índice da frente quando ele sai da janela; cada índice entra e sai no máximo uma vez, então o total é O(n). Um heap ou uma BST dá O(n log k), e recalcular o máximo depois que ele expira custa O(k) a cada vez, O(nk) no pior caso."
+  },
+  {
+    "id": "alg-sw-exactly-k-distinct",
+    "title": "Subarrays com exatamente K valores distintos",
+    "question": "Você precisa contar os subarrays que contêm exatamente K valores distintos. Uma única janela que encolhe não resolve diretamente. Qual é o truque O(n) padrão?",
+    "options": [
+      "Contar janelas com pelo menos K valores distintos e dividir o resultado por dois",
+      "Calcular atMost(K) - atMost(K - 1) com duas passadas de janela deslizante",
+      "Rodar a janela duas vezes, uma da esquerda e uma da direita",
+      "Ordenar o array para juntar valores iguais e contar sequências de K"
+    ],
+    "explanation": "Para cada extremidade direita, as extremidades esquerdas válidas para 'no máximo K distintos' formam uma faixa contígua, então uma janela deslizante as conta em O(n); subtrair a contagem para K - 1 deixa exatamente K. Dividir por dois não tem base matemática, varrer nas duas direções não isola o caso exato, e ordenar destrói a contiguidade."
+  },
+  {
+    "id": "alg-ps-range-sum-trace",
+    "title": "Soma de faixa a partir de um array de prefixos",
+    "question": "arr = [3, 1, 4, 1, 5] e seu array de prefixos é P = [0, 3, 4, 8, 9, 14], em que P[i] é a soma dos primeiros i elementos. Usando P, qual é a soma de arr[1..3] (inclusivo)?",
+    "options": [
+      "9",
+      "5",
+      "6",
+      "11"
+    ],
+    "explanation": "sum(l..r) = P[r + 1] - P[l] = P[4] - P[1] = 9 - 3 = 6, que bate com 1 + 4 + 1. 9 é só P[4], 5 vem de deslocar o índice esquerdo em um (P[4] - P[2]), e 11 vem de deslocar o índice direito em um (P[5] - P[1])."
+  },
+  {
+    "id": "alg-ps-2d-rectangle-query",
+    "title": "Somas de retângulo com uma tabela de prefixos 2D",
+    "question": "Um heatmap de 2000 x 2000 que nunca muda recebe milhões de consultas pela soma dentro das linhas r1..r2 e das colunas c1..c2. Com uma tabela de prefixos 2D S que tem uma linha e uma coluna extras de zeros no início, qual expressão responde a uma consulta em O(1)?",
+    "options": [
+      "S[r2+1][c2+1] - S[r1][c2+1] - S[r2+1][c1] + S[r1][c1]",
+      "S[r2+1][c2+1] - S[r1][c1]",
+      "S[r2][c2] - S[r1][c2] - S[r2][c1] - S[r1][c1]",
+      "S[r2+1][c2+1] - S[r1][c2+1] - S[r2+1][c1]"
+    ],
+    "explanation": "Inclusão-exclusão: pegue o retângulo de prefixo completo, subtraia a faixa de cima e a faixa da esquerda, e depois some de volta o bloco do canto superior esquerdo, que foi subtraído duas vezes. Subtrair só o canto ignora as faixas, omitir a soma de volta subtrai o canto duas vezes, e a versão sem os deslocamentos +1 usa as fronteiras e o sinal errados."
+  },
+  {
+    "id": "alg-ps-product-except-self",
+    "title": "Produto de todos os outros elementos",
+    "question": "Retorne um array em que out[i] é o produto de todos os elementos exceto nums[i], em tempo O(n) e sem divisão (nums pode conter zeros). Qual abordagem funciona?",
+    "options": [
+      "Multiplicar tudo uma vez e depois dividir o total por cada nums[i]",
+      "Para cada i, multiplicar todos os outros elementos em um loop aninhado",
+      "Ordenar nums e multiplicar os vizinhos dos dois lados de cada posição",
+      "Combinar produtos de prefixo (esquerda) e de sufixo (direita)"
+    ],
+    "explanation": "out[i] é igual ao produto de nums[0..i-1] vezes o produto de nums[i+1..n-1]; uma passada da esquerda para a direita e outra da direita para a esquerda calculam esses valores em O(n). A divisão é proibida e falha com zeros, o loop aninhado é O(n^2), e ordenar perde a posição original de cada elemento."
+  },
+  {
+    "id": "alg-ps-java-negative-remainder",
+    "title": "Subarrays divisíveis e restos negativos",
+    "question": "Uma solução em Java conta os subarrays cuja soma é divisível por k contando valores iguais de prefix % k em um HashMap. Ela é correta para entradas não negativas, mas conta a menos quando o array contém números negativos. Por quê?",
+    "options": [
+      "O HashMap compara chaves Integer acima de 127 por referência, não por valor",
+      "O % do Java mantém o sinal do dividendo, dividindo um resto em duas chaves",
+      "Somas de prefixo negativas estouram o int antes de aplicar o módulo",
+      "Contar somas de prefixo só vale para divisibilidade quando todos os valores são positivos"
+    ],
+    "explanation": "Em Java, o resto tem o sinal do dividendo, então -1 % 5 é -1 enquanto 4 % 5 é 4, embora os dois prefixos sejam congruentes mod 5 e devessem casar. Normalize com ((p % k) + k) % k ou Math.floorMod. O HashMap usa equals(), não identidade de referência, overflow não é o problema em tamanhos normais, e a contagem de prefixos funciona com negativos depois que os restos são normalizados."
+  },
+  {
+    "id": "alg-bt-subsets-count",
+    "title": "Folhas da recursão incluir/excluir",
+    "question": "Uma função recursiva decide, para cada um de n = 4 elementos distintos, se o inclui ou não, e registra a escolha atual em cada folha da recursão. Quantos subconjuntos ela registra?",
+    "options": [
+      "16",
+      "24",
+      "8",
+      "15"
+    ],
+    "explanation": "Cada elemento tem duas escolhas, então há 2^4 = 16 folhas, incluindo o subconjunto vazio. 24 é 4!, o número de permutações, 15 deixa de fora o subconjunto vazio, e 8 é 2^3."
+  },
+  {
+    "id": "alg-bt-combination-sum-start-index",
+    "title": "Combinações duplicadas no combination sum",
+    "question": "Um resolvedor de combination sum (candidatos [2, 3, 6, 7], alvo 7, reutilização permitida) percorre todos os candidatos a partir do índice 0 em cada nível da recursão. Ele retorna [2,2,3], [2,3,2], [3,2,2] e [7]. Qual é a correção?",
+    "options": [
+      "Ordenar os candidatos em ordem decrescente antes de a busca começar",
+      "Guardar cada resultado em um set de listas para descartar as duplicatas",
+      "Passar um índice inicial, iterar a partir dele e recursar com o mesmo i",
+      "Recursar com i + 1 para que nenhum candidato seja usado duas vezes seguidas"
+    ],
+    "explanation": "Iterar a partir de um índice inicial força os candidatos a serem escolhidos em ordem não decrescente de índice, então cada multiconjunto é gerado uma vez; recursar com i em vez de i + 1 ainda permite reutilização. Ordenar sozinho não impede reordenações, deduplicar depois desperdiça trabalho exponencial (e listas não são hashable), e i + 1 proíbe a reutilização, perdendo [2,2,3]."
+  },
+  {
+    "id": "alg-bt-word-search-unmark",
+    "title": "Esquecendo de desfazer a marca de visitado",
+    "question": "Uma DFS de busca de palavras em grid marca uma célula como visitada antes de explorar os vizinhos, mas nunca a desmarca quando a chamada retorna. Que sintoma aparece?",
+    "options": [
+      "Entra em loop infinito porque as mesmas células são revisitadas em cada caminho",
+      "Encontra palavras que reutilizam a mesma célula mais de uma vez",
+      "Lança um erro de recursão em todo grid maior que 3x3",
+      "Perde palavras válidas que usam uma célula tocada por um ramo que falhou"
+    ],
+    "explanation": "O backtracking precisa desfazer seu estado no retorno; caso contrário, as células usadas por um ramo que falhou continuam bloqueadas para todos os ramos seguintes, produzindo falsos negativos. A própria marca impede loops infinitos e reutilização de células, e a profundidade da recursão é limitada pelo tamanho da palavra, não pelo tamanho do grid."
+  },
+  {
+    "id": "alg-bt-unique-permutations-skip",
+    "title": "Permutações únicas com duplicatas",
+    "question": "Para gerar as permutações únicas de [1, 1, 2], um resolvedor ordena a entrada e mantém um array used[]. Qual regra de pulo dentro do loop evita permutações duplicadas sem perder as válidas?",
+    "options": [
+      "Pular i se nums[i] == nums[i-1], independentemente de used[i-1]",
+      "Pular i se nums[i] == nums[i-1] e used[i-1] for falso",
+      "Pular i se used[i-1] for verdadeiro, independentemente dos valores",
+      "Pular i se nums[i] já aparece em qualquer posição do caminho"
+    ],
+    "explanation": "Pular um valor quando seu vizinho igual à esquerda não está em uso força valores iguais a serem colocados da esquerda para a direita, então cada arranjo distinto é produzido exatamente uma vez. Ignorar used[i-1] significa que o segundo 1 nunca pode ser colocado, perdendo [1,1,2]; recusar qualquer valor que já está no caminho proíbe totalmente valores repetidos; e pular apenas com base em used[i-1] ignora os valores."
+  },
+  {
+    "id": "alg-dc-fast-exponentiation",
+    "title": "Exponenciação por quadrados",
+    "question": "pow(x, n) é calculado elevando ao quadrado o resultado de pow(x, n // 2) e multiplicando por x mais uma vez quando n é ímpar. Quantas multiplicações isso leva?",
+    "options": [
+      "O(n)",
+      "O(sqrt n)",
+      "O(log n)",
+      "O(n log n)"
+    ],
+    "explanation": "O expoente cai pela metade a cada nível, então há cerca de log2(n) níveis com no máximo duas multiplicações cada: O(log n). Multiplicar x por ele mesmo n vezes é o método ingênuo O(n); os outros limites não batem com a recorrência T(n) = T(n/2) + O(1)."
+  },
+  {
+    "id": "alg-dc-count-inversions",
+    "title": "Contando inversões rapidamente",
+    "question": "Um serviço de ranking precisa contar as inversões (pares i < j com a[i] > a[j]) em um array de 5 milhões de pontuações. Qual abordagem dá O(n log n)?",
+    "options": [
+      "Merge sort: ao tirar da direita, somar quantos restam na esquerda",
+      "Fazer quickselect da mediana e contar os elementos do lado errado dela",
+      "Busca binária de cada elemento no array original não ordenado",
+      "Bubble sort que conta cada troca enquanto ordena o array"
+    ],
+    "explanation": "Durante o merge, quando um elemento da metade direita é colocado antes dos elementos restantes da metade esquerda, ele forma uma inversão com cada um deles, então somar essa contagem dá o total em O(n log n). A contagem de trocas do bubble sort é igual ao número de inversões, mas leva O(n^2), o quickselect só compara com um pivô, e a busca binária precisa de entrada ordenada."
+  },
+  {
+    "id": "alg-dc-strassen-recurrence",
+    "title": "Resolvendo a recorrência de Strassen",
+    "question": "A multiplicação de matrizes de Strassen divide cada matriz n x n em quadrantes e usa 7 multiplicações recursivas mais O(n^2) somas: T(n) = 7T(n/2) + O(n^2). Qual é a solução?",
+    "options": [
+      "O(n^2 log n), dominado pelas somas",
+      "O(n^3), igual ao método escolar",
+      "O(n^2.5), pela economia de 7/8 por nível",
+      "O(n^log2(7)), cerca de O(n^2.81)"
+    ],
+    "explanation": "Pelo teorema mestre com a = 7 e b = 2, n^(log2 7), cerca de n^2.807, cresce mais rápido que o trabalho de combinação O(n^2), então as folhas dominam. Usar 8 produtos recursivos daria O(n^3); O(n^2 log n) exigiria a = 4, e 2.5 não decorre da recorrência."
+  },
+  {
+    "id": "alg-dc-closest-pair-strip",
+    "title": "Argumento da faixa no par de pontos mais próximo",
+    "question": "No algoritmo O(n log n) do par de pontos mais próximo, depois de recursar em cada metade com melhor distância d, os pontos a até d da linha divisória são ordenados por y. Por que basta comparar cada ponto da faixa com apenas um número constante de pontos seguintes?",
+    "options": [
+      "A faixa nunca pode conter mais do que um número constante de pontos no total",
+      "Pontos do mesmo lado distam ao menos d, então poucos cabem num d x 2d",
+      "Os pontos são distribuídos em buckets de tamanho d, então cada bucket tem um ponto",
+      "As metades são balanceadas, então a faixa contém no máximo log n pontos"
+    ],
+    "explanation": "Qualquer ponto da faixa a até d verticalmente de p fica em um retângulo d x 2d, e como pontos do mesmo lado estão a pelo menos d uns dos outros, só um número constante (no máximo 8) cabe ali; verificar os próximos poucos pontos na ordem de y torna a etapa de combinação O(n). A faixa em si pode conter O(n) pontos, buckets são uma técnica aleatorizada diferente, e metades balanceadas não dizem nada sobre o tamanho da faixa."
+  },
+  {
+    "id": "alg-tt-inorder-bst-sorted",
+    "title": "Saída ordenada de uma BST",
+    "question": "Qual percurso de uma árvore binária de busca com chaves distintas visita as chaves em ordem crescente?",
+    "options": [
+      "Em ordem (inorder)",
+      "Pré-ordem (preorder)",
+      "Pós-ordem (postorder)",
+      "Por nível (level order)"
+    ],
+    "explanation": "O percurso em ordem visita a subárvore esquerda (chaves menores), depois o nó, depois a subárvore direita (chaves maiores), o que gera ordem crescente em uma BST. Pré-ordem e pós-ordem visitam um nó antes ou depois das duas subárvores, e o percurso por nível segue a profundidade, então nenhum deles é ordenado em geral."
+  },
+  {
+    "id": "alg-tt-level-order-groups",
+    "title": "Agrupando a saída da BFS por profundidade",
+    "question": "Você precisa retornar os valores de uma árvore binária agrupados por profundidade, por exemplo [[1], [2, 3], [4, 5]]. Usando uma BFS iterativa com fila, como saber onde termina um nível?",
+    "options": [
+      "Inserir um sentinela só depois da raiz e checar a profundidade a cada pop",
+      "Comparar o valor de cada nó com o anterior e dividir quando ele cair",
+      "Registrar o tamanho da fila no início do nível e fazer pop desse total",
+      "Usar uma pilha em vez de fila para que cada nível saia de uma vez"
+    ],
+    "explanation": "No início de cada nível, a fila contém exatamente os nós daquele nível, então fazer pop de len(queue) nós processa o nível enquanto os filhos deles formam o próximo. Um sentinela só funciona se for inserido depois de cada nível, os valores não carregam informação de profundidade, e uma pilha produz ordem em profundidade."
+  },
+  {
+    "id": "alg-tt-rebuild-from-traversals",
+    "title": "Pares de percursos que identificam uma árvore",
+    "question": "Você recebe duas sequências de percurso de uma árvore binária com valores distintos e precisa reconstruir exatamente a árvore. Qual par NÃO é sempre suficiente?",
+    "options": [
+      "Pré-ordem e em ordem",
+      "Pós-ordem e em ordem",
+      "Ordem por nível e em ordem",
+      "Pré-ordem e pós-ordem"
+    ],
+    "explanation": "O percurso em ordem divide os valores restantes entre subárvore esquerda e direita quando a raiz é conhecida, e a pré-ordem (primeiro), a pós-ordem (último) ou o percurso por nível (primeiro) identificam a raiz. Pré-ordem mais pós-ordem não distinguem se um filho único é esquerdo ou direito: a raiz 1 só com filho esquerdo 2 e a raiz 1 só com filho direito 2 geram pré-ordem [1,2] e pós-ordem [2,1]."
+  },
+  {
+    "id": "alg-tt-morris-constant-space",
+    "title": "Percurso em ordem com espaço O(1)",
+    "question": "Um sistema embarcado precisa fazer um percurso em ordem (inorder) de uma árvore binária grande com O(1) de memória auxiliar: sem recursão, sem pilha explícita e sem ponteiros para o pai. Qual técnica torna isso possível?",
+    "options": [
+      "Um percurso iterativo que guarda só o último nó visitado em uma variável",
+      "Morris traversal, que liga temporariamente os predecessores de volta ao nó",
+      "Percurso por nível, já que sua fila nunca guarda mais de um nível",
+      "Otimização de tail call, que transforma o percurso recursivo em um loop de espaço constante"
+    ],
+    "explanation": "O Morris traversal aponta o ponteiro direito do predecessor em ordem de cada nó para o próprio nó, segue essa thread de volta depois da subárvore esquerda e então a remove; a árvore é restaurada e o percurso leva tempo O(n) com espaço O(1). Só o último nó visitado não basta para achar o caminho de volta, uma fila de percurso por nível pode guardar cerca de n/2 folhas, e a recursão em ordem não é uma tail call, porque há trabalho depois da chamada à esquerda."
+  },
+  {
+    "id": "alg-greedy-huffman-merge",
+    "title": "O passo guloso do Huffman",
+    "question": "Ao construir um código de Huffman para compressão, qual passo guloso o algoritmo repete até restar uma única árvore?",
+    "options": [
+      "Dividir os símbolos em duas metades de frequência total quase igual",
+      "Atribuir o código livre mais curto ao próximo símbolo mais frequente",
+      "Juntar os dois símbolos mais frequentes em um único nó pai",
+      "Juntar os dois nós menos frequentes em um novo nó pai"
+    ],
+    "explanation": "O algoritmo de Huffman mantém os nós em uma fila de prioridade mínima e junta repetidamente os dois nós de menor frequência em um pai cuja frequência é a soma deles, o que comprovadamente gera um código de prefixo ótimo. Dividir em metades iguais é o método top-down de Shannon-Fano, que nem sempre é ótimo; juntar os símbolos mais frequentes daria a eles os códigos mais longos."
+  },
+  {
+    "id": "alg-greedy-fractional-knapsack",
+    "title": "Carregando mercadorias divisíveis",
+    "question": "Um caminhão pode levar 50 kg. Especiarias a granel podem ser carregadas em qualquer fração, e cada uma tem um peso total disponível e um valor. Qual estratégia maximiza o valor da carga?",
+    "options": [
+      "Carregar por valor por kg, do maior para o menor, fracionando a última para completar",
+      "Carregar a especiaria mais valiosa primeiro, depois a próxima, até o caminhão encher",
+      "Carregar as especiarias mais leves primeiro para caber o maior número de tipos",
+      "Usar uma tabela de DP de mochila 0/1 sobre a capacidade, já que o guloso nunca é ótimo"
+    ],
+    "explanation": "Na mochila fracionária, pegar os itens por densidade de valor e fracionar o último é ótimo por um argumento de troca: trocar qualquer quilo de densidade menor por um de densidade maior nunca diminui o valor. Maior valor total ignora o peso, mais leves primeiro ignora o valor, e a DP 0/1 só é necessária quando os itens são indivisíveis."
+  },
+  {
+    "id": "alg-greedy-min-jumps-ranges",
+    "title": "Mínimo de saltos até o fim",
+    "question": "nums[i] é o tamanho máximo do salto a partir do índice i, e o último índice é alcançável. Uma solução gulosa acompanha o índice mais distante alcançável e o fim do alcance do salto atual. Quando ela conta um novo salto?",
+    "options": [
+      "Sempre que encontra um índice cujo salto é maior que todos os vistos até então",
+      "Sempre que nums[i] é zero, já que o caminho precisa pular esse índice",
+      "Quando i chega ao fim do alcance atual, que passa a ser o mais distante",
+      "Quando o mais distante passa do último índice, e depois para de contar"
+    ],
+    "explanation": "Os índices alcançáveis com j saltos formam uma faixa contígua, como um nível de BFS; quando a varredura chega ao fim dessa faixa, outro salto é necessário e a nova faixa termina no índice mais distante encontrado até ali, o que dá O(n). Contar a cada salto maior conta demais, zeros não são especiais, e alcançar o último índice é uma condição de parada, não uma regra de contagem."
+  },
+  {
+    "id": "alg-greedy-earliest-deadline",
+    "title": "Minimizando o atraso máximo",
+    "question": "Jobs com durações e prazos conhecidos rodam um de cada vez em uma única máquina, e todos estão disponíveis agora. Você quer minimizar o atraso máximo (tempo de término menos prazo). Qual ordem é ótima?",
+    "options": [
+      "Menor duração primeiro, para os jobs terminarem o mais cedo possível",
+      "Prazo mais cedo primeiro, independentemente das durações dos jobs",
+      "Menor folga (prazo menos duração) primeiro",
+      "Maior duração primeiro, para que jobs grandes nunca terminem atrasados"
+    ],
+    "explanation": "Earliest-deadline-first é ótimo por um argumento de troca: trocar dois jobs adjacentes cujos prazos estão fora de ordem nunca aumenta o atraso máximo. Menor duração primeiro minimiza o tempo médio de conclusão, não o atraso máximo. Menor folga falha com os jobs (t=1, d=2) e (t=10, d=10): a ordem por folga dá atraso 9, e o EDF dá 1."
+  },
+  {
+    "id": "alg-dp-held-karp-bitmask",
+    "title": "Rota exata por 18 pontos",
+    "question": "Um drone precisa visitar 18 pontos de inspeção exatamente uma vez e voltar à base, minimizando a distância total, e é exigida uma resposta exata. Testar todas as 17! ordens é inviável. Qual abordagem exata é prática?",
+    "options": [
+      "Rota gulosa do vizinho mais próximo, que é ótima para distâncias métricas",
+      "Dijkstra a partir da base, visitando os pontos em ordem crescente de distância",
+      "DFS memoizada sobre (ponto atual, número de pontos visitados até agora)",
+      "DP com bitmask sobre (conjunto visitado, último ponto), tempo O(n^2 * 2^n)"
+    ],
+    "explanation": "O Held-Karp guarda dp[mask][j], o caminho mais barato que visita exatamente os pontos de mask e termina em j; com 18 pontos, são cerca de 2^18 * 18 estados com 18 transições cada, dezenas de milhões de operações. O vizinho mais próximo é só uma heurística, mesmo para distâncias métricas, o Dijkstra resolve caminhos mínimos e não rotas, e um estado com apenas a contagem de pontos visitados esquece quais foram visitados, então é incorreto."
+  },
+  {
+    "id": "alg-gt-multi-source-bfs",
+    "title": "Distância até a saída mais próxima",
+    "question": "Para cada célula aberta de um labirinto em grid, você precisa da distância até a mais próxima de 500 saídas. Rodar uma BFS a partir de cada célula aberta é lento demais. Qual é a abordagem eficiente?",
+    "options": [
+      "Enfileirar todas as saídas com distância 0 e rodar uma única BFS a partir delas",
+      "Rodar uma BFS por saída e manter a menor distância para cada célula",
+      "Rodar uma DFS de cada célula e parar assim que qualquer saída for alcançada",
+      "Ordenar as saídas por linha e fazer busca binária da mais próxima para cada célula"
+    ],
+    "explanation": "A BFS multi-source se comporta como uma BFS a partir de um nó virtual ligado a todas as saídas, então cada célula é alcançada primeiro a partir da saída mais próxima e o grid inteiro é processado uma única vez, em O(rows * cols). Uma BFS por saída faz 500 vezes o trabalho, a DFS não encontra distâncias mínimas, e ordenar as saídas ignora as paredes do labirinto."
+  },
+  {
+    "id": "alg-gt-scc-mutual-dependencies",
+    "title": "Grupos de serviços mutuamente dependentes",
+    "question": "Um grafo de dependências de serviços é direcionado. Você precisa encontrar grupos de serviços em que cada serviço alcança todos os outros via dependências, para que cada grupo seja implantado como uma unidade. Qual algoritmo se encaixa?",
+    "options": [
+      "Union-find sobre todas as arestas, tratando cada dependência como não direcionada",
+      "Ordenação topológica de Kahn, agrupando serviços com o mesmo grau de entrada",
+      "Componentes fortemente conexas de Tarjan ou Kosaraju, em O(V + E)",
+      "BFS de cada nó, agrupando nós que têm profundidades de BFS idênticas"
+    ],
+    "explanation": "Componentes fortemente conexas são exatamente os grupos maximais mutuamente alcançáveis; o Tarjan as encontra com uma DFS usando valores low-link e o Kosaraju com duas passadas de DFS, a segunda no grafo invertido. Union-find ignora direção, então uma dependência de mão única juntaria serviços incorretamente, o algoritmo de Kahn trava em ciclos, e a profundidade da BFS não captura alcançabilidade mútua."
+  },
+  {
+    "id": "alg-topo-cycle-no-order",
+    "title": "Ordem topológica com um ciclo",
+    "question": "As tarefas A, B e C têm as dependências A antes de B, B antes de C e C antes de A. O que uma ordenação topológica produz para elas?",
+    "options": [
+      "A ordem A, B, C, já que A foi declarada primeiro",
+      "Nenhuma ordem válida, pois as dependências formam um ciclo",
+      "Qualquer uma das três rotações, já que todas são igualmente válidas",
+      "A ordem C, B, A, que inverte a ordem de declaração"
+    ],
+    "explanation": "Uma ordem topológica só existe para um grafo direcionado acíclico; com um ciclo, toda ordenação viola pelo menos uma restrição. O graphlib.TopologicalSorter do Python, por exemplo, lança CycleError. Ordem de declaração e inversões são irrelevantes, e nenhuma rotação satisfaz as três restrições."
+  },
+  {
+    "id": "alg-topo-dfs-reverse-postorder",
+    "title": "Ordem topológica a partir da DFS",
+    "question": "Uma ordenação topológica baseada em DFS adiciona cada nó a uma lista quando sua chamada de DFS termina (depois de todos os descendentes). As arestas vão do pré-requisito para o dependente. Como obter uma ordem válida?",
+    "options": [
+      "Usar a lista como está, já que os pré-requisitos sempre terminam primeiro",
+      "Ordenar a lista pelo momento em que cada nó foi descoberto",
+      "Usar a lista como está, mas só quando a DFS começa em um nó fonte",
+      "Inverter a lista, para os nós que terminam por último virem primeiro"
+    ],
+    "explanation": "Para toda aresta u -> v em um DAG, v termina antes de u, então a ordem de término lista os dependentes antes dos seus pré-requisitos; invertê-la gera uma ordem topológica válida. A ordem de descoberta pode colocar um nó antes de um pré-requisito ainda não visitado, e começar em uma fonte não muda a orientação da ordem de término."
+  },
+  {
+    "id": "alg-topo-lexicographic-heap",
+    "title": "Ordem de instalação lexicograficamente menor",
+    "question": "Um gerenciador de pacotes precisa gerar, entre todas as ordens de instalação válidas de um DAG de dependências, a lexicograficamente menor pelo nome do pacote. Como adaptar o algoritmo de Kahn?",
+    "options": [
+      "Manter os pacotes prontos em um min-heap e sempre tirar o menor nome",
+      "Rodar o algoritmo de Kahn normal e depois ordenar a saída final por nome",
+      "Ordenar as listas de adjacência por nome antes de rodar DFS em pós-ordem reversa",
+      "Processar a fila de prontos em ordem FIFO depois de ordenar os nós iniciais"
+    ],
+    "explanation": "A cada passo, o menor pacote sem pré-requisitos pendentes precisa vir em seguida na ordem lexicograficamente menor, e um min-heap de nós prontos o fornece em O((V + E) log V). Ordenar a saída quebra as dependências, listas de adjacência ordenadas na DFS não garantem a menor ordem, e uma fila FIFO ignora os nomes dos nós que ficam prontos depois."
+  },
+  {
+    "id": "alg-sp-dijkstra-binary-heap-cost",
+    "title": "Dijkstra com binary heap",
+    "question": "Qual é o tempo de execução do algoritmo de Dijkstra em um grafo com V vértices e E arestas quando ele usa um binary heap como fila de prioridade?",
+    "options": [
+      "O(V + E)",
+      "O(V^2)",
+      "O((V + E) log V)",
+      "O(E * V * log V)"
+    ],
+    "explanation": "Cada vértice é extraído uma vez, cada relaxamento de aresta pode inserir ou diminuir uma chave, e toda operação no heap custa O(log V), o que dá O((V + E) log V). O(V + E) é a BFS em grafos sem peso, O(V^2) é o Dijkstra com um array simples em vez de heap, e O(E * V * log V) conta a mais ao supor que cada vértice reprocessa todas as arestas."
+  },
+  {
+    "id": "alg-sp-dag-negative-weights",
+    "title": "Caminhos mínimos em um DAG com pesos",
+    "question": "Um DAG de planejamento de projeto tem pesos de aresta que podem ser negativos (algumas etapas economizam tempo). Você precisa de caminhos mínimos a partir de uma única origem. Qual é a abordagem correta mais eficiente?",
+    "options": [
+      "Dijkstra, já que um DAG não pode conter um ciclo de peso negativo",
+      "Relaxar as arestas de saída de cada nó em ordem topológica, em O(V + E)",
+      "Bellman-Ford, já que é a única opção com pesos negativos",
+      "Floyd-Warshall, já que arestas negativas exigem a tabela de distâncias de todos os pares"
+    ],
+    "explanation": "Na ordem topológica, todo predecessor de um nó já está finalizado quando o nó é processado, então uma única passada de relaxamento é correta mesmo com pesos negativos e roda em O(V + E). O Dijkstra pode falhar com arestas negativas mesmo sem ciclos, o Bellman-Ford funciona mas custa O(V * E), e o Floyd-Warshall é O(V^3)."
+  },
+  {
+    "id": "alg-uf-same-set-check",
+    "title": "Teste de mesmo conjunto",
+    "question": "Em uma estrutura union-find, como verificar se os elementos x e y já estão no mesmo conjunto?",
+    "options": [
+      "Verificar se parent[x] é igual a parent[y]",
+      "Verificar se x e y têm o mesmo rank",
+      "Buscar na lista de membros guardada com x",
+      "Verificar se find(x) é igual a find(y)"
+    ],
+    "explanation": "find segue os ponteiros de pai até o representante raiz do conjunto, e dois elementos compartilham um conjunto exatamente quando têm a mesma raiz. Os pais diretos podem ser diferentes quando um elemento está mais fundo na árvore, o rank é apenas um limite superior para a altura da árvore, e union-find não guarda listas de membros."
+  },
+  {
+    "id": "alg-uf-redundant-cable",
+    "title": "Encontrando a aresta extra",
+    "question": "Uma rede de n máquinas era uma árvore até que um cabo extra foi adicionado, criando um ciclo. As arestas são dadas em ordem. Como o union-find identifica um cabo que pode ser removido para restaurar a árvore?",
+    "options": [
+      "Retorna a primeira aresta cujas pontas já têm a mesma raiz",
+      "Retorna a aresta cujas pontas têm o maior rank somado",
+      "Retorna a última aresta que uniu dois conjuntos antes separados",
+      "Retorna a aresta ligada à máquina com mais conexões"
+    ],
+    "explanation": "Processando as arestas em ordem, uma aresta cujas pontas já estão conectadas fecha um ciclo, e removê-la deixa uma árvore geradora. Rank e grau não dizem nada sobre qual aresta está no ciclo, e uma aresta que uniu dois conjuntos separados faz parte da árvore."
+  },
+  {
+    "id": "alg-uf-weighted-ratios",
+    "title": "Avaliando equações de divisão",
+    "question": "Dadas equações como a / b = 2.0 e b / c = 3.0, um serviço precisa responder consultas como a / c ou c / a, retornando -1 quando as variáveis não têm relação. Qual extensão do union-find responde cada consulta em tempo amortizado quase constante?",
+    "options": [
+      "Union-find simples, depois multiplicar os valores ao longo de um caminho de BFS por consulta",
+      "Union-find com rank, guardando o produto de todas as equações na raiz",
+      "Union-find ponderado em que cada nó guarda sua razão em relação ao pai",
+      "Union-find sobre equações, unindo quaisquer duas que compartilhem um numerador"
+    ],
+    "explanation": "Cada nó guarda value(node) / value(parent); o find comprime o caminho multiplicando os pesos, então cada nó conhece sua razão em relação à raiz, e x / y = w(x) / w(y) quando os dois compartilham a raiz (caso contrário, -1). O union define o peso da nova raiz para que a equação seja satisfeita. Uma BFS por consulta não é quase constante, um único produto na raiz perde as razões por nó, e agrupar por numerador não faz sentido."
+  },
+  {
+    "id": "alg-uf-offline-reverse-deletions",
+    "title": "Tratando remoções offline",
+    "question": "Uma ferramenta de monitoramento recebe uma sequência de falhas de link e, após cada uma, precisa informar o número de componentes conexas. Todas as falhas são conhecidas de antemão, e o union-find não consegue remover arestas. Qual é a técnica padrão?",
+    "options": [
+      "Reconstruir o union-find do zero após cada falha da lista",
+      "Processar as falhas em ordem inversa, readicionando os links com unions",
+      "Desfazer o último union com path compression restaurando os links de pai",
+      "Guardar uma flag de removida em cada aresta e ignorá-la nas operações de find"
+    ],
+    "explanation": "Comece pelo grafo final, com todos os links que falharam removidos, faça union das arestas restantes e depois percorra as falhas de trás para frente, readicionando cada link com um union e registrando a contagem de componentes; inverter essas contagens responde à sequência original. Reconstruir custa O(E) por falha, union-find com rollback só funciona sem path compression e só desfaz o union mais recente, e flags nas arestas não conseguem separar conjuntos já unidos."
+  },
+  {
+    "id": "alg-int-overlap-condition",
+    "title": "Quando dois intervalos se sobrepõem",
+    "question": "São dados os intervalos fechados [a, b] e [c, d], com a <= b e c <= d. Qual condição é verdadeira exatamente quando eles se sobrepõem?",
+    "options": [
+      "a <= c and b >= d",
+      "a < c and c < b",
+      "a <= d and c <= b",
+      "b - a == d - c"
+    ],
+    "explanation": "Dois intervalos são disjuntos apenas quando um termina antes de o outro começar (b < c ou d < a); negar isso dá a <= d and c <= b. A primeira opção testa contenção, a segunda perde os casos em que o segundo intervalo começa antes ou em que os intervalos apenas se tocam, e comprimentos iguais são irrelevantes."
+  },
+  {
+    "id": "alg-int-insert-and-merge",
+    "title": "Inserindo em horários ocupados ordenados",
+    "question": "Uma agenda mantém uma lista ordenada de intervalos ocupados sem sobreposição. Um novo intervalo precisa ser inserido e mesclado com os que ele sobrepõe. Qual é a abordagem O(n) mais limpa?",
+    "options": [
+      "Adicionar ao fim da lista, ordenar tudo de novo e rodar o merge padrão",
+      "Copiar os que terminam antes, absorver os sobrepostos, copiar o resto",
+      "Fazer busca binária da posição e inserir sem mesclar",
+      "Mesclar apenas com o intervalo imediatamente anterior ao seu início"
+    ],
+    "explanation": "Uma passada em três fases funciona: copiar os intervalos que terminam antes de o novo começar, absorver cada intervalo sobreposto ampliando o novo, e depois copiar o restante. Reordenar custa O(n log n), inserir sem mesclar deixa sobreposições, e o novo intervalo pode abranger vários existentes, não só o antecessor."
+  },
+  {
+    "id": "alg-int-list-intersections",
+    "title": "Interseção de duas listas de horários livres",
+    "question": "Os horários livres de Alice e de Bob são, cada um, uma lista ordenada de intervalos disjuntos. Uma varredura com dois ponteiros gera [max(start1, start2), min(end1, end2)] sempre que essa faixa não é vazia. Qual ponteiro deve avançar após cada comparação?",
+    "options": [
+      "O do intervalo que começa primeiro",
+      "Os dois ponteiros, após toda comparação",
+      "O do intervalo mais curto",
+      "O do intervalo que termina primeiro"
+    ],
+    "explanation": "O intervalo que termina primeiro não pode cruzar mais nada adiante na outra lista, enquanto o outro intervalo ainda pode sobrepor o próximo, então avançar o ponteiro que termina antes mantém a varredura em O(m + n) sem perder resultados. Avançar pelo início ou pelo comprimento pode pular interseções, e avançar os dois perde casos em que um intervalo longo sobrepõe vários curtos."
+  },
+  {
+    "id": "alg-int-sweep-tie-order",
+    "title": "Desempate em uma sweep line",
+    "question": "Para calcular o pico de sessões simultâneas, cada sessão semiaberta [start, end) vira os eventos (start, +1) e (end, -1), ordenados por tempo. Uma sessão termina exatamente às 10:00 quando outra começa. Como empates no mesmo instante devem ser ordenados?",
+    "options": [
+      "Processar eventos de fim -1 antes dos de início +1 no mesmo instante",
+      "Processar eventos de início +1 antes dos de fim -1 no mesmo instante",
+      "Ordenar eventos do mesmo instante pelo id da sessão para mantê-los estáveis",
+      "Ignorar eventos de fim que compartilham o timestamp com um evento de início"
+    ],
+    "explanation": "Com intervalos semiabertos, uma sessão que termina às 10:00 não se sobrepõe a outra que começa às 10:00, então os fins precisam ser aplicados primeiro; caso contrário, a contagem corrente reporta por um instante um pico maior em um. Ordenar pelo id da sessão é arbitrário, e ignorar eventos de fim deixa a contagem alta demais para sempre."
+  },
+  {
+    "id": "alg-str-join-vs-concat",
+    "title": "Construindo uma string grande em Python",
+    "question": "Uma função Python monta um relatório de 10 MB fazendo s += line para centenas de milhares de linhas. Qual mudança é recomendada para evitar uma cópia potencialmente quadrática?",
+    "options": [
+      "Converter s para bytes antes, já que a concatenação de bytes é in-place",
+      "Juntar as linhas em uma lista e chamar ''.join(lines) no final",
+      "Usar s = s + line, que o interpretador otimiza melhor",
+      "Envolver o loop em str() para o resultado ser montado de uma só vez"
+    ],
+    "explanation": "Strings são imutáveis, então a concatenação repetida pode criar um novo objeto e copiar todos os dados anteriores a cada vez, com custo total quadrático; a documentação do Python recomenda montar uma lista e chamar str.join (ou usar io.StringIO). bytes também são imutáveis, s = s + line é a mesma operação, e envolver em str() não muda nada."
+  },
+  {
+    "id": "alg-str-palindrome-expand-center",
+    "title": "Maior substring palíndroma",
+    "question": "Você precisa da maior substring palíndroma de uma string de tamanho n = 5.000, usando O(1) de memória extra e uma implementação simples. Qual abordagem serve?",
+    "options": [
+      "Inverter a string e pegar a maior substring comum com ela",
+      "Verificar cada substring com uma varredura pelas duas pontas, O(n^2) no total",
+      "Expandir a partir de cada um dos 2n - 1 centros possíveis, em tempo O(n^2)",
+      "Ordenar os caracteres e parear os iguais a partir das duas pontas do resultado"
+    ],
+    "explanation": "Todo palíndromo é espelhado em torno de um centro, que é um caractere ou o espaço entre dois, então expandir a partir de cada um dos 2n - 1 centros encontra todos em tempo O(n^2) e espaço O(1) (o algoritmo de Manacher chega a O(n), mas é mais complexo). Verificar cada substring é O(n^3), inverter e calcular a LCS exige uma tabela de DP e pode retornar não palíndromos, e ordenar destrói a ordem."
+  },
+  {
+    "id": "os-sched-sjf-average-wait",
+    "title": "Tempo médio de espera no SJF",
+    "question": "Três jobs CPU-bound chegam no tempo 0 com burst times de 24, 3 e 3 ms. No Shortest Job First não preemptivo, qual é o tempo médio de espera?",
+    "options": [
+      "17 ms",
+      "10 ms",
+      "9 ms",
+      "3 ms"
+    ],
+    "explanation": "O SJF roda os jobs na ordem 3, 3, 24, então eles esperam 0, 3 e 6 ms, uma média de 3 ms. 9 ms é o total, não a média, e 17 ms é a média do FCFS quando o job de 24 ms roda primeiro (0, 24, 27), o efeito comboio que o SJF evita."
+  },
+  {
+    "id": "os-sched-cfs-bandwidth-throttling",
+    "title": "Picos de latência por limites de CPU",
+    "question": "Um serviço sensível a latência e com muitas threads, em um pod Kubernetes com limite de CPU de 2 cores, usa em média 40% desse limite, mas mostra picos periódicos de 80 ms no p99, e o cpu.stat do cgroup mostra nr_throttled aumentando. O que está acontecendo?",
+    "options": [
+      "As threads esgotam a quota do cgroup cedo em cada período e sofrem throttling",
+      "O kernel rebaixa a prioridade das threads do pod porque ele passou do CPU request",
+      "A contabilidade de lag do EEVDF penaliza as threads do pod após picos curtos",
+      "O pod é despejado e reiniciado sempre que o uso passa brevemente de 2 cores"
+    ],
+    "explanation": "Limites de CPU são aplicados pelo CFS bandwidth control (quota do cpu.max por período, 100 ms por padrão). Muitas threads rodando em paralelo podem consumir a quota inteira em uma fração do período, e depois disso todas as threads sofrem throttling até o próximo período, causando picos de latência apesar do uso médio baixo; nr_throttled e throttled_usec revelam isso. Requests viram pesos que só importam sob disputa, o uso excessivo de CPU não causa despejo, e o lag do EEVDF não incrementa os contadores de throttling."
+  },
+  {
+    "id": "os-io-write-not-durable",
+    "title": "write bem-sucedido, dados perdidos",
+    "question": "O write() de um programa em um arquivo regular retornou com sucesso e, em seguida, a máquina perdeu energia. Ao reiniciar, os dados não estão lá. Por que isso é possível?",
+    "options": [
+      "write() só enfileira o pedido; o kernel ainda não leu o buffer",
+      "write() costuma parar no page cache; fsync() força ir ao disco",
+      "write() só tem sucesso em arquivos abertos com O_APPEND ou O_CREAT",
+      "write() retorna antes de checar permissões, o que ocorre no close()"
+    ],
+    "explanation": "Um write() bem-sucedido copia os dados para o page cache do kernel e não garante que eles chegaram ao disco; o kernel os grava depois, a menos que fsync() ou fdatasync() force a gravação. Quando write() retorna, o buffer do usuário já foi copiado e pode ser reutilizado, flags como O_APPEND não afetam a durabilidade, e as permissões são verificadas no open()."
+  },
+  {
+    "id": "os-io-uring-batched-submission",
+    "title": "Reduzindo o overhead de syscall por I/O",
+    "question": "Um storage engine no Linux faz milhões de pequenas leituras aleatórias por segundo em NVMe. O profiling mostra muito tempo de CPU entrando e saindo do kernel a cada pread(). Qual interface foi projetada para reduzir esse overhead por operação?",
+    "options": [
+      "epoll, registrando cada descritor de arquivo para prontidão em arquivos regulares",
+      "mmap com MAP_POPULATE, para que cada leitura vire uma consulta ao cache",
+      "io_uring, que agrupa pedidos via rings compartilhados de submissão/conclusão",
+      "O_NONBLOCK no arquivo, para que pread() retorne imediatamente com os dados"
+    ],
+    "explanation": "O io_uring compartilha ring buffers de submissão e de conclusão entre o user space e o kernel, então muitos pedidos podem ser submetidos com uma única chamada io_uring_enter() (ou nenhuma, com SQPOLL) e as conclusões são lidas da memória sem uma syscall para cada uma. O epoll recusa arquivos regulares (EPERM), MAP_POPULATE faz prefault do mapeamento mas não ajuda quando os dados excedem a RAM, e O_NONBLOCK não tem efeito em arquivos regulares."
+  },
+  {
+    "id": "os-fs-hard-vs-symbolic-link",
+    "title": "Apagando o original de um link",
+    "question": "data.txt tem um hard link chamado hard.txt e um link simbólico chamado soft.txt apontando para ele. Depois de rm data.txt, o que acontece?",
+    "options": [
+      "hard.txt ainda abre os dados; soft.txt agora é um link quebrado",
+      "Os dois links continuam funcionando, porque ambos apontam para o mesmo inode",
+      "Os dois links ficam quebrados, porque o nome original foi removido",
+      "soft.txt ainda abre os dados; hard.txt agora é um link quebrado"
+    ],
+    "explanation": "Um hard link é outra entrada de diretório para o mesmo inode, e os dados só são liberados quando a contagem de links chega a zero (e nenhum processo está com o arquivo aberto). Um link simbólico guarda um caminho, então, quando data.txt some, ele não aponta para nada. O nome original não tem status especial entre os hard links."
+  },
+  {
+    "id": "os-fs-sparse-file-sizes",
+    "title": "ls e du discordam",
+    "question": "No ext4, uma imagem de disco de VM aparece com 100G no ls -l, mas o du reporta só 3.1G para o mesmo arquivo. Nada está corrompido. O que explica a diferença?",
+    "options": [
+      "O du conta só os dados gravados desde o último reboot do host",
+      "O hypervisor mantém os 97G restantes em RAM até o desligamento",
+      "O ls -l inclui blocos de metadados que o du deixa de fora de propósito",
+      "É um arquivo esparso, cujas faixas nunca gravadas não têm blocos"
+    ],
+    "explanation": "Fazer seek além do fim de um arquivo e escrever deixa buracos que são lidos como zeros, mas não têm blocos alocados. O ls -l mostra o tamanho aparente (st_size), enquanto o du mostra o espaço alocado, e du --apparent-size também reportaria 100G. O du não tem noção de reboots, o hypervisor não guarda conteúdo de arquivos em RAM dessa forma, e metadados não explicam 97G."
+  },
+  {
+    "id": "os-fs-inode-exhaustion",
+    "title": "ENOSPC com espaço livre",
+    "question": "Um diretório de cache no ext4 guarda dezenas de milhões de arquivos de 200 bytes. Criar novos arquivos agora falha com ENOSPC ('No space left on device'), enquanto o df -h mostra 40% livre. O que você deve verificar primeiro?",
+    "options": [
+      "Se o disco tem setores defeituosos que ficam ocultos na saída do df",
+      "Se o diretório passou do tamanho máximo de caminho permitido pelo ext4",
+      "Se os inodes se esgotaram, usando df -i no mesmo sistema de arquivos",
+      "Se os arquivos ainda estão abertos, usando lsof no processo de cache"
+    ],
+    "explanation": "O ext4 cria um número fixo de inodes no mkfs, e cada arquivo consome um, independentemente do tamanho, então milhões de arquivos minúsculos podem esgotá-los enquanto ainda há blocos livres; df -i mostra IUse% em 100%. As correções incluem apagar arquivos, agrupar objetos pequenos ou recriar o sistema de arquivos com mais inodes. Setores defeituosos causam EIO, caminhos longos demais causam ENAMETOOLONG, e arquivos apagados mas ainda abertos fazem o df mostrar menos espaço livre, não mais."
+  }
+]

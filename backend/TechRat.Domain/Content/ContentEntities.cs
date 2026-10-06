@@ -70,6 +70,8 @@ public sealed class ContentTranslation
     /// <summary>See <see cref="TranslatableField"/>.</summary>
     public required string Field { get; set; }
     public required string Value { get; set; }
+    /// <summary>True while the row mirrors the seed file (the seed may refresh it); false once an admin customised it.</summary>
+    public bool SeedManaged { get; set; } = true;
 }
 
 public static class TranslatableEntity
@@ -77,9 +79,11 @@ public static class TranslatableEntity
     public const string Topic = "topic";
     public const string Subtopic = "subtopic";
     public const string Roadmap = "roadmap";
-    public const string RoadmapModule = "roadmap-module";
-    public const string RoadmapStep = "roadmap-step";
+    public const string Module = "module";
+    public const string ModuleStep = "module-step";
     public const string Achievement = "achievement";
+    public const string Question = "question";
+    public const string QuestionOption = "question-option";
 }
 
 public static class TranslatableField
@@ -88,4 +92,7 @@ public static class TranslatableField
     public const string Title = "title";
     public const string Description = "description";
     public const string Category = "category";
+    /// <summary>Question text and option text.</summary>
+    public const string Text = "text";
+    public const string Explanation = "explanation";
 }

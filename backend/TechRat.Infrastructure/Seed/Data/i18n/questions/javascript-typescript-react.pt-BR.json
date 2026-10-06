@@ -1,0 +1,1034 @@
+[
+  {
+    "id": "js-types-typeof-null",
+    "title": "typeof null",
+    "question": "Qual é o resultado de `typeof null` em JavaScript?",
+    "options": [
+      "\"null\"",
+      "\"undefined\"",
+      "\"object\"",
+      "\"symbol\""
+    ],
+    "explanation": "`typeof null` retorna \"object\", um bug histórico da primeira implementação de JavaScript que foi mantido por compatibilidade com a web. null tem seu próprio tipo na especificação, mas typeof não consegue reportá-lo; por isso, verificações de null devem usar `value === null` em vez de typeof."
+  },
+  {
+    "id": "js-types-plus-minus-coercion",
+    "title": "Coerção misturando + e -",
+    "question": "O que isto imprime?\n\nconsole.log(1 + \"2\" - 1);",
+    "options": [
+      "\"111\"",
+      "2",
+      "11",
+      "NaN"
+    ],
+    "explanation": "A avaliação é da esquerda para a direita: `1 + \"2\"` tem um operando string, então + faz concatenação e produz \"12\". O operador - só funciona numericamente, então \"12\" é convertido em 12 e 12 - 1 resulta em 11. \"111\" exigiria que - concatenasse, e 2 exigiria que + somasse numericamente."
+  },
+  {
+    "id": "js-types-nan-indexof-includes",
+    "title": "NaN com indexOf vs includes",
+    "question": "O que isto imprime?\n\nconst xs = [NaN];\nconsole.log(xs.indexOf(NaN), xs.includes(NaN));",
+    "options": [
+      "0 true",
+      "-1 false",
+      "0 false",
+      "-1 true"
+    ],
+    "explanation": "indexOf usa igualdade estrita (===), e NaN === NaN é false, então ele nunca encontra NaN e retorna -1. includes usa o algoritmo SameValueZero, que considera NaN igual a NaN, então retorna true. Use Number.isNaN ou includes quando NaN puder estar presente."
+  },
+  {
+    "id": "js-closure-counter-instances",
+    "title": "Instâncias independentes de closure",
+    "question": "O que isto imprime?\n\nfunction makeCounter() { let c = 0; return () => ++c; }\nconst a = makeCounter(), b = makeCounter();\na(); a(); b();\nconsole.log(a(), b());",
+    "options": [
+      "4 4",
+      "3 3",
+      "3 2",
+      "1 1"
+    ],
+    "explanation": "Cada chamada a makeCounter cria um novo ambiente léxico com seu próprio `c`, e a arrow function retornada captura essa binding específica. O contador a já foi chamado duas vezes, então a próxima chamada retorna 3; o contador b foi chamado uma vez, então retorna 2. Os contadores nunca compartilham estado."
+  },
+  {
+    "id": "js-scope-let-tdz",
+    "title": "Temporal dead zone",
+    "question": "O que acontece quando este código roda?\n\nconsole.log(x);\nlet x = 1;",
+    "options": [
+      "Imprime undefined",
+      "Lança um ReferenceError",
+      "Imprime 1",
+      "Lança um TypeError"
+    ],
+    "explanation": "Declarações let e const sofrem hoisting, mas não são inicializadas; acessá-las antes da linha da declaração cai na temporal dead zone e lança um ReferenceError. Imprimir undefined é o comportamento de var, que é inicializado com undefined no hoisting."
+  },
+  {
+    "id": "js-closure-var-settimeout-loop",
+    "title": "var em um loop com setTimeout",
+    "question": "O que isto imprime?\n\nfor (var i = 0; i < 3; i++) {\n  setTimeout(() => console.log(i), 0);\n}",
+    "options": [
+      "0 1 2",
+      "0 0 0",
+      "3 3 3",
+      "undefined undefined undefined"
+    ],
+    "explanation": "var tem escopo de função, então os três callbacks capturam o mesmo `i`. Os timeouts só rodam depois que o loop termina, quando i já vale 3. Trocar var por let cria uma binding nova a cada iteração e imprime 0 1 2."
+  },
+  {
+    "id": "js-closure-let-per-iteration-mutation",
+    "title": "Bindings let por iteração alteradas no corpo",
+    "question": "O que isto imprime?\n\nconst fns = [];\nfor (let i = 0; i < 3; i++) {\n  fns.push(() => i);\n  i++;\n}\nconsole.log(fns.map(f => f()));",
+    "options": [
+      "[0, 2]",
+      "[1, 3]",
+      "[0, 1, 2]",
+      "[2, 4]"
+    ],
+    "explanation": "Um loop for com let cria uma nova binding de i para cada iteração, mas as closures capturam a binding, não o valor no momento do push. A binding da primeira iteração é incrementada para 1 dentro do corpo; esse valor é copiado para a próxima binding e incrementado para 2, que o corpo aumenta para 3. Só duas iterações rodam, então as closures retornam 1 e 3."
+  },
+  {
+    "id": "js-proto-shadowing-assignment",
+    "title": "Atribuição sombreia uma propriedade do protótipo",
+    "question": "O que isto imprime?\n\nconst a = { x: 1 };\nconst b = Object.create(a);\nb.x = 2;\nconsole.log(a.x, b.x);",
+    "options": [
+      "2 2",
+      "1 1",
+      "2 1",
+      "1 2"
+    ],
+    "explanation": "Object.create(a) torna a o protótipo de b. Atribuir b.x cria uma nova propriedade própria em b que sombreia a herdada; não escreve no protótipo. Leituras de a.x continuam vendo 1, enquanto b.x encontra primeiro seu próprio valor 2."
+  },
+  {
+    "id": "js-class-field-vs-method-identity",
+    "title": "Métodos de classe vs campos com arrow function",
+    "question": "O que isto imprime?\n\nclass A {\n  m() {}\n  f = () => {};\n}\nconst a = new A(), b = new A();\nconsole.log(a.m === b.m, a.f === b.f);",
+    "options": [
+      "true false",
+      "true true",
+      "false false",
+      "false true"
+    ],
+    "explanation": "Métodos declarados no corpo da classe existem uma única vez em A.prototype, então as duas instâncias compartilham a mesma função. Campos de classe são inicializados por instância no construtor, então cada instância recebe uma nova arrow function. É por isso que campos arrow fixam o `this` de forma conveniente, mas custam memória por instância."
+  },
+  {
+    "id": "js-object-freeze-shallow",
+    "title": "Object.freeze é raso",
+    "question": "Em um script clássico (não módulo, sloppy mode), o que isto imprime?\n\nconst o = Object.freeze({ n: 1, inner: { n: 1 } });\no.n = 2;\no.inner.n = 2;\nconsole.log(o.n, o.inner.n);",
+    "options": [
+      "2 2",
+      "1 1",
+      "1 2",
+      "Lança um TypeError"
+    ],
+    "explanation": "Object.freeze congela apenas as propriedades próprias do objeto; objetos aninhados continuam mutáveis, então o.inner.n muda para 2. A escrita em o.n falha silenciosamente em sloppy mode e continua 1. Em strict mode (incluindo ES modules), a escrita em o.n lançaria um TypeError."
+  },
+  {
+    "id": "js-proto-inherited-setter",
+    "title": "Atribuição por um setter herdado",
+    "question": "O que isto imprime?\n\nconst proto = { set x(v) { this._x = v * 2; } };\nconst o = Object.create(proto);\no.x = 5;\nconsole.log(Object.hasOwn(o, \"x\"), o._x);",
+    "options": [
+      "true 5",
+      "false 10",
+      "true 10",
+      "false undefined"
+    ],
+    "explanation": "Quando a atribuição encontra uma propriedade accessor na cadeia de protótipos, ela chama esse setter com `this` apontando para o receptor, em vez de criar uma propriedade própria. Assim, o não ganha um `x` próprio, e o setter guarda 10 em o._x. Só propriedades de dados no protótipo são sombreadas por atribuição."
+  },
+  {
+    "id": "js-this-detached-method-strict",
+    "title": "Método destacado em um ES module",
+    "question": "Em um ES module, o que acontece aqui?\n\nconst counter = { n: 1, get() { return this.n; } };\nconst g = counter.get;\ng();",
+    "options": [
+      "Retorna 1",
+      "Retorna undefined",
+      "Lança um ReferenceError porque n não está definido",
+      "Lança um TypeError porque this é undefined"
+    ],
+    "explanation": "`this` é determinado pela forma como a função é chamada, não por onde ela é definida. g() é uma chamada simples, e módulos rodam em strict mode, então this é undefined e ler this.n lança um TypeError. Chamar counter.get() ou usar counter.get.bind(counter) retornaria 1."
+  },
+  {
+    "id": "js-this-bind-twice",
+    "title": "Fazendo bind de uma função já vinculada",
+    "question": "O que isto imprime?\n\nfunction f() { return this.v; }\nconst b = f.bind({ v: 1 }).bind({ v: 2 });\nconsole.log(b());",
+    "options": [
+      "1",
+      "2",
+      "undefined",
+      "Lança um TypeError"
+    ],
+    "explanation": "bind retorna uma bound function cujo `this` fica fixo para sempre. Fazer bind dessa função de novo cria um wrapper, mas a bound function interna ignora o novo thisArg, então o primeiro bind ({ v: 1 }) prevalece. Só os argumentos parcialmente aplicados se acumulam em chamadas repetidas de bind."
+  },
+  {
+    "id": "js-this-setinterval-callback",
+    "title": "this dentro de um callback de timer",
+    "question": "Uma classe Timer nunca atualiza seu contador:\n\nclass Timer {\n  count = 0;\n  start() {\n    setInterval(function () { this.count++; }, 1000);\n  }\n}\n\nQual é a causa e a correção mais simples?",
+    "options": [
+      "O `this` do callback não é a instância; use uma arrow function",
+      "Callbacks de setInterval não podem alterar campos de classe; use um campo static",
+      "count é privado por padrão; declare-o como public count",
+      "start() precisa ser async para os timers dispararem; adicione async"
+    ],
+    "explanation": "Uma função comum passada para setInterval é invocada pelo mecanismo de timers, então seu `this` não é a instância de Timer (é o objeto global nos navegadores ou um objeto Timeout no Node). Uma arrow function não tem `this` próprio e usa lexicamente o `this` de start(), que é a instância. Campos de classe são públicos por padrão, e timers disparam sem async."
+  },
+  {
+    "id": "js-async-await-sync-part",
+    "title": "Código antes do primeiro await roda de forma síncrona",
+    "question": "O que isto imprime?\n\nasync function f() {\n  console.log(1);\n  await null;\n  console.log(2);\n}\nf();\nconsole.log(3);",
+    "options": [
+      "1 2 3",
+      "3 1 2",
+      "1 3",
+      "1 3 2"
+    ],
+    "explanation": "Uma função async roda de forma síncrona até o primeiro await, então 1 é impresso imediatamente. Em seguida, o await suspende f e agenda o restante como microtask, deixando quem chamou continuar e imprimir 3. A microtask roda quando o script atual termina, imprimindo 2."
+  },
+  {
+    "id": "js-eventloop-timeout-vs-promise",
+    "title": "Ordem de setTimeout vs Promise.then",
+    "question": "O que isto imprime?\n\nconsole.log(\"A\");\nsetTimeout(() => console.log(\"B\"), 0);\nPromise.resolve().then(() => console.log(\"C\"));\nconsole.log(\"D\");",
+    "options": [
+      "A B C D",
+      "A D C B",
+      "A C D B",
+      "A D B C"
+    ],
+    "explanation": "O código síncrono roda primeiro, imprimindo A e D. Reações de Promise são microtasks, que são esvaziadas assim que a call stack fica vazia, então C vem em seguida. setTimeout agenda uma macrotask (task), que só roda depois que a fila de microtasks esvazia, mesmo com atraso de 0 ms."
+  },
+  {
+    "id": "js-async-foreach-not-awaited",
+    "title": "await dentro de forEach",
+    "question": "Por que \"done\" é impresso antes de qualquer item ser salvo?\n\nasync function saveAll(items) {\n  items.forEach(async (item) => { await save(item); });\n  console.log(\"done\");\n}",
+    "options": [
+      "await dentro de uma arrow function é erro de sintaxe e é ignorado",
+      "save() roda em uma worker thread e não pode ser aguardado",
+      "console.log sofre hoisting para antes do forEach em funções async",
+      "forEach ignora as promises retornadas pelo callback"
+    ],
+    "explanation": "forEach chama o callback async, que retorna uma promise imediatamente, e forEach descarta essa promise. Por isso, saveAll segue direto para o console.log. Use `for (const item of items) await save(item)` para trabalho sequencial ou `await Promise.all(items.map(save))` para trabalho em paralelo."
+  },
+  {
+    "id": "js-async-promise-all-rejection",
+    "title": "Promise.all quando uma entrada rejeita",
+    "question": "Você executa `await Promise.all([fetchA(), fetchB(), fetchC()])`, e fetchB rejeita após 100 ms enquanto os outros levam 2 s. O que acontece?",
+    "options": [
+      "Promise.all rejeita após ~100 ms; fetchA e fetchC continuam rodando",
+      "Promise.all espera 2 s e então rejeita com um array de resultados",
+      "Promise.all rejeita após ~100 ms e cancela fetchA e fetchC",
+      "Promise.all resolve com undefined no lugar do resultado de fetchB"
+    ],
+    "explanation": "Promise.all rejeita assim que qualquer entrada rejeita, com o motivo dessa rejeição. Promises não são canceláveis, então as outras operações continuam rodando e seus resultados são simplesmente ignorados. Se você precisa de todos os resultados, use Promise.allSettled; para realmente interromper as requisições, use um AbortController."
+  },
+  {
+    "id": "js-eventloop-nested-microtasks",
+    "title": "Microtasks enfileiradas a partir de microtasks",
+    "question": "O que isto imprime?\n\nsetTimeout(() => console.log(\"t1\"));\nPromise.resolve().then(() => {\n  console.log(\"p1\");\n  setTimeout(() => console.log(\"t2\"));\n  Promise.resolve().then(() => console.log(\"p2\"));\n});\nqueueMicrotask(() => console.log(\"m1\"));",
+    "options": [
+      "p1 m1 p2 t1 t2",
+      "p1 p2 m1 t1 t2",
+      "t1 p1 m1 p2 t2",
+      "p1 m1 t1 p2 t2"
+    ],
+    "explanation": "Depois do script, a fila de microtasks contém o callback de p1 e depois m1. Executar p1 enfileira p2 no fim da fila de microtasks (depois de m1) e agenda t2 atrás de t1. A fila de microtasks inteira é esvaziada, incluindo jobs recém-adicionados, antes de qualquer task de timer rodar, então t1 e t2 vêm por último, na ordem de registro."
+  },
+  {
+    "id": "js-async-return-promise-extra-ticks",
+    "title": "Retornando uma promise de uma função async",
+    "question": "O que isto imprime?\n\nasync function f() { return Promise.resolve(\"f\"); }\nf().then(console.log);\nPromise.resolve()\n  .then(() => console.log(\"a\"))\n  .then(() => console.log(\"b\"))\n  .then(() => console.log(\"c\"));",
+    "options": [
+      "a b f c",
+      "f a b c",
+      "a f b c",
+      "a b c f"
+    ],
+    "explanation": "Resolver a promise da função async com outra promise não é imediato: isso enfileira um PromiseResolveThenableJob, que chama .then na promise interna, que enfileira mais um job que finalmente cumpre a promise de f(). Só então a reação do console.log é enfileirada. Isso custa três turnos de microtask, então 'f' aparece depois de 'b' e antes de 'c'. Retornar o valor puro (ou `return await`) evita os ticks extras."
+  },
+  {
+    "id": "js-modules-dynamic-import",
+    "title": "O que import() retorna",
+    "question": "Qual é o resultado da expressão `import(\"./chart.js\")`?",
+    "options": [
+      "O export default do módulo, carregado de forma síncrona",
+      "Uma Promise que resolve apenas com o export default do módulo",
+      "Uma string de URL que o bundler substitui no build",
+      "Uma Promise que resolve com o namespace object do módulo"
+    ],
+    "explanation": "O import() dinâmico carrega um módulo de forma assíncrona e retorna uma promise do seu namespace object, que expõe todos os exports nomeados mais o `default`. Por ser assíncrono e poder ser usado em qualquer lugar, os bundlers o usam como ponto de code splitting para lazy loading."
+  },
+  {
+    "id": "js-modules-live-bindings",
+    "title": "Live bindings de ES modules",
+    "question": "Dado:\n\n// counter.js\nexport let count = 0;\nexport function inc() { count++; }\n\n// main.js\nimport { count, inc } from \"./counter.js\";\ninc();\nconsole.log(count);\n\nO que main.js imprime?",
+    "options": [
+      "1",
+      "0",
+      "undefined",
+      "Lança um TypeError em inc()"
+    ],
+    "explanation": "Imports de ES modules são live bindings para as variáveis do módulo exportador, não cópias de seus valores. Quando inc() incrementa count dentro de counter.js, main.js enxerga o novo valor 1. Mas quem importa não pode reatribuir count; `count = 5` em main.js lançaria um TypeError."
+  },
+  {
+    "id": "js-fetch-http-error-not-rejected",
+    "title": "fetch não rejeita em HTTP 404/500",
+    "question": "Uma função faz `try { const res = await fetch(url); return await res.json(); } catch { showError(); }`. O servidor retorna 404 com corpo HTML. O que acontece?",
+    "options": [
+      "fetch rejeita com um erro 404 e o catch roda imediatamente",
+      "fetch resolve; res.json() rejeita com o HTML e o catch roda",
+      "fetch resolve e res.json() retorna null para respostas não-2xx",
+      "fetch repete a requisição até receber uma resposta 2xx"
+    ],
+    "explanation": "fetch só rejeita em falhas de rede ou abort; status de erro HTTP ainda resolvem com uma Response cujo ok é false. Aqui a falha só aparece depois porque o corpo HTML não é JSON válido. Verifique `if (!res.ok) throw new Error(...)` antes do parse para tratar erros HTTP explicitamente."
+  },
+  {
+    "id": "js-fetch-abortcontroller",
+    "title": "Cancelando um fetch com AbortController",
+    "question": "Uma caixa de busca dispara um fetch a cada tecla, e você aborta a requisição anterior com `controller.abort()`. Como o fetch abortado termina?",
+    "options": [
+      "Sua promise resolve com uma Response de status 0",
+      "Sua promise fica pendente para sempre e vai para o garbage collector",
+      "Sua promise rejeita com uma DOMException chamada \"AbortError\"",
+      "Sua promise resolve com undefined"
+    ],
+    "explanation": "Passar `signal: controller.signal` para o fetch vincula a requisição ao controller; chamar abort() rejeita o fetch pendente (e qualquer leitura de corpo em andamento) com uma DOMException AbortError. O código deve capturá-la e ignorar erros cujo name seja \"AbortError\", para que buscas canceladas não sejam reportadas como falhas."
+  },
+  {
+    "id": "js-errors-cause",
+    "title": "Encapsulando erros com cause",
+    "question": "Você captura um erro de baixo nível do banco de dados e quer lançar um erro de nível mais alto sem perder o original. Qual é a forma padrão?",
+    "options": [
+      "throw new Error(\"Failed to load user\" + err.stack)",
+      "throw Object.assign(err, { message: \"Failed to load user\" })",
+      "throw new Error(\"Failed to load user\", { cause: err })",
+      "throw new Error(\"Failed to load user\", err)"
+    ],
+    "explanation": "O construtor de Error aceita um objeto de opções cuja propriedade cause guarda o erro original, preservando seu tipo e stack para logging e debugging. Concatenar stacks perde a estrutura, mutar o original esconde o contexto, e um segundo argumento posicional não é o cause (ele é ignorado no JavaScript padrão)."
+  },
+  {
+    "id": "js-errors-finally-return-override",
+    "title": "return dentro de finally",
+    "question": "O que `run()` retorna?\n\nfunction run() {\n  try {\n    return \"try\";\n  } finally {\n    return \"finally\";\n  }\n}",
+    "options": [
+      "\"try\"",
+      "undefined",
+      "Lança um SyntaxError",
+      "\"finally\""
+    ],
+    "explanation": "Um bloco finally sempre executa, e uma instrução de controle de fluxo como return dentro do finally sobrescreve o término do bloco try. O valor de retorno pendente 'try' (ou mesmo uma exceção lançada) é descartado. É por isso que retornar de dentro de finally geralmente é desencorajado."
+  },
+  {
+    "id": "js-memory-weakmap-metadata",
+    "title": "Anexando metadados sem vazamentos",
+    "question": "Uma biblioteca guarda em cache informações de layout calculadas para nós do DOM em um `Map<Element, Info>`. Nós removidos nunca são liberados. Qual mudança corrige o vazamento com o mínimo de código?",
+    "options": [
+      "Chamar map.clear() dentro de um setInterval a cada minuto",
+      "Usar um WeakMap, que não mantém suas chaves vivas",
+      "Guardar a informação como string JSON em vez de objeto",
+      "Trocar o Map por um objeto simples indexado pelo id do elemento"
+    ],
+    "explanation": "Um Map mantém referências fortes às suas chaves, então nós do DOM desanexados continuam alcançáveis enquanto o cache existir. Um WeakMap mantém as chaves de forma fraca; quando nada mais referencia um nó, ele e sua entrada podem ser coletados pelo garbage collector. Limpar periodicamente descarta dados vivos, e serializar os valores não libera as chaves."
+  },
+  {
+    "id": "js-memory-spa-listener-leak",
+    "title": "Heap crescendo em uma single-page app",
+    "question": "Em uma SPA, heap snapshots mostram milhares de árvores DOM desanexadas depois de navegar entre views. Cada view executa `window.addEventListener(\"resize\", () => this.layout())` ao montar. Qual é a causa mais provável?",
+    "options": [
+      "Os listeners de window nunca são removidos e mantêm as views antigas vivas",
+      "Arrow functions nunca são coletadas pelo garbage collector em engines modernas",
+      "O evento resize dispara com frequência demais e lota a fila de microtasks",
+      "Árvores DOM desanexadas são esperadas e só são liberadas ao recarregar a página"
+    ],
+    "explanation": "window vive durante toda a página, então cada listener (e a closure que captura `this` e seus nós DOM) continua alcançável depois que a view é desmontada. Remover o listener no unmount, por exemplo com removeEventListener ou um AbortSignal passado para addEventListener, torna a view antiga coletável. Arrow functions são coletadas normalmente quando ficam inalcançáveis."
+  },
+  {
+    "id": "ts-basic-let-vs-const-literal",
+    "title": "Inferência de literais com let vs const",
+    "question": "Quais tipos o TypeScript infere?\n\nlet a = \"hi\";\nconst b = \"hi\";",
+    "options": [
+      "a: \"hi\", b: \"hi\"",
+      "a: string, b: \"hi\"",
+      "a: string, b: string",
+      "a: any, b: \"hi\""
+    ],
+    "explanation": "Um primitivo const nunca pode mudar, então o TypeScript mantém seu tipo literal \"hi\". Uma variável let pode ser reatribuída depois, então seu literal é alargado para string. Esse alargamento de literais é o motivo de às vezes ser necessário usar `as const` ou anotações explícitas."
+  },
+  {
+    "id": "ts-basic-unknown-vs-any",
+    "title": "Usando um valor unknown",
+    "question": "O que o compilador reporta?\n\nconst v: unknown = JSON.parse(input);\nv.toUpperCase();",
+    "options": [
+      "Nenhum erro; unknown se comporta como any",
+      "Error: Property 'toUpperCase' does not exist on type 'object'",
+      "Nenhum erro, mas um aviso é emitido em runtime",
+      "Error: 'v' is of type 'unknown'"
+    ],
+    "explanation": "unknown é a contraparte type-safe de any: qualquer coisa pode ser atribuída a ele, mas você não pode usá-lo até estreitá-lo (por exemplo, com `typeof v === \"string\"`). Com any, a chamada compilaria e poderia quebrar em runtime. Por isso unknown é preferido para entradas não confiáveis, como JSON parseado."
+  },
+  {
+    "id": "ts-interface-declaration-merging",
+    "title": "Declaration merging: interface vs type",
+    "question": "Você declara o mesmo nome duas vezes em um módulo, primeiro com `interface Config { a: string }` e depois com `interface Config { b: number }`. Se usasse `type Config = ...` duas vezes, o que mudaria?",
+    "options": [
+      "Interfaces se fundem em uma; type aliases duplicados são erro",
+      "As duas formas se fundem, mas type aliases tornam os membros finais opcionais",
+      "Interfaces dão erro 'Duplicate identifier'; type aliases se fundem",
+      "As duas formas dão erro; nenhuma pode ser declarada duas vezes"
+    ],
+    "explanation": "Interfaces suportam declaration merging: várias declarações com o mesmo nome combinam seus membros, que é como bibliotecas permitem estender tipos como Window. Type aliases são declarações únicas e fechadas, e declarar o mesmo alias duas vezes gera o erro 'Duplicate identifier'."
+  },
+  {
+    "id": "ts-interface-excess-property-check",
+    "title": "Excess property checks",
+    "question": "Dado `interface Point { x: number; y: number }`, qual linha não compila?\n\nconst raw = { x: 1, y: 2, z: 3 };\nconst p1: Point = raw;                  // (1)\nconst p2: Point = { x: 1, y: 2, z: 3 };  // (2)",
+    "options": [
+      "Só a (1), porque raw tem uma propriedade extra z",
+      "Ambas, porque Point não declara z",
+      "Nenhuma, porque a tipagem estrutural ignora propriedades extras",
+      "Só a (2), porque object literals passam por excess property check"
+    ],
+    "explanation": "O TypeScript é estrutural, então uma variável com propriedades extras ainda é atribuível a Point e a (1) compila. Object literals atribuídos diretamente a um alvo tipado passam por um 'excess property check' adicional, que reporta 'Object literal may only specify known properties' porque z provavelmente é um erro de digitação."
+  },
+  {
+    "id": "ts-generics-constraint-length",
+    "title": "Acessando propriedades em um type parameter",
+    "question": "Por que isto não compila, e qual é a correção idiomática?\n\nfunction len<T>(x: T) { return x.length; }",
+    "options": [
+      "Funções genéricas não podem ler propriedades de T; faça cast de x para any",
+      "length é um nome reservado; renomeie o type parameter T para L",
+      "T pode não ter length; restrinja com T extends { length: number }",
+      "T precisa de um default; escreva <T = string>"
+    ],
+    "explanation": "Um T sem restrição pode ser number, boolean ou qualquer outra coisa, então o TypeScript reporta que 'length' não existe no tipo 'T'. Adicionar uma restrição (`T extends { length: number }`) limita quem chama a tipos que têm length, mantendo a função genérica. Fazer cast para any só remove a segurança de tipos."
+  },
+  {
+    "id": "ts-generics-keyof-indexed-access",
+    "title": "Restrições com keyof e indexed access",
+    "question": "Qual é o tipo de `v`?\n\nfunction get<T, K extends keyof T>(o: T, k: K): T[K] { return o[k]; }\nconst v = get({ a: 1, b: \"x\" }, \"b\");",
+    "options": [
+      "string | number",
+      "string",
+      "unknown",
+      "\"b\""
+    ],
+    "explanation": "K é inferido como o literal \"b\", que a restrição garante ser uma chave de T. O tipo de retorno T[K] é um indexed access type, então resolve para o tipo da propriedade b, que é string. Passar uma chave como \"c\" seria erro de compilação."
+  },
+  {
+    "id": "ts-generics-const-type-parameter",
+    "title": "const type parameters",
+    "question": "Com TypeScript 5.x, qual tipo é inferido para `t`?\n\nfunction tuple<const T extends readonly unknown[]>(x: T): T { return x; }\nconst t = tuple([\"a\", \"b\"]);",
+    "options": [
+      "string[]",
+      "(\"a\" | \"b\")[]",
+      "readonly [\"a\", \"b\"]",
+      "[string, string]"
+    ],
+    "explanation": "O modificador const em um type parameter (adicionado no TypeScript 5.0) faz a inferência se comportar como se quem chama tivesse escrito `as const`. Por isso, o array literal é inferido como uma tupla readonly de tipos literais em vez de ser alargado para string[]. A restrição readonly é necessária para que a tupla readonly seja atribuível a T."
+  },
+  {
+    "id": "ts-generics-noinfer",
+    "title": "Bloqueando inferência com NoInfer",
+    "question": "Qual chamada não compila?\n\ndeclare function light<C extends string>(colors: C[], d?: NoInfer<C>): void;\ndeclare function light2<C extends string>(colors: C[], d?: C): void;\nlight([\"red\", \"green\"], \"blue\");   // (1)\nlight2([\"red\", \"green\"], \"blue\");  // (2)",
+    "options": [
+      "Só a (2)",
+      "Ambas",
+      "Nenhuma",
+      "Só a (1)"
+    ],
+    "explanation": "Em light2, \"blue\" é um candidato válido de inferência, então C vira \"red\" | \"green\" | \"blue\" e a chamada compila. NoInfer<C> exclui o segundo parâmetro da inferência, então em light C é inferido só a partir de colors como \"red\" | \"green\" e \"blue\" é rejeitado. Esse é o uso pretendido de NoInfer para defaults que precisam vir de um conjunto existente."
+  },
+  {
+    "id": "ts-narrowing-union-method-error",
+    "title": "Chamando um método em uma union",
+    "question": "O que o compilador diz sobre esta função?\n\nfunction shout(x: string | number) {\n  return x.toUpperCase();\n}",
+    "options": [
+      "Nenhum erro; o TypeScript escolhe o membro string automaticamente",
+      "Error: 'x' is possibly 'undefined'",
+      "Error: Property 'toUpperCase' does not exist on type 'string | number'",
+      "Nenhum erro, mas o tipo de retorno é inferido como any"
+    ],
+    "explanation": "Em uma union você só pode usar membros que existem em todos os constituintes, e number não tem toUpperCase. É preciso estreitar antes, por exemplo `if (typeof x === \"string\") return x.toUpperCase();`, e então o TypeScript sabe que x é string naquele branch."
+  },
+  {
+    "id": "ts-narrowing-exhaustive-never",
+    "title": "Verificação de exaustividade com never",
+    "question": "Uma discriminated union `Shape` ganha um novo membro `{ kind: \"triangle\"; base: number }`. O switch abaixo trata apenas \"circle\" e \"square\". O que acontece?\n\ndefault:\n  const _exhaustive: never = shape;\n  return _exhaustive;",
+    "options": [
+      "Compila; o default trata triângulos silenciosamente",
+      "Erro de compilação: triangle não é atribuível a never",
+      "TypeError em runtime quando um triângulo chega ao default",
+      "Erro de compilação na linha do case \"circle\""
+    ],
+    "explanation": "Cada case estreita o discriminante, então no default o tipo restante é o dos membros não tratados. Antes da mudança era never; agora é o tipo triangle, que não pode ser atribuído a never, então o compilador aponta cada switch que precisa ser atualizado. A anotação em si não verifica nada em runtime."
+  },
+  {
+    "id": "ts-narrowing-typeof-object-null",
+    "title": "typeof \"object\" não exclui null",
+    "question": "Por que isto não compila em strict mode?\n\nfunction printAll(strs: string | string[] | null) {\n  if (typeof strs === \"object\") {\n    for (const s of strs) console.log(s);\n  }\n}",
+    "options": [
+      "for...of não consegue iterar um tipo union",
+      "Narrowing com typeof só funciona em unions de tipos primitivos",
+      "typeof null é \"object\", então strs ainda pode ser null",
+      "strs precisa ser declarado com let para ser estreitado"
+    ],
+    "explanation": "O TypeScript modela o JavaScript fielmente: `typeof null === \"object\"`, então o tipo estreitado nesse branch é string[] | null, e iterá-lo reporta \"'strs' is possibly 'null'\". Adicionar uma checagem de truthiness ou `strs !== null` remove o null. As outras opções descrevem restrições que não existem."
+  },
+  {
+    "id": "ts-narrowing-inferred-type-predicate",
+    "title": "Type predicates inferidos no filter",
+    "question": "No TypeScript 5.5 ou superior, qual é o tipo de `nums`?\n\nconst nums = [1, null, 2].filter(x => x !== null);",
+    "options": [
+      "number[]",
+      "(number | null)[]",
+      "unknown[]",
+      "readonly number[]"
+    ],
+    "explanation": "O TypeScript 5.5 infere type predicates a partir do corpo das funções, então `x => x !== null` é tratado como `(x) => x is number`, e o overload de filter retorna number[]. Antes do 5.5 o callback retornava apenas boolean e o resultado continuava (number | null)[], exigindo um type guard manual."
+  },
+  {
+    "id": "ts-utility-partial-update",
+    "title": "Tipando um objeto de patch",
+    "question": "Uma função `updateUser(id, changes)` deve aceitar qualquer subconjunto dos campos de `User`. Qual tipo serve melhor para `changes`?",
+    "options": [
+      "Required<User>",
+      "Readonly<User>",
+      "Partial<User>",
+      "Record<keyof User, unknown>"
+    ],
+    "explanation": "Partial<User> torna todas as propriedades opcionais mantendo o tipo de cada uma, que é exatamente um objeto de patch. Required obriga todos os campos, Readonly só bloqueia reatribuição, e Record<keyof User, unknown> exigiria todas as chaves e perderia os tipos das propriedades."
+  },
+  {
+    "id": "ts-utility-awaited-returntype",
+    "title": "Tipo do resultado de uma função async",
+    "question": "Dado `async function fetchUser() { return { id: 1, name: \"Ada\" }; }` (sem tipo exportado), como obter o tipo `{ id: number; name: string }`?",
+    "options": [
+      "ReturnType<fetchUser>",
+      "ReturnType<typeof fetchUser>",
+      "Awaited<ReturnType<typeof fetchUser>>",
+      "InstanceType<typeof fetchUser>"
+    ],
+    "explanation": "typeof fetchUser fornece o tipo da função, e o ReturnType dele é Promise<{ id: number; name: string }>, porque funções async retornam promises. Awaited desembrulha a promise para o tipo resolvido. ReturnType<fetchUser> é erro porque fetchUser é um valor, e InstanceType só se aplica a construtores."
+  },
+  {
+    "id": "ts-utility-record-union-keys",
+    "title": "Record com uma union de chaves",
+    "question": "O que acontece aqui?\n\ntype Status = \"active\" | \"banned\";\nconst labels: Record<Status, string> = { active: \"Active\" };",
+    "options": [
+      "Compila; chaves de Record são opcionais",
+      "Compila, e labels.banned é tipado como string | undefined",
+      "Erro de compilação: a propriedade 'banned' está faltando",
+      "Erro de compilação: chaves de Record precisam ser string"
+    ],
+    "explanation": "Record<K, V> é um mapped type que produz uma propriedade obrigatória para cada membro de K. Omitir banned é reportado como ausente, o que é útil para tabelas de lookup exaustivas. Use Partial<Record<Status, string>> se algumas chaves puderem faltar."
+  },
+  {
+    "id": "ts-enum-reverse-mapping",
+    "title": "Reverse mapping em enums",
+    "question": "O que estas expressões retornam?\n\nenum Dir { Up, Down }\nenum Color { Red = \"RED\" }\n\nDir[0]\n(Color as any)[\"RED\"]",
+    "options": [
+      "\"Up\" e \"Red\"",
+      "0 e \"RED\"",
+      "\"Up\" e undefined",
+      "undefined e \"Red\""
+    ],
+    "explanation": "Enums numéricos compilam para um objeto com entradas nome-para-valor e valor-para-nome, então Dir[0] é \"Up\". Membros de enums de string não ganham reverse mapping, então procurar o valor \"RED\" não encontra nada. Essa assimetria importa ao iterar objetos de enum com Object.keys."
+  },
+  {
+    "id": "ts-modules-verbatim-module-syntax",
+    "title": "verbatimModuleSyntax e imports type-only",
+    "question": "Com `verbatimModuleSyntax: true`, um arquivo contém `import { User } from \"./types\";`, onde User é apenas um tipo. O que acontece?",
+    "options": [
+      "Erro de compilação: User exige um import type-only",
+      "O import é removido silenciosamente do JavaScript emitido",
+      "Compila, e o JS mantém o import, falhando em runtime",
+      "O TypeScript reescreve automaticamente para import type"
+    ],
+    "explanation": "verbatimModuleSyntax faz o TypeScript emitir os imports exatamente como escritos, removendo só os marcados com `type`. Como manter um import de valor de um export que é só tipo quebraria em runtime, o compilador reporta o erro TS1484 e pede `import type { User }` ou `import { type User }`. Isso torna a saída previsível para transpiladores que trabalham arquivo por arquivo."
+  },
+  {
+    "id": "ts-advanced-mapped-minus-optional",
+    "title": "Modificadores de mapped types",
+    "question": "O que este mapped type produz?\n\ntype X<T> = { -readonly [K in keyof T]-?: T[K] };",
+    "options": [
+      "Uma cópia de T com todas as propriedades como readonly e opcionais",
+      "Uma cópia de T com todas as propriedades mutáveis e obrigatórias",
+      "Um tipo contendo só as propriedades opcionais de T",
+      "Um tipo com as chaves de T mapeadas para o valor -1"
+    ],
+    "explanation": "Em mapped types, os modificadores `readonly` e `?` podem ser adicionados com + (o padrão) ou removidos com -. `-readonly` remove readonly e `-?` remove a opcionalidade, então X equivale a combinar o Required nativo com uma versão mutável de T."
+  },
+  {
+    "id": "ts-advanced-satisfies",
+    "title": "satisfies vs anotação de tipo",
+    "question": "Qual versão permite que `palette.green.toUpperCase()` compile?\n\n// A\nconst palette: Record<string, string | number[]> = { red: [255, 0, 0], green: \"#0f0\" };\n// B\nconst palette = { red: [255, 0, 0], green: \"#0f0\" } satisfies Record<string, string | number[]>;",
+    "options": [
+      "Só a A",
+      "Ambas",
+      "Só a B",
+      "Nenhuma"
+    ],
+    "explanation": "Uma anotação faz o tipo da variável ser exatamente o Record declarado, então palette.green é string | number[] e toUpperCase não é permitido. satisfies verifica o valor contra o tipo, mas mantém o tipo inferido mais específico, então green continua string. Esse é o exemplo que motivou o operador adicionado no TypeScript 4.9."
+  },
+  {
+    "id": "ts-advanced-distributive-conditional",
+    "title": "Conditional types distributivos",
+    "question": "O que é `R`?\n\ntype ToArray<T> = T extends any ? T[] : never;\ntype R = ToArray<string | number>;",
+    "options": [
+      "string[] | number[]",
+      "Array<string | number>",
+      "never",
+      "any[]"
+    ],
+    "explanation": "Quando um conditional type verifica um type parameter nu, ele se distribui sobre unions: a checagem é aplicada a string e a number separadamente, e os resultados são unidos. Para obter (string | number)[], envolva os dois lados em colchetes: `[T] extends [any] ? T[] : never`."
+  },
+  {
+    "id": "ts-advanced-isnever-distribution",
+    "title": "Conditional types aplicados a never",
+    "question": "O que é `R`?\n\ntype IsNever<T> = T extends never ? true : false;\ntype R = IsNever<never>;",
+    "options": [
+      "true",
+      "false",
+      "boolean",
+      "never"
+    ],
+    "explanation": "never se comporta como uma union vazia. Como T é um type parameter nu, o conditional se distribui sobre os membros da union, e com zero membros o resultado é never em vez de true. A correção usual é desativar a distribuição com `[T] extends [never] ? true : false`."
+  },
+  {
+    "id": "react-jsx-adjacent-elements",
+    "title": "Retornando elementos irmãos",
+    "question": "Um componente retorna `<h1>Title</h1><p>Body</p>` e o build falha. Qual é a correção idiomática que não adiciona nenhum nó extra ao DOM?",
+    "options": [
+      "Envolvê-los em uma <div>",
+      "Retorná-los como uma expressão separada por vírgulas",
+      "Envolvê-los em um Fragment: <>...</>",
+      "Dividi-los em dois return statements separados"
+    ],
+    "explanation": "JSX compila para chamadas de função, e uma função só pode retornar um valor, então elementos adjacentes precisam de um único pai. Um Fragment os agrupa sem adicionar um elemento ao DOM. Uma div também funciona, mas adiciona markup que pode quebrar o estilo, e múltiplos returns ou expressões com vírgula não produzem os dois elementos."
+  },
+  {
+    "id": "react-jsx-zero-and-condition",
+    "title": "Renderizando 0 com &&",
+    "question": "Uma página mostra um \"0\" perdido quando o carrinho está vazio. O JSX é `{items.length && <CartBadge count={items.length} />}`. Por quê?",
+    "options": [
+      "O React renderiza false como a string \"0\"",
+      "&& retorna 0, e o React renderiza o número 0 como texto",
+      "CartBadge renderiza sua prop count quando ela é falsy",
+      "items.length é uma string, então é sempre truthy"
+    ],
+    "explanation": "`a && b` resulta em a quando a é falsy. O React ignora false, null e undefined, mas 0 é um filho numérico válido e é renderizado como texto. Torne o lado esquerdo um boolean de verdade, como `items.length > 0 && ...`, ou use um ternário."
+  },
+  {
+    "id": "react-state-snapshot-log",
+    "title": "Lendo o state logo depois de atualizá-lo",
+    "question": "Com `count` em 0, um click handler executa `setCount(count + 1); console.log(count);`. O que é impresso?",
+    "options": [
+      "1",
+      "0",
+      "undefined",
+      "Depende de o batching estar habilitado"
+    ],
+    "explanation": "O state se comporta como um snapshot: a variável count neste render está fixa em 0. setCount agenda um re-render com o novo valor, mas não altera a variável local, então o log imprime 0. O count do próximo render será 1."
+  },
+  {
+    "id": "react-state-batched-updates",
+    "title": "Várias chamadas de setState em um handler",
+    "question": "Com `count` em 0, qual é o valor de `count` depois que este click handler roda e o React faz o re-render?\n\nsetCount(count + 1);\nsetCount(count + 1);\nsetCount(count + 1);",
+    "options": [
+      "3",
+      "1",
+      "0",
+      "2"
+    ],
+    "explanation": "Cada chamada calcula `0 + 1` a partir do snapshot do mesmo render, então as três enfileiram o valor 1. O React agrupa tudo em um único re-render com count 1. Use a forma updater `setCount(c => c + 1)` três vezes para obter 3, porque cada updater recebe o state pendente mais recente."
+  },
+  {
+    "id": "react-state-mutation-no-rerender",
+    "title": "Mutando um objeto de state",
+    "question": "Clicar em Rename não atualiza a tela:\n\nconst [user, setUser] = useState({ name: \"Ada\" });\nfunction rename() { user.name = \"Grace\"; setUser(user); }\n\nPor quê?",
+    "options": [
+      "Objetos no state são congelados, então a atribuição é ignorada em silêncio",
+      "setUser precisa ser aguardado com await antes de a UI atualizar",
+      "setUser recebe a mesma referência, então o React pula o re-render",
+      "O React só faz re-render quando um state primitivo muda"
+    ],
+    "explanation": "O React compara o novo state com o antigo usando Object.is. Mutar o objeto e passar a mesma referência parece nenhuma mudança, então a atualização pode ser ignorada. Crie um novo objeto, por exemplo `setUser({ ...user, name: \"Grace\" })`, para que o React detecte a mudança."
+  },
+  {
+    "id": "react-hooks-lazy-initial-state",
+    "title": "State inicial lazy",
+    "question": "`useState(buildIndex(items))` está lento porque buildIndex é caro. Qual é a correção?",
+    "options": [
+      "Passe a própria função: useState(() => buildIndex(items))",
+      "Faça a chamada em um useEffect e atualize o state depois",
+      "Mova buildIndex para um inicializador de useRef",
+      "Marque o componente com memo()"
+    ],
+    "explanation": "Argumentos são avaliados a cada render, então buildIndex roda toda vez, embora o React só use o valor inicial uma vez. Passar uma função inicializadora faz o React chamá-la só no primeiro render. Atualizar o state em um effect causaria um render extra e um flash de state vazio."
+  },
+  {
+    "id": "react-hooks-strictmode-double-effect",
+    "title": "Effects no StrictMode em desenvolvimento",
+    "question": "Em desenvolvimento com <StrictMode>, um componente tem `useEffect(() => { connect(); return () => disconnect(); }, [])`. O que os logs mostram na montagem?",
+    "options": [
+      "só connect",
+      "connect, connect",
+      "connect, disconnect, connect",
+      "disconnect, connect"
+    ],
+    "explanation": "Em desenvolvimento, o StrictMode executa um ciclo extra de setup e cleanup logo após a montagem para revelar effects com cleanup ausente ou incorreto. Builds de produção executam o setup uma vez. Se o ciclo duplo quebra sua feature, o problema é o cleanup incompleto, não o StrictMode."
+  },
+  {
+    "id": "react-hooks-stale-closure-interval",
+    "title": "State desatualizado em um interval",
+    "question": "Este contador mostra 1 e depois nunca mais muda. Por quê?\n\nconst [count, setCount] = useState(0);\nuseEffect(() => {\n  const id = setInterval(() => setCount(count + 1), 1000);\n  return () => clearInterval(id);\n}, []);",
+    "options": [
+      "O effect capturou count = 0 para sempre; use setCount(c => c + 1)",
+      "setInterval é bloqueado pelo scheduler do React após o primeiro tick",
+      "O cleanup limpa o interval depois da primeira execução",
+      "useState não pode ser atualizado a partir de callbacks de timer"
+    ],
+    "explanation": "Com um array de dependências vazio, o effect roda uma vez, então o callback do interval captura o count do primeiro render (0) e continua definindo 1. A forma updater lê o state mais recente em vez do valor capturado, e ainda remove count das dependências do effect."
+  },
+  {
+    "id": "react-hooks-object-dependency",
+    "title": "Objeto criado no render como dependência",
+    "question": "Um componente de chat reconecta a cada tecla digitada em um input não relacionado:\n\nconst options = { serverUrl, roomId };\nuseEffect(() => {\n  const c = createConnection(options);\n  c.connect();\n  return () => c.disconnect();\n}, [options]);\n\nQual é a melhor correção?",
+    "options": [
+      "Crie options dentro do effect; dependa de [serverUrl, roomId]",
+      "Remova options do array de dependências e silencie a regra do lint",
+      "Envolva createConnection em useCallback para o effect ficar estável",
+      "Guarde options no state com useState para a identidade ficar estável"
+    ],
+    "explanation": "options é um novo objeto a cada render, então a dependência é diferente pelo Object.is e o effect roda de novo a cada re-render. Mover o objeto para dentro do effect deixa só dependências primitivas, que mudam apenas quando a sala realmente muda. Omitir uma dependência real causa bugs de valor desatualizado e viola a regra do lint."
+  },
+  {
+    "id": "react-hooks-fetch-race-condition",
+    "title": "Race condition ao buscar dados em um effect",
+    "question": "Uma página de perfil busca dados com `useEffect(() => { fetchUser(id).then(setUser); }, [id])`. Ao trocar rapidamente do usuário 1 para o usuário 2, às vezes aparece o usuário 1. O que corrige isso?",
+    "options": [
+      "Use uma flag ignore no cleanup e descarte respostas antigas",
+      "Adicione setUser ao array de dependências para ficar sincronizado",
+      "Troque useEffect por useLayoutEffect para o fetch rodar antes",
+      "Chame fetchUser durante o render em vez de dentro de um effect"
+    ],
+    "explanation": "Respostas podem chegar fora de ordem, então a resposta mais lenta do usuário 1 pode sobrescrever a do usuário 2. O cleanup do id anterior roda antes do próximo effect, então definir `ignore = true` ali descarta respostas desatualizadas (abortar a requisição com AbortController também funciona). useLayoutEffect não muda o tempo da rede, e setUser já é estável."
+  },
+  {
+    "id": "react-memo-usememo-purpose",
+    "title": "O que o useMemo faz",
+    "question": "O que `const visible = useMemo(() => filterTodos(todos, tab), [todos, tab]);` faz?",
+    "options": [
+      "Executa filterTodos em uma thread em segundo plano",
+      "Guarda o resultado em cache para sempre, entre todas as instâncias",
+      "Evita o re-render do componente quando todos não muda",
+      "Guarda o resultado entre re-renders até todos ou tab mudarem"
+    ],
+    "explanation": "useMemo armazena o valor calculado e o retorna nos renders seguintes enquanto as dependências forem iguais pelo Object.is. É um cache por instância do componente que o React pode descartar, não um cache global, e não impede o próprio componente de fazer re-render."
+  },
+  {
+    "id": "react-memo-inline-callback",
+    "title": "memo anulado por um callback inline",
+    "question": "`const List = memo(function List({ items, onSelect }) {...})` ainda faz re-render sempre que o pai digita em uma caixa de busca. O pai renderiza `<List items={items} onSelect={(id) => setSelected(id)} />`. Por quê?",
+    "options": [
+      "memo só funciona em class components, não em funções",
+      "memo compara as props em profundidade e items é um array grande",
+      "setSelected muda de identidade a cada render",
+      "A arrow inline é uma nova função a cada render"
+    ],
+    "explanation": "memo só pula um re-render se todas as props forem iguais pelo Object.is. Uma nova arrow function é criada a cada render do pai, então onSelect sempre difere. Envolvê-la em useCallback (ou passar setSelected diretamente, que é estável) faz o memo funcionar. memo compara de forma rasa, não profunda."
+  },
+  {
+    "id": "react-memo-children-prop",
+    "title": "memo com children JSX",
+    "question": "Um `Card = memo(CardImpl)` pesado é renderizado como `<Card title=\"Stats\"><Chart data={data} /></Card>` em um pai que faz re-render a cada segundo. data é estável. Por que Card faz re-render a cada segundo?",
+    "options": [
+      "memo ignora componentes que recebem uma prop title",
+      "Chart faz Card renderizar de novo por ser seu filho",
+      "memo é desativado em builds de desenvolvimento",
+      "children é um novo elemento JSX a cada render"
+    ],
+    "explanation": "JSX como `<Chart data={data} />` cria um novo objeto de elemento cada vez que o pai renderiza, e ele é passado para Card como a prop children. A comparação rasa do memo vê um objeto diferente e faz re-render. Memoize o elemento (por exemplo, com useMemo) ou reestruture para que o pai que muda não seja o dono dos children."
+  },
+  {
+    "id": "react-memo-react-compiler",
+    "title": "React Compiler e memoização manual",
+    "question": "Seu time habilita o React Compiler em uma codebase React 19. Qual afirmação descreve melhor o efeito sobre a memoização manual?",
+    "options": [
+      "Elimina a necessidade de arrays de dependências em useEffect e useLayoutEffect",
+      "Memoiza sozinho, dispensando a maioria dos novos useMemo/useCallback/memo",
+      "Converte todos os componentes em React Server Components",
+      "Compara props em profundidade em runtime para pular renders"
+    ],
+    "explanation": "O React Compiler analisa os componentes em tempo de build e insere memoização automaticamente, contando com código que siga as Rules of React. A memoização manual existente continua funcionando e pode ficar, mas código novo raramente precisa dela. Ele não muda a semântica das dependências de effects nem as fronteiras server/client, e não adiciona comparações profundas em runtime."
+  },
+  {
+    "id": "react-ref-no-rerender",
+    "title": "Alterar uma ref não causa re-render",
+    "question": "Um componente guarda um contador de cliques em `const clicks = useRef(0)` e renderiza `{clicks.current}`. Um handler faz `clicks.current++`. O que o usuário vê?",
+    "options": [
+      "O número atualiza imediatamente a cada clique, como um state",
+      "A tela fica desatualizada até algo causar outro re-render",
+      "O React lança erro porque refs são somente leitura em eventos",
+      "O número atualiza, mas o componente perde seu state"
+    ],
+    "explanation": "Refs são contêineres mutáveis que persistem entre renders, mas alterar ref.current não avisa o React para fazer re-render. A UI continua mostrando o valor do último render. Use state para valores que determinam o que aparece na tela, e refs para valores como ids de timer ou nós DOM que não afetam a saída."
+  },
+  {
+    "id": "react-ref-as-prop-react19",
+    "title": "Passando refs para function components no React 19",
+    "question": "No React 19, como um function component `MyInput` deve permitir que o pai obtenha uma ref para seu <input> interno?",
+    "options": [
+      "Receber ref como uma prop comum e repassá-la ao <input>",
+      "Envolvê-lo em forwardRef, que agora é obrigatório no React 19",
+      "Usar useImperativeHandle sem um parâmetro de ref",
+      "Ler a ref de um context fornecido pelo componente pai"
+    ],
+    "explanation": "A partir do React 19, function components recebem ref como uma prop normal, então `function MyInput({ ref, ...props }) { return <input ref={ref} {...props} />; }` funciona. forwardRef não é mais necessário e está previsto para ser descontinuado. useImperativeHandle ainda precisa de uma ref para se conectar."
+  },
+  {
+    "id": "react-context-unstable-value",
+    "title": "Valor de context recriado a cada render",
+    "question": "A raiz do app renderiza `<AuthContext value={{ user, login }}>` e faz re-render a cada mudança de rota. Todo componente que usa AuthContext faz re-render na navegação, mesmo com user inalterado. O que corrige isso?",
+    "options": [
+      "Trocar useContext por use nos consumidores",
+      "Memoizar value com useMemo e login com useCallback",
+      "Mover AuthContext para um arquivo separado",
+      "Envolver cada consumidor em memo()"
+    ],
+    "explanation": "O object literal é novo a cada render, e o React faz re-render de todos os consumidores quando o valor do context não é igual ao anterior pelo Object.is. Memoizar o objeto (e a função que ele contém) mantém o valor estável a menos que user mude. memo nos consumidores não ajuda, porque mudanças de context ignoram o memo."
+  },
+  {
+    "id": "react-custom-hook-state-not-shared",
+    "title": "Custom hooks compartilham state?",
+    "question": "Dois componentes irmãos chamam `const isOnline = useOnlineStatus();`, um custom hook que usa useState e useEffect. Como o state é tratado?",
+    "options": [
+      "Os dois componentes compartilham um único valor de state",
+      "Cada componente tem seu próprio state independente",
+      "A segunda chamada reaproveita o effect da primeira",
+      "Só o primeiro componente montado recebe atualizações"
+    ],
+    "explanation": "Custom hooks compartilham lógica com state, não o state em si. Cada chamada executa seu próprio useState e useEffect dentro do componente que chama, então cada componente tem uma cópia separada. Para compartilhar um único valor, eleve o state ou forneça-o via context ou uma store externa."
+  },
+  {
+    "id": "react-custom-hook-conditional-call",
+    "title": "Chamando um hook condicionalmente",
+    "question": "Um componente faz `if (isAdmin) { const stats = useAdminStats(); }`. Quando isAdmin muda de false para true, o React gera erro. Por quê?",
+    "options": [
+      "O React identifica hooks pela ordem de chamada, que é fixa",
+      "Custom hooks só podem ser chamados de outros custom hooks",
+      "useAdminStats precisa ser declarado antes do componente",
+      "Hooks dentro de blocos if só rodam durante o primeiro render"
+    ],
+    "explanation": "O React associa o state de cada hook à sua posição na sequência de chamadas. Uma chamada condicional muda o número e a ordem dos hooks entre renders, o que corrompe esse mapeamento e dispara erros como 'Rendered more hooks than during the previous render'. Chame hooks incondicionalmente no nível superior e coloque a condição dentro do hook ou na saída do render."
+  },
+  {
+    "id": "react-custom-hook-unstable-return",
+    "title": "Função instável retornada por um custom hook",
+    "question": "`useChat()` retorna `{ messages, send }`, onde `send` é definida como uma função comum dentro do hook. Um consumidor executa `useEffect(() => { send(\"joined\"); }, [send])` e envia \"joined\" a cada render. Qual é a melhor correção?",
+    "options": [
+      "Envolver send em useCallback dentro do hook",
+      "Remover send do array de dependências do consumidor",
+      "Retornar send de um useRef dentro do consumidor",
+      "Renomear o hook para não começar com use"
+    ],
+    "explanation": "Uma função declarada dentro de um hook é recriada a cada render, então o effect do consumidor vê uma nova dependência toda vez. Estabilizá-la com useCallback no hook corrige todos os consumidores de uma vez. Omitir a dependência esconde o problema e arrisca closures desatualizadas."
+  },
+  {
+    "id": "react-render-parent-rerenders-children",
+    "title": "O que faz re-render quando o state do pai muda",
+    "question": "O state de um componente pai muda. Por padrão, quais componentes fazem re-render?",
+    "options": [
+      "Só o componente pai",
+      "O pai e todos os componentes que ele renderiza, recursivamente",
+      "Só os filhos cujas props mudaram",
+      "Só os componentes que leem esse state via context"
+    ],
+    "explanation": "Quando um componente faz re-render, o React o chama e então renderiza recursivamente todos os componentes que ele retorna, independentemente de suas props terem mudado. memo pode excluir um filho quando suas props são iguais. Re-render não é o mesmo que atualizar o DOM, o que só acontece quando há diferenças reais."
+  },
+  {
+    "id": "react-render-index-key-reorder",
+    "title": "Índice como key com reordenação",
+    "question": "Uma lista de tarefas renderiza `todos.map((t, i) => <TodoRow key={i} todo={t} />)`, e cada TodoRow tem um input de texto não controlado. Depois de adicionar uma tarefa no topo da lista, os rascunhos digitados aparecem nas linhas erradas. Por quê?",
+    "options": [
+      "O React remonta todas as linhas na inserção e perde os rascunhos",
+      "Inputs não controlados não podem ser usados em listas",
+      "map precisa ser trocado por um loop for para render estável",
+      "Keys são posições, então o state migra para outras tarefas"
+    ],
+    "explanation": "Keys dizem ao React a qual item uma instância de componente pertence. Com keys por índice, a linha no índice 0 mantém seu state e seu DOM mesmo recebendo outro todo, então os rascunhos se deslocam. Use um id estável e único, como todo.id, como key."
+  },
+  {
+    "id": "react-render-key-reset-state",
+    "title": "Resetando state com uma key",
+    "question": "`<ProfileEditor userId={userId} />` mantém os campos não salvos do usuário anterior quando userId muda. Qual é a forma mais limpa de resetar seu state?",
+    "options": [
+      "Renderizar como <ProfileEditor key={userId} userId={userId} />",
+      "Resetar cada campo em um useEffect que depende de userId",
+      "Chamar window.location.reload() quando userId mudar",
+      "Envolver ProfileEditor em memo()"
+    ],
+    "explanation": "Mudar a key faz o React tratá-lo como um componente diferente, então ele desmonta a instância antiga e monta uma nova com o state inicial. Resetar campos em um effect causa primeiro um render extra com valores antigos e é fácil de errar. memo não afeta o state."
+  },
+  {
+    "id": "react-render-nested-component-definition",
+    "title": "Componente definido dentro de outro componente",
+    "question": "Um input perde o foco a cada tecla digitada:\n\nfunction Form() {\n  const [text, setText] = useState(\"\");\n  function Field() { return <input value={text} onChange={e => setText(e.target.value)} />; }\n  return <Field />;\n}\n\nPor quê?",
+    "options": [
+      "Inputs controlados sempre perdem o foco quando o state muda",
+      "setText é assíncrono e derruba o foco entre os renders",
+      "Falta uma prop key em Form",
+      "Field é redefinido a cada render, então o React o remonta"
+    ],
+    "explanation": "Field é redefinido a cada render de Form, então a identidade da função muda. O React vê um tipo de componente diferente na mesma posição, desmonta a subárvore antiga e monta um novo input, perdendo o foco e qualquer state. Defina componentes no nível superior e passe dados via props."
+  },
+  {
+    "id": "react-render-same-position-preserves-state",
+    "title": "Mesmo componente na mesma posição",
+    "question": "Um Counter tem state local count. O que acontece com count quando `isFancy` alterna?\n\nreturn isFancy ? <Counter isFancy={true} /> : <Counter isFancy={false} />;",
+    "options": [
+      "É preservado: mesmo tipo de componente na mesma posição",
+      "Volta a 0, porque os dois branches do JSX são elementos diferentes",
+      "Volta a 0, porque a prop isFancy mudou",
+      "O React lança erro porque branches condicionais precisam de keys"
+    ],
+    "explanation": "O React rastreia o state pela posição do componente na árvore de UI, não por onde ele aparece no seu JSX. Os dois branches renderizam um Counter na mesma posição, então o React o trata como a mesma instância e só atualiza suas props. Dê keys diferentes aos branches para forçar um reset."
+  },
+  {
+    "id": "react-query-key-dependencies",
+    "title": "Query keys precisam incluir as dependências",
+    "question": "Com TanStack Query, `useQuery({ queryKey: [\"todo\"], queryFn: () => fetchTodo(id) })` continua mostrando o primeiro todo quando id muda. O que está errado?",
+    "options": [
+      "queryFn precisa ser envolvida em useCallback",
+      "staleTime precisa ser definido como Infinity",
+      "A query key precisa incluir id, ex.: [\"todo\", id]",
+      "useQuery precisa ser chamado dentro de useEffect"
+    ],
+    "explanation": "O TanStack Query faz cache pela query key. Como a key não muda quando id muda, os dados em cache de [\"todo\"] continuam sendo servidos. Incluir na key toda variável que a query function usa dá a cada todo sua própria entrada de cache e dispara um fetch quando id muda."
+  },
+  {
+    "id": "react-query-refetch-on-focus",
+    "title": "Refetches inesperados no foco da janela",
+    "question": "Com as configurações padrão do TanStack Query, um dashboard refaz todas as queries toda vez que o usuário volta para a aba do navegador. Por quê?",
+    "options": [
+      "gcTime tem padrão 0, então o cache é limpo no blur",
+      "useQuery faz polling a cada 5 segundos por padrão",
+      "Navegadores descartam caches de fetch em memória quando a aba fica oculta",
+      "staleTime tem padrão 0, e queries stale refazem o fetch no foco"
+    ],
+    "explanation": "Por padrão, dados em cache são considerados stale imediatamente (staleTime 0), e queries stale refazem o fetch ao montar, no foco da janela e ao reconectar. Aumentar o staleTime para dados que mudam pouco, ou desativar refetchOnWindowFocus, evita esses refetches. gcTime controla quando entradas de cache sem uso são removidas, não o refetch."
+  },
+  {
+    "id": "react-query-invalidate-after-mutation",
+    "title": "Lista desatualizada após uma mutation",
+    "question": "Depois que `useMutation({ mutationFn: addTodo })` tem sucesso, a lista de `useQuery({ queryKey: [\"todos\"] })` não mostra o novo item até um refresh. Qual é a correção padrão?",
+    "options": [
+      "Definir a opção retry da mutation como true",
+      "Dar à query da lista uma key aleatória a cada render",
+      "Chamar addTodo dentro da queryFn da lista",
+      "Chamar queryClient.invalidateQueries({ queryKey: [\"todos\"] }) no onSuccess"
+    ],
+    "explanation": "Mutations não sabem automaticamente quais queries afetam. Invalidar as keys correspondentes as marca como stale e refaz o fetch das que estão renderizadas no momento, então a lista recebe o novo todo. Keys aleatórias anulariam o cache por completo, e retry só reexecuta mutations que falharam."
+  },
+  {
+    "id": "react-use-promise-created-in-render",
+    "title": "use() com uma promise criada durante o render",
+    "question": "Um Client Component faz `const user = use(fetch(`/api/user/${id}`).then(r => r.json()));` dentro de um boundary de Suspense. O fallback pisca para sempre. Qual é a causa raiz?",
+    "options": [
+      "use() só aceita promises de Server Components e lança erro nos outros casos",
+      "Uma nova promise é criada a cada render, então o React suspende de novo",
+      "Boundaries de Suspense não podem envolver Client Components",
+      "Promises de fetch não podem ser passadas ao use() sem await"
+    ],
+    "explanation": "Quando a promise resolve, o React renderiza o componente de novo, o que cria mais uma promise sem cache e suspende outra vez. Promises passadas ao use() precisam ser estáveis: crie-as em um Server Component, em um loader do framework ou em um cache, e repasse-as. use() aceita promises em Client Components; elas só não podem ser recriadas a cada render."
+  },
+  {
+    "id": "react-router-useparams-string",
+    "title": "Lendo parâmetros da URL",
+    "question": "Com React Router e uma rota com path `/users/:userId`, o que `useParams()` retorna ao visitar `/users/42`?",
+    "options": [
+      "Um objeto { userId: 42 } com valor number",
+      "Um objeto { userId: \"42\" } com valor string",
+      "Um array [\"42\"] com os segmentos casados",
+      "A string \"42\" do último segmento"
+    ],
+    "explanation": "useParams retorna um objeto com os segmentos dinâmicos casados pela rota atual, indexado pelos nomes do path. Os valores são sempre strings porque vêm da URL, então converta-os explicitamente (por exemplo, Number(userId)) quando precisar de um número."
+  },
+  {
+    "id": "react-forms-controlled-without-onchange",
+    "title": "value sem onChange",
+    "question": "O que acontece com `<input value={name} />` quando não há handler onChange?",
+    "options": [
+      "O input funciona normalmente e atualiza a variável name automaticamente",
+      "O input fica somente leitura e o React avisa em desenvolvimento",
+      "O React lança um erro e desmonta o formulário",
+      "O value é ignorado e o input vira não controlado"
+    ],
+    "explanation": "Passar value torna o input controlado: o React o força a exibir esse valor a cada render. Sem um onChange atualizando o state, digitar não tem efeito duradouro, e o React avisa que você deve adicionar onChange, usar readOnly ou usar defaultValue para um input não controlado."
+  },
+  {
+    "id": "react-forms-useformstatus-placement",
+    "title": "useFormStatus sempre retorna pending false",
+    "question": "Um componente React 19 renderiza `<form action={save}>` e, no mesmo corpo do componente, chama `const { pending } = useFormStatus();` para desabilitar o botão de envio. pending é sempre false. Por quê?",
+    "options": [
+      "Só lê o status de um <form> pai; chame-o em um componente filho",
+      "Form actions precisam ser async arrow functions para o pending funcionar",
+      "useFormStatus exige envolver o formulário em <Suspense>",
+      "pending só fica true quando a action lança um erro"
+    ],
+    "explanation": "useFormStatus retorna o status do <form> mais próximo renderizado acima do componente que o chama. Quando chamado no próprio componente que renderiza o form, não há form pai, então ele nunca vê um envio. Mova o botão para um componente filho SubmitButton renderizado dentro do form, ou use o valor isPending de useActionState."
+  },
+  {
+    "id": "react-error-boundary-class-only",
+    "title": "Como definir um error boundary",
+    "question": "Como implementar um error boundary usando apenas as APIs nativas do React 19?",
+    "options": [
+      "Um function component que chama useErrorBoundary()",
+      "Envolvendo os filhos em <Suspense fallback>",
+      "Um function component com try/catch em volta do return",
+      "Um class component com static getDerivedStateFromError e/ou componentDidCatch"
+    ],
+    "explanation": "Os error boundaries nativos do React só podem ser class components que implementam getDerivedStateFromError (para renderizar a UI de fallback) e, opcionalmente, componentDidCatch (para log). Ainda não existe um hook nativo equivalente; bibliotecas como react-error-boundary encapsulam uma classe desse tipo. try/catch em volta do JSX não captura erros lançados durante o render dos filhos."
+  },
+  {
+    "id": "react-error-boundary-event-handlers",
+    "title": "Erros que boundaries não capturam",
+    "question": "Um error boundary envolve um componente Checkout, mas uma exceção lançada no onClick de Checkout não é capturada por ele. Por quê?",
+    "options": [
+      "Boundaries só capturam erros de filhos diretos, não de netos",
+      "O boundary precisa ficar dentro de Checkout para capturá-lo",
+      "Erros em onClick são engolidos pelo React e nunca aparecem",
+      "Boundaries não capturam erros lançados em event handlers"
+    ],
+    "explanation": "Error boundaries capturam erros lançados enquanto o React renderiza componentes, executa métodos de ciclo de vida ou executa effects abaixo deles. Event handlers rodam fora do render, então você trata esses erros com try/catch e atualiza o state se quiser mostrar uma UI de erro. A profundidade não importa, e o React não engole erros de handlers."
+  },
+  {
+    "id": "react-testing-getbyrole-priority",
+    "title": "Query preferida no Testing Library",
+    "question": "Qual query do React Testing Library geralmente é preferida para encontrar um botão de envio?",
+    "options": [
+      "screen.getByTestId(\"submit-btn\")",
+      "container.querySelector(\".btn-submit\")",
+      "screen.getByText(\"Submit\", { selector: \"button\" })",
+      "screen.getByRole(\"button\", { name: /submit/i })"
+    ],
+    "explanation": "O Testing Library recomenda queries que reflitam como usuários e tecnologias assistivas percebem a página, e getByRole com um nome acessível está no topo dessa lista de prioridade. Test ids e seletores CSS acoplam os testes a detalhes de implementação e são o último recurso."
+  },
+  {
+    "id": "react-testing-findby-async",
+    "title": "Esperando os dados aparecerem",
+    "question": "Um componente busca usuários ao montar e depois os renderiza. `expect(screen.getByText(\"Ada\")).toBeInTheDocument()` falha logo após o render. O que o teste deve usar?",
+    "options": [
+      "screen.queryByText(\"Ada\")",
+      "screen.getAllByText(\"Ada\")[0]",
+      "await screen.findByText(\"Ada\")",
+      "setTimeout em volta da asserção"
+    ],
+    "explanation": "Queries findBy retornam uma promise que tenta de novo até o elemento aparecer ou um timeout expirar, o que serve para conteúdo renderizado depois de um fetch assíncrono. getBy e queryBy verificam só uma vez, de forma síncrona. Um setTimeout cru adiciona instabilidade e escapa do fluxo assíncrono do teste."
+  },
+  {
+    "id": "react-testing-querybyabsence",
+    "title": "Verificando que um elemento está ausente",
+    "question": "Você quer verificar que uma mensagem de erro NÃO está renderizada. Qual query foi feita para isso?",
+    "options": [
+      "expect(screen.getByRole(\"alert\")).toBeNull()",
+      "expect(screen.queryByRole(\"alert\")).not.toBeInTheDocument()",
+      "expect(await screen.findByRole(\"alert\")).toBeFalsy()",
+      "expect(screen.getAllByRole(\"alert\")).toHaveLength(0)"
+    ],
+    "explanation": "queryBy retorna null quando nada corresponde em vez de lançar erro, o que o torna a ferramenta certa para asserções de ausência. getBy e getAllBy lançam erro quando não há correspondência, então a asserção nunca roda, e findBy rejeita após o timeout."
+  }
+]

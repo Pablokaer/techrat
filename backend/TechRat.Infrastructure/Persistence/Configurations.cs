@@ -70,7 +70,8 @@ internal sealed class ContentTranslationConfig : IEntityTypeConfiguration<Conten
         b.Property(x => x.EntityType).HasMaxLength(30);
         b.Property(x => x.Locale).HasMaxLength(10);
         b.Property(x => x.Field).HasMaxLength(30);
-        b.Property(x => x.Value).HasMaxLength(1000);
+        b.Property(x => x.Value).HasMaxLength(4000);
+        b.Property(x => x.SeedManaged).HasDefaultValue(true);
         b.HasIndex(x => x.Locale);
     }
 }
@@ -182,33 +183,68 @@ internal sealed class RoadmapConfig : IEntityTypeConfiguration<Roadmap>
         b.Property(x => x.Category).HasMaxLength(60);
         b.Property(x => x.Icon).HasMaxLength(40);
         b.HasIndex(x => x.Slug).IsUnique();
-        b.HasMany(x => x.Modules).WithOne().HasForeignKey(x => x.RoadmapId).OnDelete(DeleteBehavior.Cascade);
-        b.HasMany(x => x.Steps).WithOne().HasForeignKey(x => x.RoadmapId).OnDelete(DeleteBehavior.Cascade);
+        b.Property(x => x.CompositionSeedManaged).HasDefaultValue(true);
+        b.HasMany(x => x.Links).WithOne().HasForeignKey(x => x.RoadmapId).OnDelete(DeleteBehavior.Cascade);
         b.HasMany(x => x.Dependencies).WithOne().HasForeignKey(x => x.RoadmapId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 
-internal sealed class RoadmapModuleConfig : IEntityTypeConfiguration<RoadmapModule>
+internal sealed class LearningModuleConfig : IEntityTypeConfiguration<LearningModule>
 {
-    public void Configure(EntityTypeBuilder<RoadmapModule> b)
+    public void Configure(EntityTypeBuilder<LearningModule> b)
     {
-        b.ToTable("roadmap_modules", "roadmaps");
-        b.Property(x => x.Title).HasMaxLength(120);
-        b.HasIndex(x => new { x.RoadmapId, x.Order });
+        b.ToTable("modules", "roadmaps");
+        b.Property(x => x.Slug).HasMaxLength(80);
+        b.Property(x => x.Name).HasMaxLength(120);
+        b.Property(x => x.Description).HasMaxLength(1000);
+        b.Property(x => x.Category).HasMaxLength(60);
+        b.Property(x => x.Icon).HasMaxLength(40);
+        b.Property(x => x.Version).HasDefaultValue(1);
+        b.Property(x => x.IsPublished).HasDefaultValue(true);
+        b.Property(x => x.SeedManaged).HasDefaultValue(true);
+        b.HasIndex(x => x.Slug).IsUnique();
+        b.HasIndex(x => new { x.Kind, x.Category });
+        b.HasMany(x => x.Steps).WithOne().HasForeignKey(x => x.ModuleId).OnDelete(DeleteBehavior.Cascade);
+        b.HasMany(x => x.Dependencies).WithOne().HasForeignKey(x => x.ModuleId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 
-internal sealed class RoadmapStepConfig : IEntityTypeConfiguration<RoadmapStep>
+internal sealed class ModuleStepConfig : IEntityTypeConfiguration<ModuleStep>
 {
-    public void Configure(EntityTypeBuilder<RoadmapStep> b)
+    public void Configure(EntityTypeBuilder<ModuleStep> b)
     {
-        b.ToTable("roadmap_steps", "roadmaps");
+        b.ToTable("module_steps", "roadmaps");
         b.Property(x => x.Title).HasMaxLength(120);
         b.Property(x => x.Description).HasMaxLength(1000);
-        b.HasIndex(x => new { x.RoadmapId, x.Order });
-        b.HasOne<RoadmapModule>().WithMany().HasForeignKey(x => x.ModuleId).OnDelete(DeleteBehavior.Cascade);
+        b.Property(x => x.IsActive).HasDefaultValue(true);
+        b.Property(x => x.AddedInVersion).HasDefaultValue(1);
+        b.HasIndex(x => new { x.ModuleId, x.Order });
+        b.HasIndex(x => new { x.TopicId, x.SubtopicId });
         b.HasOne<Topic>().WithMany().HasForeignKey(x => x.TopicId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Subtopic>().WithMany().HasForeignKey(x => x.SubtopicId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class RoadmapModuleLinkConfig : IEntityTypeConfiguration<RoadmapModuleLink>
+{
+    public void Configure(EntityTypeBuilder<RoadmapModuleLink> b)
+    {
+        b.ToTable("roadmap_module_links", "roadmaps");
+        b.HasKey(x => new { x.RoadmapId, x.ModuleId });
+        b.HasIndex(x => new { x.RoadmapId, x.Order }).IsUnique();
+        b.HasIndex(x => x.ModuleId);
+        b.Property(x => x.IsRequired).HasDefaultValue(true);
+        b.HasOne(x => x.Module).WithMany().HasForeignKey(x => x.ModuleId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class ModuleDependencyConfig : IEntityTypeConfiguration<ModuleDependency>
+{
+    public void Configure(EntityTypeBuilder<ModuleDependency> b)
+    {
+        b.ToTable("module_dependencies", "roadmaps");
+        b.HasKey(x => new { x.ModuleId, x.RequiredModuleId });
+        b.HasOne<LearningModule>().WithMany().HasForeignKey(x => x.RequiredModuleId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -234,15 +270,28 @@ internal sealed class UserRoadmapProgressConfig : IEntityTypeConfiguration<UserR
     }
 }
 
-internal sealed class UserRoadmapStepCompletionConfig : IEntityTypeConfiguration<UserRoadmapStepCompletion>
+internal sealed class UserModuleProgressConfig : IEntityTypeConfiguration<UserModuleProgress>
 {
-    public void Configure(EntityTypeBuilder<UserRoadmapStepCompletion> b)
+    public void Configure(EntityTypeBuilder<UserModuleProgress> b)
     {
-        b.ToTable("user_roadmap_step_completions", "roadmaps");
-        b.HasKey(x => new { x.UserId, x.RoadmapStepId });
-        b.HasIndex(x => new { x.UserId, x.RoadmapId });
+        b.ToTable("user_module_progress", "roadmaps");
+        b.HasIndex(x => new { x.UserId, x.ModuleId }).IsUnique();
         b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
-        b.HasOne<RoadmapStep>().WithMany().HasForeignKey(x => x.RoadmapStepId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<LearningModule>().WithMany().HasForeignKey(x => x.ModuleId).OnDelete(DeleteBehavior.Cascade);
+        b.HasXminConcurrency();
+    }
+}
+
+internal sealed class UserModuleStepCompletionConfig : IEntityTypeConfiguration<UserModuleStepCompletion>
+{
+    public void Configure(EntityTypeBuilder<UserModuleStepCompletion> b)
+    {
+        b.ToTable("user_module_step_completions", "roadmaps");
+        b.HasKey(x => new { x.UserId, x.ModuleStepId });
+        b.HasIndex(x => new { x.UserId, x.ModuleId });
+        b.Property(x => x.XpAwarded).HasDefaultValue(true);
+        b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<ModuleStep>().WithMany().HasForeignKey(x => x.ModuleStepId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 

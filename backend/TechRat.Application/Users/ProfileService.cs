@@ -146,7 +146,7 @@ public sealed class ProfileService(
         var rows = await (from p in db.UserRoadmapProgress.AsNoTracking()
                           where p.UserId == userId
                           join r in db.Roadmaps on p.RoadmapId equals r.Id
-                          join s in db.RoadmapSteps on p.CurrentStepId equals s.Id into ss
+                          join s in db.ModuleSteps on p.CurrentStepId equals s.Id into ss
                           from s in ss.DefaultIfEmpty()
                           select new { r.Id, r.Slug, r.Name, r.Icon, r.Category, p.CompletedSteps, r.StepsCount, StepTitle = s != null ? s.Title : null,
                               p.CurrentStepId, p.CompletedAt, p.LastActivityAt })

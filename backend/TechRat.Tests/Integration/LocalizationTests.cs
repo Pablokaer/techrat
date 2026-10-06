@@ -141,15 +141,20 @@ public class LocalizationTests(TechRatFactory api)
                 (TranslatableEntity.Topic, id, TranslatableField.Category),
             }));
             expected.AddRange((await db.Subtopics.Select(x => x.Id).ToListAsync()).Select(id => (TranslatableEntity.Subtopic, id, TranslatableField.Name)));
-            expected.AddRange((await db.Roadmaps.Select(x => x.Id).ToListAsync()).SelectMany(id => new[]
+            // Fixtures created by other tests use the "t-" prefix and are not seeded content.
+            expected.AddRange((await db.Roadmaps.Where(r => !r.Slug.StartsWith("t-")).Select(x => x.Id).ToListAsync()).SelectMany(id => new[]
             {
                 (TranslatableEntity.Roadmap, id, TranslatableField.Name), (TranslatableEntity.Roadmap, id, TranslatableField.Description),
                 (TranslatableEntity.Roadmap, id, TranslatableField.Category),
             }));
-            expected.AddRange((await db.RoadmapModules.Select(x => x.Id).ToListAsync()).Select(id => (TranslatableEntity.RoadmapModule, id, TranslatableField.Title)));
-            expected.AddRange((await db.RoadmapSteps.Select(x => x.Id).ToListAsync()).SelectMany(id => new[]
+            expected.AddRange((await db.LearningModules.Where(m => m.IsPublished && !m.Slug.StartsWith("t-")).Select(x => x.Id).ToListAsync()).SelectMany(id => new[]
             {
-                (TranslatableEntity.RoadmapStep, id, TranslatableField.Title), (TranslatableEntity.RoadmapStep, id, TranslatableField.Description),
+                (TranslatableEntity.Module, id, TranslatableField.Name), (TranslatableEntity.Module, id, TranslatableField.Description),
+            }));
+            expected.AddRange((await db.ModuleSteps.Where(s => s.IsActive && !db.LearningModules.Any(m => m.Id == s.ModuleId && m.Slug.StartsWith("t-")))
+                .Select(x => x.Id).ToListAsync()).SelectMany(id => new[]
+            {
+                (TranslatableEntity.ModuleStep, id, TranslatableField.Title), (TranslatableEntity.ModuleStep, id, TranslatableField.Description),
             }));
             expected.AddRange((await db.Achievements.Select(x => x.Id).ToListAsync()).SelectMany(id => new[]
             {

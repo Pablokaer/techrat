@@ -33,6 +33,7 @@ def _n(value):
 def build_catalog_markdown(data_dir):
     """Markdown for the catalog block: question totals, questions per topic and every roadmap."""
     topics = _load(os.path.join(data_dir, "topics.json"))
+    modules = {m["slug"]: m for m in _load(os.path.join(data_dir, "modules.json"))}
     roadmaps = _load(os.path.join(data_dir, "roadmaps.json"))
     questions = [q for f in sorted(glob.glob(os.path.join(data_dir, "questions", "*.json"))) for q in _load(f)]
     pt_path = os.path.join(data_dir, "i18n", "pt-BR.json")
@@ -45,9 +46,12 @@ def build_catalog_markdown(data_dir):
         ids_by_scope[(q["topic"], q["subtopic"])].add(q["id"])
         ids_by_scope[(q["topic"], None)].add(q["id"])
     names = {r["slug"]: r["name"] for r in roadmaps}
-
-    modules = sum(len(r["modules"]) for r in roadmaps)
-    steps = sum(len(m["steps"]) for r in roadmaps for m in r["modules"])
+    used_by = collections.defaultdict(list)
+    for r in roadmaps:
+        for ref in r["modules"]:
+            used_by[ref["slug"]].append(r["name"])
+    shared = sum(1 for slug in modules if len(used_by[slug]) >= 2)
+    module_steps = sum(len(m["steps"]) for m in modules.values())
 
     lines = [
         "## Catalog",
@@ -72,20 +76,34 @@ def build_catalog_markdown(data_dir):
         "",
         "### Roadmaps",
         "",
-        f"**{len(roadmaps)}** roadmaps · {_n(modules)} modules · {_n(steps)} steps.",
+        f"**{len(roadmaps)}** roadmaps built from **{len(modules)}** modules ({shared} shared by 2+ roadmaps) · {_n(module_steps)} module steps.",
         "",
-        "| # | Roadmap | Português | Category | Difficulty | Modules | Steps | Estimate | Questions | Prerequisites |",
-        "|---:|---|---|---|---|---:|---:|---:|---:|---|",
+        "| # | Roadmap | Português | Type | Category | Difficulty | Modules | Steps | Estimate | Questions | Prerequisites |",
+        "|---:|---|---|---|---|---|---:|---:|---:|---:|---|",
     ]
     for i, r in enumerate(roadmaps, 1):
-        r_steps = [s for m in r["modules"] for s in m["steps"]]
-        available = set().union(*(ids_by_scope[(s["topic"], s.get("subtopic"))] for s in r_steps)) if r_steps else set()
+        refs = [x for x in r["modules"] if x["slug"] in modules]
+        optional = sum(1 for x in refs if not x.get("required", True))
+        steps = sum(len(modules[x["slug"]]["steps"]) for x in refs if x.get("required", True))
+        scopes = [(st["topic"], st.get("subtopic")) for x in refs for st in modules[x["slug"]]["steps"]]
+        available = set().union(*(ids_by_scope[sc] for sc in scopes)) if scopes else set()
         prereqs = ", ".join(f"{names.get(p['slug'], p['slug'])} ({p['minimumPercent']}%)" for p in r.get("prerequisites", [])) or "—"
         pt_name = pt_roadmaps.get(r["slug"], {}).get("name") or r["name"]
+        count = f"{len(refs)} ({optional} optional)" if optional else f"{len(refs)}"
         lines.append(
-            f"| {i} | {r['name']} | {pt_name} | {r['category']} | {r['difficulty']} | {len(r['modules'])} | {len(r_steps)} "
+            f"| {i} | {r['name']} | {pt_name} | {r.get('type', '')} | {r['category']} | {r['difficulty']} | {count} | {steps} "
             f"| {r['estimatedHours']} h | {_n(len(available))} | {prereqs} |"
         )
+    lines += [
+        "",
+        "<details><summary>Module catalog</summary>",
+        "",
+        "| Module | Kind | Steps | Used by |",
+        "|---|---|---:|---|",
+    ]
+    for slug, m in modules.items():
+        lines.append(f"| {m['name']} | {m['kind']} | {len(m['steps'])} | {', '.join(used_by[slug]) or '—'} |")
+    lines += ["", "</details>"]
     return "\n".join(lines)
 
 

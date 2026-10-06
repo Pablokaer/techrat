@@ -9,7 +9,7 @@
     "options": [
       "curl always exits with status 0 unless `--fail-fast` is passed, regardless of network errors",
       "`set -e` is ignored inside CI runners, so no command failure can ever stop the script",
-      "Without `set -o pipefail`, a pipeline's exit status is that of the last command (gzip), which succeeded",
+      "Without `set -o pipefail`, the pipeline's status is that of the last command (gzip), which succeeded",
       "Redirecting output with `>` resets `$?` to 0, so the shell cannot see any earlier failure"
     ],
     "correctIndex": 2,
@@ -58,7 +58,7 @@
     "title": "Essence of continuous integration",
     "question": "Which practice is most essential to continuous integration?",
     "options": [
-      "Developers merge small changes into the mainline frequently, each verified by an automated build and tests",
+      "Small changes are merged into the mainline often, each verified by an automated build and tests",
       "Tests are run nightly on a dedicated server instead of on every commit to save resources",
       "A release manager integrates all team branches manually at the end of each sprint",
       "Each developer works on a long-lived feature branch that is merged once the feature is complete"
@@ -78,7 +78,7 @@
       "Add `timeout-minutes` to the deploy job so slow runs are cancelled before they overwrite production",
       "Mark the workflow with `continue-on-error: true` so the newer run takes precedence automatically",
       "Use a `matrix` strategy so each commit deploys to its own isolated runner in parallel",
-      "Add a `concurrency` group for the deploy job (e.g. per environment) so only one run executes at a time"
+      "Add a `concurrency` group (e.g. per environment) so only one deploy run executes at a time"
     ],
     "correctIndex": 3,
     "explanation": "A `concurrency` group guarantees at most one running job or workflow per group, and with `cancel-in-progress` the stale run is cancelled; this serialises deployments to an environment. Timeouts do not order runs, a matrix increases parallelism, and `continue-on-error` only controls failure handling.",
@@ -93,8 +93,8 @@
     "question": "A security review flags long-lived cloud access keys stored as repository secrets for deployments from GitHub Actions. Which design best removes them while limiting who can deploy?",
     "options": [
       "Encrypt the keys with a GPG passphrase stored in a second secret and decrypt them during the job",
-      "Rotate the access keys monthly with a scheduled workflow and store them as organization-level secrets",
-      "Use OIDC: grant the job `id-token: write`, and have the cloud trust GitHub's issuer only for tokens whose claims match this repo and environment",
+      "Rotate the access keys monthly with a scheduled workflow and store them as organization-level secrets with restricted access",
+      "Use OIDC with `id-token: write`, and have the cloud trust only tokens whose claims match this repo and environment",
       "Move the keys into the workflow file as base64 and restrict the repository to private visibility"
     ],
     "correctIndex": 2,
@@ -109,7 +109,7 @@
     "title": "Build once, promote everywhere",
     "question": "A pipeline rebuilds the application from source separately for staging and for production. A bug appears only in production even though staging passed. What practice prevents this class of problem?",
     "options": [
-      "Build a single immutable, versioned artifact once and promote that exact artifact through every environment",
+      "Build one immutable, versioned artifact and promote that exact artifact through every environment",
       "Rebuild for production with a clean dependency cache so the latest library versions are always included",
       "Run the full test suite again after the production rebuild instead of relying on staging results",
       "Give production its own branch so its builds are isolated from the staging branch's changes"
@@ -126,7 +126,7 @@
     "title": "Dependency cache key in CI",
     "question": "A Node.js workflow uses `actions/cache` for `~/.npm`. Which cache key gives fresh dependencies when they change while reusing the cache otherwise?",
     "options": [
-      "`npm-${{ runner.os }}-${{ github.run_id }}`",
+      "`npm-${{ runner.os }}-${{ github.workflow }}-${{ github.run_id }}`",
       "`npm-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}`",
       "`npm-${{ runner.os }}-static`",
       "`npm-${{ runner.os }}-${{ github.sha }}`"
@@ -179,7 +179,7 @@
     "options": [
       "Committing the `terraform.tfstate` file to Git so merge conflicts reveal concurrent changes",
       "Adding `depends_on` between all resources so Terraform serialises the operations",
-      "A backend that supports state locking, so a second operation waits or fails while the lock is held",
+      "A backend with state locking, so a second operation waits or fails while the lock is held",
       "Running `terraform fmt` before each apply so both configurations are textually identical"
     ],
     "correctIndex": 2,
@@ -194,7 +194,7 @@
     "title": "Removing an item from a count list",
     "question": "Buckets are created with `count = length(var.names)` and `name = var.names[count.index]`, where names = [\"logs\", \"media\", \"backups\"]. You remove \"logs\" from the list. What does the plan show?",
     "options": [
-      "\"media\" and \"backups\" are re-addressed to new indexes, so Terraform plans to replace them and destroy one",
+      "\"media\" and \"backups\" shift down one index, so they are replaced and one bucket is destroyed",
       "Only the \"logs\" bucket is destroyed because Terraform matches instances by their name attribute",
       "Nothing changes until you run `terraform state rm` for the logs bucket manually",
       "Terraform refuses to plan because `count` lists cannot shrink once resources exist"
@@ -245,7 +245,7 @@
     "title": "API key pushed to a public repository",
     "question": "A developer pushes an API key to a public GitHub repository and removes it in the very next commit a minute later. What is the most important action?",
     "options": [
-      "Revoke and rotate the key immediately, treating it as compromised, then clean the history",
+      "Treat the key as compromised: revoke and rotate it now, then clean the history",
       "Rewrite the Git history with a force push, which fully removes the key from all copies",
       "Make the repository private so the key in the history is no longer accessible",
       "Nothing more; the follow-up commit removed the key before anyone could have seen it"
@@ -263,9 +263,9 @@
     "question": "An open-source project's workflow runs on `pull_request`. Tests that call an external API with `${{ secrets.API_TOKEN }}` pass for maintainers' branches but fail for contributors' fork PRs. Why?",
     "options": [
       "Fork PRs run on macOS runners, which cannot read repository-level secrets",
-      "The secret must be re-declared in the contributor's fork with the same name to be inherited",
+      "The secret must be re-declared in the contributor's fork under the same name for it to be inherited",
       "Secrets expire after 24 hours and contributors' PRs usually run after the token has expired",
-      "Secrets other than GITHUB_TOKEN are not passed to runners for workflows triggered from forked repositories"
+      "Except for GITHUB_TOKEN, secrets are not passed to runners when a workflow is triggered from a fork"
     ],
     "correctIndex": 3,
     "explanation": "GitHub withholds repository secrets (except `GITHUB_TOKEN`, which is read-only) from workflows triggered by forks so untrusted code cannot exfiltrate them. Secrets do not expire on a timer, runner OS is irrelevant, and a fork's own secrets are never used by the upstream repository.",
@@ -279,7 +279,7 @@
     "title": "Blue/green deployment rollback",
     "question": "In a blue/green deployment, the new version on the green environment shows errors right after the switch. How is rollback typically performed?",
     "options": [
-      "Rebuild the previous version from source and redeploy it onto green",
+      "Rebuild the previous version from source and redeploy it onto the green environment",
       "Point the router or load balancer back to the still-running blue environment",
       "Gradually shift 5% of traffic per minute from green back to blue",
       "Restore the green environment's servers from last night's backup"
@@ -298,7 +298,7 @@
     "options": [
       "Promote it, since a 0.9% error rate is still under a typical 1% alerting threshold for the service",
       "Wait until the canary reaches 50% of traffic so the error rate is statistically meaningful",
-      "Compare the canary to a baseline over the same window using predefined thresholds, and roll back automatically on breach",
+      "Compare it with a baseline over the same window against predefined thresholds; roll back on breach",
       "Ignore the error rate because latency, the primary golden signal, did not change"
     ],
     "correctIndex": 2,
@@ -330,10 +330,10 @@
     "title": "Schema changes with zero-downtime rollback",
     "question": "A release renames column `fullname` to `display_name` in a single migration and deploys via blue/green. When the new version misbehaves, switching back to blue fails because blue still queries `fullname`. What approach avoids this?",
     "options": [
-      "Expand/contract: add the new column, write to both, migrate readers, and drop the old column in a later release",
+      "Expand/contract: add the new column, write to both, move readers, drop the old one in a later release",
       "Wrap the rename in a transaction so it can be rolled back automatically if green fails",
       "Run the migration only after traffic switches to green so blue never sees the new schema",
-      "Give blue and green separate database copies and merge their data after the release is verified"
+      "Give blue and green separate database copies and merge their data once the release has been verified"
     ],
     "correctIndex": 0,
     "explanation": "Expand/contract (parallel change) keeps the schema compatible with both the old and new version during the transition, so either can serve traffic and rollback stays possible. Migrating after the switch still breaks blue on rollback, separate databases cause divergent writes that are hard to reconcile, and a committed transaction cannot be undone later.",
@@ -348,7 +348,7 @@
     "question": "This Dockerfile reinstalls all npm packages whenever any source file changes:\nFROM node:22\nWORKDIR /app\nCOPY . .\nRUN npm ci\nCMD [\"node\", \"server.js\"]\nWhat change best restores build caching?",
     "options": [
       "Move `WORKDIR /app` below `COPY . .` so the copy layer no longer invalidates the cache",
-      "Copy package.json and package-lock.json first, run npm ci, then copy the rest of the source",
+      "Copy package.json and package-lock.json, run npm ci, then copy the rest of the source",
       "Add `--no-cache` to docker build so Docker stops checking which files changed",
       "Replace `npm ci` with `npm install` so packages are reused from the previous build"
     ],
@@ -383,7 +383,7 @@
     "options": [
       "Docker compresses deleted files into a recycle layer that is removed only by `docker image prune`",
       "Files under /tmp are always copied into the final layer regardless of deletion",
-      "Layers are immutable; the later rm only adds a whiteout, so the archive still ships in the earlier layer",
+      "Layers are immutable: the rm just adds a whiteout, and the archive still ships in the earlier layer",
       "The rm runs as a non-root user and silently fails to delete files owned by root"
     ],
     "correctIndex": 2,
@@ -398,7 +398,7 @@
     "title": "Separate apt-get update layer",
     "question": "A Dockerfile has `RUN apt-get update` on one line and `RUN apt-get install -y curl` on the next. Weeks later `nginx` is added to the install line and the build fails with 404 errors for packages. What is the cause?",
     "options": [
-      "The cached `apt-get update` layer is reused, so the stale package index points at versions no longer on the mirror",
+      "The cached `apt-get update` layer is reused, so its stale package index points at removed versions",
       "Adding a package invalidates the base image, which must be re-pulled with `--pull`",
       "apt-get cannot install more than one package per RUN instruction without `--fix-missing`",
       "Docker does not cache RUN lines that use the network, so update runs in a different build context"
@@ -417,8 +417,8 @@
     "options": [
       "Node.js ignores SIGTERM by default unless started with the `--signals` flag",
       "docker stop sends SIGINT, which Node.js handles only when attached to a TTY",
-      "`/bin/sh -c` runs as PID 1 and does not forward SIGTERM, so Docker sends SIGKILL after the grace period",
-      "The container's restart policy intercepts SIGTERM and delays it for 10 seconds"
+      "`/bin/sh -c` is PID 1 and does not forward SIGTERM, so Docker sends SIGKILL after the timeout",
+      "The container's restart policy intercepts SIGTERM and holds it back for the 10-second grace period"
     ],
     "correctIndex": 2,
     "explanation": "In shell form the command runs under `/bin/sh -c`, which becomes PID 1 and does not pass signals to its child, so the app never sees SIGTERM and is killed after the default 10-second timeout. Use the exec form `CMD [\"node\", \"server.js\"]` (or an init such as `--init`) so the app is PID 1. docker stop sends SIGTERM by default and restart policies do not intercept signals.",
@@ -466,10 +466,10 @@
     "title": "Why multi-stage builds",
     "question": "A Go service image is 1.2 GB because it contains the full compiler toolchain. What is the main benefit of rewriting it as a multi-stage build?",
     "options": [
-      "Stages run on separate hosts in parallel, making the build itself several times faster",
+      "Stages always run on separate build hosts in parallel, making the build itself several times faster",
       "Each stage is pushed as a separate tag so clients can choose which one to pull",
       "Multi-stage builds compress layers more aggressively than single-stage builds",
-      "The final stage copies only the compiled binary, leaving the toolchain out of the shipped image"
+      "The final stage copies only the compiled binary, so the toolchain is not in the shipped image"
     ],
     "correctIndex": 3,
     "explanation": "Multi-stage builds let you compile in a heavy builder stage and `COPY --from=<stage>` only the artifacts into a minimal runtime stage, shrinking size and attack surface. Stages do not run on separate hosts, are not pushed as separate tags by default, and compression is unaffected.",
@@ -502,8 +502,8 @@
     "options": [
       "The variable must be referenced as `${{NODE_VERSION}}` inside RUN instructions",
       "ARG values are only available in ENV instructions, never in RUN commands",
-      "Base images reset all variables, so the value must be passed again with --build-arg",
-      "An ARG before FROM is outside any stage; it must be re-declared with `ARG NODE_VERSION` after FROM to be used"
+      "Base images reset all build variables, so the value must be passed again with --build-arg",
+      "An ARG before FROM is outside any stage; re-declare `ARG NODE_VERSION` after FROM to use it"
     ],
     "correctIndex": 3,
     "explanation": "An ARG declared before the first FROM can be used in FROM lines, but it is not in scope inside the build stage. Adding a bare `ARG NODE_VERSION` inside the stage brings the default value into scope. ARGs are usable in RUN, the double-brace syntax belongs to other tools, and --build-arg is not needed when a default exists.",
@@ -517,8 +517,8 @@
     "title": "Slow builds from a large context",
     "question": "`docker build .` spends a long time transferring the build context, and `COPY . .` invalidates the cache even when no source changed. The repo contains node_modules, .git and local log files. What is the best fix?",
     "options": [
-      "Add a .dockerignore excluding node_modules, .git and logs so they are not part of the context",
-      "Use ADD instead of COPY, since ADD skips files that already exist in the image",
+      "Add a .dockerignore excluding node_modules, .git and logs from the build context",
+      "Use ADD instead of COPY, because ADD skips any files that already exist in the image",
       "Run `docker builder prune` before every build to clear stale context data",
       "Pass `--squash` so all files are combined into a single layer during the build"
     ],
@@ -570,8 +570,8 @@
     "options": [
       "Volumes are mounted before the image's layers are extracted, deleting node_modules",
       "npm ci output is stored in a separate layer that bind mounts do not merge with",
-      "The bind mount over /app obscures the image's /app, including node_modules, with the host directory",
-      "Bind mounts are read-only by default, so Node cannot read packages from node_modules"
+      "The bind mount hides the image's /app, including node_modules, behind the host directory",
+      "Bind mounts are read-only by default, so Node cannot load any packages from node_modules"
     ],
     "correctIndex": 2,
     "explanation": "Mounting into a non-empty directory obscures the existing contents for as long as the mount exists, so the container sees only the host folder, which lacks node_modules. A common fix is an additional volume for /app/node_modules. Bind mounts are read-write by default, and layer extraction order is not the issue.",
@@ -586,7 +586,7 @@
     "question": "In Compose, `web` has `depends_on: [db]`. On a fresh `docker compose up`, web crashes because Postgres is not yet accepting connections. What is the Compose-native fix?",
     "options": [
       "List db before web in the YAML file because Compose starts services in file order",
-      "Add a healthcheck to db and use `depends_on: { db: { condition: service_healthy } }` in web",
+      "Give db a healthcheck and use `depends_on: { db: { condition: service_healthy } }`",
       "Add `restart: always` to db so Compose starts it twice before starting web",
       "Use `links: [db]` instead of depends_on, which waits until the port is open"
     ],
@@ -605,7 +605,7 @@
       "Use the container ID of redis, which Compose writes into api's environment variables",
       "Use `localhost`, because Compose runs all services in a single shared network namespace",
       "Use the host machine's IP address with the port published in the redis service",
-      "Use the hostname `redis`, since Compose puts services on a default network with name-based DNS"
+      "Use the hostname `redis`; Compose puts services on a default network with name-based DNS"
     ],
     "correctIndex": 3,
     "explanation": "Compose creates a default network for the project and each service joins it, reachable by its service name. Services do not share a network namespace, routing via the host IP needlessly depends on published ports, and Compose does not inject container IDs.",
@@ -621,8 +621,8 @@
     "options": [
       "Compose only reads .env when started with the `--env-file .env` flag explicitly",
       "Variables in .env must be prefixed with `COMPOSE_` to be visible inside containers",
-      "The project .env file is used for interpolating ${VAR} in the Compose file, not injected into containers automatically",
-      "The .env file is applied only to services built from a local Dockerfile, not to pulled images"
+      "The project .env only feeds ${VAR} interpolation in the Compose file; it is not injected into containers",
+      "The .env file is applied only to services built from a local Dockerfile, never to images pulled from a registry"
     ],
     "correctIndex": 2,
     "explanation": "Compose reads the project-level .env for variable substitution in the Compose file itself; a container only receives variables declared via `environment` or `env_file`, for example `environment: [API_KEY=${API_KEY}]`. The default .env is read without flags, prefixes are not required, and the image source is irrelevant.",
@@ -637,7 +637,7 @@
     "question": "Production pulled `myorg/api:1.4` twice a week apart and got different images, because someone pushed a hotfix under the same tag. How can deployments reference an image immutably?",
     "options": [
       "Add `--disable-content-trust` so the registry refuses to overwrite tags",
-      "Use the `latest` tag, which registries lock once an image has been pulled",
+      "Use the `latest` tag, which registries lock once an image has been pulled by a client",
       "Pull with `--platform linux/amd64`, which fixes the image to one build",
       "Pull by digest, e.g. `myorg/api@sha256:<digest>`, which identifies exact content"
     ],
@@ -654,7 +654,7 @@
     "question": "You run `docker tag app:1.0 registry.example.com:5000/team/app:1.0` and then `docker push registry.example.com:5000/team/app:1.0`. Where is the image pushed?",
     "options": [
       "To the registry at registry.example.com:5000, under the repository team/app",
-      "To the local image store only, since a port number makes the name local",
+      "To the local image store only, since a port number in the name marks it as local",
       "To Docker Hub, under a user account named registry.example.com",
       "To every registry configured in the daemon's registry-mirrors list"
     ],
@@ -671,7 +671,7 @@
     "question": "A build needs a private npm token. The Dockerfile uses `ARG NPM_TOKEN` and `RUN npm ci` with the token in .npmrc. Why is this risky, and what is preferred?",
     "options": [
       "ARG values are logged by the registry when pushing; switch to ENV, which is encrypted in the image",
-      "Build args can persist in image metadata and history; use `RUN --mount=type=secret` so the token is never stored",
+      "Build args can persist in image metadata and history; use `RUN --mount=type=secret` instead",
       "Build args are limited to 64 characters; use a multi-line COPY of the token file instead",
       "ARG is safe, but npm ci ignores it; pass the token through a published port during the build"
     ],
@@ -689,7 +689,7 @@
     "options": [
       "The app called exit(137) after catching an out-of-memory exception itself",
       "It ran out of disk space in the writable layer and Docker stopped it gracefully",
-      "It exceeded its 256 MB memory limit and the kernel OOM killer terminated it with SIGKILL",
+      "It exceeded its 256 MB memory limit, so the kernel OOM killer sent it SIGKILL",
       "Docker restarted it because it used more than 256 MB of swap during startup"
     ],
     "correctIndex": 2,
@@ -705,9 +705,9 @@
     "question": "A CI helper container is run with `-v /var/run/docker.sock:/var/run/docker.sock` and as a non-root user inside the container. Why is this still a severe risk?",
     "options": [
       "The socket mount disables the container's seccomp profile, enabling all system calls",
-      "Anyone controlling the socket can tell the daemon to start a privileged container with the host root mounted",
+      "Whoever controls the socket can have the daemon start a privileged container mounting the host root",
       "Socket access lets the container read other containers' logs, which may contain credentials",
-      "The socket exposes only read-only container metadata, but that includes environment variables"
+      "The socket exposes only read-only container metadata, but that metadata includes environment variables"
     ],
     "correctIndex": 1,
     "explanation": "The Docker daemon runs with root privileges, and its API lets a client start containers with arbitrary mounts and privileges, which is effectively root on the host regardless of the in-container user. Reading logs or metadata is possible but understates the risk, and the mount does not alter seccomp.",
@@ -758,7 +758,7 @@
       "drain waits for the pods' liveness probes to fail before evicting; disable the probes",
       "drain cannot evict Deployment pods; delete the Deployment and recreate it after the upgrade",
       "The PDB only applies to StatefulSets, so the hang is caused by a missing toleration instead",
-      "Eviction would violate the PDB, which allows zero disruptions; lower minAvailable or add replicas first"
+      "Eviction would violate the PDB (zero disruptions allowed); lower minAvailable or add replicas"
     ],
     "correctIndex": 3,
     "explanation": "Drain uses the Eviction API, which respects PodDisruptionBudgets; with minAvailable equal to the replica count no voluntary disruption is ever allowed, so eviction is refused indefinitely. Allow at least one disruption (or scale up first). Drain does evict Deployment pods, PDBs apply to any selected pods, and probes are unrelated.",
@@ -826,7 +826,7 @@
       "Set `restartPolicy: Always` so the kubelet keeps retrying until the pull succeeds",
       "Increase the container's memory limit so the image can be decompressed on the node",
       "Add a readiness probe so the Pod waits until the registry becomes available",
-      "Create a registry credential Secret and reference it in imagePullSecrets (or the ServiceAccount)"
+      "Create a registry credential Secret and reference it in imagePullSecrets"
     ],
     "correctIndex": 3,
     "explanation": "`pull access denied` for an existing tag indicates the node is not authenticated to the private registry; Pods supply credentials through imagePullSecrets, directly or via their ServiceAccount. Memory limits apply after the container starts, the kubelet already retries with back-off, and probes run only after the image is pulled.",
@@ -841,7 +841,7 @@
     "question": "Requests to Service `web` time out. `kubectl get endpointslices -l kubernetes.io/service-name=web` shows no endpoints, while the Pods are Running and Ready with label `app: web-api`. The Service selector is `app: web`. What is wrong?",
     "options": [
       "ClusterIP Services need an Ingress in front of them before endpoints are populated",
-      "The Service selector does not match the Pods' labels, so no Pods are selected as endpoints",
+      "The Service selector does not match the Pods' labels, so no Pods become endpoints",
       "Services only route to Pods created before the Service, so the Pods must be recreated",
       "The Pods need a hostPort so the Service can forward traffic to them"
     ],
@@ -857,10 +857,10 @@
     "title": "Default Service type",
     "question": "You create a Service without specifying `type`. How is it reachable?",
     "options": [
-      "Through a virtual ClusterIP reachable only from inside the cluster",
+      "Through a virtual ClusterIP reachable only inside the cluster",
       "Through a port opened on every node's IP address",
       "Through a DNS CNAME pointing to an external hostname",
-      "Through a cloud load balancer with a public IP address"
+      "Through a cloud provider load balancer with a public IP address"
     ],
     "correctIndex": 0,
     "explanation": "ClusterIP is the default type, exposing the Service on an internal virtual IP only. LoadBalancer provisions an external load balancer, NodePort opens a port on every node, and ExternalName returns a CNAME record.",
@@ -893,7 +893,7 @@
     "options": [
       "NetworkPolicies only take effect after the selected Pods are restarted",
       "A policy with no ingress rules allows all traffic; you must list every denied source explicitly",
-      "The cluster's network plugin does not implement NetworkPolicy, so the object is accepted but not enforced",
+      "The network plugin does not implement NetworkPolicy, so the object is accepted but not enforced",
       "NetworkPolicies apply only to traffic entering the cluster through an Ingress controller"
     ],
     "correctIndex": 2,
@@ -910,8 +910,8 @@
     "options": [
       "Ingress has been removed from current Kubernetes releases and no longer works on new clusters",
       "Ingress only supports TCP traffic, while Gateway API is the only way to route HTTP",
-      "Gateway API runs without any controller, whereas Ingress requires one to be installed",
-      "It splits roles across GatewayClass, Gateway and HTTPRoute, and Ingress is frozen with new features going to Gateway API"
+      "Gateway API runs without any controller at all, whereas Ingress requires one to be installed first",
+      "It splits roles across GatewayClass, Gateway and HTTPRoute, and Ingress is frozen in its favour"
     ],
     "correctIndex": 3,
     "explanation": "Gateway API is role-oriented, letting infrastructure providers, cluster operators and app developers own separate resources, and it supports richer routing natively. The Ingress API is frozen: still GA and supported, but not gaining features. Both need a controller implementation, and Ingress is in fact HTTP-focused.",
@@ -926,7 +926,7 @@
     "question": "You update a ConfigMap key `LOG_LEVEL` from info to debug. Pods consume it via `envFrom` and keep logging at info for hours. Why?",
     "options": [
       "envFrom reads ConfigMaps only at Deployment creation, so the Deployment must be deleted",
-      "Environment variables from a ConfigMap are set at container start and require a Pod restart to change",
+      "ConfigMap env vars are set when the container starts, so they change only after a restart",
       "ConfigMaps are immutable by default, so the update was silently rejected",
       "ConfigMap updates are propagated only once per day by the kubelet sync loop"
     ],
@@ -942,8 +942,8 @@
     "title": "How protected are Secrets by default",
     "question": "A developer argues Kubernetes Secrets are safe to share in manifests because the values look scrambled. What is accurate?",
     "options": [
-      "Values are only base64-encoded and, by default, stored unencrypted in etcd; enable encryption at rest and RBAC",
-      "Values are AES-encrypted by the API server with a per-namespace key before being stored",
+      "Values are only base64-encoded and stored unencrypted in etcd by default; enable encryption at rest",
+      "Values are AES-encrypted by the API server with a per-namespace key before they are stored in etcd",
       "Values are hashed, so they cannot be decoded even by a cluster administrator",
       "Values are encrypted in manifests but decrypted when written into etcd for performance"
     ],
@@ -959,7 +959,7 @@
     "title": "PVC Pending: waiting for first consumer",
     "question": "A new PVC stays `Pending` with the event `waiting for first consumer to be created before binding`. No Pod uses it yet. What does this mean?",
     "options": [
-      "Its StorageClass uses WaitForFirstConsumer, delaying provisioning until a Pod is scheduled, which is expected",
+      "Expected: its StorageClass uses WaitForFirstConsumer, delaying binding until a Pod uses it",
       "The cluster has no default StorageClass, so the PVC can never be bound without manual edits",
       "The PVC's access mode conflicts with the StorageClass and the claim must be recreated",
       "The requested size exceeds every available PersistentVolume and must be reduced"
@@ -996,7 +996,7 @@
       "Set `restartPolicy: Never` so the kubelet stops killing the container after probe failures",
       "Lower `timeoutSeconds` to 1 so each liveness probe returns faster during startup",
       "Remove the readiness probe so the liveness probe is evaluated only after the Pod is Ready",
-      "Add a startupProbe allowing enough time (e.g. failureThreshold 12, period 10) before liveness checks begin"
+      "Add a startupProbe with enough budget (e.g. failureThreshold 12, periodSeconds 10)"
     ],
     "correctIndex": 3,
     "explanation": "The liveness probe fails three times about 30 seconds after start, so the kubelet kills the container before it finishes booting, repeatedly. A startupProbe disables liveness and readiness checks until it succeeds, giving slow starts room without weakening liveness later. Readiness does not gate liveness, `Never` stops recovery entirely, and shorter timeouts make failures more likely.",
@@ -1012,7 +1012,7 @@
     "options": [
       "Evicts the Pod and reschedules it onto a different node",
       "Marks the Deployment as failed and rolls back to the previous revision",
-      "Removes the Pod from Service endpoints until the readiness probe passes again",
+      "Removes the Pod from Service endpoints until the probe passes again",
       "Restarts the container after the failure threshold is reached"
     ],
     "correctIndex": 2,
@@ -1028,9 +1028,9 @@
     "question": "Every Pod's liveness endpoint checks connectivity to a shared PostgreSQL. During a 5-minute database failover, all Pods restart repeatedly and the service is slow to recover afterwards. What is the design mistake?",
     "options": [
       "The database check belongs in a startupProbe, which repeats for the life of the Pod",
-      "The liveness probe should use a TCP check against PostgreSQL instead of an HTTP endpoint",
+      "The liveness probe should use a TCP check against PostgreSQL rather than calling an HTTP endpoint",
       "Liveness probes should be configured with failureThreshold 1 so restarts happen sooner",
-      "Liveness should reflect only the container's own health; a dependency outage should not trigger restarts"
+      "Liveness should check only the container's own health; dependency outages must not restart it"
     ],
     "correctIndex": 3,
     "explanation": "Restarting cannot fix an external dependency, so tying liveness to it turns a dependency blip into a fleet-wide restart storm with cold caches and connection surges. Keep liveness to process health (for example deadlock detection) and reflect dependency issues through readiness or degraded responses with care. Startup probes run only until the first success.",
@@ -1044,10 +1044,10 @@
     "title": "Probe behaviour during startup",
     "question": "A container defines startup, liveness and readiness probes. While the startup probe has not yet succeeded, what happens to the other two probes?",
     "options": [
-      "They are not run; liveness and readiness checks begin only after the startup probe succeeds",
+      "Neither runs; liveness and readiness checks start only once the startup probe succeeds",
       "Readiness runs normally but liveness is paused until the startup probe succeeds",
       "They run in parallel, and either one succeeding marks the startup probe as passed",
-      "They run, but their failures are recorded only as warnings until startup completes"
+      "They run, but their failures are only recorded as warnings until the startup phase completes"
     ],
     "correctIndex": 0,
     "explanation": "When a startup probe is configured, liveness and readiness probes are disabled until it succeeds; if the startup probe exhausts its failureThreshold, the container is killed and handled per its restart policy. Other probes cannot short-circuit it, and readiness is not evaluated in the meantime, so the Pod stays not-ready.",
@@ -1079,8 +1079,8 @@
     "question": "A latency-sensitive API has `limits.cpu: 500m`. Average CPU looks like 300m, but p99 latency spikes during bursts and throttling metrics climb. What explains it?",
     "options": [
       "The scheduler moves the Pod to another node whenever usage exceeds the limit",
-      "Bursts exceed the CPU limit within enforcement periods, so the container is throttled rather than killed",
-      "CPU limits reserve capacity, so other Pods are slowed down and the node becomes saturated",
+      "Bursts exceed the CPU limit within enforcement periods, so the container is throttled, not killed",
+      "CPU limits reserve capacity, so other Pods are slowed down and the whole node becomes saturated",
       "Exceeding the CPU limit makes the kubelet restart the container, causing brief outages"
     ],
     "correctIndex": 1,
@@ -1096,7 +1096,7 @@
     "question": "An HPA targets 70% CPU utilization, but `kubectl get hpa` shows `<unknown>/70%` and it never scales. metrics-server is healthy. What is the most likely cause?",
     "options": [
       "CPU utilization targets only work when CPU limits equal requests (Guaranteed QoS)",
-      "The containers have no CPU requests, and utilization is calculated as a percentage of requests",
+      "The containers have no CPU requests, and utilization is a percentage of requests",
       "The HPA must target a ReplicaSet rather than a Deployment to read CPU metrics",
       "The HPA needs a minimum of 3 replicas before it starts collecting metrics"
     ],
@@ -1114,8 +1114,8 @@
     "options": [
       "Monitoring includes swap, so actual RAM use is higher than displayed",
       "Pods requesting more than 2Gi need a PriorityClass before they can be scheduled",
-      "The scheduler only considers nodes whose actual usage is below 25% for new Pods",
-      "The scheduler places Pods based on the sum of existing requests, not actual usage, and requests are near capacity"
+      "The scheduler only considers nodes whose actual memory usage is below 25% for new Pods",
+      "Scheduling uses the sum of requests, not actual usage, and requests are near capacity"
     ],
     "correctIndex": 3,
     "explanation": "The scheduler ensures the sum of requests on a node stays below its allocatable capacity, regardless of real utilization. Over-sized requests on existing Pods can therefore block scheduling on idle-looking nodes; right-sizing requests or adding capacity fixes it. The other statements are not scheduler rules.",
@@ -1180,10 +1180,10 @@
     "title": "Rollout stuck on a bad version",
     "question": "A new version's readiness probe never passes. After `progressDeadlineSeconds`, the Deployment shows `Progressing=False, reason ProgressDeadlineExceeded`. What does Kubernetes do next?",
     "options": [
-      "It deletes the new ReplicaSet and pauses the Deployment until it is resumed",
+      "It deletes the new ReplicaSet and pauses the Deployment until someone resumes it manually",
       "It scales the old ReplicaSet to zero to force the new Pods to become ready",
       "It automatically rolls back to the last revision that had all Pods ready",
-      "Nothing automatically; it reports the condition, and you or a higher-level tool must roll back"
+      "Nothing automatic: it reports the condition, and you or a tool must roll back"
     ],
     "correctIndex": 3,
     "explanation": "Deployment controllers only surface ProgressDeadlineExceeded as a status condition; they do not roll back. Because maxUnavailable limits how many old Pods are removed, capacity remains, and CI/CD or progressive-delivery tools can act on the condition (for example `kubectl rollout status` exiting non-zero, then `rollout undo`).",
@@ -1214,9 +1214,9 @@
     "title": "Linking logs to traces",
     "question": "During an incident you find a slow trace but cannot find the matching application logs among millions of lines. What change makes this navigation reliable?",
     "options": [
-      "Raise the log level to DEBUG during incidents so more lines can be inspected",
+      "Raise the log level to DEBUG during incidents so many more lines can be inspected",
       "Write logs and spans to the same database table so they share a primary key",
-      "Include the active trace_id and span_id in every log record emitted within a span",
+      "Include the active trace_id and span_id in every log record emitted in a span",
       "Log the full request body so it can be matched with the trace by content"
     ],
     "correctIndex": 2,
@@ -1250,7 +1250,7 @@
     "options": [
       "Label values longer than 32 characters force Prometheus to disable compression for the metric",
       "Adding labels to an existing metric resets it, so Prometheus re-reads all historical samples",
-      "Every unique label combination is a separate time series, so unbounded labels explode series cardinality",
+      "Each unique label combination is its own time series, so unbounded labels explode cardinality",
       "Counters cannot carry more than two labels, so Prometheus stores them as histograms instead"
     ],
     "correctIndex": 2,
@@ -1266,9 +1266,9 @@
     "question": "Each of 20 replicas exports a Summary with a precomputed p99 latency. A dashboard averages the 20 p99 values to show service-wide p99. Why is this wrong, and what is better?",
     "options": [
       "Averaging is fine, but the median of the 20 p99 values should be used to reduce noise",
-      "Quantiles cannot be averaged meaningfully; export histograms and compute histogram_quantile over summed buckets",
+      "Quantiles can't be averaged; export histograms and use histogram_quantile over summed buckets",
       "Summaries already aggregate across replicas, so each instance reports the global p99",
-      "p99 should be replaced by the mean latency, which can be aggregated across instances exactly"
+      "p99 should be replaced by the mean latency, which can be aggregated exactly across all instances"
     ],
     "correctIndex": 1,
     "explanation": "Precomputed quantiles from separate instances cannot be combined statistically; the average of p99s is not the p99 of all requests. Histogram buckets are counters that can be summed across instances before calculating the quantile. Means are aggregatable but hide the tail behaviour that p99 is meant to show.",
@@ -1282,8 +1282,8 @@
     "title": "Querying a counter",
     "question": "A dashboard plots the raw value of `http_requests_total` and shows sudden drops to zero whenever pods restart. How should request throughput be queried?",
     "options": [
-      "Use `rate(http_requests_total[5m])`, which computes a per-second rate and handles counter resets",
-      "Use `max_over_time(http_requests_total[5m])` to hide the drops caused by restarts",
+      "Use `rate(http_requests_total[5m])`, a per-second rate that handles counter resets",
+      "Use `max_over_time(http_requests_total[5m])` to hide the drops caused by pod restarts",
       "Use `avg(http_requests_total)` across pods so a single reset is averaged out",
       "Convert the counter to a gauge so restarts no longer reset its value"
     ],
@@ -1299,7 +1299,7 @@
     "title": "Traces split into disconnected pieces",
     "question": "Service A calls Service B over HTTP. Both are instrumented with OpenTelemetry, but in the trace UI B's spans always appear as separate root traces. A uses a homegrown HTTP client wrapper. What is the most likely cause?",
     "options": [
-      "A does not inject trace context (e.g. the traceparent header) into outgoing requests, so B starts new traces",
+      "A does not inject trace context (the traceparent header) into outgoing requests",
       "B samples at 100%, which forces it to create a new root span for every request",
       "B's spans are exported with a different service.name, which splits them into separate traces",
       "The two services use different programming languages, which OpenTelemetry cannot link"
@@ -1333,9 +1333,9 @@
     "title": "Tracing through a message queue",
     "question": "An order service publishes events to Kafka and a fulfilment service consumes them in batches. Traces end at the producer. How should context be propagated?",
     "options": [
-      "Have the consumer query the producer's tracing backend for the most recent active trace ID",
+      "Have the consumer query the producer's tracing backend for the most recent active trace ID and reuse it",
       "Put the trace ID in the message key so Kafka routes all spans of a trace to one partition",
-      "Inject the trace context into message headers on publish, extract it on consume, and use span links for batched messages",
+      "Inject trace context into message headers on publish, extract it on consume; use span links for batches",
       "Enable 100% sampling on the consumer so it automatically joins the producer's traces"
     ],
     "correctIndex": 2,
@@ -1367,8 +1367,8 @@
     "title": "SLI, SLO and SLA",
     "question": "Which statement correctly distinguishes SLI, SLO and SLA?",
     "options": [
-      "SLI is a measured indicator, SLO is the target for it, and SLA is an agreement with consequences if missed",
-      "SLA is the internal target, SLO is the contract with customers, and SLI is the penalty paid",
+      "SLI is the measured indicator, SLO its target, and SLA an agreement with consequences if missed",
+      "SLA is the internal target, SLO is the contract signed with customers, and SLI is the penalty paid",
       "SLI is the target, SLO is the measured value, and SLA is the dashboard that compares them",
       "All three are the same uptime percentage reported to different audiences"
     ],
@@ -1418,8 +1418,8 @@
     "title": "Error budget exhausted",
     "question": "Halfway through the month a service has used 100% of its error budget after several bad releases. Under a typical error budget policy, what happens?",
     "options": [
-      "The SLO target is lowered for the rest of the month so the budget becomes positive again",
-      "Feature releases are halted except for reliability fixes until the service is back within its SLO",
+      "The SLO target is lowered for the rest of the month so the remaining budget becomes positive again",
+      "Feature releases are halted, except reliability fixes, until the service is back within SLO",
       "Nothing changes until the SLA is also breached and customers are owed credits",
       "The on-call team is replaced, since the budget measures the team's performance"
     ],
@@ -1487,7 +1487,7 @@
     "question": "During a major outage, several engineers debug in parallel, nobody updates stakeholders, and two people roll back different services at the same time. Which incident-management role addresses this?",
     "options": [
       "A release manager who freezes all deployments until the next scheduled release",
-      "An incident commander who holds overall coordination, assigns roles and delegates work",
+      "An incident commander who owns overall coordination, assigns roles and delegates work",
       "A database administrator who approves every production change during the incident",
       "A postmortem author who documents the timeline while the incident is still ongoing"
     ],

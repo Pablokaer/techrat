@@ -354,10 +354,16 @@ namespace TechRat.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(30)")
                         .HasColumnName("field");
 
+                    b.Property<bool>("SeedManaged")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("seed_managed");
+
                     b.Property<string>("Value")
                         .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
                         .HasColumnName("value");
 
                     b.HasKey("EntityType", "EntityId", "Locale", "Field")
@@ -985,6 +991,205 @@ namespace TechRat.Infrastructure.Persistence.Migrations
                     b.ToTable("question_attempts", "learning");
                 });
 
+            modelBuilder.Entity("TechRat.Domain.Roadmaps.LearningModule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("category");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("description");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("display_order");
+
+                    b.Property<int>("EstimatedMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("estimated_minutes");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("icon");
+
+                    b.Property<bool>("IsPublished")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_published");
+
+                    b.Property<bool>("IsStandalone")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_standalone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("level");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<bool>("SeedManaged")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("seed_managed");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("slug");
+
+                    b.Property<int>("Version")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("version");
+
+                    b.Property<int>("XPReward")
+                        .HasColumnType("integer")
+                        .HasColumnName("xp_reward");
+
+                    b.HasKey("Id")
+                        .HasName("pk_modules");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_modules_slug");
+
+                    b.HasIndex("Kind", "Category")
+                        .HasDatabaseName("ix_modules_kind_category");
+
+                    b.ToTable("modules", "roadmaps");
+                });
+
+            modelBuilder.Entity("TechRat.Domain.Roadmaps.ModuleDependency", b =>
+                {
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("module_id");
+
+                    b.Property<Guid>("RequiredModuleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("required_module_id");
+
+                    b.HasKey("ModuleId", "RequiredModuleId")
+                        .HasName("pk_module_dependencies");
+
+                    b.HasIndex("RequiredModuleId")
+                        .HasDatabaseName("ix_module_dependencies_required_module_id");
+
+                    b.ToTable("module_dependencies", "roadmaps");
+                });
+
+            modelBuilder.Entity("TechRat.Domain.Roadmaps.ModuleStep", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AddedInVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("added_in_version");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Difficulty")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("difficulty");
+
+                    b.Property<int>("EstimatedMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("estimated_minutes");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<int>("MinimumAccuracy")
+                        .HasColumnType("integer")
+                        .HasColumnName("minimum_accuracy");
+
+                    b.Property<int>("MinimumQuestions")
+                        .HasColumnType("integer")
+                        .HasColumnName("minimum_questions");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("module_id");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer")
+                        .HasColumnName("order");
+
+                    b.Property<Guid?>("SubtopicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subtopic_id");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("title");
+
+                    b.Property<Guid>("TopicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("topic_id");
+
+                    b.Property<int>("XPReward")
+                        .HasColumnType("integer")
+                        .HasColumnName("xp_reward");
+
+                    b.HasKey("Id")
+                        .HasName("pk_module_steps");
+
+                    b.HasIndex("SubtopicId")
+                        .HasDatabaseName("ix_module_steps_subtopic_id");
+
+                    b.HasIndex("ModuleId", "Order")
+                        .HasDatabaseName("ix_module_steps_module_id_order");
+
+                    b.HasIndex("TopicId", "SubtopicId")
+                        .HasDatabaseName("ix_module_steps_topic_id_subtopic_id");
+
+                    b.ToTable("module_steps", "roadmaps");
+                });
+
             modelBuilder.Entity("TechRat.Domain.Roadmaps.Roadmap", b =>
                 {
                     b.Property<Guid>("Id")
@@ -997,6 +1202,12 @@ namespace TechRat.Infrastructure.Persistence.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("character varying(60)")
                         .HasColumnName("category");
+
+                    b.Property<bool>("CompositionSeedManaged")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("composition_seed_managed");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1090,117 +1301,123 @@ namespace TechRat.Infrastructure.Persistence.Migrations
                     b.ToTable("roadmap_dependencies", "roadmaps");
                 });
 
-            modelBuilder.Entity("TechRat.Domain.Roadmaps.RoadmapModule", b =>
+            modelBuilder.Entity("TechRat.Domain.Roadmaps.RoadmapModuleLink", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("integer")
-                        .HasColumnName("order");
-
                     b.Property<Guid>("RoadmapId")
                         .HasColumnType("uuid")
                         .HasColumnName("roadmap_id");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("title");
-
-                    b.Property<int>("XPReward")
-                        .HasColumnType("integer")
-                        .HasColumnName("xp_reward");
-
-                    b.HasKey("Id")
-                        .HasName("pk_roadmap_modules");
-
-                    b.HasIndex("RoadmapId", "Order")
-                        .HasDatabaseName("ix_roadmap_modules_roadmap_id_order");
-
-                    b.ToTable("roadmap_modules", "roadmaps");
-                });
-
-            modelBuilder.Entity("TechRat.Domain.Roadmaps.RoadmapStep", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("description");
-
-                    b.Property<string>("Difficulty")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)")
-                        .HasColumnName("difficulty");
-
-                    b.Property<int>("EstimatedMinutes")
-                        .HasColumnType("integer")
-                        .HasColumnName("estimated_minutes");
-
-                    b.Property<int>("MinimumAccuracy")
-                        .HasColumnType("integer")
-                        .HasColumnName("minimum_accuracy");
-
-                    b.Property<int>("MinimumQuestions")
-                        .HasColumnType("integer")
-                        .HasColumnName("minimum_questions");
 
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uuid")
                         .HasColumnName("module_id");
 
+                    b.Property<bool>("IsRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_required");
+
                     b.Property<int>("Order")
                         .HasColumnType("integer")
                         .HasColumnName("order");
 
-                    b.Property<Guid>("RoadmapId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("roadmap_id");
-
-                    b.Property<Guid?>("SubtopicId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("subtopic_id");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("title");
-
-                    b.Property<Guid>("TopicId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("topic_id");
-
-                    b.Property<int>("XPReward")
-                        .HasColumnType("integer")
-                        .HasColumnName("xp_reward");
-
-                    b.HasKey("Id")
-                        .HasName("pk_roadmap_steps");
+                    b.HasKey("RoadmapId", "ModuleId")
+                        .HasName("pk_roadmap_module_links");
 
                     b.HasIndex("ModuleId")
-                        .HasDatabaseName("ix_roadmap_steps_module_id");
-
-                    b.HasIndex("SubtopicId")
-                        .HasDatabaseName("ix_roadmap_steps_subtopic_id");
-
-                    b.HasIndex("TopicId")
-                        .HasDatabaseName("ix_roadmap_steps_topic_id");
+                        .HasDatabaseName("ix_roadmap_module_links_module_id");
 
                     b.HasIndex("RoadmapId", "Order")
-                        .HasDatabaseName("ix_roadmap_steps_roadmap_id_order");
+                        .IsUnique()
+                        .HasDatabaseName("ix_roadmap_module_links_roadmap_id_order");
 
-                    b.ToTable("roadmap_steps", "roadmaps");
+                    b.ToTable("roadmap_module_links", "roadmaps");
+                });
+
+            modelBuilder.Entity("TechRat.Domain.Roadmaps.UserModuleProgress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<int>("CompletedSteps")
+                        .HasColumnType("integer")
+                        .HasColumnName("completed_steps");
+
+                    b.Property<int?>("CompletedVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("completed_version");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("module_id");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_user_module_progress");
+
+                    b.HasIndex("ModuleId")
+                        .HasDatabaseName("ix_user_module_progress_module_id");
+
+                    b.HasIndex("UserId", "ModuleId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_user_module_progress_user_id_module_id");
+
+                    b.ToTable("user_module_progress", "roadmaps");
+                });
+
+            modelBuilder.Entity("TechRat.Domain.Roadmaps.UserModuleStepCompletion", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("ModuleStepId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("module_step_id");
+
+                    b.Property<DateTimeOffset>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("module_id");
+
+                    b.Property<bool>("XpAwarded")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("xp_awarded");
+
+                    b.HasKey("UserId", "ModuleStepId")
+                        .HasName("pk_user_module_step_completions");
+
+                    b.HasIndex("ModuleStepId")
+                        .HasDatabaseName("ix_user_module_step_completions_module_step_id");
+
+                    b.HasIndex("UserId", "ModuleId")
+                        .HasDatabaseName("ix_user_module_step_completions_user_id_module_id");
+
+                    b.ToTable("user_module_step_completions", "roadmaps");
                 });
 
             modelBuilder.Entity("TechRat.Domain.Roadmaps.UserRoadmapProgress", b =>
@@ -1255,36 +1472,6 @@ namespace TechRat.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_user_roadmap_progress_user_id_roadmap_id");
 
                     b.ToTable("user_roadmap_progress", "roadmaps");
-                });
-
-            modelBuilder.Entity("TechRat.Domain.Roadmaps.UserRoadmapStepCompletion", b =>
-                {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
-                    b.Property<Guid>("RoadmapStepId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("roadmap_step_id");
-
-                    b.Property<DateTimeOffset>("CompletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("completed_at");
-
-                    b.Property<Guid>("RoadmapId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("roadmap_id");
-
-                    b.HasKey("UserId", "RoadmapStepId")
-                        .HasName("pk_user_roadmap_step_completions");
-
-                    b.HasIndex("RoadmapStepId")
-                        .HasDatabaseName("ix_user_roadmap_step_completions_roadmap_step_id");
-
-                    b.HasIndex("UserId", "RoadmapId")
-                        .HasDatabaseName("ix_user_roadmap_step_completions_user_id_roadmap_id");
-
-                    b.ToTable("user_roadmap_step_completions", "roadmaps");
                 });
 
             modelBuilder.Entity("TechRat.Domain.Users.User", b =>
@@ -1654,6 +1841,46 @@ namespace TechRat.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_question_attempts_user_profiles_user_id");
                 });
 
+            modelBuilder.Entity("TechRat.Domain.Roadmaps.ModuleDependency", b =>
+                {
+                    b.HasOne("TechRat.Domain.Roadmaps.LearningModule", null)
+                        .WithMany("Dependencies")
+                        .HasForeignKey("ModuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_module_dependencies_modules_module_id");
+
+                    b.HasOne("TechRat.Domain.Roadmaps.LearningModule", null)
+                        .WithMany()
+                        .HasForeignKey("RequiredModuleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_module_dependencies_modules_required_module_id");
+                });
+
+            modelBuilder.Entity("TechRat.Domain.Roadmaps.ModuleStep", b =>
+                {
+                    b.HasOne("TechRat.Domain.Roadmaps.LearningModule", null)
+                        .WithMany("Steps")
+                        .HasForeignKey("ModuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_module_steps_modules_module_id");
+
+                    b.HasOne("TechRat.Domain.Content.Subtopic", null)
+                        .WithMany()
+                        .HasForeignKey("SubtopicId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_module_steps_subtopics_subtopic_id");
+
+                    b.HasOne("TechRat.Domain.Content.Topic", null)
+                        .WithMany()
+                        .HasForeignKey("TopicId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_module_steps_topics_topic_id");
+                });
+
             modelBuilder.Entity("TechRat.Domain.Roadmaps.RoadmapDependency", b =>
                 {
                     b.HasOne("TechRat.Domain.Roadmaps.Roadmap", "RequiredRoadmap")
@@ -1673,44 +1900,57 @@ namespace TechRat.Infrastructure.Persistence.Migrations
                     b.Navigation("RequiredRoadmap");
                 });
 
-            modelBuilder.Entity("TechRat.Domain.Roadmaps.RoadmapModule", b =>
+            modelBuilder.Entity("TechRat.Domain.Roadmaps.RoadmapModuleLink", b =>
                 {
+                    b.HasOne("TechRat.Domain.Roadmaps.LearningModule", "Module")
+                        .WithMany()
+                        .HasForeignKey("ModuleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_roadmap_module_links_learning_modules_module_id");
+
                     b.HasOne("TechRat.Domain.Roadmaps.Roadmap", null)
-                        .WithMany("Modules")
+                        .WithMany("Links")
                         .HasForeignKey("RoadmapId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_roadmap_modules_roadmaps_roadmap_id");
+                        .HasConstraintName("fk_roadmap_module_links_roadmaps_roadmap_id");
+
+                    b.Navigation("Module");
                 });
 
-            modelBuilder.Entity("TechRat.Domain.Roadmaps.RoadmapStep", b =>
+            modelBuilder.Entity("TechRat.Domain.Roadmaps.UserModuleProgress", b =>
                 {
-                    b.HasOne("TechRat.Domain.Roadmaps.RoadmapModule", null)
+                    b.HasOne("TechRat.Domain.Roadmaps.LearningModule", null)
                         .WithMany()
                         .HasForeignKey("ModuleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_roadmap_steps_roadmap_modules_module_id");
+                        .HasConstraintName("fk_user_module_progress_modules_module_id");
 
-                    b.HasOne("TechRat.Domain.Roadmaps.Roadmap", null)
-                        .WithMany("Steps")
-                        .HasForeignKey("RoadmapId")
+                    b.HasOne("TechRat.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_roadmap_steps_roadmaps_roadmap_id");
+                        .HasConstraintName("fk_user_module_progress_users_user_id");
+                });
 
-                    b.HasOne("TechRat.Domain.Content.Subtopic", null)
+            modelBuilder.Entity("TechRat.Domain.Roadmaps.UserModuleStepCompletion", b =>
+                {
+                    b.HasOne("TechRat.Domain.Roadmaps.ModuleStep", null)
                         .WithMany()
-                        .HasForeignKey("SubtopicId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_roadmap_steps_subtopics_subtopic_id");
-
-                    b.HasOne("TechRat.Domain.Content.Topic", null)
-                        .WithMany()
-                        .HasForeignKey("TopicId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasForeignKey("ModuleStepId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_roadmap_steps_topics_topic_id");
+                        .HasConstraintName("fk_user_module_step_completions_module_steps_module_step_id");
+
+                    b.HasOne("TechRat.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_module_step_completions_users_user_id");
                 });
 
             modelBuilder.Entity("TechRat.Domain.Roadmaps.UserRoadmapProgress", b =>
@@ -1728,23 +1968,6 @@ namespace TechRat.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_roadmap_progress_users_user_id");
-                });
-
-            modelBuilder.Entity("TechRat.Domain.Roadmaps.UserRoadmapStepCompletion", b =>
-                {
-                    b.HasOne("TechRat.Domain.Roadmaps.RoadmapStep", null)
-                        .WithMany()
-                        .HasForeignKey("RoadmapStepId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_roadmap_step_completions_roadmap_steps_roadmap_step_id");
-
-                    b.HasOne("TechRat.Domain.Users.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_user_roadmap_step_completions_users_user_id");
                 });
 
             modelBuilder.Entity("TechRat.Domain.Users.User", b =>
@@ -1784,13 +2007,18 @@ namespace TechRat.Infrastructure.Persistence.Migrations
                     b.Navigation("Subtopics");
                 });
 
+            modelBuilder.Entity("TechRat.Domain.Roadmaps.LearningModule", b =>
+                {
+                    b.Navigation("Dependencies");
+
+                    b.Navigation("Steps");
+                });
+
             modelBuilder.Entity("TechRat.Domain.Roadmaps.Roadmap", b =>
                 {
                     b.Navigation("Dependencies");
 
-                    b.Navigation("Modules");
-
-                    b.Navigation("Steps");
+                    b.Navigation("Links");
                 });
 #pragma warning restore 612, 618
         }

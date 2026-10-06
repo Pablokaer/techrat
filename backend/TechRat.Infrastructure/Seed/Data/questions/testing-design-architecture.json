@@ -9,7 +9,7 @@
     "options": [
       "Keep it, because fewer tests run faster and share setup cost",
       "Wrap each step in try/catch so later asserts still execute",
-      "Split it into separate tests, each with one Act and a focused assertion",
+      "Split it into one test per behaviour, each with a single Act",
       "Move the Arrange code into a constructor and keep the steps"
     ],
     "correctIndex": 2,
@@ -24,8 +24,8 @@
     "title": "Loops and ifs inside a test",
     "question": "A test loops over 6 input values and uses an if/else to choose the expected result for each. What is the better approach in xUnit?",
     "options": [
-      "Keep the loop but add a comment explaining each branch",
-      "Use a [Theory] with [InlineData] rows, each giving an input and its expected output",
+      "Keep the loop but add a comment explaining each branch and expected value",
+      "Use a [Theory] with one [InlineData] row per input and expected value",
       "Move the if/else into a helper method shared by tests",
       "Assert only the first value, since the others repeat the logic"
     ],
@@ -44,7 +44,7 @@
       "Make the seeded data a static field initialised in each constructor",
       "Mark the test class with [Collection] to run its tests in parallel",
       "Use a [Fact] that seeds data first and rely on test ordering",
-      "Move the setup into an IClassFixture<T> so it runs once for the whole class"
+      "Move the setup into an IClassFixture<T> shared by the class's tests"
     ],
     "correctIndex": 3,
     "explanation": "xUnit creates a new test class instance per test, so constructor setup runs 40 times. A class fixture is created once and injected into every test in the class (ICollectionFixture shares it across classes). Collections actually stop parallel runs between classes, and xUnit does not run tests in a guaranteed order.",
@@ -58,8 +58,8 @@
     "title": "Flaky test around midnight",
     "question": "A test for IsHappyHour() passes most of the time but fails when CI runs near 18:00, because the method calls DateTime.Now internally. What is the best fix?",
     "options": [
-      "Inject a TimeProvider (or clock abstraction) and control the time in the test",
-      "Retry the test up to three times when it fails on CI",
+      "Inject a TimeProvider and set the current time from the test",
+      "Retry the test up to three times whenever it fails on the CI agent",
       "Schedule the CI pipeline so it never runs near 18:00",
       "Compare against DateTime.Now inside the test as well"
     ],
@@ -109,9 +109,9 @@
     "title": "Tests break on harmless refactor",
     "question": "Tests for GetProductPrice(id) check `repo.Received(1).GetById(id)` and `logger.Received().LogInformation(...)`. Adding a cache in front of the repository breaks 30 tests even though every returned price is still right. What is the root problem?",
     "options": [
-      "The tests verify interactions with queries instead of the observable result",
+      "The tests verify query interactions instead of the returned result",
       "The cache adds a race condition that the tests correctly caught",
-      "Mocking libraries cannot handle more than one dependency per test",
+      "Mocking libraries cannot handle more than one mocked dependency per test",
       "The tests should use strict mocks so extra calls are allowed"
     ],
     "correctIndex": 0,
@@ -144,7 +144,7 @@
     "question": "Repository tests use EF Core's UseInMemoryDatabase and all pass. In production on SQL Server, a query using FromSql and a transaction rollback behave differently. Why?",
     "options": [
       "The InMemory provider is fine, so the production connection string must be wrong",
-      "The InMemory provider is not relational, so it can't reproduce SQL or transaction behaviour",
+      "The InMemory provider isn't relational, so raw SQL and transactions differ",
       "EF Core caches compiled queries differently when it runs under a test runner",
       "SQL Server needs AsNoTracking() for queries that InMemory tracks by default"
     ],
@@ -177,7 +177,7 @@
     "title": "Bug only the real host shows",
     "question": "OrdersController unit tests build the controller with a mocked IOrderService and all pass. After deploy, every request returns 500 because nobody registered IOrderService in Program.cs. Which test would have caught this?",
     "options": [
-      "A unit test that mocks IOrderService with stricter expectations",
+      "A unit test that mocks IOrderService in strict mode and verifies every call",
       "A property-based test that generates random order IDs",
       "An integration test that sends HTTP requests through WebApplicationFactory",
       "A mutation test run against the controller's action methods"
@@ -195,7 +195,7 @@
     "question": "A Playwright test does `await page.waitForTimeout(3000); await page.click('#pay');` and still fails now and then on CI. What does Playwright recommend?",
     "options": [
       "Remove the sleep and rely on auto-waiting locators and web-first assertions",
-      "Raise the timeout to 10 seconds so slow CI agents can keep up",
+      "Raise the timeout to 10 seconds so that slow CI agents have time to catch up",
       "Use page.evaluate to click the element directly through the DOM",
       "Retry the whole test file until it passes once on CI"
     ],
@@ -245,9 +245,9 @@
     "title": "Inverted pyramid",
     "question": "A suite has 60 unit tests, 120 service tests and 900 browser UI tests that take 3 hours and often fail for no clear reason. What is the best way to improve it?",
     "options": [
-      "Move most checks down into fast unit and service-level tests and keep few UI tests",
+      "Push most checks down to unit and service tests, keeping few UI tests",
       "Add more UI tests so that every path is covered end-to-end",
-      "Run the UI tests in parallel and keep the current balance of tests",
+      "Run the UI tests in parallel on more agents and keep the current balance",
       "Delete the unit tests, since the UI tests already cover them"
     ],
     "correctIndex": 0,
@@ -296,9 +296,9 @@
     "title": "Testing the unhappy path",
     "question": "POST /transfers has tests only for valid transfers. Which set of extra tests adds the most valuable negative coverage?",
     "options": [
-      "More valid amounts with different currencies, expecting 201 responses",
-      "The same valid request repeated 1,000 times, expecting it to stay fast",
-      "Zero, negative, malformed and over-balance amounts, expecting 4xx and no balance change",
+      "More valid amounts in different currencies, each expecting a 201 Created response",
+      "The same valid request repeated 1,000 times, expecting response times to stay low",
+      "Zero, negative, malformed and over-balance amounts: 4xx, no balance change",
       "Valid transfers between new accounts created in random order"
     ],
     "correctIndex": 2,
@@ -330,7 +330,7 @@
     "title": "Non-deterministic tests",
     "question": "Several integration tests fail about 5% of the time on CI, and developers have started re-running pipelines until they go green. What does Fowler recommend?",
     "options": [
-      "Quarantine the flaky tests out of the main pipeline right away and fix them soon",
+      "Quarantine the flaky tests out of the main pipeline, then fix them",
       "Keep re-running, because a later green run proves the code is fine",
       "Delete the flaky tests, since tests that can't be trusted have no value",
       "Mark the pipeline as passing when at least 95% of tests pass"
@@ -347,9 +347,9 @@
     "title": "Property-based testing",
     "question": "A property-based test checks that `Decode(Encode(s)) == s` for generated strings and fails on a 300-character input. The framework then reports a 2-character counterexample. What happened?",
     "options": [
-      "The framework retried with random inputs until a short one passed",
+      "The framework retried with new random inputs until a shorter one passed",
       "The framework shrank the failing input to a smaller case that still fails",
-      "The 300-character failure was a false positive and was thrown away",
+      "The 300-character failure was judged a false positive and was thrown away",
       "The framework cut the input to fit its default size limit"
     ],
     "correctIndex": 1,
@@ -381,9 +381,9 @@
     "title": "Renamed field breaks a consumer",
     "question": "The Orders service renames `customerId` to `clientId` in its JSON. Its own tests pass, but the Billing service breaks after deploy. Which practice would catch this before the Orders release?",
     "options": [
-      "Unit tests in Orders that check the new property name is serialised",
+      "Unit tests in Orders that check the new clientId property is serialised",
       "Load tests on Orders to make sure response times stay steady",
-      "Consumer-driven contract tests, with Orders verifying Billing's pact in its build",
+      "Consumer-driven contract tests that Orders verifies in its own build",
       "Mutation tests on Billing's JSON parsing code"
     ],
     "correctIndex": 2,
@@ -399,7 +399,7 @@
     "question": "Twelve microservices share one staging environment for end-to-end tests. It has become a bottleneck that blocks independent releases. Which approach best lets each team deploy alone while still checking compatibility?",
     "options": [
       "Publish contracts to a Pact Broker and gate each deploy with can-i-deploy",
-      "Freeze all services and release them together in one weekly train",
+      "Freeze all services and release them together in one weekly release train",
       "Give each team its own copy of all twelve services for E2E runs",
       "Rely on schema-less JSON so field changes never break consumers"
     ],
@@ -449,8 +449,8 @@
     "title": "Load test hides a slowdown",
     "question": "A k6 test uses 200 constant VUs. When the API slows from 100 ms to 2 s, the test sends far fewer requests per second and the reported throughput looks gentle. What change gives a more realistic model of public traffic?",
     "options": [
-      "Use an arrival-rate executor so new iterations start at a fixed rate, whatever the latency",
-      "Raise the VU count to 2,000 while keeping the closed model",
+      "Switch to an arrival-rate executor with a fixed iteration rate",
+      "Raise the VU count to 2,000 so more requests stay in flight at once",
       "Add sleep() to each iteration so VUs pace themselves better",
       "Lower the HTTP timeout so slow requests are cut off quickly"
     ],
@@ -466,10 +466,10 @@
     "title": "Boolean parameter",
     "question": "A method is declared as `void Book(Customer c, bool premium)` and called as `Book(c, true)` across the codebase. What is the usual clean-code advice?",
     "options": [
-      "Rename the parameter to isPremiumFlag so callers see its purpose",
+      "Rename the parameter to isPremiumFlag so that callers can see its purpose",
       "Change the bool to an int so more booking types can be added",
       "Keep it and add an XML doc comment explaining what true means",
-      "Replace it with explicit methods such as BookPremium(c) and BookRegular(c)"
+      "Split it into explicit methods: BookPremium(c) and BookRegular(c)"
     ],
     "correctIndex": 3,
     "explanation": "A flag argument hides intent at the call site: `Book(c, true)` doesn't say what true means. Fowler recommends separate, clearly named methods. A better parameter name or a doc comment doesn't help readers of the call, and an int makes it even harder to read.",
@@ -485,7 +485,7 @@
     "options": [
       "Make the comment longer so it describes every flag value",
       "Extract the condition into a method named IsEligibleForFullBenefits()",
-      "Inline the HOURLY constant as a literal so the check is visible",
+      "Inline the HOURLY constant as a numeric literal so the bit check is visible",
       "Move the comment to the end of the if line to save space"
     ],
     "correctIndex": 1,
@@ -518,12 +518,12 @@
     "question": "InvoiceService calculates tax, renders the PDF layout and sends emails through SMTP. Finance, design and ops each ask for changes to it every month. Which SOLID principle does it break?",
     "options": [
       "Single Responsibility Principle",
-      "Open/Closed Principle",
+      "Interface Segregation Principle",
       "Liskov Substitution Principle",
       "Dependency Inversion Principle"
     ],
     "correctIndex": 0,
-    "explanation": "SRP says a class should have one reason to change, meaning one group of stakeholders that drives its changes. Three teams changing the same class is a clear sign it should be split into tax, rendering and notification parts. The other principles are about extension, substitutability and the direction of dependencies.",
+    "explanation": "SRP says a class should have one reason to change, meaning one group of stakeholders that drives its changes. Three teams changing the same class is a clear sign it should be split into tax, rendering and notification parts. The other principles are about interface size, substitutability and the direction of dependencies.",
     "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles"
   },
   {
@@ -570,7 +570,7 @@
     "options": [
       "Add default implementations so Fax() never needs to change",
       "Make ReportService inherit from the class that implements IDevice",
-      "Split it into role interfaces such as IPrinter and IScanner that clients use separately",
+      "Split it into role interfaces such as IPrinter and IScanner",
       "Merge all device methods into one Execute(string command) method"
     ],
     "correctIndex": 2,
@@ -585,8 +585,8 @@
     "title": "Who owns the abstraction?",
     "question": "OrderService (in Application) depends on IOrderRepository, but that interface lives in the Infrastructure project next to SqlOrderRepository. So Application references Infrastructure. What is wrong under the Dependency Inversion Principle?",
     "options": [
-      "Nothing, since depending on any interface already satisfies DIP",
-      "The abstraction should be owned by the high-level layer so Infrastructure depends on it",
+      "Nothing, since depending on any interface at all already satisfies DIP",
+      "Application should own the interface so Infrastructure depends on it",
       "OrderService should create SqlOrderRepository itself with new",
       "Interfaces should live in a shared Utils project for all layers"
     ],
@@ -602,10 +602,10 @@
     "title": "Hidden dependencies",
     "question": "A class calls `ServiceLocator.Get<IEmailSender>()` inside its methods. Its constructor takes no parameters, and tests fail with null references unless a global container is set up. Which principle does constructor injection address here?",
     "options": [
-      "Don't repeat yourself: centralise all lookups in one locator",
+      "Don't repeat yourself: centralise all service lookups in one locator class",
       "YAGNI: avoid adding constructor parameters until required",
       "Encapsulation: hide every collaborator behind static access",
-      "Explicit dependencies: a class should declare what it needs in its constructor"
+      "Explicit dependencies: declare what a class needs in its constructor"
     ],
     "correctIndex": 3,
     "explanation": "The explicit dependencies principle says classes should ask for their collaborators, usually through the constructor, so their needs are visible and easy to supply in tests. A service locator hides those dependencies and depends on global state. The other options misuse DRY, YAGNI and encapsulation.",
@@ -620,7 +620,7 @@
     "question": "The only requirement is CSV export. A developer adds a plugin system with an IExporterFactory, reflection-based discovery and config for PDF and XML exporters 'because we might need them'. Which principle does this break?",
     "options": [
       "DRY (Don't Repeat Yourself)",
-      "Liskov Substitution",
+      "LSP (Liskov Substitution Principle)",
       "YAGNI (You Aren't Gonna Need It)",
       "Tell, Don't Ask"
     ],
@@ -637,9 +637,9 @@
     "question": "ValidateShippingAddress and ValidateBillingAddress have the same 15 lines today. Shipping rules come from logistics and billing rules from the payment provider, and the two are expected to diverge. What is the best decision?",
     "options": [
       "Merge them right away, because any repeated code breaks DRY",
-      "Merge them and add an isBilling flag for future differences",
+      "Merge them now and add an isBilling flag to handle any future differences",
       "Copy both into a shared base class to remove duplication",
-      "Keep them separate, because DRY is about duplicated knowledge, not matching text"
+      "Keep them separate; DRY is about knowledge, not identical text"
     ],
     "correctIndex": 3,
     "explanation": "DRY targets one piece of knowledge written in several places. Code that looks the same by coincidence but changes for different reasons isn't real duplication. Merging it couples unrelated rules and later leads to flags and special cases. Here the rules belong to different stakeholders and will change independently.",
@@ -687,9 +687,9 @@
     "title": "Logic outside the object",
     "question": "Several services contain: `if (account.Balance >= amount) { account.Balance -= amount; } else throw ...`. What refactoring follows Tell, Don't Ask?",
     "options": [
-      "Add a static AccountHelper.CanWithdraw(account, amount) for reuse",
+      "Add a static AccountHelper.CanWithdraw(account, amount) method for reuse",
       "Expose a public Balance setter that validates the new value",
-      "Move the logic into account.Withdraw(amount), which enforces the rule itself",
+      "Move the logic into account.Withdraw(amount), which enforces the rule",
       "Pass the account to a validator service before every update"
     ],
     "correctIndex": 2,
@@ -705,8 +705,8 @@
     "question": "`class CountingSet<T> : HashSet<T>` hides Add() with `new` to count insertions. Code that holds it as a HashSet<T>, or calls UnionWith(items), still calls the base methods, so the count is wrong. What is the most robust design?",
     "options": [
       "Override UnionWith too, and hope no other base method adds items",
-      "Wrap a HashSet<T> through composition and implement ISet<T> by delegating calls",
-      "Make CountingSet sealed so that no one can inherit from it further",
+      "Wrap a HashSet<T> by composition and implement ISet<T> by delegating",
+      "Make CountingSet sealed so that nobody can inherit from it and break it",
       "Use reflection to call the base Add method from every override"
     ],
     "correctIndex": 1,
@@ -772,9 +772,9 @@
     "title": "Is it really refactoring?",
     "question": "A pull request titled 'refactor order module' renames classes, extracts methods and also changes the discount calculation to fix a rounding bug. What is the problem by Fowler's definition?",
     "options": [
-      "Nothing, because refactoring means any improvement to the code",
+      "Nothing, because refactoring covers any improvement made to the code",
       "Renaming classes is not refactoring, only method extraction is",
-      "Refactoring must keep behaviour the same, so the bug fix belongs in its own change",
+      "Refactoring must not change behaviour; the bug fix needs its own PR",
       "Refactoring is only allowed once there is 100% code coverage"
     ],
     "correctIndex": 2,
@@ -809,7 +809,7 @@
       "An anemic domain model",
       "A rich domain model",
       "A bounded context",
-      "Persistence ignorance"
+      "Persistence-ignorant design"
     ],
     "correctIndex": 0,
     "explanation": "Fowler calls this an anemic domain model: objects that look like a domain model but hold no behaviour, so it becomes procedural code with extra mapping cost. In a rich model, entities enforce their own rules. Bounded contexts and persistence ignorance are separate ideas.",
@@ -892,8 +892,8 @@
     "question": "AppCache uses a classic static Instance property. Tests share its state and fail depending on run order, and it can't be replaced with a fake. What is the preferred approach in ASP.NET Core?",
     "options": [
       "Add a static Reset() method that every test calls first",
-      "Make Instance thread-local so each test thread gets a copy",
-      "Register it with AddSingleton and inject it, so the container controls its lifetime",
+      "Make Instance thread-local so each test thread gets its own private copy",
+      "Register it with AddSingleton and inject it via constructors",
       "Use a lock inside Instance so access is serialised"
     ],
     "correctIndex": 2,
@@ -911,7 +911,7 @@
       "The container makes a new DbContext for each call to the singleton",
       "Nothing happens, because the DbContext is pooled and thread-safe by default",
       "The singleton is quietly downgraded to scoped to match its dependency",
-      "Scope validation throws in Development; otherwise one DbContext gets shared across requests"
+      "It becomes a captive dependency: one DbContext is shared by all requests"
     ],
     "correctIndex": 3,
     "explanation": "A singleton that captures a scoped dependency keeps it alive for the whole app (a captive dependency). DbContext isn't thread-safe and is meant to live for one unit of work, so sharing it causes concurrency errors and stale tracked data. ASP.NET Core's scope validation catches this in Development. The fix is a scoped consumer, or IServiceScopeFactory to create a scope per operation.",
@@ -942,8 +942,8 @@
     "title": "Stacking cross-cutting behaviour",
     "question": "IProductRepository must get caching, logging and retry. Each should be toggled separately and SqlProductRepository must not change. Which pattern fits best?",
     "options": [
-      "Decorator: wrappers that implement IProductRepository and delegate to an inner one",
-      "Template Method: a base repository with hooks for each concern",
+      "Decorator: wrappers implementing IProductRepository around an inner one",
+      "Template Method: a base repository class with one overridable hook per concern",
       "Facade: one simplified interface over several repositories",
       "Adapter: convert the repository to a caching interface"
     ],
@@ -959,7 +959,7 @@
     "title": "EF Core lazy-loading proxies",
     "question": "With UseLazyLoadingProxies(), EF Core returns a generated subclass of Blog. The first time a virtual Posts property is read, it queries the database. Which pattern is this, and what hidden risk comes with it?",
     "options": [
-      "A virtual proxy, which risks N+1 queries when navigations are read in loops",
+      "A virtual proxy, which risks N+1 queries when looping over blogs",
       "A decorator, which risks double caching of tracked entities",
       "An adapter, which risks type mismatches between Blog and its subclass",
       "A facade, which risks hiding DbContext from the calling code"
@@ -1044,9 +1044,9 @@
     "title": "Status switches everywhere",
     "question": "Order has Pay(), Ship() and Cancel(). Each method starts with a large `switch (Status)` covering Draft, Paid, Shipped and Cancelled, and invalid transitions are easy to miss. Which pattern organises this best?",
     "options": [
-      "State, with one class per status that handles the allowed operations",
+      "State, with one class per status handling its allowed operations",
       "Strategy, with one shipping algorithm per carrier",
-      "Builder, with the Order built step by step per status",
+      "Builder, with the Order assembled step by step for each status value",
       "Prototype, with one cloned Order template per status"
     ],
     "correctIndex": 0,
@@ -1063,7 +1063,7 @@
     "options": [
       "Events in .NET run on the finalizer thread, which blocks garbage collection",
       "The ViewModels are leaking because they don't implement ICloneable",
-      "The publisher's event keeps strong references to every subscriber, so none can be collected",
+      "The publisher's event holds strong references to every subscriber",
       "PriceChanged copies each subscriber's state onto the large object heap"
     ],
     "correctIndex": 2,
@@ -1115,7 +1115,7 @@
       "Template Method can't call abstract methods from a base class constructor",
       "Strategy requires fewer classes because it doesn't use interfaces",
       "Template Method is deprecated in modern C# in favour of records",
-      "Template Method binds variation through inheritance at compile time; Strategy composes it at runtime"
+      "Template Method varies by subclass; Strategy composes steps at runtime"
     ],
     "correctIndex": 3,
     "explanation": "Template Method picks the variation by which subclass you create, so mixing steps from different variants means many subclasses. Strategy injects each varying step as an object, so steps can be combined freely and chosen at runtime from config. Both patterns are still valid, and the choice is about inheritance versus composition.",
@@ -1131,8 +1131,8 @@
     "options": [
       "It manages database connection pooling and command timeouts",
       "It converts domain objects to JSON for HTTP responses",
-      "It mediates between the domain and data mapping through a collection-like interface",
-      "It groups writes into one database transaction at commit time"
+      "It mediates between domain and data mapping via a collection-like API",
+      "It groups all pending writes into one database transaction at commit time"
     ],
     "correctIndex": 2,
     "explanation": "A Repository makes persisted aggregates look like an in-memory collection (Add, GetById, queries), so domain code doesn't deal with SQL or mapping. Connection pooling belongs to the driver, serialisation to the API layer, and grouping writes into one transaction is the Unit of Work pattern.",
@@ -1146,8 +1146,8 @@
     "title": "Partial commits across repositories",
     "question": "OrderRepository.Add() and InventoryRepository.Reserve() each call SaveChanges() internally. If the second one fails, the order is saved without stock reserved. Which pattern solves this?",
     "options": [
-      "Unit of Work: track changes across repositories and commit them in one transaction",
-      "Repository: give each repository its own private DbContext",
+      "Unit of Work: track changes and commit them in one transaction",
+      "Repository: give each repository its own private, isolated DbContext",
       "Singleton: share one global DbContext across all requests",
       "Retry: run the failed SaveChanges again until it succeeds"
     ],
@@ -1164,9 +1164,9 @@
     "question": "A DDD-style service has Order (aggregate root) with OrderLines. A developer adds OrderLineRepository so the UI can update lines directly. What does Microsoft's DDD guidance say?",
     "options": [
       "Have one repository per table, so OrderLineRepository is correct",
-      "Have one repository per aggregate root, and change lines only through Order",
+      "Have one repository per aggregate root; change lines only via Order",
       "Have one generic repository for every entity type in the system",
-      "Skip repositories and let controllers use DbSet<OrderLine> directly"
+      "Skip repositories and let controllers use DbSet<OrderLine> directly instead"
     ],
     "correctIndex": 1,
     "explanation": "Repositories should exist only for aggregate roots, because the root enforces the aggregate's invariants (such as the order total or line limits). Saving lines directly skips those rules and breaks the consistency boundary. Repositories per table or per entity bring back the same bypass.",
@@ -1183,7 +1183,7 @@
       "The database will reject queries that don't come from the business layer",
       "Performance always gets worse, because layers add caching",
       "Nothing, because layers are only a folder convention",
-      "Business rules are bypassed and presentation becomes coupled to data access"
+      "Business rules get bypassed and the UI is coupled to data access"
     ],
     "correctIndex": 3,
     "explanation": "In a closed (strict) layered design each layer calls only the one directly below it. Skipping a layer means validation and rules in the business layer can be bypassed, and the UI now depends on persistence details. The database can't enforce layering, and the change isn't about performance.",
@@ -1197,8 +1197,8 @@
     "title": "Layers versus tiers",
     "question": "What is the difference between a layer and a tier in an N-tier architecture?",
     "options": [
-      "Layers separate responsibilities logically; tiers are physical deployment units",
-      "Layers run on separate servers; tiers are folders in one project",
+      "Layers are logical code separations; tiers are physical deployments",
+      "Layers run on separate servers; tiers are just folders in one project",
       "Layers are for web apps only; tiers are for desktop apps only",
       "They are the same thing, and the terms can always be swapped"
     ],
@@ -1250,7 +1250,7 @@
     "options": [
       "Both are ports, because they sit on the edge of the hexagon",
       "The controller is a driven adapter; the repository is a driving adapter",
-      "The controller is a driving (primary) adapter; the repository is a driven (secondary) adapter",
+      "The controller is a driving adapter; the repository is a driven adapter",
       "Both belong inside the hexagon as part of the domain model"
     ],
     "correctIndex": 2,
@@ -1282,8 +1282,8 @@
     "title": "Reaching into another module's tables",
     "question": "In a modular monolith, the Orders module queries the Billing module's Invoices table through a shared DbContext to show payment status. What is the main problem?",
     "options": [
-      "It breaks Billing's encapsulation; Orders should use Billing's public API or events",
-      "It is slower than an HTTP call between the two modules",
+      "It breaks Billing's encapsulation; use its public API or events",
+      "It is slower than calling Billing through an HTTP endpoint instead",
       "It needs a distributed transaction between the two modules",
       "There is no problem, since both modules share one database"
     ],
@@ -1299,7 +1299,7 @@
     "title": "Keeping module boundaries over time",
     "question": "After a year, developers keep referencing types from other modules' internal namespaces 'just this once'. How can you enforce the boundaries in a .NET modular monolith?",
     "options": [
-      "Make internals `internal` and add architecture tests that fail the build on illegal references",
+      "Use `internal` types and architecture tests that fail the build",
       "Write the rules on the wiki and review them in quarterly meetings",
       "Put all modules in one project so references are always allowed",
       "Split every module into a microservice so the network enforces it"
@@ -1316,8 +1316,8 @@
     "title": "Choosing a starting architecture",
     "question": "A new product has 6 developers, unclear domain boundaries and needs to ship in 4 months. Which approach do Fowler's MonolithFirst and MicroservicePremium articles favour?",
     "options": [
-      "Microservices from day one, so boundaries never have to change",
-      "A well-modularised monolith, extracting services later when boundaries stabilise",
+      "Microservices from day one, so the boundaries never have to change later",
+      "A modular monolith, extracting services once boundaries stabilise",
       "A big ball of mud, refactored once the product finds its market",
       "Serverless functions per endpoint to skip boundary decisions"
     ],
@@ -1335,7 +1335,7 @@
     "options": [
       "Keep the shared transaction and add a distributed transaction coordinator later",
       "Move the Inventory tables into the Orders schema to keep the transaction local",
-      "Have Orders publish an integration event via an outbox that Inventory handles in its own transaction",
+      "Have Orders publish an outbox-backed integration event to Inventory",
       "Have Orders call Inventory's repository directly inside its unit of work"
     ],
     "correctIndex": 2,
@@ -1351,9 +1351,9 @@
     "question": "The Catalog and Ordering microservices read and write the same Products table. What core microservices principle does this break?",
     "options": [
       "Each service should use a different programming language",
-      "Each service should be deployed to its own Kubernetes cluster",
+      "Each service should be deployed to its own dedicated Kubernetes cluster",
       "Each service should store all its data in a single document",
-      "Each service should own its data and expose it only through its API or events"
+      "Each service should own its data and share it only via APIs or events"
     ],
     "correctIndex": 3,
     "explanation": "Owning its data is what lets a microservice change its schema and deploy on its own. A shared table couples both services at the database level, so a schema change needs a coordinated release. Using different languages, clusters or storage formats isn't required.",
@@ -1384,9 +1384,9 @@
     "title": "Cascading failure",
     "question": "The Recommendations service starts taking 30 s per response. The Product page service keeps calling it, its threads and connections fill up, and the whole site goes down. Which pattern would have contained this?",
     "options": [
-      "Retries with no limit, so every call eventually gets a response",
+      "Retries with no limit, so that every call eventually gets a response",
       "A larger thread pool so more calls can wait at the same time",
-      "A circuit breaker that fails fast after repeated errors and retries later",
+      "A circuit breaker that fails fast after errors and probes later",
       "Strangler fig to replace the Recommendations service gradually"
     ],
     "correctIndex": 2,
@@ -1403,8 +1403,8 @@
     "options": [
       "Publish the event first, then save the order if publishing worked",
       "Wrap both steps in a try/catch and log failures for manual replay",
-      "Increase the broker's retention so lost messages can be recovered",
-      "The transactional outbox: write the event in the same DB transaction, then relay it"
+      "Increase the broker's retention period so lost messages can be recovered",
+      "Outbox: store the event in the same DB transaction, then relay it"
     ],
     "correctIndex": 3,
     "explanation": "This is the dual-write problem: two systems can't be updated atomically without distributed transactions. The outbox pattern saves the event in an outbox table in the same local transaction as the business data. A relay then publishes it at least once, so consumers must be idempotent. Reversing the order just flips the failure, and broker retention can't recover a message that was never sent.",
@@ -1418,8 +1418,8 @@
     "title": "Lockstep deployments",
     "question": "A system has 9 'microservices', but nearly every feature needs changes to 5 of them deployed together in a set order. They also call each other synchronously in long chains. What is the most likely diagnosis?",
     "options": [
-      "Normal microservices behaviour that better CI/CD tools can absorb",
-      "A distributed monolith with boundaries that don't follow business capabilities",
+      "Normal microservices behaviour that better CI/CD tooling can absorb over time",
+      "A distributed monolith whose boundaries ignore business capabilities",
       "Too few services, which more fine-grained splitting would fix",
       "A database problem that adding read replicas would fix"
     ],
@@ -1435,10 +1435,10 @@
     "title": "Migrating a legacy monolith",
     "question": "You must move a 15-year-old monolith to new services without a big-bang rewrite. Users must keep working throughout. Which approach fits?",
     "options": [
-      "Strangler fig: route features one by one to new services behind a facade",
+      "Strangler fig: move features one by one behind a routing facade",
       "Freeze the monolith and rewrite everything in one large release",
       "Copy the monolith's database into each new service right away",
-      "Run the old and new systems with no routing and let users pick"
+      "Run the old and new systems side by side with no routing and let users pick"
     ],
     "correctIndex": 0,
     "explanation": "The strangler fig pattern puts a routing facade in front of the legacy system and moves features to new implementations step by step, until the old system can be retired. It lowers risk and delivers value early. Big-bang rewrites are risky, and copying databases or making users choose leads to inconsistency.",
@@ -1470,8 +1470,8 @@
     "question": "A payment-captured consumer on a broker with at-least-once delivery sometimes credits loyalty points twice after a consumer restart. What is the right fix?",
     "options": [
       "Switch the broker to exactly-once mode for all topics",
-      "Acknowledge each message before processing it to avoid redelivery",
-      "Make the handler idempotent, for example by recording processed message IDs",
+      "Acknowledge each message before processing it so it is never redelivered",
+      "Make the handler idempotent, e.g. by recording processed message IDs",
       "Run only one consumer instance so duplicates can't happen"
     ],
     "correctIndex": 2,
@@ -1503,8 +1503,8 @@
     "title": "Latency after idle periods",
     "question": "An HTTP-triggered Azure Function on the Consumption plan answers in 80 ms when busy but takes several seconds for the first request after a quiet period. What explains this, and what is a plan-level fix?",
     "options": [
-      "Too few database connections; raise the pool size in host.json",
-      "Cold starts after scale-to-zero; Premium or Flex Consumption keep warm instances",
+      "Too few database connections; raise the connection pool size in host.json",
+      "Cold starts after scale-to-zero; Premium plans keep instances warm",
       "HTTP/2 negotiation overhead; force HTTP/1.1 on the function app",
       "Garbage collection pauses; switch the app to server GC mode"
     ],
@@ -1522,8 +1522,8 @@
     "options": [
       "Durable Functions can't run for longer than the Consumption plan timeout",
       "The orchestrator needs a lock because replays run in parallel threads",
-      "DateTime.UtcNow returns local time inside the Durable Functions runtime",
-      "Orchestrators replay from history, so their code must be deterministic; use the context's time and GUID APIs"
+      "DateTime.UtcNow returns local time when called inside the Durable Functions runtime",
+      "Orchestrators replay history and must be deterministic; use context APIs"
     ],
     "correctIndex": 3,
     "explanation": "Durable orchestrators rebuild their state by replaying the code against an event history. A value that changes between replays makes the code take different paths. The rule is to use context.CurrentUtcDateTime and context.NewGuid(), and to do I/O only inside activities. Orchestrations aren't limited by function timeouts in the same way and don't replay in parallel.",
@@ -1537,9 +1537,9 @@
     "title": "Functions overwhelming the database",
     "question": "During a traffic spike an AWS Lambda function scales to 900 concurrent instances, each opening a database connection, and the PostgreSQL server runs out of connections. Which Lambda-level control limits this?",
     "options": [
-      "Raise the function's memory so each instance handles more requests",
+      "Raise the function's memory so each instance can handle more requests",
       "Turn on provisioned concurrency to pre-warm 900 instances",
-      "Set reserved concurrency on the function to cap its concurrent executions",
+      "Set reserved concurrency on the function to cap concurrent executions",
       "Increase the function timeout so connections are reused longer"
     ],
     "correctIndex": 2,
@@ -1588,10 +1588,10 @@
     "title": "Protecting invariants",
     "question": "A rule says an Order's total must not exceed the customer's credit limit. Some code changes OrderLine quantities directly through `dbContext.OrderLines`, so the rule is sometimes broken. What is the DDD fix?",
     "options": [
-      "Add a nightly job that finds and cancels orders over the limit",
+      "Add a nightly job that finds and cancels any orders over the credit limit",
       "Add a database trigger that rejects any update to OrderLines",
       "Give OrderLine its own repository so it can check the total",
-      "Make Order the aggregate root and allow line changes only through its methods"
+      "Make Order the aggregate root; change lines only through its methods"
     ],
     "correctIndex": 3,
     "explanation": "An aggregate is a consistency boundary. All changes go through the root, which enforces the invariants inside it, and the aggregate is loaded and saved as one unit. Nightly cleanup catches violations too late, a trigger moves domain logic into the database, and a separate repository is exactly what lets callers bypass the root.",
@@ -1605,8 +1605,8 @@
     "title": "Integrating with a legacy ERP",
     "question": "Your new fulfilment context must read data from a 20-year-old ERP whose model uses cryptic codes and mixes up concepts. You don't want that model to leak into your domain. Which pattern fits?",
     "options": [
-      "An anti-corruption layer that translates between the ERP and your model",
-      "A shared kernel holding the ERP's tables and your entities",
+      "An anti-corruption layer translating between the ERP and your model",
+      "A shared kernel that holds both the ERP's tables and your domain entities",
       "A conformist approach that adopts the ERP model as your own",
       "A published language made from the ERP's internal codes"
     ],
@@ -1623,7 +1623,7 @@
     "question": "OrderPaid must update the customer's loyalty tier in the same service, and must also notify the external Shipping service. How should these two needs be handled?",
     "options": [
       "One integration event sent to the broker before the transaction commits",
-      "A domain event handled in-process, then an integration event published after commit",
+      "A domain event in-process, then an integration event after commit",
       "A domain event serialised and sent straight to Shipping's database",
       "Two synchronous HTTP calls made from inside the Order entity"
     ],
@@ -1656,9 +1656,9 @@
     "title": "Chatty mobile client",
     "question": "To render one screen, the mobile app calls 6 microservices over a slow cellular network, and the screen takes 3 s to load. Which pattern helps most?",
     "options": [
-      "Gateway aggregation: one client call fanned out to the services at the gateway",
+      "Gateway aggregation: the gateway fans one call out to the services",
       "Client-side retries on each of the six service calls",
-      "Moving all six services onto one larger virtual machine",
+      "Moving all six services onto one larger, faster virtual machine instance",
       "Strangler fig to slowly replace the mobile application"
     ],
     "correctIndex": 0,
@@ -1673,8 +1673,8 @@
     "title": "Different clients, different needs",
     "question": "The web app needs rich, paged data. The mobile app needs small payloads and push-friendly flows. One general-purpose API keeps growing conflicting options and its team is a bottleneck. Which pattern fits?",
     "options": [
-      "A single GraphQL schema owned by the database team",
-      "Backends for Frontends: a separate backend for each client experience",
+      "A single GraphQL schema owned and evolved by the database team",
+      "Backends for Frontends: one backend per client experience",
       "API versioning, with v1 for mobile and v2 for web",
       "Moving all aggregation logic into the client apps"
     ],
@@ -1693,7 +1693,7 @@
       "The gateway needs more replicas behind a load balancer to cope",
       "The services should call the gateway too, so all traffic is uniform",
       "The gateway should own the database so the joins run faster",
-      "The gateway became a monolithic bottleneck; keep it thin and move logic to services or BFFs"
+      "It became a monolithic bottleneck; keep it thin and move logic out"
     ],
     "correctIndex": 3,
     "explanation": "A single gateway carrying business logic for every client becomes a coupling point and a single point of failure, like a new monolith. Gateways should handle routing and cross-cutting concerns, with domain logic in services and client-specific shaping in BFFs. Scaling out doesn't remove the shared ownership problem.",
@@ -1708,8 +1708,8 @@
     "question": "With CQRS, writes go to a normalised store and a projector updates a separate read store asynchronously. Users create a ticket and sometimes don't see it in their list right away. What is going on?",
     "options": [
       "The write failed silently and the user should retry",
-      "The read model is eventually consistent and hasn't caught up with the write",
-      "CQRS needs both models in the same table to work correctly",
+      "The read model is eventually consistent and hasn't caught up yet",
+      "CQRS needs both models stored in the same table to work correctly",
       "The read store cache must be turned off for CQRS to work"
     ],
     "correctIndex": 1,
@@ -1727,7 +1727,7 @@
       "Delete old events once they are more than a year old",
       "Merge old events into one big event that overwrites history",
       "Switch the aggregate to update-in-place CRUD storage",
-      "Store periodic snapshots and replay only the events after the latest one"
+      "Store periodic snapshots and replay only the newer events"
     ],
     "correctIndex": 3,
     "explanation": "Snapshots save the aggregate's state at a version. Loading reads the latest snapshot plus the newer events, while the full event log stays as the source of truth. Deleting or merging events destroys the audit history that event sourcing exists to keep, and switching to CRUD gives up the approach entirely.",
@@ -1741,7 +1741,7 @@
     "title": "Changing an event's shape",
     "question": "A year into event sourcing, AddressChanged v1 had a single `address` string. v2 needs structured street, city and zip fields. Millions of v1 events are stored. What is the recommended approach?",
     "options": [
-      "Keep stored events unchanged and add versioned types with upcasting to v2 on read",
+      "Keep stored events unchanged and upcast v1 to v2 on read",
       "Run a migration that rewrites every v1 event in place to v2",
       "Delete the v1 events and rebuild state from the current read model",
       "Change the v1 class definition so old events deserialise as v2"

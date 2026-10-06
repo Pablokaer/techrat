@@ -24,8 +24,8 @@
     "title": "Response for a created resource",
     "question": "A POST /orders request successfully creates a new order with id 42. Which response best follows HTTP semantics?",
     "options": [
-      "201 Created with a Location header pointing to /orders/42",
-      "200 OK with the order id in a custom X-Id header",
+      "201 Created with a Location header to /orders/42",
+      "200 OK with the new order id in a custom X-Id header",
       "202 Accepted with a Content-Location of /orders",
       "204 No Content with a Link header to /orders/42"
     ],
@@ -59,7 +59,7 @@
     "question": "An API returns gzip-compressed JSON when the request has Accept-Encoding: gzip and plain JSON otherwise. A shared CDN cache sometimes serves gzip bytes to clients that cannot decode them. What is the root-cause fix?",
     "options": [
       "Send Cache-Control: no-transform on every compressed response",
-      "Send Vary: Accept-Encoding so the cache keys on that request header",
+      "Send Vary: Accept-Encoding so the CDN keys on that header",
       "Add an ETag so the CDN revalidates each compressed response",
       "Set Content-Location to a different URL for compressed bodies"
     ],
@@ -95,7 +95,7 @@
       "Renaming an existing response field from userName to username",
       "Adding a new field to a response object",
       "Adding a brand-new endpoint under the same version",
-      "Adding a new optional query parameter to a list endpoint"
+      "Adding a new optional query parameter to an existing list endpoint"
     ],
     "correctIndex": 0,
     "explanation": "Clients that read userName will silently get nothing after the rename, so it needs a new version or a deprecation period. Adding optional parameters, new response fields, or new endpoints are additive changes that well-behaved clients (which ignore unknown fields) tolerate.",
@@ -128,7 +128,7 @@
     "options": [
       "The server ignored If-Match; resend PUT with a strong ETag",
       "PUT is not idempotent; retry it with an Idempotency-Key header",
-      "PUT replaces the whole representation; use PATCH with a patch format such as JSON Merge Patch",
+      "PUT replaces the full resource; use PATCH with JSON Merge Patch",
       "PUT requires all fields to be null-safe; send POST to /users/7/email"
     ],
     "correctIndex": 2,
@@ -163,7 +163,7 @@
       "Replay of an expired refresh token by the user",
       "Interception of the authorization code by a malicious app",
       "Forgery of the access token's signature",
-      "Brute-forcing of the user's password at the login page"
+      "Brute-force guessing of the user's password at the login page"
     ],
     "correctIndex": 1,
     "explanation": "PKCE (RFC 7636) binds the authorization request to a secret code_verifier, so an attacker who intercepts the authorization code (e.g. via a custom URI scheme) cannot redeem it. It does not address token signature forgery, refresh token replay, or password brute force; current OAuth security guidance recommends PKCE for all clients.",
@@ -177,8 +177,8 @@
     "title": "JWT algorithm validation",
     "question": "An API verifies JWTs by reading the alg value from the token header and using whatever algorithm it names. What is the main risk?",
     "options": [
-      "Tokens become larger and exceed header size limits",
-      "Attackers can choose 'none' or swap RS256 for HS256 to forge tokens",
+      "Tokens grow larger and exceed the server's header size limits",
+      "Attackers can set alg to 'none' or HS256 and forge tokens",
       "The exp claim is ignored for asymmetric algorithms",
       "Clock skew causes valid tokens to be rejected"
     ],
@@ -197,7 +197,7 @@
       "Keep 24h tokens and rotate the signing key whenever any user is compromised",
       "Store the JWT in localStorage and clear it remotely via a push message",
       "Encrypt the JWT with JWE so a stolen token cannot be read",
-      "Short-lived access tokens (~5 min) plus revocable refresh tokens checked at refresh time"
+      "Short-lived (~5 min) access tokens plus revocable refresh tokens"
     ],
     "correctIndex": 3,
     "explanation": "Self-contained tokens cannot be revoked without state, so bounding their lifetime limits exposure, while server-side refresh tokens (ideally rotated) give a revocation point. Rotating keys logs everyone out, remote clearing does nothing against an attacker's copy, and encryption hides claims but does not stop replay of a stolen token.",
@@ -229,8 +229,8 @@
     "question": "A chat service runs 6 WebSocket server instances behind a load balancer. Messages sent by a user connected to instance A never reach recipients connected to instance D. What is the standard fix?",
     "options": [
       "Increase the load balancer idle timeout to 1 hour",
-      "Fan out messages through a shared backplane such as Redis pub/sub",
-      "Enable sticky sessions so all users land on instance A",
+      "Fan out through a shared backplane such as Redis pub/sub",
+      "Enable sticky sessions so that all users land on instance A",
       "Switch from WebSockets to HTTP/2 server push"
     ],
     "correctIndex": 1,
@@ -280,7 +280,7 @@
     "question": "A queue offers at-least-once delivery. A worker charges a card, then crashes before acknowledging the message. What must the worker design account for?",
     "options": [
       "The message moves straight to the dead-letter queue",
-      "The message will be redelivered, so processing must be idempotent",
+      "It will be redelivered, so processing must be idempotent",
       "The broker guarantees exactly-once, so no change is needed",
       "The message is lost, so the charge must be logged separately"
     ],
@@ -296,7 +296,7 @@
     "title": "Purpose of a dead-letter queue",
     "question": "What is the main purpose of a dead-letter queue (DLQ) in a messaging system?",
     "options": [
-      "Hold messages that repeatedly fail processing so they can be inspected",
+      "Hold messages that keep failing so they can be inspected",
       "Buffer high-priority messages ahead of the main queue",
       "Replicate messages to a second region for disaster recovery",
       "Store messages until a consumer subscribes for the first time"
@@ -314,9 +314,9 @@
     "question": "An order service saves an order in PostgreSQL and then publishes OrderCreated to a broker. Occasionally the DB commit succeeds but the publish fails, so downstream services never learn about the order. Which pattern fixes this reliably?",
     "options": [
       "Publish the event first, then commit the order if the publish succeeds",
-      "Transactional outbox: write the event to an outbox table in the same transaction and relay it",
+      "Transactional outbox: write the event in the same transaction, then relay",
       "Use a distributed lock in Redis around the commit and the publish",
-      "Wrap the DB write and the publish in a try/catch with three retries"
+      "Wrap the DB write and the publish in a try/catch block with three retries"
     ],
     "correctIndex": 1,
     "explanation": "The outbox pattern makes the state change and the event record atomic in one local transaction; a relay later publishes outbox rows (at-least-once), so consumers must be idempotent. Reversing the order just flips the inconsistency, retries cannot cover a crash between the steps, and a lock does not make two systems commit atomically.",
@@ -330,9 +330,9 @@
     "title": "Verifying webhook authenticity",
     "question": "How should a receiver verify that a webhook delivery really came from the provider and was not modified?",
     "options": [
-      "Compute an HMAC of the raw body with the shared secret and compare in constant time",
+      "HMAC the raw body with the shared secret and compare in constant time",
       "Allow the request only if it arrives over HTTPS on port 443",
-      "Check that the User-Agent header matches the provider's name",
+      "Check that the User-Agent header matches the provider's name and version",
       "Parse the JSON and confirm the event id exists in the payload"
     ],
     "correctIndex": 0,
@@ -347,8 +347,8 @@
     "title": "Webhook timeouts and duplicates",
     "question": "Your webhook handler does 15s of processing before replying. The provider times out at 10s, retries, and you end up processing events several times. What is the best design?",
     "options": [
-      "Process synchronously but cache the response for 10 seconds",
-      "Verify, enqueue the event, return 2xx quickly, and dedupe by delivery id",
+      "Keep processing synchronously but cache the response for 10 seconds",
+      "Verify, enqueue, return 2xx fast, and dedupe by delivery id",
       "Return 500 until processing finishes so the provider waits",
       "Ask the provider to increase its timeout to 60 seconds"
     ],
@@ -364,9 +364,9 @@
     "title": "Idempotency keys for POST",
     "question": "A payment client retries POST /payments after a network timeout, not knowing whether the first attempt succeeded. How can the API guarantee the payment is created only once?",
     "options": [
-      "The server returns 409 for any POST that arrives within 5 seconds",
+      "The server returns 409 Conflict for any POST that arrives within 5 seconds",
       "The server caches POST responses by URL using Cache-Control",
-      "Client sends a unique Idempotency-Key; the server stores and replays the first result",
+      "Client sends an Idempotency-Key; the server replays the first result",
       "The client switches the request to PUT with the same body"
     ],
     "correctIndex": 2,
@@ -415,7 +415,7 @@
     "title": "Signalling rate limits",
     "question": "A client exceeds its per-minute quota. Which response lets well-behaved clients back off correctly?",
     "options": [
-      "503 Service Unavailable with Connection: close",
+      "503 Service Unavailable with a Connection: close header",
       "403 Forbidden with a WWW-Authenticate header",
       "400 Bad Request with an error message body",
       "429 Too Many Requests with a Retry-After header"
@@ -434,7 +434,7 @@
     "options": [
       "Add a unique tiebreaker such as id to the sort key and cursor",
       "Switch the sort direction from DESC to ASC",
-      "Return a larger page whenever duplicate timestamps exist",
+      "Return a larger page whenever duplicate created_at values exist",
       "Round created_at to the nearest second before sorting"
     ],
     "correctIndex": 0,
@@ -483,10 +483,10 @@
     "title": "Comparing with NULL",
     "question": "Table users has 10 rows where deleted_at IS NULL. How many rows does SELECT * FROM users WHERE deleted_at = NULL return?",
     "options": [
-      "All rows in the table",
-      "It raises a syntax error",
-      "0 rows, because = NULL evaluates to unknown",
-      "10 rows, the same as IS NULL"
+      "All rows, because NULL matches any value",
+      "It raises a syntax error at = NULL",
+      "0 rows, because = NULL yields unknown",
+      "10 rows, the same as WHERE deleted_at IS NULL"
     ],
     "correctIndex": 2,
     "explanation": "In SQL, any comparison with NULL using = yields NULL (unknown), and WHERE only keeps rows where the condition is true, so nothing is returned. Use IS NULL (or IS DISTINCT FROM for null-safe comparison). The statement is syntactically valid, so no error is raised.",
@@ -502,7 +502,7 @@
     "options": [
       "The subquery must be correlated for NOT IN to return rows",
       "NOT IN always performs a semi-join that ignores unmatched rows",
-      "A NULL in the subquery makes NOT IN evaluate to unknown for every row",
+      "A NULL in the subquery makes NOT IN unknown for every row",
       "NOT IN only works when both columns have a UNIQUE constraint"
     ],
     "correctIndex": 2,
@@ -536,8 +536,8 @@
     "options": [
       "GROUP BY o.id must also include p.amount to be correct",
       "SUM ignores NULL amounts and double-counts the rest",
-      "COUNT and SUM cannot be used in the same SELECT list",
-      "Joining two one-to-many tables multiplies rows before aggregation"
+      "COUNT and SUM cannot be used together in the same SELECT list",
+      "Two one-to-many joins multiply rows before aggregation"
     ],
     "correctIndex": 3,
     "explanation": "Each payment row is paired with each item row (2 x 3 = 6 rows), so each payment is summed 3 times. Pre-aggregate each child table in a subquery/CTE and join the aggregates, or use correlated subqueries. SUM ignoring NULLs does not cause inflation, grouping by amount changes the meaning, and mixing aggregates is legal.",
@@ -569,9 +569,9 @@
     "question": "You need the 3 most recent orders for each customer in PostgreSQL, using an index on orders(customer_id, created_at DESC). Which construct expresses this most directly and efficiently?",
     "options": [
       "GROUP BY customer_id with HAVING COUNT(*) <= 3",
-      "CROSS JOIN LATERAL (SELECT ... WHERE customer_id = c.id ORDER BY created_at DESC LIMIT 3)",
-      "A NATURAL JOIN between customers and orders ordered by created_at",
-      "A FULL OUTER JOIN between customers and orders with LIMIT 3"
+      "CROSS JOIN LATERAL subquery on c.id with ORDER BY created_at DESC LIMIT 3",
+      "A NATURAL JOIN of customers and orders ORDER BY created_at DESC LIMIT 3",
+      "A FULL OUTER JOIN of customers and orders, ORDER BY created_at DESC LIMIT 3"
     ],
     "correctIndex": 1,
     "explanation": "LATERAL lets a subquery reference columns from preceding FROM items, so it runs per customer and can do an index scan stopping after 3 rows. FULL OUTER JOIN with a global LIMIT returns only 3 rows total, HAVING filters groups (not rows within a group), and NATURAL JOIN joins on same-named columns with a global ordering.",
@@ -656,7 +656,7 @@
       "Each shows a different total because rows are summed one at a time",
       "The query fails because a frame clause is required with ORDER BY",
       "Both show NULL because ORDER BY ties are ambiguous",
-      "Both show the same total including both rows, due to the default RANGE frame"
+      "Both show the same total that includes both rows (RANGE frame)"
     ],
     "correctIndex": 3,
     "explanation": "With ORDER BY and no frame clause the default frame is RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW, which includes all peers (rows with equal ORDER BY values). Use ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW for a strict per-row running total. No NULLs or errors occur.",
@@ -687,7 +687,7 @@
     "title": "CTE inlining in PostgreSQL",
     "question": "In PostgreSQL 12+, WITH t AS (SELECT * FROM big) SELECT * FROM t WHERE id = 5; runs fast using an index on big.id, but after adding MATERIALIZED to the CTE it becomes a sequential scan. Why?",
     "options": [
-      "MATERIALIZED stops the planner from inlining the CTE and pushing the predicate in",
+      "It stops the planner from inlining the CTE and pushing the predicate in",
       "MATERIALIZED forces the CTE to be cached on disk as a temp table with no stats",
       "MATERIALIZED disables all index scans for the whole statement",
       "MATERIALIZED converts the CTE into a recursive CTE"
@@ -738,7 +738,7 @@
     "title": "synchronous_commit = off",
     "question": "To boost write throughput, a team sets synchronous_commit = off in PostgreSQL. What is the precise risk?",
     "options": [
-      "A crash can lose the most recent committed transactions, but not corrupt the database",
+      "A crash may lose the last few commits but won't corrupt the database",
       "Foreign key and unique constraints are checked only at checkpoint time",
       "A crash can leave the database in an inconsistent, corrupted state",
       "Concurrent transactions may read uncommitted data from each other"
@@ -756,9 +756,9 @@
     "question": "Two requests run concurrently under READ COMMITTED:\nSELECT balance FROM accounts WHERE id=1; -- both read 100\nUPDATE accounts SET balance = 100 + 10 WHERE id=1; -- app computed\nThe final balance is 110 instead of 120. Which fix is simplest and correct?",
     "options": [
       "Run the SELECT with NOWAIT to fail fast",
-      "Do the arithmetic in SQL: UPDATE accounts SET balance = balance + 10 WHERE id = 1",
-      "Wrap each request's SELECT in its own transaction",
-      "Add an index on accounts.id to speed up the read"
+      "Update atomically: SET balance = balance + 10 WHERE id = 1",
+      "Wrap each request's SELECT in its own explicit transaction",
+      "Add an index on accounts.id so both reads finish sooner"
     ],
     "correctIndex": 1,
     "explanation": "This is a lost update: both computed from a stale read. An atomic UPDATE ... SET balance = balance + 10 makes the second writer wait for the first and re-evaluate on the new row version. Alternatives are SELECT ... FOR UPDATE or optimistic versioning. An index, separate transactions, or NOWAIT on a plain SELECT do not prevent it.",
@@ -808,7 +808,7 @@
     "options": [
       "Raise the isolation level to SERIALIZABLE",
       "Use FOR SHARE so all workers can lock the same row",
-      "Add SKIP LOCKED so each worker claims a different unlocked row",
+      "Add SKIP LOCKED so each worker claims a different row",
       "Replace FOR UPDATE with a table-level ACCESS EXCLUSIVE lock"
     ],
     "correctIndex": 2,
@@ -824,8 +824,8 @@
     "question": "A transfer endpoint locks the source account row, then the destination row. Under load, PostgreSQL periodically aborts transactions with 'deadlock detected'. What is the most robust fix?",
     "options": [
       "Lower the isolation level to READ UNCOMMITTED",
-      "Increase deadlock_timeout so the detector waits longer",
-      "Always lock both rows in a consistent order, e.g. by ascending account id",
+      "Increase deadlock_timeout so the detector waits much longer",
+      "Lock both rows in a consistent order, e.g. by ascending id",
       "Remove the transaction and update each row separately"
     ],
     "correctIndex": 2,
@@ -927,7 +927,7 @@
     "options": [
       "The index is a hash index, which cannot be covering",
       "INCLUDE columns are always fetched from the heap",
-      "The visibility map is not up to date because VACUUM has not run recently",
+      "The visibility map is stale because VACUUM has not run recently",
       "Index-only scans are disabled when the table has more than 1M rows"
     ],
     "correctIndex": 2,
@@ -944,8 +944,8 @@
     "options": [
       "Indexing: customer_email needs a unique index",
       "Sharding: orders should be partitioned by customer",
-      "Denormalization: email should be copied to more tables",
-      "Normalization: customer data should live in a customers table referenced by id"
+      "Denormalization: the email should be copied into more tables",
+      "Normalization: store customer data once in a customers table"
     ],
     "correctIndex": 3,
     "explanation": "Repeating a customer attribute on each order creates update anomalies; normalizing it into a customers table referenced by a foreign key stores the fact once. More copies worsens the issue, sharding is about scale, and a unique index on orders.customer_email would wrongly prevent multiple orders per customer.",
@@ -960,7 +960,7 @@
     "question": "A room booking table must never contain two bookings for the same room with overlapping time ranges, even under concurrent inserts. What is the most robust PostgreSQL solution?",
     "options": [
       "A CHECK constraint comparing start_time and end_time",
-      "An application-level SELECT before INSERT in READ COMMITTED",
+      "An application-level SELECT check before each INSERT in READ COMMITTED",
       "A UNIQUE constraint on (room_id, start_time)",
       "An EXCLUDE constraint using GiST on (room_id WITH =, during WITH &&)"
     ],
@@ -977,9 +977,9 @@
     "question": "After updating their profile, users sometimes see their old data because reads go to asynchronous read replicas. Which approach fixes this for the affected user?",
     "options": [
       "Add more read replicas to spread the load",
-      "Increase the connection pool size on the replicas",
-      "Route that user's reads to the primary for a short window after a write",
-      "Switch the replicas to logical replication"
+      "Increase the connection pool size on every read replica",
+      "Route that user's reads to the primary briefly after a write",
+      "Switch the read replicas from streaming to logical replication"
     ],
     "correctIndex": 2,
     "explanation": "Asynchronous replicas lag the primary, breaking read-your-writes consistency. Pinning a user's reads to the primary briefly (or waiting until the replica has replayed the write's LSN) restores it. More replicas, a different replication type, or bigger pools do not remove lag.",
@@ -993,9 +993,9 @@
     "title": "Transaction pooling caveats",
     "question": "After placing PgBouncer in transaction pooling mode in front of PostgreSQL, an app that uses session-level SET and session advisory locks behaves erratically. Why?",
     "options": [
-      "PgBouncer rewrites SET commands into SET LOCAL automatically",
+      "PgBouncer rewrites every session-level SET command into SET LOCAL",
       "Advisory locks are not supported by PostgreSQL behind any proxy",
-      "Consecutive transactions may run on different server connections, losing session state",
+      "Transactions can switch server connections, losing session state",
       "Transaction mode disables prepared statements at the server level"
     ],
     "correctIndex": 2,
@@ -1013,7 +1013,7 @@
       "event_type, since it has low cardinality and is easy to route",
       "A random UUID, since it makes every query single-shard",
       "created_at, since time-ordered keys spread writes evenly",
-      "tenant_id, while watching for very large tenants creating hotspots"
+      "tenant_id, watching for very large tenants becoming hotspots"
     ],
     "correctIndex": 3,
     "explanation": "Sharding by tenant_id keeps each tenant's data on one shard so most queries hit one shard; the caveat is that a huge tenant can become a hot shard needing special handling. Monotonic created_at sends all new writes to one shard, a random UUID spreads writes but forces scatter-gather for tenant queries, and low-cardinality event_type limits distribution.",
@@ -1061,8 +1061,8 @@
     "title": "Embedding vs referencing in MongoDB",
     "question": "In MongoDB, a blog post has a handful of tags always read with the post, and also comments that can grow to tens of thousands. Which model fits best?",
     "options": [
-      "Embed tags in the post; store comments in a separate collection referencing the post",
-      "Reference tags from a separate collection; embed all comments",
+      "Embed tags; keep comments in their own collection referencing the post",
+      "Reference tags from a separate collection; embed all comments in the post",
       "Embed both tags and all comments in the post document",
       "Store everything in separate collections joined with $lookup"
     ],
@@ -1197,7 +1197,7 @@
     "title": "Reading a flame graph",
     "question": "In a CPU flame graph, what does the width of a frame represent?",
     "options": [
-      "The proportion of samples in which that function was on the stack",
+      "The share of samples with that function on the stack",
       "The number of distinct callers of the function",
       "The amount of memory the function allocated",
       "The wall-clock time at which the function was first called"
@@ -1215,7 +1215,7 @@
     "question": "A developer times a method with a Stopwatch around one call in a debug build and concludes version B is 3x faster than A. Why is this unreliable, and what is better?",
     "options": [
       "Debug builds are faster, so results overstate the difference",
-      "No warmup, JIT and noise effects; use a harness like BenchmarkDotNet in Release",
+      "It ignores warmup, JIT and noise; use BenchmarkDotNet in Release",
       "Stopwatch is inaccurate below one second; use DateTime.Now instead",
       "One call is enough, but it must run on a different machine"
     ],
@@ -1251,7 +1251,7 @@
       "Mark the buffer variable as static readonly per request",
       "Allocate 50 KB buffers four times instead of one 200 KB buffer",
       "Call GC.Collect() at the end of each request",
-      "Rent buffers from ArrayPool<byte>.Shared and return them after use"
+      "Rent buffers from ArrayPool<byte>.Shared and return them"
     ],
     "correctIndex": 3,
     "explanation": "Objects of 85,000 bytes or more go on the large object heap, which is collected with gen2, so per-request LOH allocations drive expensive collections. Pooling reuses buffers and avoids the allocations. Forced GC makes things worse, splitting buffers still allocates per request, and a static shared buffer is not thread-safe across requests.",
@@ -1285,7 +1285,7 @@
       "Call GC.Collect() when memory exceeds 80% of the limit",
       "Switch to Server GC so collections run more often",
       "Increase the container memory limit and restart nightly",
-      "Replace it with a bounded cache with size limits and expiration"
+      "Use a bounded cache with a size limit and expiration"
     ],
     "correctIndex": 3,
     "explanation": "Objects reachable from a static root are never collected, so an unbounded dictionary is a managed memory leak. A bounded cache (size limit, eviction, TTL) caps growth; keying by request id also gives near-zero hit rate. More memory and restarts only postpone the crash, and GC settings cannot free reachable objects.",
@@ -1316,10 +1316,10 @@
     "title": "Cartesian explosion with eager loading",
     "question": "An EF Core query does .Include(o => o.Items).Include(o => o.Payments) for 1000 orders averaging 20 items and 10 payments. It is slow and transfers huge result sets. What helps most?",
     "options": [
-      "Increase the command timeout to 120 seconds",
-      "Replace Include with lazy loading proxies",
+      "Increase the database command timeout to 120 seconds",
+      "Replace both Include calls with lazy loading proxies",
       "Add AsNoTracking() to avoid change tracking",
-      "Use AsSplitQuery() so each collection is loaded in a separate query"
+      "Use AsSplitQuery() so collections load separately"
     ],
     "correctIndex": 3,
     "explanation": "Including two sibling collections in one JOIN returns roughly 20 x 10 = 200 rows per order, duplicating data (cartesian explosion). Split queries load each collection separately, at the cost of more round trips and no single-snapshot consistency. AsNoTracking reduces overhead but not row count, lazy loading reintroduces N+1, and timeouts hide the cost.",
@@ -1333,9 +1333,9 @@
     "title": "Connection pool timeouts",
     "question": "Under load, an app logs 'Timeout expired. The timeout period elapsed prior to obtaining a connection from the pool', while the database CPU is only 20%. What is the most likely cause?",
     "options": [
-      "The database has run out of disk space for new connections",
+      "The database has run out of disk space for new client connections",
       "The SQL queries are using too many indexes",
-      "Connections are held too long, e.g. leaked or kept open across slow external calls",
+      "Connections are leaked or held open across slow external calls",
       "The pool size is too small for any amount of traffic"
     ],
     "correctIndex": 2,
@@ -1351,8 +1351,8 @@
     "question": "Forty app instances each use a pool of 100 connections against one PostgreSQL server with 8 cores. During peaks, throughput drops and latency rises. Which change is most likely to help?",
     "options": [
       "Disable autovacuum during peaks to free CPU for queries",
-      "Give each instance its own read replica regardless of write traffic",
-      "Reduce total connections, e.g. via smaller pools or PgBouncer, so active backends stay near core count",
+      "Give each instance its own read replica regardless of the write traffic",
+      "Shrink pools or add PgBouncer so active backends stay near core count",
       "Raise max_connections to 8000 so no instance waits for a connection"
     ],
     "correctIndex": 2,
@@ -1367,9 +1367,9 @@
     "title": "Over-fetching columns",
     "question": "A list view needs only id and title, but the ORM query loads entire entities including a large body text column. What is the main performance improvement?",
     "options": [
-      "Project only the needed columns, e.g. Select(p => new { p.Id, p.Title })",
+      "Project the two columns: Select(p => new { p.Id, p.Title })",
       "Add an index on the body column",
-      "Load the entities one by one with Find()",
+      "Load the entities one by one with Find() to keep each query small",
       "Wrap the query in a serializable transaction"
     ],
     "correctIndex": 0,
@@ -1384,10 +1384,10 @@
     "title": "Cache stampede",
     "question": "A hot key with a 60s TTL expires and 2000 concurrent requests miss the cache simultaneously, all running the same expensive query and overloading the database. Which mitigation targets this directly?",
     "options": [
-      "Request coalescing: let one caller recompute while others wait or serve stale",
+      "Coalesce misses so one caller recomputes the value",
       "Compress the cached value to reduce memory",
       "Lower the TTL to 10 seconds so entries are fresher",
-      "Store the value in more cache nodes for redundancy"
+      "Replicate the value to more cache nodes for redundancy"
     ],
     "correctIndex": 0,
     "explanation": "A stampede (dogpile) happens when many callers regenerate the same expired entry at once. Single-flight locking, serving stale while revalidating, or probabilistic early refresh limit recomputation to one. Shorter TTLs cause more stampedes, replication does not stop the concurrent misses, and compression is unrelated.",
@@ -1420,7 +1420,7 @@
     "options": [
       "CPU-saturated servers sending binary video streams",
       "Responses under 100 bytes on a local network",
-      "Large text payloads like JSON over bandwidth-limited links",
+      "Large text payloads such as JSON over slow links",
       "Small already-compressed images such as JPEG"
     ],
     "correctIndex": 2,
@@ -1454,7 +1454,7 @@
     "options": [
       "The p99 percentile is too coarse; report p50 instead",
       "Virtual users share cookies, so responses come from cache",
-      "A closed model reduces arrivals as latency rises, hiding queueing; use an arrival-rate executor",
+      "Coordinated omission; use an open, arrival-rate executor",
       "The test needs more think time between requests to be realistic"
     ],
     "correctIndex": 2,

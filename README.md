@@ -63,42 +63,161 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 
 ### Roadmaps
 
-**32** roadmaps · 111 modules · 394 steps.
+**32** roadmaps built from **112** modules (49 shared by 2+ roadmaps) · 279 module steps.
 
-| # | Roadmap | Português | Category | Difficulty | Modules | Steps | Estimate | Questions | Prerequisites |
-|---:|---|---|---|---|---:|---:|---:|---:|---|
-| 1 | Computer Science Fundamentals | Fundamentos de Ciência da Computação | Computer Science | Beginner | 4 | 16 | 8 h | 96 | — |
-| 2 | Data Structures and Algorithms | Estruturas de Dados e Algoritmos | Computer Science | Intermediate | 6 | 29 | 22 h | 174 | Computer Science Fundamentals (50%) |
-| 3 | Operating Systems | Sistemas Operacionais | Computer Science | Intermediate | 3 | 7 | 5 h | 42 | — |
-| 4 | Computer Networking | Redes de Computadores | Computer Science | Intermediate | 3 | 9 | 7 h | 54 | — |
-| 5 | Git and Collaboration | Git e Colaboração | Tools | Beginner | 3 | 8 | 4 h | 48 | — |
-| 6 | C# Developer | Desenvolvedor C# | Languages | Intermediate | 3 | 12 | 9 h | 72 | — |
-| 7 | Python Developer | Desenvolvedor Python | Languages | Beginner | 2 | 10 | 5 h | 60 | — |
-| 8 | Java Developer | Desenvolvedor Java | Languages | Intermediate | 2 | 8 | 6 h | 48 | — |
-| 9 | JavaScript Developer | Desenvolvedor JavaScript | Languages | Beginner | 2 | 9 | 4 h | 54 | — |
-| 10 | TypeScript Developer | Desenvolvedor TypeScript | Languages | Intermediate | 2 | 7 | 5 h | 42 | JavaScript Developer (50%) |
-| 11 | Frontend Developer | Desenvolvedor Frontend | Web Development | Intermediate | 4 | 17 | 13 h | 102 | — |
-| 12 | React Developer | Desenvolvedor React | Web Development | Intermediate | 3 | 11 | 8 h | 66 | JavaScript Developer (50%) |
-| 13 | Backend Developer | Desenvolvedor Backend | Web Development | Intermediate | 5 | 19 | 14 h | 114 | — |
-| 14 | .NET Backend Developer | Desenvolvedor Backend .NET | Web Development | Intermediate | 4 | 12 | 9 h | 72 | C# Developer (50%) |
-| 15 | Full Stack Developer | Desenvolvedor Full Stack | Web Development | Intermediate | 4 | 14 | 10 h | 84 | JavaScript Developer (30%) |
-| 16 | Database Engineering | Engenharia de Bancos de Dados | Data | Intermediate | 3 | 11 | 8 h | 66 | — |
-| 17 | System Design | System Design | Architecture | Advanced | 7 | 22 | 22 h | 138 | Data Structures and Algorithms (30%), Backend Developer (30%) |
-| 18 | Software Architecture | Arquitetura de Software | Architecture | Advanced | 4 | 16 | 16 h | 96 | — |
-| 19 | Testing and Quality Engineering | Engenharia de Testes e Qualidade | Engineering | Intermediate | 2 | 7 | 5 h | 42 | — |
-| 20 | Security Fundamentals | Fundamentos de Segurança | Security | Intermediate | 2 | 10 | 8 h | 60 | — |
-| 21 | Docker | Docker | Cloud & DevOps | Beginner | 2 | 7 | 4 h | 42 | — |
-| 22 | Kubernetes | Kubernetes | Cloud & DevOps | Advanced | 2 | 8 | 8 h | 48 | Docker (50%) |
-| 23 | DevOps Engineer | Engenheiro DevOps | Cloud & DevOps | Intermediate | 4 | 13 | 10 h | 78 | — |
-| 24 | Cloud Engineering | Engenharia de Cloud | Cloud & DevOps | Intermediate | 3 | 9 | 7 h | 54 | — |
-| 25 | Azure Developer | Desenvolvedor Azure | Cloud & DevOps | Intermediate | 2 | 6 | 4 h | 36 | Cloud Engineering (30%) |
-| 26 | AWS Fundamentals | Fundamentos de AWS | Cloud & DevOps | Beginner | 2 | 6 | 3 h | 36 | — |
-| 27 | AI Engineering | Engenharia de IA | AI & Data | Advanced | 5 | 11 | 11 h | 66 | Python Developer (30%) |
-| 28 | Machine Learning | Machine Learning | AI & Data | Advanced | 3 | 9 | 9 h | 54 | — |
-| 29 | Data Engineering | Engenharia de Dados | AI & Data | Intermediate | 3 | 8 | 6 h | 48 | — |
-| 30 | Junior Software Engineer | Engenheiro de Software Júnior | Career | Beginner | 7 | 23 | 12 h | 138 | — |
-| 31 | Senior Software Engineer | Engenheiro de Software Sênior | Career | Expert | 6 | 23 | 29 h | 144 | System Design (30%) |
-| 32 | Technical Interview Preparation | Preparação para Entrevistas Técnicas | Career | Advanced | 4 | 17 | 17 h | 108 | — |
+| # | Roadmap | Português | Type | Category | Difficulty | Modules | Steps | Estimate | Questions | Prerequisites |
+|---:|---|---|---|---|---|---:|---:|---:|---:|---|
+| 1 | Computer Science Fundamentals | Fundamentos de Ciência da Computação | SkillTrack | Computer Science | Beginner | 6 | 16 | 9 h | 96 | — |
+| 2 | Data Structures and Algorithms | Estruturas de Dados e Algoritmos | SkillTrack | Computer Science | Intermediate | 12 | 29 | 22 h | 174 | Computer Science Fundamentals (50%) |
+| 3 | Operating Systems | Sistemas Operacionais | SkillTrack | Computer Science | Intermediate | 4 | 9 | 8 h | 54 | — |
+| 4 | Computer Networking | Redes de Computadores | SkillTrack | Computer Science | Intermediate | 4 | 9 | 6 h | 54 | — |
+| 5 | Git and Collaboration | Git e Colaboração | SkillTrack | Tools | Beginner | 4 | 9 | 6 h | 54 | — |
+| 6 | C# Developer | Desenvolvedor C# | Language | Languages | Intermediate | 5 | 12 | 10 h | 72 | — |
+| 7 | Python Developer | Desenvolvedor Python | Language | Languages | Beginner | 3 | 10 | 7 h | 60 | — |
+| 8 | Java Developer | Desenvolvedor Java | Language | Languages | Intermediate | 2 | 8 | 7 h | 48 | — |
+| 9 | JavaScript Developer | Desenvolvedor JavaScript | Language | Languages | Beginner | 3 | 9 | 6 h | 54 | — |
+| 10 | TypeScript Developer | Desenvolvedor TypeScript | Language | Languages | Intermediate | 3 | 7 | 5 h | 42 | JavaScript Developer (50%) |
+| 11 | Frontend Developer | Desenvolvedor Frontend | Role | Web Development | Intermediate | 9 | 19 | 12 h | 114 | — |
+| 12 | React Developer | Desenvolvedor React | SkillTrack | Web Development | Intermediate | 5 | 12 | 9 h | 72 | JavaScript Developer (50%) |
+| 13 | Backend Developer | Desenvolvedor Backend | Role | Web Development | Intermediate | 12 | 25 | 17 h | 150 | — |
+| 14 | .NET Backend Developer | Desenvolvedor Backend .NET | Role | Web Development | Intermediate | 7 | 15 | 12 h | 90 | C# Developer (50%) |
+| 15 | Full Stack Developer | Desenvolvedor Full Stack | Role | Web Development | Intermediate | 9 | 19 | 12 h | 114 | JavaScript Developer (30%) |
+| 16 | Database Engineering | Engenharia de Bancos de Dados | SkillTrack | Data | Intermediate | 5 | 11 | 9 h | 66 | — |
+| 17 | System Design | System Design | SkillTrack | Architecture | Advanced | 11 | 28 | 26 h | 174 | Data Structures and Algorithms (30%), Backend Developer (30%) |
+| 18 | Software Architecture | Arquitetura de Software | SkillTrack | Architecture | Advanced | 5 | 16 | 15 h | 96 | — |
+| 19 | Testing and Quality Engineering | Engenharia de Testes e Qualidade | SkillTrack | Engineering | Intermediate | 4 | 8 | 6 h | 48 | — |
+| 20 | Security Fundamentals | Fundamentos de Segurança | SkillTrack | Security | Intermediate | 5 | 11 | 9 h | 66 | — |
+| 21 | Docker | Docker | SkillTrack | Cloud & DevOps | Beginner | 3 | 7 | 5 h | 42 | — |
+| 22 | Kubernetes | Kubernetes | SkillTrack | Cloud & DevOps | Advanced | 3 | 8 | 8 h | 48 | Docker (50%) |
+| 23 | DevOps Engineer | Engenheiro DevOps | Role | Cloud & DevOps | Intermediate | 8 | 16 | 11 h | 96 | — |
+| 24 | Cloud Engineering | Engenharia de Cloud | Role | Cloud & DevOps | Intermediate | 4 | 10 | 7 h | 60 | — |
+| 25 | Azure Developer | Desenvolvedor Azure | SkillTrack | Cloud & DevOps | Intermediate | 2 | 6 | 4 h | 36 | Cloud Engineering (30%) |
+| 26 | AWS Fundamentals | Fundamentos de AWS | SkillTrack | Cloud & DevOps | Beginner | 3 | 7 | 4 h | 42 | — |
+| 27 | AI Engineering | Engenharia de IA | Role | AI & Data | Advanced | 5 | 13 | 12 h | 78 | Python Developer (30%) |
+| 28 | Machine Learning | Machine Learning | SkillTrack | AI & Data | Advanced | 3 | 9 | 8 h | 54 | — |
+| 29 | Data Engineering | Engenharia de Dados | Role | AI & Data | Intermediate | 4 | 9 | 7 h | 54 | — |
+| 30 | Junior Software Engineer | Engenheiro de Software Júnior | Role | Career | Beginner | 15 | 32 | 17 h | 192 | — |
+| 31 | Senior Software Engineer | Engenheiro de Software Sênior | Role | Career | Expert | 13 | 29 | 28 h | 180 | System Design (30%) |
+| 32 | Technical Interview Preparation | Preparação para Entrevistas Técnicas | SkillTrack | Career | Advanced | 9 | 21 | 16 h | 132 | — |
+
+<details><summary>Module catalog</summary>
+
+| Module | Kind | Steps | Used by |
+|---|---|---:|---|
+| Programming Basics | Core | 3 | Computer Science Fundamentals, Junior Software Engineer |
+| Problem Solving & Complexity | Core | 2 | Computer Science Fundamentals, Junior Software Engineer |
+| Recursion & Discrete Math | Context | 2 | Computer Science Fundamentals |
+| How Computers Work | Context | 4 | Computer Science Fundamentals |
+| Processes & Memory | Core | 2 | Computer Science Fundamentals, Operating Systems |
+| Scheduling, System Calls & Synchronization | Context | 3 | Operating Systems |
+| Linux & Shell | Core | 2 | Operating Systems, DevOps Engineer |
+| Arrays, Strings & Hashing | Core | 3 | Computer Science Fundamentals, Data Structures and Algorithms, Junior Software Engineer, Technical Interview Preparation |
+| Linked Lists, Stacks & Queues | Context | 3 | Data Structures and Algorithms |
+| Trees & Heaps | Core | 2 | Data Structures and Algorithms, Technical Interview Preparation |
+| Search Trees, Tries & String Algorithms | Context | 3 | Data Structures and Algorithms |
+| Graphs & Traversal | Core | 2 | Data Structures and Algorithms, Technical Interview Preparation |
+| Searching & Sorting | Core | 2 | Data Structures and Algorithms, Junior Software Engineer, Technical Interview Preparation |
+| Two Pointers & Sliding Window | Core | 2 | Data Structures and Algorithms, Junior Software Engineer, Technical Interview Preparation |
+| Matrices & Prefix Sums | Context | 2 | Data Structures and Algorithms |
+| Tree Traversal & Divide and Conquer | Context | 2 | Data Structures and Algorithms |
+| Greedy & Intervals | Core | 2 | Data Structures and Algorithms, Technical Interview Preparation |
+| Backtracking & Dynamic Programming | Core | 2 | Data Structures and Algorithms, Technical Interview Preparation |
+| Advanced Graph Algorithms | Context | 4 | Data Structures and Algorithms |
+| Network Models & Transport | Context | 3 | Computer Networking |
+| DNS & HTTP | Core | 2 | Computer Networking, Backend Developer, System Design, Junior Software Engineer |
+| TLS, NAT & Firewalls | Context | 2 | Computer Networking |
+| Proxies, CDNs & WebSockets | Context | 2 | Computer Networking |
+| HTTP & APIs | Core | 2 | Backend Developer, Full Stack Developer, Junior Software Engineer |
+| Webhooks, Real-Time & gRPC | Context | 3 | Backend Developer |
+| Caching & Queues | Context | 2 | Backend Developer |
+| Security Foundations | Core | 2 | Backend Developer, Security Fundamentals, Junior Software Engineer |
+| Authentication Fundamentals | Core | 2 | Backend Developer, Full Stack Developer, Security Fundamentals |
+| Passwords, OAuth & OIDC | Context | 2 | Security Fundamentals |
+| API & Infrastructure Security | Context | 3 | Security Fundamentals |
+| Threat Modeling & Secure Coding | Core | 2 | Security Fundamentals, Senior Software Engineer |
+| SQL Foundations | Core | 2 | Backend Developer, Full Stack Developer, Database Engineering, System Design, Junior Software Engineer |
+| SQL for Analytics | Core | 2 | Database Engineering, Data Engineering |
+| SQL for Applications | Core | 2 | Backend Developer, .NET Backend Developer, Database Engineering, Senior Software Engineer |
+| SQL Performance | Core | 2 | Backend Developer, Full Stack Developer, Database Engineering, Senior Software Engineer |
+| Data Modeling & Scaling | Core | 3 | Database Engineering, System Design |
+| System Design Foundations | Core | 3 | System Design, Technical Interview Preparation |
+| Scaling Systems | Context | 3 | System Design |
+| Messaging & Events | Context | 3 | System Design |
+| Rate Limiting & API Gateways | Context | 2 | System Design |
+| Distributed Systems | Core | 3 | System Design, Senior Software Engineer |
+| High Availability & Disaster Recovery | Core | 2 | System Design, Cloud Engineering, AWS Fundamentals, Senior Software Engineer |
+| Safe Releases & SLOs | Core | 2 | System Design, DevOps Engineer, Senior Software Engineer |
+| Design Trade-offs & Interviews | Core | 3 | System Design, Senior Software Engineer, Technical Interview Preparation |
+| C# Fundamentals | Core | 2 | C# Developer, Junior Software Engineer |
+| Generics, Collections & LINQ | Context | 3 | C# Developer |
+| C# Language Features | Context | 3 | C# Developer |
+| Async & Concurrency in C# | Core | 2 | Operating Systems, C# Developer, .NET Backend Developer |
+| Memory & Performance in C# | Context | 2 | C# Developer |
+| Python Core | Context | 5 | Python Developer |
+| Python Tooling & Testing | Context | 3 | Python Developer |
+| Python Concurrency & Performance | Context | 2 | Python Developer |
+| Java Core | Context | 4 | Java Developer |
+| JVM, Concurrency & Spring | Context | 4 | Java Developer |
+| JavaScript Core | Context | 4 | JavaScript Developer |
+| Async JavaScript & the DOM | Core | 2 | JavaScript Developer, Frontend Developer |
+| Modules, Errors & Performance | Context | 3 | JavaScript Developer |
+| TypeScript Basics | Core | 2 | TypeScript Developer, Frontend Developer |
+| Unions, Generics & Modules | Context | 3 | TypeScript Developer |
+| Advanced TypeScript Types | Context | 2 | TypeScript Developer |
+| HTML & CSS | Core | 2 | Frontend Developer, Full Stack Developer |
+| Accessibility & Responsive Design | Context | 2 | Frontend Developer |
+| Browser Rendering & Web Performance | Context | 2 | Frontend Developer |
+| Frontend Architecture & Security | Context | 2 | Frontend Developer |
+| React Foundations | Core | 3 | Frontend Developer, React Developer, Full Stack Developer |
+| Refs, Context & Custom Hooks | Context | 2 | React Developer |
+| Rendering & Memoization | Context | 2 | React Developer |
+| Data Fetching & Forms | Core | 2 | Frontend Developer, React Developer |
+| React in Production | Context | 3 | React Developer |
+| The .NET Platform | Context | 3 | .NET Backend Developer |
+| ASP.NET Core | Context | 2 | .NET Backend Developer |
+| EF Core | Context | 2 | .NET Backend Developer |
+| Hosting & Testing .NET | Context | 2 | .NET Backend Developer |
+| Testing Essentials | Core | 2 | Frontend Developer, Backend Developer, Full Stack Developer, Testing and Quality Engineering, Junior Software Engineer |
+| Test Doubles & Test Design | Context | 2 | Testing and Quality Engineering |
+| Testing Strategy | Core | 2 | Testing and Quality Engineering, Senior Software Engineer |
+| Performance Testing & Profiling | Core | 2 | Testing and Quality Engineering, Senior Software Engineer |
+| CI/CD | Core | 2 | Full Stack Developer, DevOps Engineer, Junior Software Engineer |
+| Infrastructure as Code | Context | 2 | DevOps Engineer |
+| Observability Essentials | Core | 2 | Backend Developer, .NET Backend Developer, Senior Software Engineer |
+| Metrics & Alerting | Context | 2 | DevOps Engineer |
+| Docker Essentials | Core | 2 | Docker, Junior Software Engineer |
+| Dockerfile & Compose | Core | 2 | Backend Developer, Full Stack Developer, Docker, DevOps Engineer |
+| Docker in Production | Context | 3 | Docker |
+| Kubernetes Essentials | Core | 2 | Kubernetes, DevOps Engineer |
+| Kubernetes Networking, Config & Storage | Context | 3 | Kubernetes |
+| Kubernetes in Production | Context | 3 | Kubernetes |
+| Cloud Foundations | Core | 3 | Cloud Engineering, AWS Fundamentals |
+| AWS Foundations | Core | 2 | Cloud Engineering, AWS Fundamentals |
+| Cloud Operations | Context | 3 | Cloud Engineering |
+| Azure Compute, Data & Identity | Context | 3 | Azure Developer |
+| Azure Messaging, Networking & Monitoring | Context | 3 | Azure Developer |
+| ML Foundations | Core | 3 | AI Engineering, Machine Learning |
+| Supervised Models | Context | 3 | Machine Learning |
+| Features, Clustering & Neural Networks | Context | 3 | Machine Learning |
+| LLM Application Basics | Context | 3 | AI Engineering |
+| RAG & Retrieval | Context | 2 | AI Engineering |
+| Tool Calling & Agents | Context | 2 | AI Engineering |
+| Production AI | Context | 3 | AI Engineering |
+| Data Pipelines | Context | 3 | Data Engineering |
+| Data Storage & Formats | Context | 2 | Data Engineering |
+| Kafka & Data Quality | Context | 2 | Data Engineering |
+| Design Principles | Context | 3 | Software Architecture |
+| Design Patterns | Context | 4 | Software Architecture |
+| Layered & Clean Architecture | Context | 2 | Software Architecture |
+| Monoliths, Microservices & DDD | Core | 3 | Software Architecture, Senior Software Engineer |
+| Event-Driven, CQRS & Serverless | Context | 4 | Software Architecture |
+| Git Essentials | Core | 2 | Git and Collaboration, Junior Software Engineer |
+| Git Collaboration | Core | 2 | Git and Collaboration, DevOps Engineer |
+| Rewriting & Recovering History | Context | 3 | Git and Collaboration |
+| Code Review & Mentoring | Core | 2 | Git and Collaboration, Senior Software Engineer |
+| Incidents & Reliability | Core | 2 | Junior Software Engineer, Senior Software Engineer |
+
+</details>
 <!-- catalog:end -->
 
 ---

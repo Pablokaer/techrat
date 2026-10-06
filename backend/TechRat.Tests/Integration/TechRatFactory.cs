@@ -24,6 +24,9 @@ public sealed class TechRatFactory : WebApplicationFactory<Program>, IAsyncLifet
     private PostgreSqlContainer? _container;
     private string _connectionString = "";
 
+    /// <summary>Connection string of the test database server (used to create extra databases, e.g. for migration tests).</summary>
+    public string ConnectionString => _connectionString;
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
     public async Task InitializeAsync()

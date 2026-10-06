@@ -39,7 +39,7 @@ public sealed class PracticeService(
 
         if (request.RoadmapStepId is { } stepId)
         {
-            var step = await db.RoadmapSteps.AsNoTracking().FirstOrDefaultAsync(s => s.Id == stepId, ct)
+            var step = await db.ModuleSteps.AsNoTracking().FirstOrDefaultAsync(s => s.Id == stepId, ct)
                 ?? throw new NotFoundException("Roadmap step", stepId);
             topicId = step.TopicId;
             subtopicId = step.SubtopicId;
@@ -149,16 +149,18 @@ public sealed class PracticeService(
             .ToDictionaryAsync(a => a.QuestionId, ct);
 
         var tr = await localizer.LoadAsync(ct);
+        var qtr = await localizer.LoadQuestionsAsync(questions.Select(q => q.Id), questions.SelectMany(q => q.Options.Select(o => o.Id)), ct);
         var byId = questions.ToDictionary(q => q.Id);
         var items = s.QuestionIds.Where(byId.ContainsKey).Select((id, index) =>
         {
             var q = byId[id];
             AnswerFeedbackDto? answer = null;
             if (attempts.TryGetValue(id, out var a))
-                answer = new AnswerFeedbackDto(a.SelectedOptionId, q.Options.First(o => o.IsCorrect).Id, a.IsCorrect, q.Explanation, q.ReferenceUrl, a.XpEarned);
+                answer = new AnswerFeedbackDto(a.SelectedOptionId, q.Options.First(o => o.IsCorrect).Id, a.IsCorrect,
+                    qtr.QuestionExplanation(q.Id, q.Explanation), q.ReferenceUrl, a.XpEarned);
             return new SessionQuestionDto(q.Id, index + 1, q.TopicSlug, tr.TopicName(q.TopicId, q.TopicName), q.SubSlug,
-                tr.SubtopicName(q.SubtopicId, q.SubName), q.Difficulty, q.Title,
-                q.QuestionText, q.XPReward, q.Options.Select(o => new OptionDto(o.Id, o.Text)).ToList(), answer);
+                tr.SubtopicName(q.SubtopicId, q.SubName), q.Difficulty, qtr.QuestionTitle(q.Id, q.Title),
+                qtr.QuestionText(q.Id, q.QuestionText), q.XPReward, q.Options.Select(o => new OptionDto(o.Id, qtr.OptionText(o.Id, o.Text))).ToList(), answer);
         }).ToList();
 
         string? topicSlug = null, topicName = null, subSlug = null, subName = null;
@@ -304,7 +306,9 @@ public sealed class PracticeService(
 
         var levelInfo = levels.Evaluate(user.CurrentGlobalXP);
         return new AnswerResultDto(
-            new AnswerFeedbackDto(selected.Id, correct.Id, isCorrect, question.Explanation, question.ReferenceUrl, questionXp),
+            new AnswerFeedbackDto(selected.Id, correct.Id, isCorrect,
+                (await localizer.LoadQuestionsAsync([question.Id], [], ct)).QuestionExplanation(question.Id, question.Explanation),
+                question.ReferenceUrl, questionXp),
             bonusXp,
             user.CurrentGlobalXP,
             LevelDto.From(levelInfo),

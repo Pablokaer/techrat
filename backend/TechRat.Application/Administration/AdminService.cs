@@ -26,13 +26,34 @@ public sealed record AdminSubtopicInput(string Slug, string Name);
 public sealed record AdminRoadmapInput(string Slug, string Name, string Description, string Category, RoadmapDifficulty Difficulty,
     int EstimatedHours, string Icon, bool IsPublished, int XpReward);
 
+/// <summary>Adds a step to a roadmap: into an existing module of the roadmap (<see cref="ModuleId"/>) or a new Context module.</summary>
 public sealed record AdminStepInput(Guid? ModuleId, string? NewModuleTitle, string Title, string Description, Difficulty Difficulty,
-    int EstimatedMinutes, string TopicSlug, string? SubtopicSlug, int MinimumQuestions, int MinimumAccuracy, int XpReward, int? Order);
+    int EstimatedMinutes, string TopicSlug, string? SubtopicSlug, int MinimumQuestions, int MinimumAccuracy, int XpReward, int? Order,
+    bool IsActive = true);
+
+public sealed record AdminModuleInput(string Slug, string Name, string Description, ModuleKind Kind, string Category, RoadmapDifficulty Level,
+    string Icon, bool IsPublished, bool IsStandalone, int XpReward);
+
+public sealed record AdminModuleStepDto(Guid Id, int Order, string Title, string Description, Difficulty Difficulty, int EstimatedMinutes,
+    string TopicSlug, string? SubtopicSlug, int MinimumQuestions, int MinimumAccuracy, int XpReward, bool IsActive, int AddedInVersion);
+
+public sealed record AdminModuleDto(Guid Id, string Slug, string Name, string Description, ModuleKind Kind, string Category, RoadmapDifficulty Level,
+    string Icon, bool IsPublished, bool IsStandalone, int XpReward, int Version, bool SeedManaged, IReadOnlyList<string> UsedInRoadmaps,
+    IReadOnlyList<AdminModuleStepDto> Steps);
+
+public sealed record AdminRoadmapLinkInput(string ModuleSlug, bool IsRequired = true, int? Order = null);
+
+/// <summary>Full ordered composition of a roadmap (replaces order and required flags; modules not listed are removed).</summary>
+public sealed record AdminCompositionInput(IReadOnlyList<AdminRoadmapLinkInput> Modules);
+
+public sealed record AdminRoadmapLinkDto(string ModuleSlug, string ModuleName, ModuleKind Kind, int Order, bool IsRequired, int Steps);
+
+public sealed record AdminCompositionDto(string RoadmapSlug, bool SeedManaged, IReadOnlyList<AdminRoadmapLinkDto> Modules);
 
 public sealed record AdminUserDto(Guid Id, string Username, string DisplayName, string Email, int Level, long Xp, int QuestionsAnswered,
     double Accuracy, DateTimeOffset CreatedAt, DateTimeOffset? LastLoginAt);
 
-public sealed record AdminStatsDto(int Users, int Topics, int Subtopics, int Questions, int ActiveQuestions, int Roadmaps, int Steps, int Attempts);
+public sealed record AdminStatsDto(int Users, int Topics, int Subtopics, int Questions, int ActiveQuestions, int Roadmaps, int Steps, int Attempts, int Modules);
 
 public sealed class AdminService(IAppDbContext db, ICacheService cache, IOptions<GamificationOptions> options, TimeProvider clock)
 {
@@ -46,8 +67,8 @@ public sealed class AdminService(IAppDbContext db, ICacheService cache, IOptions
 
     public async Task<AdminStatsDto> StatsAsync(CancellationToken ct) => new(
         await db.UserProfiles.CountAsync(ct), await db.Topics.CountAsync(ct), await db.Subtopics.CountAsync(ct), await db.Questions.CountAsync(ct),
-        await db.Questions.CountAsync(q => q.IsActive, ct), await db.Roadmaps.CountAsync(ct), await db.RoadmapSteps.CountAsync(ct),
-        await db.QuestionAttempts.CountAsync(ct));
+        await db.Questions.CountAsync(q => q.IsActive, ct), await db.Roadmaps.CountAsync(ct), await db.ModuleSteps.CountAsync(ct),
+        await db.QuestionAttempts.CountAsync(ct), await db.LearningModules.CountAsync(ct));
 
     // ----------------------------------------------------------- questions
 
@@ -214,53 +235,232 @@ public sealed class AdminService(IAppDbContext db, ICacheService cache, IOptions
         await InvalidateAsync(ct);
     }
 
+    /// <summary>Adds a step to a module of the roadmap, or to a new Context module appended to the roadmap.</summary>
     public async Task<Guid> AddStepAsync(string roadmapSlug, AdminStepInput input, CancellationToken ct)
     {
-        var r = await db.Roadmaps.FirstOrDefaultAsync(x => x.Slug == roadmapSlug, ct) ?? throw new NotFoundException("Roadmap", roadmapSlug);
-        var (topicId, subId) = await ValidateStepAsync(input, ct);
+        var r = await db.Roadmaps.Include(x => x.Links).FirstOrDefaultAsync(x => x.Slug == roadmapSlug, ct) ?? throw new NotFoundException("Roadmap", roadmapSlug);
+        await ValidateStepAsync(input, ct);
 
-        Guid moduleId;
+        LearningModule module;
         if (input.ModuleId is { } mid)
         {
-            if (!await db.RoadmapModules.AnyAsync(m => m.Id == mid && m.RoadmapId == r.Id, ct)) throw RequestValidationException.For("moduleId", Text.Get(Text.Keys.AdminModuleNotInRoadmap));
-            moduleId = mid;
+            if (r.Links.All(l => l.ModuleId != mid)) throw RequestValidationException.For("moduleId", Text.Get(Text.Keys.AdminModuleNotInRoadmap));
+            module = await db.LearningModules.FirstAsync(m => m.Id == mid, ct);
         }
         else
         {
             if (string.IsNullOrWhiteSpace(input.NewModuleTitle)) throw RequestValidationException.For("newModuleTitle", Text.Get(Text.Keys.AdminModuleRequired));
-            var mOrder = (await db.RoadmapModules.Where(m => m.RoadmapId == r.Id).MaxAsync(m => (int?)m.Order, ct) ?? 0) + 1;
-            var module = new RoadmapModule { RoadmapId = r.Id, Title = input.NewModuleTitle.Trim(), Order = mOrder, XPReward = options.Value.RoadmapModuleXp };
-            db.RoadmapModules.Add(module);
-            moduleId = module.Id;
+            module = new LearningModule
+            {
+                Slug = await UniqueModuleSlugAsync($"{r.Slug}-{Slugify(input.NewModuleTitle)}", ct), Name = input.NewModuleTitle.Trim(),
+                Kind = ModuleKind.Context, Category = r.Category, Level = r.Difficulty, XPReward = options.Value.RoadmapModuleXp,
+                SeedManaged = false, DisplayOrder = (await db.LearningModules.MaxAsync(m => (int?)m.DisplayOrder, ct) ?? 0) + 1,
+            };
+            db.LearningModules.Add(module);
+            r.Links.Add(new RoadmapModuleLink { RoadmapId = r.Id, ModuleId = module.Id, Order = r.Links.Select(l => l.Order).DefaultIfEmpty(0).Max() + 1 });
+            r.CompositionSeedManaged = false;
         }
 
-        var steps = await db.RoadmapSteps.Where(s => s.RoadmapId == r.Id).OrderBy(s => s.Order).ToListAsync(ct);
-        var order = Math.Clamp(input.Order ?? steps.Count + 1, 1, steps.Count + 1);
-        foreach (var s in steps.Where(s => s.Order >= order)) s.Order++;
-        var step = new RoadmapStep
-        {
-            RoadmapId = r.Id, ModuleId = moduleId, Title = input.Title.Trim(), Description = input.Description, Order = order, Difficulty = input.Difficulty,
-            EstimatedMinutes = input.EstimatedMinutes, TopicId = topicId, SubtopicId = subId, MinimumQuestions = input.MinimumQuestions,
-            MinimumAccuracy = input.MinimumAccuracy, XPReward = input.XpReward,
-        };
-        db.RoadmapSteps.Add(step);
-        r.StepsCount = steps.Count + 1;
+        var stepId = await AddModuleStepCoreAsync(module, input, ct);
         await db.SaveChangesAsync(ct);
+        await RecountRoadmapsAsync([module.Id], ct);
         await InvalidateAsync(ct);
-        return step.Id;
+        return stepId;
     }
 
     public async Task UpdateStepAsync(Guid stepId, AdminStepInput input, CancellationToken ct)
     {
-        var step = await db.RoadmapSteps.FirstOrDefaultAsync(s => s.Id == stepId, ct) ?? throw new NotFoundException("Roadmap step", stepId);
+        var step = await db.ModuleSteps.FirstOrDefaultAsync(s => s.Id == stepId, ct) ?? throw new NotFoundException("Roadmap step", stepId);
         var (topicId, subId) = await ValidateStepAsync(input, ct);
         step.Title = input.Title.Trim(); step.Description = input.Description; step.Difficulty = input.Difficulty;
         step.EstimatedMinutes = input.EstimatedMinutes; step.TopicId = topicId; step.SubtopicId = subId;
         step.MinimumQuestions = input.MinimumQuestions; step.MinimumAccuracy = input.MinimumAccuracy; step.XPReward = input.XpReward;
-        if (input.ModuleId is { } mid && await db.RoadmapModules.AnyAsync(m => m.Id == mid && m.RoadmapId == step.RoadmapId, ct)) step.ModuleId = mid;
+        step.IsActive = input.IsActive;
+        var module = await db.LearningModules.FirstAsync(m => m.Id == step.ModuleId, ct);
+        module.SeedManaged = false;
+        await db.SaveChangesAsync(ct);
+        await RecountRoadmapsAsync([module.Id], ct);
+        await InvalidateAsync(ct);
+    }
+
+    // ----------------------------------------------------------- module catalog
+
+    public async Task<IReadOnlyList<AdminModuleDto>> ListModulesAsync(ModuleKind? kind, CancellationToken ct)
+    {
+        var q = db.LearningModules.AsNoTracking().Include(m => m.Steps).AsQueryable();
+        if (kind is not null) q = q.Where(m => m.Kind == kind);
+        var modules = await q.OrderBy(m => m.DisplayOrder).ThenBy(m => m.Slug).ToListAsync(ct);
+        return await ToAdminDtosAsync(modules, ct);
+    }
+
+    public async Task<AdminModuleDto> GetModuleAsync(string slug, CancellationToken ct)
+    {
+        var m = await db.LearningModules.AsNoTracking().Include(x => x.Steps).FirstOrDefaultAsync(x => x.Slug == slug, ct)
+            ?? throw new NotFoundException("Module", slug);
+        return (await ToAdminDtosAsync([m], ct))[0];
+    }
+
+    private async Task<List<AdminModuleDto>> ToAdminDtosAsync(List<LearningModule> modules, CancellationToken ct)
+    {
+        var ids = modules.Select(m => m.Id).ToList();
+        var usage = await (from l in db.RoadmapModuleLinks.AsNoTracking() where ids.Contains(l.ModuleId)
+                           join r in db.Roadmaps on l.RoadmapId equals r.Id
+                           select new { l.ModuleId, r.Slug }).ToListAsync(ct);
+        var topics = await db.Topics.AsNoTracking().Include(t => t.Subtopics).ToListAsync(ct);
+        string TopicSlug(Guid id) => topics.First(t => t.Id == id).Slug;
+        string? SubSlug(Guid? id) => id is null ? null : topics.SelectMany(t => t.Subtopics).First(s => s.Id == id).Slug;
+        return modules.Select(m => new AdminModuleDto(m.Id, m.Slug, m.Name, m.Description, m.Kind, m.Category, m.Level, m.Icon, m.IsPublished,
+            m.IsStandalone, m.XPReward, m.Version, m.SeedManaged, usage.Where(u => u.ModuleId == m.Id).Select(u => u.Slug).ToList(),
+            m.Steps.OrderBy(s => s.Order).Select(s => new AdminModuleStepDto(s.Id, s.Order, s.Title, s.Description, s.Difficulty, s.EstimatedMinutes,
+                TopicSlug(s.TopicId), SubSlug(s.SubtopicId), s.MinimumQuestions, s.MinimumAccuracy, s.XPReward, s.IsActive, s.AddedInVersion)).ToList()))
+            .ToList();
+    }
+
+    public async Task<Guid> CreateModuleAsync(AdminModuleInput input, CancellationToken ct)
+    {
+        ValidateModule(input);
+        if (await db.LearningModules.AnyAsync(m => m.Slug == input.Slug, ct)) throw new ConflictException(Text.Get(Text.Keys.AdminSlugInUse));
+        var m = new LearningModule
+        {
+            Slug = input.Slug, Name = input.Name.Trim(), Description = input.Description, Kind = input.Kind, Category = input.Category, Level = input.Level,
+            Icon = input.Icon, IsPublished = input.IsPublished, IsStandalone = input.IsStandalone, XPReward = input.XpReward, SeedManaged = false,
+            DisplayOrder = (await db.LearningModules.MaxAsync(x => (int?)x.DisplayOrder, ct) ?? 0) + 1,
+        };
+        db.LearningModules.Add(m);
+        await db.SaveChangesAsync(ct);
+        await InvalidateAsync(ct);
+        return m.Id;
+    }
+
+    public async Task UpdateModuleAsync(string slug, AdminModuleInput input, CancellationToken ct)
+    {
+        var m = await db.LearningModules.FirstOrDefaultAsync(x => x.Slug == slug, ct) ?? throw new NotFoundException("Module", slug);
+        ValidateModule(input);
+        if (input.Slug != slug && await db.LearningModules.AnyAsync(x => x.Slug == input.Slug, ct)) throw new ConflictException(Text.Get(Text.Keys.AdminSlugInUse));
+        (m.Slug, m.Name, m.Description, m.Kind, m.Category, m.Level, m.Icon, m.IsPublished, m.IsStandalone, m.XPReward) =
+            (input.Slug, input.Name.Trim(), input.Description, input.Kind, input.Category, input.Level, input.Icon, input.IsPublished, input.IsStandalone, input.XpReward);
+        m.SeedManaged = false;
         await db.SaveChangesAsync(ct);
         await InvalidateAsync(ct);
     }
+
+    public async Task<Guid> AddModuleStepAsync(string moduleSlug, AdminStepInput input, CancellationToken ct)
+    {
+        var module = await db.LearningModules.FirstOrDefaultAsync(m => m.Slug == moduleSlug, ct) ?? throw new NotFoundException("Module", moduleSlug);
+        await ValidateStepAsync(input, ct);
+        var id = await AddModuleStepCoreAsync(module, input, ct);
+        await db.SaveChangesAsync(ct);
+        await RecountRoadmapsAsync([module.Id], ct);
+        await InvalidateAsync(ct);
+        return id;
+    }
+
+    /// <summary>
+    /// Inserts a step at the requested position. Adding to a module that already has steps bumps its version: learners who
+    /// completed the previous version keep their completion and XP and see the step as new content.
+    /// </summary>
+    private async Task<Guid> AddModuleStepCoreAsync(LearningModule module, AdminStepInput input, CancellationToken ct)
+    {
+        var (topicId, subId) = await ValidateStepAsync(input, ct);
+        var steps = await db.ModuleSteps.Where(s => s.ModuleId == module.Id).OrderBy(s => s.Order).ToListAsync(ct);
+        if (steps.Count > 0) module.Version++;
+        var order = Math.Clamp(input.Order ?? steps.Count + 1, 1, steps.Count + 1);
+        foreach (var s in steps.Where(s => s.Order >= order)) s.Order++;
+        var step = new ModuleStep
+        {
+            ModuleId = module.Id, Title = input.Title.Trim(), Description = input.Description, Order = order, Difficulty = input.Difficulty,
+            EstimatedMinutes = input.EstimatedMinutes, TopicId = topicId, SubtopicId = subId, MinimumQuestions = input.MinimumQuestions,
+            MinimumAccuracy = input.MinimumAccuracy, XPReward = input.XpReward, IsActive = input.IsActive, AddedInVersion = module.Version,
+        };
+        db.ModuleSteps.Add(step);
+        module.SeedManaged = false;
+        return step.Id;
+    }
+
+    // ----------------------------------------------------------- roadmap composition
+
+    public async Task<AdminCompositionDto> GetCompositionAsync(string roadmapSlug, CancellationToken ct)
+    {
+        var r = await db.Roadmaps.AsNoTracking().FirstOrDefaultAsync(x => x.Slug == roadmapSlug, ct) ?? throw new NotFoundException("Roadmap", roadmapSlug);
+        var links = await (from l in db.RoadmapModuleLinks.AsNoTracking() where l.RoadmapId == r.Id
+                           join m in db.LearningModules on l.ModuleId equals m.Id
+                           orderby l.Order
+                           select new AdminRoadmapLinkDto(m.Slug, m.Name, m.Kind, l.Order, l.IsRequired, m.Steps.Count(s => s.IsActive))).ToListAsync(ct);
+        return new AdminCompositionDto(r.Slug, r.CompositionSeedManaged, links);
+    }
+
+    public async Task AddRoadmapModuleAsync(string roadmapSlug, AdminRoadmapLinkInput input, CancellationToken ct)
+    {
+        var r = await db.Roadmaps.Include(x => x.Links).FirstOrDefaultAsync(x => x.Slug == roadmapSlug, ct) ?? throw new NotFoundException("Roadmap", roadmapSlug);
+        var m = await db.LearningModules.FirstOrDefaultAsync(x => x.Slug == input.ModuleSlug, ct)
+            ?? throw RequestValidationException.For("moduleSlug", Text.Get(Text.Keys.AdminUnknownModule));
+        if (r.Links.Any(l => l.ModuleId == m.Id)) throw new ConflictException(Text.Get(Text.Keys.AdminModuleAlreadyInRoadmap));
+        var ordered = r.Links.OrderBy(l => l.Order).Select(l => (l.ModuleId, l.IsRequired)).ToList();
+        ordered.Insert(Math.Clamp((input.Order ?? ordered.Count + 1) - 1, 0, ordered.Count), (m.Id, input.IsRequired));
+        await ApplyCompositionAsync(r, ordered, ct);
+    }
+
+    public async Task RemoveRoadmapModuleAsync(string roadmapSlug, string moduleSlug, CancellationToken ct)
+    {
+        var r = await db.Roadmaps.Include(x => x.Links).FirstOrDefaultAsync(x => x.Slug == roadmapSlug, ct) ?? throw new NotFoundException("Roadmap", roadmapSlug);
+        var m = await db.LearningModules.FirstOrDefaultAsync(x => x.Slug == moduleSlug, ct) ?? throw new NotFoundException("Module", moduleSlug);
+        if (r.Links.All(l => l.ModuleId != m.Id)) throw new NotFoundException("Module", moduleSlug);
+        await ApplyCompositionAsync(r, r.Links.Where(l => l.ModuleId != m.Id).OrderBy(l => l.Order).Select(l => (l.ModuleId, l.IsRequired)).ToList(), ct);
+    }
+
+    public async Task SetCompositionAsync(string roadmapSlug, AdminCompositionInput input, CancellationToken ct)
+    {
+        var r = await db.Roadmaps.Include(x => x.Links).FirstOrDefaultAsync(x => x.Slug == roadmapSlug, ct) ?? throw new NotFoundException("Roadmap", roadmapSlug);
+        var slugs = input.Modules.Select(x => x.ModuleSlug).ToList();
+        if (slugs.Distinct().Count() != slugs.Count) throw RequestValidationException.For("modules", Text.Get(Text.Keys.AdminModuleAlreadyInRoadmap));
+        var modules = await db.LearningModules.Where(m => slugs.Contains(m.Slug)).ToDictionaryAsync(m => m.Slug, ct);
+        var unknown = slugs.FirstOrDefault(sl => !modules.ContainsKey(sl));
+        if (unknown is not null) throw RequestValidationException.For("modules", Text.Get(Text.Keys.AdminUnknownModule));
+        await ApplyCompositionAsync(r, input.Modules.Select(x => (modules[x.ModuleSlug].Id, x.IsRequired)).ToList(), ct);
+    }
+
+    /// <summary>Replaces the roadmap's links with <paramref name="ordered"/> (orders 1..n). The composition stops following the seed.</summary>
+    private async Task ApplyCompositionAsync(Roadmap r, List<(Guid ModuleId, bool IsRequired)> ordered, CancellationToken ct)
+    {
+        // Two steps keep the unique (roadmap, order) index valid while orders move.
+        db.RoadmapModuleLinks.RemoveRange(r.Links);
+        await db.SaveChangesAsync(ct);
+        r.Links.Clear();
+        for (var i = 0; i < ordered.Count; i++)
+            db.RoadmapModuleLinks.Add(new RoadmapModuleLink { RoadmapId = r.Id, ModuleId = ordered[i].ModuleId, Order = i + 1, IsRequired = ordered[i].IsRequired });
+        r.CompositionSeedManaged = false;
+        await db.SaveChangesAsync(ct);
+        await RecountRoadmapsAsync(ordered.Select(o => o.ModuleId).ToList(), ct, r.Id);
+        await InvalidateAsync(ct);
+    }
+
+    /// <summary>Recomputes <see cref="Roadmap.StepsCount"/> (steps of required modules) for roadmaps containing the modules.</summary>
+    private async Task RecountRoadmapsAsync(List<Guid> moduleIds, CancellationToken ct, Guid? alsoRoadmap = null)
+    {
+        var roadmapIds = await db.RoadmapModuleLinks.Where(l => moduleIds.Contains(l.ModuleId)).Select(l => l.RoadmapId).Distinct().ToListAsync(ct);
+        if (alsoRoadmap is { } extra && !roadmapIds.Contains(extra)) roadmapIds.Add(extra);
+        foreach (var r in await db.Roadmaps.Where(x => roadmapIds.Contains(x.Id)).ToListAsync(ct))
+            r.StepsCount = await db.RoadmapModuleLinks.Where(l => l.RoadmapId == r.Id && l.IsRequired)
+                .SumAsync(l => db.ModuleSteps.Count(s => s.ModuleId == l.ModuleId && s.IsActive), ct);
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static void ValidateModule(AdminModuleInput input)
+    {
+        ValidateSlug(input.Slug, input.Name);
+        if (input.XpReward is < 0 or > 5000) throw RequestValidationException.For("xpReward", Text.Get(Text.Keys.AdminXpRange, 5000));
+    }
+
+    private async Task<string> UniqueModuleSlugAsync(string baseSlug, CancellationToken ct)
+    {
+        var slug = baseSlug.Length > 70 ? baseSlug[..70].TrimEnd('-') : baseSlug;
+        var candidate = slug;
+        for (var i = 2; await db.LearningModules.AnyAsync(m => m.Slug == candidate, ct); i++) candidate = $"{slug}-{i}";
+        return candidate;
+    }
+
+    private static string Slugify(string text) =>
+        System.Text.RegularExpressions.Regex.Replace(text.Trim().ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-') is { Length: > 0 } x ? x : "module";
 
     private async Task<(Guid, Guid?)> ValidateStepAsync(AdminStepInput input, CancellationToken ct)
     {

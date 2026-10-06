@@ -1,0 +1,542 @@
+[
+  {
+    "id": "be-http-308-preserve-method",
+    "title": "Redirect que preserva o POST",
+    "question": "Uma API moveu permanentemente POST /v1/orders para /v2/orders e responde às chamadas antigas com 301 Moved Permanently. Alguns clientes HTTP seguem esse redirect reenviando a requisição como GET, sem o corpo. Qual status code a API deveria usar no lugar?",
+    "options": [
+      "302 Found, para os clientes tratarem a mudança como temporária",
+      "303 See Other, apontando os clientes para a nova URI",
+      "308 Permanent Redirect, que mantém o método e o corpo",
+      "410 Gone, com a nova URI descrita no corpo da resposta"
+    ],
+    "explanation": "Por razões históricas, muitos clientes trocam POST por GET ao seguir um 301 ou 302. O 308 Permanent Redirect exige que o cliente repita a requisição com o mesmo método e corpo (o 307 é seu equivalente temporário). O 303 diz explicitamente ao cliente para fazer GET na nova URI, e o 410 Gone nem faz redirect."
+  },
+  {
+    "id": "be-api-async-request-reply",
+    "title": "Operações longas sobre HTTP",
+    "question": "POST /reports inicia uma exportação que leva de 3 a 10 minutos. Manter a requisição HTTP aberta causa timeouts no gateway. Qual design de API é a correção padrão?",
+    "options": [
+      "Retornar 200 OK quando o job entrar na fila e enviar o arquivo por email depois",
+      "Retornar 202 Accepted com Location para um recurso de status que o cliente consulta",
+      "Aumentar os timeouts do gateway e do cliente para 15 minutos para tudo terminar",
+      "Retornar 201 Created na hora, com um corpo de relatório vazio preenchido depois"
+    ],
+    "explanation": "Este é o padrão Asynchronous Request-Reply: 202 Accepted significa que a requisição foi aceita, mas não concluída, e o Location aponta para um endpoint de status que o cliente consulta (opcionalmente guiado por Retry-After) até que ele aponte para o resultado final. Timeouts maiores prendem conexões e continuam falhando com instabilidades de rede, enquanto 200 ou 201 sinalizam falsamente que o trabalho terminou."
+  },
+  {
+    "id": "be-webhook-receiver-endpoint",
+    "title": "Quem chama quem em um webhook",
+    "question": "Em uma integração típica de webhook entre um provedor de pagamentos e a sua aplicação, qual lado expõe o endpoint HTTP e qual lado inicia a requisição quando ocorre um evento?",
+    "options": [
+      "Sua aplicação consulta um endpoint do provedor e puxa novos eventos periodicamente",
+      "O provedor abre um WebSocket para sua aplicação e transmite cada evento na hora",
+      "Os dois lados expõem endpoints e trocam eventos por um message broker compartilhado",
+      "Sua aplicação expõe uma URL, e o provedor envia um HTTP POST para ela a cada evento"
+    ],
+    "explanation": "Um webhook é uma chamada de API invertida: o consumidor registra uma URL, e o provedor envia uma requisição HTTP (geralmente um POST com payload JSON) para ela quando um evento acontece. Polling é exatamente o que os webhooks substituem, e WebSockets ou brokers compartilhados são mecanismos de integração diferentes."
+  },
+  {
+    "id": "be-webhook-dedupe-event-id",
+    "title": "Entregas duplicadas de webhook",
+    "question": "Seu handler de webhook credita pontos de fidelidade a cada evento payment.succeeded. Os logs mostram o mesmo evento (mesmo event id) chegando duas vezes de vez em quando, e alguns clientes ganham pontos em dobro. O que o handler deve fazer?",
+    "options": [
+      "Registrar os ids dos eventos processados e ignorar qualquer evento já tratado",
+      "Retornar HTTP 500 para a segunda cópia para o provedor parar de enviar duplicatas",
+      "Comparar os timestamps do payload e descartar eventos com mais de cinco segundos",
+      "Pedir ao provedor que desative os retries para cada evento chegar só uma vez"
+    ],
+    "explanation": "Provedores de webhook entregam at-least-once, então o mesmo evento pode chegar mais de uma vez; a documentação do Stripe recomenda registrar os IDs de eventos processados e pular os que já foram tratados. Um 500 provoca ainda mais retries, timestamps não identificam duplicatas (eventos distintos podem compartilhar um), e desativar retries perderia eventos durante indisponibilidades."
+  },
+  {
+    "id": "be-webhook-out-of-order",
+    "title": "Eventos de webhook fora de ordem",
+    "question": "Um consumidor de webhooks de assinaturas às vezes recebe invoice.paid antes de customer.subscription.created para a mesma assinatura, e o handler falha porque a linha da assinatura ainda não existe. Qual é a abordagem mais robusta?",
+    "options": [
+      "Ordenar os eventos recebidos pelo timestamp created antes de processar cada um",
+      "Pedir ao provedor que envie todos os eventos de um cliente por uma única conexão",
+      "Não depender da ordem: buscar o objeto na API do provedor ou tentar depois",
+      "Rejeitar o evento adiantado com HTTP 400 para o provedor reenviá-lo na ordem certa"
+    ],
+    "explanation": "Provedores como o Stripe dizem explicitamente que não garantem que os eventos cheguem na ordem em que foram gerados, então os handlers devem ser independentes de ordem: buscar ou fazer upsert do objeto ausente via API, ou recolocar o evento na fila para um retry posterior. Timestamps created têm granularidade de um segundo e podem se repetir, e um 4xx não faz o provedor reordenar nada."
+  },
+  {
+    "id": "be-webhook-raw-body-hmac",
+    "title": "Assinatura falha após re-serializar o JSON",
+    "question": "Um receptor verifica assinaturas HMAC de webhooks. Após um upgrade de framework, ele passou a fazer parse do corpo JSON para um objeto e a calcular o HMAC sobre JSON.stringify(parsed). Agora muitas entregas legítimas falham na verificação. Qual é a causa raiz?",
+    "options": [
+      "O provedor rotacionou o segredo de assinatura durante a janela do upgrade",
+      "O HMAC precisa cobrir os bytes brutos exatos, não o JSON re-serializado",
+      "A saída do HMAC-SHA256 difere entre runtimes para a mesma chave secreta",
+      "Corpos JSON precisam ser canonicalizados com chaves ordenadas antes do HMAC"
+    ],
+    "explanation": "O provedor assina exatamente os bytes que enviou. Fazer parse e re-serializar pode mudar espaços, ordem das chaves, escape de Unicode ou formatação de números, então o digest deixa de bater; a documentação do Stripe exige o corpo bruto da requisição para a verificação. O HMAC é determinístico entre runtimes, e canonicalizar chaves produz bytes que o provedor nunca assinou."
+  },
+  {
+    "id": "db-sql-truncate-all-rows",
+    "title": "Esvaziando uma tabela rapidamente",
+    "question": "No PostgreSQL, você precisa remover todas as linhas de uma grande tabela de staging, mas manter a tabela em si, suas colunas e seus índices. Qual comando faz isso mais rápido?",
+    "options": [
+      "DROP TABLE staging;",
+      "DELETE FROM staging WHERE 1 = 1;",
+      "TRUNCATE TABLE staging;",
+      "VACUUM FULL staging;"
+    ],
+    "explanation": "TRUNCATE remove todas as linhas sem varrer a tabela e libera o espaço imediatamente, mantendo a definição da tabela e os índices. DELETE varre todas as linhas e deixa tuplas mortas para o VACUUM, DROP TABLE remove a própria tabela, e VACUUM FULL só compacta o espaço de linhas que já estão mortas."
+  },
+  {
+    "id": "db-sql-between-timestamps",
+    "title": "BETWEEN em colunas timestamp",
+    "question": "created_at é uma coluna timestamp. O filtro WHERE created_at BETWEEN '2026-01-01' AND '2026-01-31' deveria retornar todos os pedidos de janeiro, mas pedidos feitos na tarde de 31 de janeiro estão faltando. Qual é a melhor correção?",
+    "options": [
+      "Usar created_at >= '2026-01-01' AND created_at < '2026-02-01'",
+      "Usar BETWEEN SYMMETRIC para que os dois limites sejam inclusivos",
+      "Fazer cast dos literais para date para o BETWEEN comparar dias inteiros",
+      "Usar created_at > '2025-12-31' AND created_at <= '2026-01-31'"
+    ],
+    "explanation": "'2026-01-31' vira meia-noite no início de 31 de janeiro, então o BETWEEN inclusivo para às 00:00 desse dia. Um intervalo semiaberto (>= início AND < próximo mês) é correto para qualquer precisão e amigável a índices. BETWEEN SYMMETRIC só trata limites invertidos, fazer cast dos literais para date ainda compara com a meia-noite, e a última opção tem o mesmo corte à meia-noite."
+  },
+  {
+    "id": "db-sql-desc-nulls-first",
+    "title": "NULLs no topo de uma ordenação DESC",
+    "question": "No PostgreSQL, SELECT name FROM users ORDER BY last_login_at DESC LIMIT 10; deveria listar os usuários ativos mais recentemente, mas retorna usuários que nunca fizeram login (last_login_at IS NULL). Por quê, e o que corrige isso?",
+    "options": [
+      "O LIMIT é aplicado antes do ORDER BY; envolva a query ordenada em uma subquery",
+      "NULL é igual a qualquer timestamp; adicione WHERE last_login_at <> NULL",
+      "DESC põe NULLs primeiro por padrão; use ORDER BY last_login_at DESC NULLS LAST",
+      "A ordenação é instável para NULLs; adicione a primary key como desempate"
+    ],
+    "explanation": "O PostgreSQL ordena NULLs como se fossem maiores que qualquer valor não nulo, então NULLS FIRST é o padrão para ordem DESC. Adicionar NULLS LAST (ou filtrar IS NOT NULL) resolve. O LIMIT é aplicado depois do ORDER BY, uma comparação com <> NULL nunca é verdadeira, e um desempate não muda onde os NULLs ficam."
+  },
+  {
+    "id": "db-join-full-outer",
+    "title": "Linhas dos dois lados de um join",
+    "question": "Você compara uma tabela warehouse_stock com uma tabela erp_stock por sku e precisa de todo SKU que aparece em qualquer uma das tabelas, com NULLs no lado em que ele não existe. Qual join produz isso?",
+    "options": [
+      "INNER JOIN em sku",
+      "LEFT JOIN em sku",
+      "CROSS JOIN com um WHERE em sku",
+      "FULL OUTER JOIN em sku"
+    ],
+    "explanation": "FULL OUTER JOIN retorna as linhas correspondentes mais as linhas sem correspondência dos dois lados, preenchidas com NULLs. INNER JOIN mantém só as correspondências, LEFT JOIN mantém linhas sem correspondência apenas da tabela da esquerda, e um CROSS JOIN filtrado por igualdade é só um inner join."
+  },
+  {
+    "id": "db-join-collapse-limit",
+    "title": "Ordem de joins em joins muito grandes",
+    "question": "Uma query de relatório no PostgreSQL faz join de 14 tabelas usando a sintaxe explícita INNER JOIN. O plano é ruim, e simplesmente reordenar as cláusulas JOIN no texto SQL muda drasticamente o tempo de execução. Qual explicação se encaixa melhor?",
+    "options": [
+      "O PostgreSQL sempre executa inner joins estritamente na ordem em que foram escritos",
+      "Acima do join_collapse_limit (padrão 8), a ordem escrita dos JOINs restringe o plano",
+      "Queries com mais de 12 joins são forçadas a usar nested loops em todos os joins",
+      "Estatísticas do planner são descartadas para tabelas que aparecem em mais de 8 joins"
+    ],
+    "explanation": "O planner só achata JOINs explícitos em uma lista livremente reordenável enquanto a lista ficar dentro do join_collapse_limit (padrão 8), então em queries maiores a estrutura de JOINs escrita limita quais ordens são consideradas; a partir de geqo_threshold (padrão 12) itens, o otimizador genético também substitui a busca exaustiva. Em queries pequenas o PostgreSQL reordena inner joins livremente, e nem os métodos de join nem as estatísticas são restringidos pelo número de joins."
+  },
+  {
+    "id": "db-tx-autocommit-partial",
+    "title": "Instruções sem BEGIN",
+    "question": "Um script de migration executa duas instruções UPDATE pelo psql sem BEGIN. A primeira funciona e a segunda falha por violação de constraint. Qual é o estado do banco?",
+    "options": [
+      "Os dois updates sofrem rollback, já que o script é tratado como uma transação",
+      "Nenhum tem commit até a sessão terminar, quando ambos sofrem rollback",
+      "O primeiro update tem commit; só a segunda instrução, que falhou, não teve efeito",
+      "O primeiro update fica sem commit e bloqueado até alguém executar COMMIT"
+    ],
+    "explanation": "Sem um BEGIN explícito, o PostgreSQL envolve cada instrução em sua própria transação implícita e faz commit em caso de sucesso (autocommit), então o primeiro UPDATE é durável. Para tornar o script tudo-ou-nada, envolva-o em BEGIN/COMMIT ou rode o psql com --single-transaction."
+  },
+  {
+    "id": "db-tx-idle-in-transaction",
+    "title": "Sessões idle in transaction",
+    "question": "pg_stat_activity mostra uma conexão da aplicação que atualizou algumas linhas e depois ficou no estado 'idle in transaction' por 6 horas, e tabelas muito atualizadas continuam crescendo mesmo com o autovacuum rodando. Qual é a relação, e qual configuração protege contra isso?",
+    "options": [
+      "A transação aberta segura o horizonte xmin, e o VACUUM não remove linhas mortas; use idle_in_transaction_session_timeout",
+      "Transações ociosas mantêm locks ACCESS EXCLUSIVE que fazem o autovacuum esperar; defina lock_timeout no role da aplicação",
+      "Os buffers temporários da sessão vazam para os arquivos compartilhados das tabelas; reduza temp_buffers no role da aplicação",
+      "O autovacuum pula tabelas tocadas por uma conexão aberta; defina statement_timeout para fechar sessões ociosas antes"
+    ],
+    "explanation": "Com MVCC, o VACUUM só pode remover versões de linha que nenhuma transação aberta ainda possa enxergar. Uma transação deixada aberta (mesmo ociosa) segura o xmin mais antigo, então tuplas mortas se acumulam e as tabelas incham. idle_in_transaction_session_timeout encerra essas sessões. Transações ociosas só mantêm os locks que já obtiveram, e statement_timeout não se aplica enquanto nenhuma instrução está rodando."
+  },
+  {
+    "id": "be-auth-session-id-cookie",
+    "title": "O que um cookie de sessão contém",
+    "question": "Em um design clássico de sessão no servidor, o que o cookie de sessão enviado ao browser deve conter?",
+    "options": [
+      "O id e os roles do usuário, em Base64 para o servidor poder lê-los de volta",
+      "Um objeto JSON com os dados da sessão, criptografado com a senha do usuário",
+      "O hash da senha do usuário, para que cada requisição possa ser reautenticada",
+      "Um id de sessão longo, aleatório e opaco, mapeado para o estado no servidor"
+    ],
+    "explanation": "Com sessões no servidor, o cookie carrega apenas um identificador sem significado e de alta entropia; os dados da sessão (id do usuário, roles etc.) ficam no servidor. Base64 é codificação, não proteção, então usuários poderiam forjar roles; hashes de senha nunca devem sair do servidor; e criptografar com a senha do usuário não é prático nem necessário."
+  },
+  {
+    "id": "be-rt-sse-content-type",
+    "title": "Content-Type para Server-Sent Events",
+    "question": "Um EventSource do browser conecta em /stream, mas seu handler onmessage nunca dispara, embora o servidor escreva linhas como 'data: hello' seguidas de uma linha em branco. Qual Content-Type de resposta o servidor deve enviar para Server-Sent Events?",
+    "options": [
+      "application/json",
+      "text/plain; charset=utf-8",
+      "application/x-ndjson",
+      "text/event-stream"
+    ],
+    "explanation": "O protocolo SSE exige que a resposta use o MIME type text/event-stream; caso contrário, o EventSource rejeita a conexão. Mensagens são linhas 'data:' terminadas por uma linha em branco. JSON e NDJSON são formatos de payload que você poderia transmitir com fetch, não algo que o EventSource aceite."
+  },
+  {
+    "id": "be-rt-ws-idle-heartbeat",
+    "title": "WebSockets derrubados quando ociosos",
+    "question": "Conexões WebSocket com um serviço de notificações são fechadas silenciosamente após exatamente 60 segundos sempre que nenhuma mensagem é enviada, embora cliente e servidor estejam saudáveis. Há um load balancer no meio. Qual é a correção usual?",
+    "options": [
+      "Enviar frames Ping/Pong periódicos em intervalo menor que o idle timeout",
+      "Trocar wss:// por ws:// para o load balancer parar de inspecionar o tráfego",
+      "Reconectar o cliente a cada 50 segundos com um novo handshake HTTP Upgrade",
+      "Aumentar o tamanho máximo de frame do servidor para manter o link aberto"
+    ],
+    "explanation": "Proxies e load balancers fecham conexões que ficam ociosas por mais tempo que o seu timeout. Os frames de controle Ping e Pong da RFC 6455 funcionam como heartbeats que mantêm o tráfego fluindo e também detectam peers mortos (aumentar o idle timeout do balancer pode complementar isso). Remover o TLS não muda idle timeouts, reconexões forçadas geram churn de conexões, e o tamanho de frame é irrelevante quando nada é enviado."
+  },
+  {
+    "id": "be-rt-sse-http1-limit",
+    "title": "SSE e limites de conexão por domínio",
+    "question": "Um dashboard abre um EventSource por aba do browser. Usuários com mais de cinco ou seis abas da aplicação abertas relatam que novas abas travam ao carregar, mas apenas em um deploy com HTTP/1.1. O que explica isso?",
+    "options": [
+      "Cada EventSource ocupa uma vaga no thread pool do servidor compartilhado por todos",
+      "Browsers permitem cerca de 6 conexões HTTP/1.1 por domínio, e cada stream ocupa uma",
+      "O EventSource reenvia cookies a cada evento, e os headers excedem o limite do servidor",
+      "SSE precisa de HTTP/2 server push, que servidores HTTP/1.1 emulam com long polling"
+    ],
+    "explanation": "No HTTP/1.1, os browsers limitam as conexões abertas por browser e domínio a um número baixo (6), e cada stream SSE aberto ocupa uma permanentemente, então as demais requisições ficam na fila. O HTTP/2 multiplexa vários streams em uma conexão, eliminando o problema. O EventSource não envia cookies por evento, e SSE não tem nada a ver com HTTP/2 server push."
+  },
+  {
+    "id": "be-rt-cswsh-origin",
+    "title": "Cross-site WebSocket hijacking",
+    "question": "Um endpoint WebSocket autentica usuários apenas com o cookie de sessão enviado no handshake. Um site malicioso abre um socket para ele a partir do browser de uma vítima logada e lê mensagens privadas. Qual é a principal defesa que está faltando?",
+    "options": [
+      "Habilitar headers CORS no endpoint WebSocket para bloquear leituras cross-origin",
+      "Usar wss:// para o browser se recusar a anexar cookies a sockets cross-site",
+      "Validar o header Origin no handshake contra uma allowlist",
+      "Exigir que o cliente envie um header Sec-WebSocket-Key em todo handshake"
+    ],
+    "explanation": "Isto é Cross-Site WebSocket Hijacking: handshakes de WebSocket não são restringidos pelo CORS, e os browsers anexam cookies a eles, então o servidor precisa verificar o header Origin contra as origens permitidas (de preferência usando também cookies SameSite ou autenticação por token). O Sec-WebSocket-Key é enviado automaticamente pelos browsers e só prova que o servidor fala WebSocket, e o wss:// criptografa o tráfego sem mudar o comportamento dos cookies."
+  },
+  {
+    "id": "be-grpc-protobuf-idl",
+    "title": "IDL e formato padrão do gRPC",
+    "question": "Por padrão, o que o gRPC usa tanto para definir interfaces de serviço quanto para serializar mensagens de requisição e resposta?",
+    "options": [
+      "JSON Schema",
+      "OpenAPI 3.1",
+      "Protocol Buffers",
+      "Apache Avro"
+    ],
+    "explanation": "O gRPC usa Protocol Buffers por padrão, tanto como Interface Definition Language (serviços e mensagens em arquivos .proto, compilados em stubs de cliente e servidor) quanto como formato binário das mensagens. Outros encodings podem ser plugados, mas não são o padrão; o OpenAPI descreve APIs HTTP/REST."
+  },
+  {
+    "id": "be-grpc-reserved-field-numbers",
+    "title": "Removendo campos do protobuf com segurança",
+    "question": "Uma equipe remove 'string nickname = 4;' de uma mensagem protobuf e, um mês depois, adiciona 'int64 score = 4;'. Clientes antigos ainda em produção passam a interpretar mal ou a falhar ao fazer parse das mensagens. O que a equipe deveria ter feito ao remover o campo?",
+    "options": [
+      "Manter o campo 4 mudando o tipo, pois o protobuf converte tipos para você",
+      "Incrementar a versão do package para clientes antigos rejeitarem o novo schema",
+      "Renumerar os campos restantes para a mensagem continuar numerada sem lacunas",
+      "Marcar o número 4 (e o nome) como reserved para que nunca seja reutilizado"
+    ],
+    "explanation": "Números de campo identificam os campos no wire, então reutilizar um número com outro significado faz binários antigos decodificarem dados novos como o campo antigo. O guia do proto3 manda reservar números (e nomes) de campos removidos para o compilador bloquear a reutilização. Renumerar campos existentes já é uma breaking change, nomes de package não afetam a decodificação no wire, e a maioria das mudanças de tipo não é compatível no wire."
+  },
+  {
+    "id": "be-grpc-retry-unavailable",
+    "title": "Quais status codes do gRPC repetir",
+    "question": "Chamadas do serviço A para o serviço B falham de vez em quando enquanto os pods de B reiniciam durante rolling deployments. Você adiciona uma retryPolicy na service config do gRPC de A. Qual status code é a entrada típica em retryableStatusCodes?",
+    "options": [
+      "INVALID_ARGUMENT",
+      "PERMISSION_DENIED",
+      "UNAVAILABLE",
+      "FAILED_PRECONDITION"
+    ],
+    "explanation": "UNAVAILABLE sinaliza uma condição transitória, como um servidor desligando ou uma conexão recusada, e é o status que a documentação de retry do gRPC usa no exemplo de retryPolicy; os retries usam exponential backoff com jitter. INVALID_ARGUMENT, PERMISSION_DENIED e FAILED_PRECONDITION vão falhar do mesmo jeito em todo retry. Repetir métodos não idempotentes ainda exige idempotência no servidor."
+  },
+  {
+    "id": "be-grpc-l4-load-balancing",
+    "title": "Carga desigual atrás de um balancer L4",
+    "question": "Seis pods de servidor gRPC ficam atrás de um load balancer Layer 4 (TCP). O monitoramento mostra um ou dois pods atendendo quase todas as requisições enquanto os outros ficam ociosos, embora os clientes enviem milhares de RPCs por segundo. Por quê?",
+    "options": [
+      "Servidores gRPC rejeitam requisições acima de um limite fixo de concorrência por pod",
+      "O HTTP/2 multiplexa RPCs em conexões longas, e o L4 balanceia só conexões",
+      "Payloads Protobuf são hasheados pelo tamanho, e chamadas parecidas vão para um pod",
+      "O load balancer não lê trailers do gRPC e cai para sticky sessions por IP"
+    ],
+    "explanation": "O gRPC roda sobre HTTP/2, que multiplexa muitos RPCs em poucas conexões persistentes. Um balancer Layer 4 escolhe um backend uma vez por conexão TCP, então todos os RPCs dessa conexão vão para o mesmo pod. Use um proxy L7 que entenda HTTP/2 ou load balancing no cliente (por exemplo, round_robin entre os endereços resolvidos), ou limite a idade das conexões."
+  },
+  {
+    "id": "be-jobs-offload-email",
+    "title": "Efeitos colaterais lentos nas requisições",
+    "question": "Um endpoint de cadastro envia um email de boas-vindas por um serviço SMTP de terceiros que às vezes leva 8 segundos para responder, então os cadastros parecem lentos e às vezes dão timeout. Qual é a melhoria padrão?",
+    "options": [
+      "Enfileirar o email como job em background e responder imediatamente",
+      "Aumentar o timeout HTTP do endpoint para as chamadas SMTP lentas terminarem",
+      "Enviar o email em loop até o SMTP responder em menos de um segundo",
+      "Cachear o HTML do email de boas-vindas para a chamada SMTP ter menos trabalho"
+    ],
+    "explanation": "Trabalho lento e não essencial não deve bloquear a requisição do usuário: coloque-o em uma fila para que um worker em background o envie (com retries) enquanto o endpoint responde na hora. Timeouts maiores mantêm o usuário esperando, loops de retry apertados amplificam o problema, e cachear o HTML não muda a latência do SMTP."
+  },
+  {
+    "id": "be-jobs-scheduled-singleton",
+    "title": "Jobs agendados após escalar horizontalmente",
+    "question": "Uma tarefa noturna de cobrança é agendada com uma biblioteca de cron in-process dentro da aplicação web. Depois que a aplicação é escalada para 3 instâncias, os clientes passam a receber três faturas toda noite. Qual é a melhor correção?",
+    "options": [
+      "Adicionar um atraso aleatório na inicialização para as instâncias raramente dispararem juntas",
+      "Rodar a partir de um único scheduler ou sob um lock distribuído, e torná-la idempotente",
+      "Reduzir a frequência para cada três noites, igual ao número de instâncias",
+      "Guardar a expressão cron no banco para todas as instâncias compartilharem uma cópia"
+    ],
+    "explanation": "Cada instância hospeda o próprio scheduler, então cada uma dispara o job. O guia de background jobs do Azure alerta que escalar a computação que roda um scheduler cria várias instâncias de scheduler; rode essas tarefas como instância única (um job agendado dedicado ou um lease/lock) e projete-as para serem idempotentes. Atrasos aleatórios e uma expressão cron compartilhada ainda deixam todas as instâncias executarem a tarefa."
+  },
+  {
+    "id": "be-cache-aside-basics",
+    "title": "Cache-aside em um cache miss",
+    "question": "Com o padrão cache-aside, o que a aplicação faz quando uma leitura não encontra o dado no cache?",
+    "options": [
+      "Retorna um erro e espera um processo em background aquecer o cache",
+      "Pede ao cache que busque o dado no banco em nome da aplicação",
+      "Lê o dado do banco, grava esse valor no cache e então o retorna",
+      "Lê do banco, mas nunca grava no cache, para mantê-lo consistente"
+    ],
+    "explanation": "No cache-aside, a aplicação é responsável por popular o cache: consulta o cache e, em um miss, lê do data store, coloca o valor no cache (normalmente com expiração) e o retorna. Um cache que carrega do banco sozinho é read-through, um padrão diferente; falhar em misses ou nunca armazenar valores anula o propósito do cache."
+  },
+  {
+    "id": "be-cache-stale-while-revalidate",
+    "title": "Servindo conteúdo stale enquanto atualiza",
+    "question": "Uma API de produtos fica atrás de uma CDN com Cache-Control: max-age=60. A cada minuto, quando a entrada expira, alguns usuários esperam 2 segundos pela origem. Qual header permite que o cache continue servindo a cópia expirada enquanto a atualiza em background?",
+    "options": [
+      "Cache-Control: max-age=60, stale-while-revalidate=30",
+      "Cache-Control: max-age=60, must-revalidate, proxy-revalidate",
+      "Cache-Control: no-cache, max-age=60",
+      "Cache-Control: max-age=60, immutable"
+    ],
+    "explanation": "stale-while-revalidate=N permite que um cache reutilize uma resposta stale por até N segundos enquanto revalida em background, escondendo a latência da origem. must-revalidate e proxy-revalidate proíbem servir conteúdo stale, no-cache força revalidação antes de cada uso, e immutable só diz que o corpo não muda enquanto estiver fresh."
+  },
+  {
+    "id": "be-cache-idempotency-key-reuse",
+    "title": "Respostas para uso indevido de Idempotency-Key",
+    "question": "Uma API implementa o header Idempotency-Key para POST /payments. O que ela deve retornar quando (a) um cliente reutiliza uma key com um corpo de requisição diferente e (b) um retry chega enquanto a requisição original com essa key ainda está sendo processada?",
+    "options": [
+      "(a) 200 com a resposta original armazenada; (b) 202 Accepted",
+      "(a) 409 Conflict; (b) 429 Too Many Requests com Retry-After",
+      "(a) 400 Bad Request; (b) 200 com a resposta quando ficar pronta",
+      "(a) 422 Unprocessable Content; (b) 409 Conflict"
+    ],
+    "explanation": "O draft do IETF sobre Idempotency-Key diz que reutilizar uma key com um payload diferente deve receber 422, porque é uso indevido pelo cliente e não um retry, e um retry que chega enquanto a primeira requisição ainda está em andamento deve receber 409 Conflict. Devolver a resposta armazenada para um corpo diferente esconderia um bug do cliente, e o 400 fica reservado para a falta da key em um endpoint que a exige."
+  },
+  {
+    "id": "db-agg-sum-empty-null",
+    "title": "SUM sobre zero linhas",
+    "question": "SELECT SUM(amount) FROM payments WHERE user_id = 42; alimenta um cálculo de saldo. Para um usuário sem pagamentos, a aplicação quebra com um valor nulo. Por quê, e qual é a correção idiomática?",
+    "options": [
+      "SUM sobre zero linhas retorna 0, então o nulo vem de user_id; use COUNT",
+      "SUM sobre zero linhas retorna NULL; use COALESCE(SUM(amount), 0)",
+      "SUM ignora o WHERE quando nada corresponde; mova o filtro para o HAVING",
+      "SUM retorna NULL se algum amount for NULL; adicione WHERE amount IS NOT NULL"
+    ],
+    "explanation": "Com exceção do count, as funções de agregação retornam NULL quando nenhuma linha é selecionada, então a soma de nenhuma linha é NULL, e não zero; COALESCE(SUM(amount), 0) fornece o valor padrão. O SUM simplesmente ignora entradas NULL em vez de retornar NULL, e o HAVING filtra grupos após a agregação, o que não muda isso."
+  },
+  {
+    "id": "db-agg-rollup-grouping",
+    "title": "Distinguindo subtotais de NULLs reais",
+    "question": "Um relatório de vendas usa GROUP BY ROLLUP (region, product) para adicionar subtotais e um total geral. Algumas vendas têm de fato region = NULL, então os leitores não conseguem distinguir essas linhas das linhas de subtotal. O que resolve isso?",
+    "options": [
+      "Usar a função GROUPING() para marcar linhas em que uma coluna foi agregada",
+      "Trocar ROLLUP por CUBE, que rotula as linhas de subtotal automaticamente",
+      "Adicionar ORDER BY region NULLS LAST para os subtotais sempre virem no fim",
+      "Usar COALESCE(region, 'Total'), já que o ROLLUP nunca emite NULLs reais"
+    ],
+    "explanation": "GROUPING(col) retorna 1 quando a coluna foi agregada naquele grouping set (uma linha de subtotal ou total) e 0 quando é um valor real de agrupamento, então regiões genuinamente NULL podem ser distinguidas. O CUBE também usa NULLs como placeholders, ordenar não desambigua nada, e o COALESCE rotularia grupos NULL genuínos como totais."
+  },
+  {
+    "id": "db-adv-rank-dense-rank",
+    "title": "RANK versus DENSE_RANK",
+    "question": "As pontuações em ordem decrescente são 100, 100, 90. Quais valores RANK() e DENSE_RANK() atribuem à linha com pontuação 90?",
+    "options": [
+      "RANK = 2, DENSE_RANK = 3",
+      "RANK = 3, DENSE_RANK = 3",
+      "RANK = 2, DENSE_RANK = 2",
+      "RANK = 3, DENSE_RANK = 2"
+    ],
+    "explanation": "As duas funções dão o mesmo rank a peers empatados (1 e 1). RANK deixa um buraco após empates, então a próxima linha recebe 3, enquanto DENSE_RANK não tem buracos, então ela recebe 2. ROW_NUMBER daria 1, 2, 3."
+  },
+  {
+    "id": "db-adv-last-value-frame",
+    "title": "LAST_VALUE e o frame padrão",
+    "question": "SELECT day, price, LAST_VALUE(price) OVER (PARTITION BY sku ORDER BY day) AS last_price FROM prices; retorna o próprio preço de cada linha em last_price, em vez do preço mais recente do SKU. Por quê?",
+    "options": [
+      "LAST_VALUE exige ordem DESC; com ORDER BY ascendente retorna a linha atual",
+      "O frame padrão vai só até a linha atual; estenda-o até UNBOUNDED FOLLOWING",
+      "PARTITION BY reinicia o LAST_VALUE a cada linha, então deve ser trocado por GROUP BY",
+      "LAST_VALUE ignora o ORDER BY e retorna valores na ordem física de armazenamento"
+    ],
+    "explanation": "Com ORDER BY, o frame padrão da janela vai do início da partição até a linha atual (e seus peers), então o último valor do frame é o da linha atual. Use ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING, ou FIRST_VALUE com ordem decrescente. PARTITION BY não reinicia por linha, e LAST_VALUE respeita, sim, a ordenação da janela."
+  },
+  {
+    "id": "db-cc-mvcc-readers-writers",
+    "title": "Leitores e escritores sob MVCC",
+    "question": "No PostgreSQL, um relatório demorado faz SELECT em orders enquanto outras sessões fazem UPDATE em linhas da mesma tabela. Como eles interagem sob MVCC?",
+    "options": [
+      "Os UPDATEs esperam o SELECT terminar, porque leitores mantêm locks compartilhados de linha",
+      "O SELECT bloqueia até cada UPDATE fazer commit, para ler as linhas novas",
+      "Eles não bloqueiam um ao outro; o SELECT lê um snapshot consistente dos dados",
+      "O SELECT é abortado com erro de serialização assim que qualquer linha é atualizada"
+    ],
+    "explanation": "O MVCC do PostgreSQL dá a cada instrução (ou transação) um snapshot, então leitura nunca bloqueia escrita e escrita nunca bloqueia leitura. Locks de linha obtidos por escritores só conflitam com outros escritores, e falhas de serialização afetam escritores em conflito sob REPEATABLE READ ou SERIALIZABLE, não leitores comuns."
+  },
+  {
+    "id": "db-model-numeric-money",
+    "title": "Tipo de coluna para dinheiro",
+    "question": "Uma tabela invoices armazena totais em uma coluna double precision, e os totais somados mostram valores como 10.299999999. Qual tipo do PostgreSQL é recomendado para valores monetários?",
+    "options": [
+      "real, já que usa menos armazenamento que double precision",
+      "integer, guardando valores arredondados para dólares inteiros",
+      "numeric(12,2), um tipo decimal exato",
+      "text, formatado com exatamente duas casas decimais"
+    ],
+    "explanation": "Tipos de ponto flutuante armazenam aproximações binárias inexatas, então valores decimais se desviam; o PostgreSQL recomenda numeric para valores monetários e outras quantidades em que a exatidão é necessária. real é ainda menos preciso, inteiros em dólares perdem os centavos (inteiros em centavos seriam uma alternativa válida), e text impede aritmética e validação."
+  },
+  {
+    "id": "db-model-junction-table",
+    "title": "Modelando muitos-para-muitos",
+    "question": "Alunos podem se matricular em vários cursos, e cada curso tem vários alunos. Um desenvolvedor propõe uma coluna de texto course_ids contendo '3,7,12' na tabela students. Qual é o design relacional padrão no lugar disso?",
+    "options": [
+      "Tabelas courses_N separadas por aluno, criadas na primeira vez que ele se matricula em um curso",
+      "Uma coluna student_id em courses, duplicando a linha do curso para cada aluno matriculado",
+      "Uma coluna de array JSON com ids de cursos em students, com um CHECK validando o tamanho",
+      "Uma tabela enrollments com foreign keys student_id e course_id e uma primary key composta"
+    ],
+    "explanation": "Um relacionamento muitos-para-muitos é modelado com uma tabela de junção (associativa) com foreign keys para os dois lados; a primary key composta evita matrículas duplicadas, e as foreign keys garantem a integridade. Listas delimitadas e arrays JSON quebram a primeira forma normal e não suportam foreign keys, enquanto duplicar linhas de curso causa anomalias de atualização."
+  },
+  {
+    "id": "db-model-nulls-not-distinct",
+    "title": "Constraints únicas e NULLs",
+    "question": "Uma tabela tem UNIQUE (tenant_id, external_ref), em que external_ref aceita NULL. Linhas duplicadas como (5, NULL) e (5, NULL) continuam aparecendo. No PostgreSQL 15+, o que faz a constraint tratar essas linhas como duplicadas?",
+    "options": [
+      "Declará-la como UNIQUE NULLS NOT DISTINCT (tenant_id, external_ref)",
+      "Torná-la DEFERRABLE INITIALLY DEFERRED para os NULLs serem comparados no commit",
+      "Substituí-la por uma primary key, que ignora valores NULL ao comparar linhas",
+      "Adicionar um índice em external_ref com NULLS FIRST para agrupar os valores NULL"
+    ],
+    "explanation": "Em constraints únicas, NULLs não são considerados iguais por padrão, então qualquer número de linhas (5, NULL) é permitido. O PostgreSQL 15 adicionou NULLS NOT DISTINCT para tratar NULLs como iguais. Adiar só muda quando a verificação roda, colunas de primary key não podem ser NULL de forma alguma, e a ordem de ordenação do índice não afeta a unicidade."
+  },
+  {
+    "id": "db-model-fk-not-valid",
+    "title": "Adicionando uma foreign key a uma tabela enorme",
+    "question": "Você precisa adicionar em produção uma foreign key de uma tabela orders com 400 milhões de linhas para customers. Um ALTER TABLE ... ADD FOREIGN KEY simples varreria a tabela inteira mantendo locks que bloqueiam escritas. Qual é a abordagem de menor impacto no PostgreSQL?",
+    "options": [
+      "Criar a constraint como DEFERRABLE para a verificação rodar só no commit",
+      "Adicionar a constraint em uma transação após SET lock_timeout = 0",
+      "Desabilitar os triggers de orders, adicionar a foreign key e reabilitá-los",
+      "Adicionar a constraint NOT VALID e depois rodar VALIDATE CONSTRAINT à parte"
+    ],
+    "explanation": "NOT VALID pula a varredura das linhas existentes, então o ADD faz commit rapidamente enquanto as novas escritas já são verificadas. O VALIDATE CONSTRAINT verifica depois as linhas existentes mantendo apenas um lock SHARE UPDATE EXCLUSIVE (mais ROW SHARE na tabela referenciada), que não bloqueia leituras e escritas normais. DEFERRABLE só muda o momento da verificação dentro das transações, desabilitar triggers pularia a validação, e lock_timeout = 0 significa esperar para sempre."
+  },
+  {
+    "id": "perf-db-fk-index-delete",
+    "title": "Deletes lentos em uma tabela pai",
+    "question": "Apagar uma única linha de customers leva cerca de 4 segundos. orders.customer_id referencia customers(id) com ON DELETE RESTRICT, e orders tem 50 milhões de linhas. Qual é a causa mais provável?",
+    "options": [
+      "Foreign keys forçam o PostgreSQL a reescrever toda a tabela customers no delete",
+      "A checagem da FK precisa achar pedidos e orders.customer_id não tem índice",
+      "ON DELETE RESTRICT bloqueia todas as linhas de orders até a transação terminar",
+      "O índice da primary key em customers(id) é grande demais para caber em memória"
+    ],
+    "explanation": "Apagar uma linha referenciada exige varrer a tabela que a referencia em busca de linhas correspondentes, e o PostgreSQL não cria índices automaticamente nas colunas que referenciam. Sem um índice em orders.customer_id, cada delete dispara um sequential scan de 50 milhões de linhas; adicionar esse índice resolve. Nenhuma tabela é reescrita, RESTRICT não bloqueia todas as linhas filhas, e um único lookup na PK é barato."
+  },
+  {
+    "id": "db-scale-read-replicas-purpose",
+    "title": "O que read replicas escalam",
+    "question": "Um primary PostgreSQL está sobrecarregado principalmente por queries SELECT de dashboards, enquanto as escritas são leves. Qual medida de escala ataca essa carga de forma mais direta?",
+    "options": [
+      "Criar read replicas (hot standbys) e enviar a elas as queries do dashboard",
+      "Fazer sharding das tabelas em vários primaries usando hash da primary key",
+      "Aumentar max_connections para mais queries de dashboard rodarem ao mesmo tempo",
+      "Mudar para replicação síncrona para que um standby confirme cada escrita"
+    ],
+    "explanation": "Réplicas hot standby aceitam queries somente leitura, então o tráfego de leitura pesado pode ser tirado do primary (elas não escalam escritas). Sharding trata principalmente de throughput de escrita e volume de dados, com alto custo de complexidade, mais conexões aumentam a contenção no mesmo servidor sobrecarregado, e a replicação síncrona adiciona latência às escritas sem aliviar as leituras."
+  },
+  {
+    "id": "db-scale-partition-retention",
+    "title": "Retenção de dados em tabelas enormes",
+    "question": "Uma tabela events cresce 200 milhões de linhas por mês, e um DELETE noturno das linhas com mais de 12 meses roda por horas e deixa muito bloat. Qual design no PostgreSQL trata a retenção de forma muito mais eficiente?",
+    "options": [
+      "Colocar o DELETE em uma única transação para reduzir overhead de WAL e locks",
+      "Rodar VACUUM FULL logo após cada DELETE noturno para recuperar o espaço",
+      "Adicionar um índice em created_at para o DELETE noturno achar linhas antigas mais rápido",
+      "Particionar a tabela por range mensal e fazer drop ou detach da partição mais antiga"
+    ],
+    "explanation": "Com particionamento, remover dados antigos vira um DROP TABLE ou ALTER TABLE DETACH PARTITION na partição mais antiga, o que é muito mais rápido que um DELETE em massa e evita o overhead de VACUUM que ele causa. VACUUM FULL reescreve a tabela sob um lock ACCESS EXCLUSIVE, e um índice ou uma única transação ainda apagam linha por linha e deixam tuplas mortas."
+  },
+  {
+    "id": "db-scale-replication-slot-wal",
+    "title": "Replication slots abandonados",
+    "question": "O diretório pg_wal do primary continua crescendo até o disco quase encher. pg_replication_slots mostra um slot inativo de um consumidor de CDC que foi desativado há semanas. O que está acontecendo, e o que evita que isso se repita?",
+    "options": [
+      "O arquivamento de WAL está atrasado; baixe o archive_timeout para reciclar segmentos antigos",
+      "O slot retém WAL que o consumidor nunca confirmou; remova-o e defina max_slot_wal_keep_size",
+      "Checkpoints ficam suspensos enquanto existir um slot; rode CHECKPOINT manualmente a cada hora",
+      "Slots inativos transformam seu WAL em dados de tabela; rode VACUUM FULL nas tabelas afetadas"
+    ],
+    "explanation": "Um replication slot faz o primary reter todo o WAL que o consumidor ainda não confirmou, mesmo quando o consumidor sumiu, o que pode encher o pg_wal. Remova o slot abandonado com pg_drop_replication_slot, limite a retenção com max_slot_wal_keep_size e monitore os slots. archive_timeout só força trocas de segmento, os checkpoints continuam rodando, e o VACUUM não mexe no WAL."
+  },
+  {
+    "id": "db-nosql-mongo-bson",
+    "title": "Formato de armazenamento do MongoDB",
+    "question": "Em que formato o MongoDB armazena documentos internamente e os envia pela rede?",
+    "options": [
+      "Texto JSON UTF-8 puro, comprimido com gzip",
+      "BSON, um formato binário parecido com JSON",
+      "Mensagens Protocol Buffers",
+      "XML com uma camada de JSON schema"
+    ],
+    "explanation": "O MongoDB armazena registros como documentos BSON, uma representação binária de JSON que adiciona tipos como Date, ObjectId, Decimal128 e dados binários. As ferramentas mostram os documentos como texto parecido com JSON, mas isso é só um formato de exibição; Protocol Buffers e XML não são usados para documentos."
+  },
+  {
+    "id": "db-nosql-mongo-esr",
+    "title": "Ordem dos campos em índice composto no MongoDB",
+    "question": "Uma query do MongoDB filtra status: 'open' (igualdade) e createdAt > X (range), e ordena por priority. Qual índice composto segue a diretriz Equality, Sort, Range do MongoDB?",
+    "options": [
+      "{ createdAt: 1, status: 1, priority: 1 }",
+      "{ status: 1, createdAt: 1, priority: 1 }",
+      "{ priority: 1, status: 1, createdAt: 1 }",
+      "{ status: 1, priority: 1, createdAt: 1 }"
+    ],
+    "explanation": "A ESR coloca os campos de igualdade primeiro (eles restringem o scan a um intervalo contíguo do índice), depois os campos de ordenação (para os resultados já saírem ordenados do índice, evitando um sort bloqueante em memória) e, por fim, os campos de range. Colocar o campo de range antes do campo de ordenação força um sort em memória, e começar pelo campo de range ou de ordenação torna o scan do índice muito menos seletivo."
+  },
+  {
+    "id": "perf-prof-sampling-profiler",
+    "title": "Como profilers por amostragem funcionam",
+    "question": "Como um profiler de CPU por amostragem, como o Linux perf em seu modo mais comum, descobre onde um programa gasta seu tempo?",
+    "options": [
+      "Insere código de medição na entrada e na saída de cada função",
+      "Reexecuta requisições gravadas e mede cada uma individualmente",
+      "Captura periodicamente as call stacks das threads em execução",
+      "Conta quantas linhas de código-fonte cada método contém"
+    ],
+    "explanation": "Um profiler por amostragem interrompe o programa em uma frequência fixa (por exemplo, 99 Hz) e registra a stack atual; funções que aparecem em mais amostras consumiram mais CPU. Isso é estatístico e de baixo overhead, ao contrário da instrumentação, que injeta código de medição em todas as funções e adiciona overhead significativo."
+  },
+  {
+    "id": "perf-prof-memory-diagnoser",
+    "title": "Medindo alocações em benchmarks",
+    "question": "Dois serializadores JSON têm tempo médio quase igual no BenchmarkDotNet, mas em produção um deles causa muito mais pausas de GC. Qual recurso do BenchmarkDotNet teria exposto a diferença?",
+    "options": [
+      "[MemoryDiagnoser], que reporta bytes alocados e contagem de GCs por operação",
+      "[RankColumn], que adiciona uma coluna ranqueando os benchmarks pelo tempo médio",
+      "[DisassemblyDiagnoser], que mostra o código de máquina gerado pelo JIT",
+      "[SimpleJob(warmupCount: 0)], que pula o warmup para expor custos da primeira chamada"
+    ],
+    "explanation": "O MemoryDiagnoser adiciona colunas de bytes alocados (Allocated) e de coletas Gen0/Gen1/Gen2 por operação. Código com muitas alocações pode parecer igualmente rápido em um microbenchmark e ainda assim gerar pressão de GC sob carga real. Ranking, disassembly e configurações de warmup não medem alocações."
+  },
+  {
+    "id": "perf-prof-dead-code-elimination",
+    "title": "Benchmarks que não medem nada",
+    "question": "Um método do BenchmarkDotNet calcula Math.Sqrt(x) * 3, mas descarta o resultado, e o relatório mostra média de cerca de 0 ns. Qual é a causa mais provável e a correção?",
+    "options": [
+      "O JIT removeu o cálculo não usado; retorne o resultado a partir do método",
+      "A resolução do timer é baixa demais; aumente o InvocationCount para um milhão",
+      "O BenchmarkDotNet faz cache dos retornos; marque o método com [NoInlining]",
+      "A tiered compilation o pulou; desative o tiering com uma variável de ambiente"
+    ],
+    "explanation": "Um cálculo puro cujo resultado nunca é usado pode ser removido pelo JIT (dead code elimination), então o benchmark mede um método vazio. Retornar o valor permite que o BenchmarkDotNet o consuma, o que impede a eliminação. O BenchmarkDotNet já escolhe a contagem de invocações para contornar a resolução do timer, não faz cache de resultados, e o tiering muda qual versão do código roda, não se trabalho não usado é removido."
+  }
+]

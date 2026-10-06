@@ -1,0 +1,734 @@
+[
+  {
+    "id": "pf-vt-decimal-money",
+    "title": "Escolhendo um tipo para dinheiro",
+    "question": "Um serviço de cobrança em C# guarda preços como double. Somar 0.10 dez vezes dá 0.9999999999999999 em vez de 1.0, e as faturas saem com um centavo de diferença. Qual tipo deve guardar os valores monetários?",
+    "options": [
+      "float, já que o tamanho menor reduz o erro de arredondamento acumulado",
+      "decimal, já que representa frações de base 10 como 0.10 de forma exata",
+      "double, arredondado com Math.Round após cada soma para corrigir o desvio",
+      "BigInteger, já que só precisão arbitrária elimina todo o arredondamento"
+    ],
+    "explanation": "double é um tipo de ponto flutuante binário, então 0.10 não tem representação exata e os erros se acumulam. decimal é um tipo de ponto flutuante de base 10 com 28-29 dígitos significativos, então valores como 0.10 são exatos, e é por isso que ele é recomendado para valores financeiros. float é ainda menos preciso, arredondar a cada passo só esconde o sintoma, e BigInteger nem consegue guardar frações."
+  },
+  {
+    "id": "pf-vt-integer-cache-identity",
+    "title": "Identidade de Integer boxed",
+    "question": "Com as configurações padrão da JVM, o que este código Java imprime?\n\nInteger a = 127, b = 127;\nInteger c = 128, d = 128;\nSystem.out.println(a == b);\nSystem.out.println(c == d);",
+    "options": [
+      "true, depois true",
+      "false, depois false",
+      "false, depois true",
+      "true, depois false"
+    ],
+    "explanation": "O autoboxing passa por Integer.valueOf, e a JLS 5.1.7 exige que valores boxed no intervalo de -128 a 127 fiquem em cache, então a e b referenciam o mesmo objeto. 128 está fora do cache garantido, então c e d normalmente são objetos distintos e == (uma comparação de referências) é false. Compare números boxed com equals() ou faça unboxing para int."
+  },
+  {
+    "id": "pf-cf-while-continue",
+    "title": "continue dentro de um loop while",
+    "question": "O que este código Python imprime?\n\ni = 0\nwhile i < 5:\n    i += 1\n    if i == 3:\n        continue\n    print(i, end=' ')",
+    "options": [
+      "1 2",
+      "1 2 4 5",
+      "1 2 3 4 5",
+      "0 1 2 4"
+    ],
+    "explanation": "continue pula o resto da iteração atual e volta para a condição do loop, então só o print de i == 3 é pulado. Como i é incrementado antes da checagem, o loop continua avançando e não fica girando para sempre. A saída 1 2 é o que um break produziria, e 0 nunca é impresso porque o incremento acontece primeiro."
+  },
+  {
+    "id": "pf-cf-foreach-return",
+    "title": "return dentro do forEach",
+    "question": "Um desenvolvedor quer parar o processamento no primeiro valor maior que 2:\n\n[1, 3, 2].forEach(x => {\n  if (x > 2) return;\n  console.log(x);\n});\n\nO que é registrado?",
+    "options": [
+      "Só 1, porque o return sai do loop forEach inteiro",
+      "Nada, porque return dentro do forEach é um SyntaxError",
+      "1, 3 e 2, porque o forEach ignora o retorno dos callbacks",
+      "1 e depois 2, porque o return só encerra aquele callback"
+    ],
+    "explanation": "O return dentro da arrow function só encerra aquela invocação do callback; o forEach continua chamando o callback para cada elemento restante. Então o 3 é pulado (o return vem antes do console.log) e o 2 é registrado. Não dá para parar um forEach antes do fim a não ser lançando uma exceção; use for...of com break, ou some()/find() quando precisar de saída antecipada."
+  },
+  {
+    "id": "pf-cf-switch-expression-unmatched",
+    "title": "Switch expression sem correspondência em C#",
+    "question": "Um método C# usa uma switch expression sem braço de descarte:\n\nstring Label(int code) => code switch\n{\n    1 => \"low\",\n    2 => \"high\"\n};\n\nO que acontece quando Label(3) é chamado em runtime?",
+    "options": [
+      "Lança uma SwitchExpressionException porque nenhum braço casou",
+      "Retorna null, porque nenhum braço casou com o valor",
+      "Retorna string.Empty, o padrão para resultados string",
+      "Nada; o compilador rejeita o switch não exaustivo com um erro"
+    ],
+    "explanation": "O compilador só emite o warning CS8509 para uma switch expression não exaustiva, então o código compila. Em runtime, quando nenhum padrão casa, o .NET lança System.Runtime.CompilerServices.SwitchExpressionException em vez de retornar null ou um valor padrão. Adicione um braço de descarte (_ => ...) que retorne um fallback ou lance uma exceção significativa."
+  },
+  {
+    "id": "pf-fn-implicit-none",
+    "title": "Função sem return",
+    "question": "Qual é o valor de result depois que este código Python executa?\n\ndef greet(name):\n    print('Hi', name)\n\nresult = greet('Ana')",
+    "options": [
+      "'Hi Ana', o texto que a função imprimiu",
+      "Uma string vazia, que é o que print() retorna",
+      "None, já que a função não tem instrução return",
+      "Nada; lança um erro já que greet não retorna nada"
+    ],
+    "explanation": "Uma função Python que termina sem executar uma instrução return retorna None. Imprimir escreve na saída padrão, mas não é o valor de retorno da função, e o próprio print() também retorna None, não uma string vazia. Atribuir o resultado None é perfeitamente válido."
+  },
+  {
+    "id": "pf-fn-keyword-only-args",
+    "title": "Parâmetros keyword-only",
+    "question": "Um helper Python é declarado como def connect(host, *, timeout=5). O que acontece quando ele é chamado como connect('db.local', 10)?",
+    "options": [
+      "timeout recebe 10, já que é o segundo parâmetro",
+      "10 é ignorado em silêncio e timeout mantém o padrão de 5",
+      "10 é coletado em uma tupla ligada ao marcador * sozinho",
+      "Um TypeError é lançado, porque timeout é keyword-only"
+    ],
+    "explanation": "Parâmetros depois de um * sozinho são keyword-only, então a função aceita só um argumento posicional e a chamada falha com TypeError (takes 1 positional argument but 2 were given). O * sozinho não coleta nada, ao contrário de *args. Quem chama precisa escrever connect('db.local', timeout=10), o que deixa as chamadas autoexplicativas."
+  },
+  {
+    "id": "pf-fn-lru-cache-method-leak",
+    "title": "lru_cache em métodos de instância",
+    "question": "Um serviço Python de longa duração decora um método de instância com @functools.lru_cache(maxsize=None). A memória continua crescendo mesmo depois que os objetos Report não são mais usados. Por quê?",
+    "options": [
+      "O lru_cache guarda resultados em um dicionário de chaves fracas que o garbage collector nunca limpa",
+      "O decorator copia o método para cada instância, então cada objeto tem um cache completo",
+      "self faz parte de toda chave do cache, então o cache mantém cada instância viva",
+      "O lru_cache desliga a contagem de referências de qualquer objeto passado ao método"
+    ],
+    "explanation": "O cache fica no objeto função compartilhado pela classe, e suas chaves incluem self, então ele guarda referências fortes para toda instância que já viu; com maxsize=None nada é removido. O FAQ do Python observa que essa abordagem mantém as instâncias vivas até que saiam do cache ou que ele seja limpo. Use um cache limitado, functools.cached_property ou um cache por instância."
+  },
+  {
+    "id": "pf-rec-call-stack-frames",
+    "title": "Onde vivem as chamadas recursivas",
+    "question": "Enquanto uma função recursiva está executando, onde o runtime guarda as variáveis locais e o endereço de retorno de cada chamada pendente?",
+    "options": [
+      "Em uma tabela hash global indexada pelo nome da função",
+      "Só em registradores da CPU, nunca na memória principal",
+      "Na heap, compactada após cada retorno",
+      "Em um stack frame empilhado na call stack"
+    ],
+    "explanation": "Cada chamada empilha um frame com seus parâmetros, variáveis locais e endereço de retorno na call stack, e o frame é desempilhado quando a chamada retorna. É por isso que recursão profunda pode esgotar a pilha. Uma tabela compartilhada indexada pelo nome não conseguiria guardar várias chamadas ativas da mesma função, e os registradores são poucos demais para guardar todos os frames pendentes."
+  },
+  {
+    "id": "pf-rec-slicing-cost",
+    "title": "Custo oculto do slicing na recursão",
+    "question": "Qual é a complexidade de tempo desta soma recursiva em Python para uma lista de n números?\n\ndef total(xs):\n    return 0 if not xs else xs[0] + total(xs[1:])",
+    "options": [
+      "O(n), já que cada elemento é somado só uma vez",
+      "O(n log n), já que a lista cai pela metade a cada chamada",
+      "O(n^2), já que cada slice xs[1:] copia o restante",
+      "O(log n), já que um slice é uma view de tempo constante"
+    ],
+    "explanation": "Um slice de lista cria uma nova lista e custa O(k) para k elementos copiados, então as chamadas copiam n-1, n-2, ... elementos, somando O(n^2). A lista diminui um elemento por chamada, não pela metade, e slices de listas em Python são cópias, não views. Passar um índice em vez de fatiar torna a função O(n), embora um n grande ainda vá atingir o limite de recursão."
+  },
+  {
+    "id": "pf-mem-pointer-arithmetic",
+    "title": "Escala na aritmética de ponteiros em C",
+    "question": "Em C: int arr[8]; int *p = arr; Em uma plataforma onde int tem 4 bytes e p contém o endereço 0x1000, qual endereço p + 2 contém?",
+    "options": [
+      "0x1008",
+      "0x1002",
+      "0x1004",
+      "0x1010"
+    ],
+    "explanation": "Somar um inteiro a um ponteiro o avança essa quantidade de elementos, não de bytes, então p + 2 anda 2 * sizeof(int) = 8 bytes, até 0x1008. 0x1002 seria aritmética de bytes, que você só obtém com um ponteiro char. Essa escala também é o motivo de arr[i] ser definido como *(arr + i)."
+  },
+  {
+    "id": "pf-mem-vector-invalidation",
+    "title": "Ponteiro para um vector que cresce",
+    "question": "Este código C++ às vezes imprime lixo ou trava:\n\nstd::vector<int> v{1, 2, 3};\nint* first = &v[0];\nv.push_back(4);\nstd::cout << *first;\n\nQual é a causa?",
+    "options": [
+      "push_back pode realocar o buffer, deixando first pendente",
+      "Pegar o endereço de um elemento de vector é comportamento indefinido",
+      "std::cout não consegue imprimir um valor lido através de um ponteiro bruto",
+      "push_back desloca os elementos existentes uma posição para a direita"
+    ],
+    "explanation": "Quando push_back excede a capacidade atual, o vector aloca um novo buffer, move os elementos e libera o antigo, invalidando todos os ponteiros, referências e iterators para os elementos. Ler através de first passa a ser um use-after-free. Pegar endereços de elementos é seguro enquanto não houver realocação; chame reserve() antes ou guarde índices em vez de ponteiros."
+  },
+  {
+    "id": "pf-mem-go-escape-analysis",
+    "title": "Retornando ponteiro para variável local em Go",
+    "question": "Um revisor com experiência em C aponta que esta função Go retorna um dangling pointer:\n\nfunc newUser() *User {\n    u := User{Name: \"ana\"}\n    return &u\n}\n\nO que realmente acontece?",
+    "options": [
+      "O programa entra em panic quando quem chamou desreferencia o ponteiro",
+      "O compilador rejeita retornar o endereço de uma variável local",
+      "A struct é copiada para o stack frame de quem chamou no retorno",
+      "A escape analysis vê que u sobrevive à chamada e o aloca na heap"
+    ],
+    "explanation": "O Go decide entre pilha e heap pela escape analysis: como &u escapa da função, o compilador aloca u na heap gerenciada pelo garbage collector, então o ponteiro continua válido. Isso é Go idiomático, não um bug. O custo é uma alocação na heap e pressão no GC; go build -gcflags=-m imprime essas decisões de escape ao otimizar hot paths."
+  },
+  {
+    "id": "pf-ps-binary-search-precondition",
+    "title": "Pré-condição da busca binária",
+    "question": "Um colega quer usar busca binária (o módulo bisect do Python) para procurar IDs em uma lista. O que precisa ser verdade sobre a lista para os resultados estarem corretos?",
+    "options": [
+      "Ela não pode ter valores duplicados",
+      "O tamanho dela deve ser uma potência de dois",
+      "Ela precisa estar ordenada pela chave de busca",
+      "Ela só pode conter valores inteiros"
+    ],
+    "explanation": "A busca binária descarta metade do intervalo restante a cada passo com base em uma comparação, o que só é válido se os dados estiverem ordenados pela chave buscada. Duplicatas não são problema (bisect_left e bisect_right lidam com elas), qualquer tamanho funciona, e qualquer tipo comparável, como strings, pode ser buscado."
+  },
+  {
+    "id": "pf-ps-merge-intervals",
+    "title": "Juntando intervalos sobrepostos",
+    "question": "Um serviço de agenda precisa juntar reuniões sobrepostas como [1,3], [2,6], [8,10] em [1,6], [8,10]. A entrada não está ordenada. Qual abordagem está correta e roda em O(n log n)?",
+    "options": [
+      "Comparar cada par de intervalos uma vez e juntar os que se sobrepõem",
+      "Varrer a entrada na ordem original, juntando cada um com o seu vizinho",
+      "Ordenar pelo início, depois varrer e estender o último intervalo unido",
+      "Pôr os intervalos em um hash set pelo início e juntar as colisões"
+    ],
+    "explanation": "Depois de ordenar pelo início, qualquer intervalo que se sobreponha ao bloco unido atual precisa vir logo em seguida, então uma varredura linear que estende ou fecha o bloco basta: O(n log n) no total. Uma passada por todos os pares é O(n^2) e ainda pode perder cadeias de junções, a ordem original não garante adjacência, e o hash pelo início só pega inícios idênticos."
+  },
+  {
+    "id": "pf-ps-meet-in-the-middle",
+    "title": "Subset sum com capacidade enorme",
+    "question": "Você precisa escolher um subconjunto de 40 itens cujo peso total seja o maior possível sem passar de uma capacidade de 10^12. DP sobre a capacidade é impossível e verificar todos os 2^40 subconjuntos é lento demais. Qual é uma abordagem exata e prática?",
+    "options": [
+      "Dividir em duas metades, listar as 2^20 somas de cada, ordenar uma e usar busca binária",
+      "Pegar os itens mais pesados primeiro, de forma gulosa, enquanto couberem na capacidade",
+      "Rodar DP sobre a capacidade usando um array unidimensional rotativo para poupar memória",
+      "Sortear subconjuntos aleatórios e manter o melhor total viável dentro de um tempo limite"
+    ],
+    "explanation": "O meet in the middle enumera cerca de um milhão de somas por metade, ordena uma das listas e, para cada soma a da outra metade, faz busca binária pelo maior b <= capacity - a, resultando em aproximadamente O(2^(n/2) * n) de trabalho em vez de O(2^n). O guloso não é ótimo para problemas do tipo mochila, DP sobre uma capacidade de 10^12 é pseudopolinomial e inviável mesmo com array rotativo, e a amostragem aleatória não é exata."
+  },
+  {
+    "id": "pf-dm-combinations",
+    "title": "Escolhendo um grupo de revisores",
+    "question": "Três revisores de código precisam ser escolhidos em um time de 10 engenheiros, e a ordem da escolha não importa. Quantos grupos de revisores diferentes são possíveis?",
+    "options": [
+      "720",
+      "120",
+      "1000",
+      "30"
+    ],
+    "explanation": "Isso é uma combinação: C(10, 3) = 10 * 9 * 8 / 3! = 120, que o Python calcula com math.comb(10, 3). 720 conta seleções ordenadas (permutações), 1000 = 10^3 permite escolher a mesma pessoa repetidamente, e 30 é só 10 * 3."
+  },
+  {
+    "id": "pf-dm-floor-mod",
+    "title": "Módulo negativo em Java",
+    "question": "Um ring buffer em Java anda para trás com idx = (idx - 1) % size. Quando idx é 0, ele lança ArrayIndexOutOfBoundsException. Por quê, e qual é a correção?",
+    "options": [
+      "% mantém o sinal do dividendo, dando -1; use Math.floorMod(idx - 1, size)",
+      "% estoura para Integer.MIN_VALUE com negativos; converta os dois operandos para long",
+      "% arredonda para mais infinito e retorna size; subtraia um do resultado",
+      "% é indefinido para operandos negativos em Java; envolva o cálculo em um try/catch"
+    ],
+    "explanation": "A divisão inteira do Java trunca em direção a zero, e o resto satisfaz (a / b) * b + a % b == a, então -1 % size é -1, um índice inválido. Math.floorMod retorna um resultado com o sinal do divisor, dando size - 1 como desejado. O % do Python já usa piso, e é por isso que o mesmo código funciona lá."
+  },
+  {
+    "id": "pf-dm-modular-exponentiation",
+    "title": "Exponenciação modular rápida",
+    "question": "Um exercício precisa de 7^(10^18) mod 1.000.000.007 em Python. Por que pow(7, 10**18, 1_000_000_007) retorna instantaneamente enquanto (7 ** 10**18) % 1_000_000_007 nunca termina?",
+    "options": [
+      "O pow com três argumentos memoiza chamadas anteriores, então expoentes repetidos são grátis",
+      "O operador ** converte os dois operandos para float e depois precisa refazer o cálculo exato",
+      "O pow joga o trabalho para threads nativas, enquanto ** roda em uma thread do interpretador",
+      "O pow com três argumentos faz square-and-multiply mod m, com só ~60 quadrados"
+    ],
+    "explanation": "7 ** 10**18 tenta construir um inteiro exato com cerca de 8.5e17 dígitos decimais, o que nunca caberia na memória. pow(base, exp, mod) reduz módulo m após cada passo da exponenciação binária, então precisa de O(log exp) multiplicações de números pequenos; como 10^18 < 2^60, isso dá cerca de 60 elevações ao quadrado. Inteiros Python continuam exatos (sem conversão para float) e o pow não usa cache nem threads."
+  },
+  {
+    "id": "pf-bool-xor",
+    "title": "Exatamente uma condição verdadeira",
+    "question": "Uma feature deve ser habilitada quando exatamente uma de duas flags, a ou b, é verdadeira, mas não quando as duas são. Qual operação expressa isso?",
+    "options": [
+      "a OR b (ou inclusivo)",
+      "a AND b (conjunção)",
+      "a XOR b (ou exclusivo)",
+      "NOT (a AND b) (NAND)"
+    ],
+    "explanation": "O ou exclusivo é verdadeiro quando as entradas diferem: verdadeiro para (true, false) e (false, true), falso para (true, true) e (false, false). OR também é verdadeiro quando as duas flags estão ligadas, AND exige as duas, e NAND é verdadeiro quando nenhuma está ligada. Para booleanos, a != b expressa a mesma coisa na maioria das linguagens."
+  },
+  {
+    "id": "pf-bool-or-default-zero",
+    "title": "Valores falsy com padrão via or",
+    "question": "Um carregador de configuração em Python usa timeout = settings.get('timeout') or 30. Um usuário define timeout como 0 para desativá-lo, mas o serviço continua usando 30. Por quê?",
+    "options": [
+      "dict.get() transforma valores inteiros zero armazenados em None ao retorná-los",
+      "or sempre avalia os dois operandos e retorna o maior dos dois valores",
+      "O Python guarda em cache o primeiro valor que uma expressão or produz em cada módulo",
+      "or retorna o operando da direita quando o da esquerda é falsy, e 0 é falsy"
+    ],
+    "explanation": "x or y retorna x se x for truthy e, caso contrário, y; 0, strings vazias e coleções vazias são todos falsy, então um 0 explícito é substituído pelo padrão. dict.get retorna o 0 armazenado sem alteração e o or faz curto-circuito em vez de comparar magnitudes. Use uma checagem explícita como 30 if value is None else value."
+  },
+  {
+    "id": "pf-bool-sql-not-in-null",
+    "title": "NOT IN com NULL na subquery",
+    "question": "Esta query PostgreSQL retorna zero linhas, embora muitos usuários não gerenciem nenhum time:\n\nSELECT * FROM users\nWHERE id NOT IN (SELECT manager_id FROM teams);\n\nUma linha em teams tem manager_id = NULL. O que explica isso?",
+    "options": [
+      "NOT IN sobre uma lista com NULL nunca é true, só false ou null",
+      "O planner para de varrer uma subquery NOT IN na primeira linha NULL",
+      "NULL é igual a qualquer valor, então cada id casa com a linha NULL",
+      "O PostgreSQL rejeita NULL em subqueries e retorna nenhuma linha em silêncio"
+    ],
+    "explanation": "O SQL usa lógica de três valores: id <> NULL é unknown, então quando nenhuma correspondência é encontrada mas a subquery produz um NULL, o NOT IN resulta em null em vez de true, e o WHERE descarta a linha. NULL não é igual a nada, nem a si mesmo. Use NOT EXISTS ou filtre a subquery com WHERE manager_id IS NOT NULL."
+  },
+  {
+    "id": "pf-num-binary-to-decimal",
+    "title": "Binário para decimal",
+    "question": "Qual é o valor decimal do número binário 0b1011?",
+    "options": [
+      "13",
+      "9",
+      "22",
+      "11"
+    ],
+    "explanation": "Lendo da direita para a esquerda, os bits valem 1, 2, 4 e 8, então 1011 = 8 + 0 + 2 + 1 = 11; o int('1011', 2) do Python confirma. 13 é 0b1101 (bits invertidos), 9 é 0b1001, e 22 é 0b10110, o valor deslocado um bit para a esquerda."
+  },
+  {
+    "id": "pf-num-octal-permissions",
+    "title": "Permissões de arquivo em octal",
+    "question": "Um script de deploy executa chmod 754 app.sh. Quais permissões resultam?",
+    "options": [
+      "Dono rwx, grupo r--, outros r-x",
+      "Dono r-x, grupo rwx, outros r--",
+      "Dono rwx, grupo r-x, outros r--",
+      "Dono rw-, grupo r-x, outros r--"
+    ],
+    "explanation": "Cada dígito octal codifica três bits: leitura = 4, escrita = 2, execução = 1. Então 7 = rwx para o dono, 5 = r-x para o grupo e 4 = r-- para os outros, nessa ordem fixa. O octal é usado justamente porque um dígito corresponde exatamente a um grupo de permissões de 3 bits."
+  },
+  {
+    "id": "pf-num-float32-counter",
+    "title": "Um contador float que para de contar",
+    "question": "Uma engine de jogo mantém um contador de frames em um float de 32 bits e executa counter += 1.0f a cada frame. Depois de cerca de 16,7 milhões de frames, o valor para de aumentar. Por quê?",
+    "options": [
+      "float32 tem significando de 24 bits; após 2^24, somar 1 arredonda para baixo",
+      "float32 satura em 2^24 e limita todo resultado maior a esse valor",
+      "A CPU zera o contador depois que ele vira denormal em 2^24",
+      "A soma em precisão simples transborda para os bits de expoente em 2^24"
+    ],
+    "explanation": "Um float tem 24 bits de precisão no significando, então inteiros só são exatos até 2^24 = 16.777.216; acima disso, floats adjacentes estão a 2 de distância e 16.777.216 + 1 é arredondado de volta para 16.777.216 (round-half-to-even). O alcance do tipo vai até cerca de 3.4e38, então nada satura nem transborda, e denormais dizem respeito a valores minúsculos. Use um contador inteiro."
+  },
+  {
+    "id": "pf-arch-32bit-address-space",
+    "title": "Limite do espaço de endereçamento de 32 bits",
+    "question": "Por que um processo de 32 bits consegue endereçar no máximo cerca de 4 GB de memória virtual?",
+    "options": [
+      "O SO reserva todo endereço acima de 4 GB para o kernel",
+      "Módulos de memória para CPUs de 32 bits só vão até 4 GB",
+      "O alocador de heap do C recusa pedidos maiores que 2^32 bytes",
+      "Ponteiros de 32 bits só codificam 2^32 endereços de byte distintos"
+    ],
+    "explanation": "Um endereço de 32 bits consegue nomear 2^32 = 4.294.967.296 bytes, então esse é todo o espaço de endereçamento virtual do processo; no Windows parte dele ainda é reservada para o sistema, deixando de 2 GB a 4 GB para o modo usuário. O limite tem a ver com a largura do ponteiro, não com módulos de RAM física nem com um alocador específico."
+  },
+  {
+    "id": "pf-arch-cache-line-elements",
+    "title": "Elementos por linha de cache",
+    "question": "Em uma CPU x86-64 típica com linhas de cache de 64 bytes, um loop lê em ordem um array contíguo e alinhado de structs de 16 bytes. Aproximadamente quantas structs cada cache miss traz?",
+    "options": [
+      "1, porque cada struct dispara a sua própria busca na memória",
+      "4, porque 64 / 16 = 4 structs cabem em uma linha",
+      "16, porque uma linha reserva 16 bytes por campo da struct",
+      "64, porque uma linha de cache sempre guarda 64 elementos"
+    ],
+    "explanation": "A memória se move entre a DRAM e o cache em linhas inteiras, de 64 bytes no x86-64 moderno, então um miss carrega quatro structs adjacentes de 16 bytes e as três leituras seguintes acertam o cache. O tamanho da linha é medido em bytes, não em elementos. É por isso que o acesso sequencial a dados compactos é rápido, e os prefetchers de hardware o tornam ainda mais rápido."
+  },
+  {
+    "id": "pf-arch-huge-pages-tlb",
+    "title": "Huge pages e TLB misses",
+    "question": "Um banco de dados com um buffer pool em memória de 200 GB mostra muitos dTLB misses no perf. Por que usar huge pages de 2 MB para o pool normalmente ajuda?",
+    "options": [
+      "Huge pages ficam fixadas no cache L3, então as leituras nunca vão à DRAM",
+      "Huge pages contornam a memória virtual, então endereços não precisam de tradução",
+      "Huge pages comprimem os dados na RAM, então cabe mais do pool por página",
+      "Cada entrada da TLB passa a mapear 2 MB em vez de 4 KB, e os misses despencam"
+    ],
+    "explanation": "A TLB guarda em cache um número limitado de traduções de endereço virtual para físico; com páginas de 4 KB, um working set de 200 GB precisa de milhões de entradas e page walks constantes. Uma página de 2 MB cobre 512 vezes mais memória por entrada, aumentando muito o alcance da TLB e encurtando os page walks. Huge pages continuam sendo memória virtual e não estão ligadas aos caches da CPU nem são comprimidas."
+  },
+  {
+    "id": "ds-arr-insert-middle",
+    "title": "Inserindo no meio de uma lista",
+    "question": "Uma List<int> do .NET tem 1.000.000 de itens. Qual é o custo de list.Insert(500000, x)?",
+    "options": [
+      "O(1), já que List<T> mantém capacidade sobrando para inserções",
+      "O(n), já que os elementos seguintes deslocam uma posição",
+      "O(log n), já que List<T> acha a posição por busca binária",
+      "O(1) amortizado, igual a fazer append no final"
+    ],
+    "explanation": "List<T> é baseada em um array contíguo, então inserir em um índice exige mover cada elemento depois dele uma posição para a direita; a documentação chama Insert de operação O(n). Capacidade sobrando só torna os appends no final O(1) amortizado, e indexar nunca precisa de busca."
+  },
+  {
+    "id": "ds-arr-covariance-store",
+    "title": "Covariância de arrays em Java",
+    "question": "Este código Java compila. O que acontece quando ele executa?\n\nObject[] items = new String[2];\nitems[0] = 42;",
+    "options": [
+      "Lança ArrayStoreException, pois o array em runtime é String[]",
+      "Guarda \"42\" como string por meio de uma conversão implícita",
+      "Funciona, já que o tipo de elemento declarado é Object",
+      "Lança ClassCastException só quando items[0] é lido"
+    ],
+    "explanation": "Arrays em Java são covariantes, então um String[] pode ser atribuído a uma variável Object[], mas toda escrita é verificada contra o tipo de componente do array em runtime (JLS 10.5), e guardar um Integer lança ArrayStoreException. O Java nunca converte 42 em string aqui. Coleções genéricas evitam o problema em tempo de compilação, porque List<String> não é um List<Object>."
+  },
+  {
+    "id": "ds-str-immutable-assign",
+    "title": "Atribuindo a um índice de string",
+    "question": "O que acontece quando este código Python executa?\n\ns = 'cat'\ns[0] = 'b'",
+    "options": [
+      "TypeError, porque objetos str são imutáveis",
+      "s vira 'bat', já que strings permitem atribuição por item",
+      "Uma nova string 'bat' é criada e religada a s",
+      "IndexError, porque o índice 0 guarda o tamanho da string"
+    ],
+    "explanation": "Strings Python são sequências imutáveis, então a atribuição por item lança TypeError: 'str' object does not support item assignment. Para mudar um caractere, você constrói uma nova string, por exemplo s = 'b' + s[1:] ou s.replace('c', 'b'). O Python nunca religa a variável implicitamente, e o índice 0 é simplesmente o primeiro caractere."
+  },
+  {
+    "id": "ds-str-java-equals",
+    "title": "Comparando strings com ==",
+    "question": "Uma checagem de login em Java usa if (input == \"admin\"), onde input vem de request.getParameter(). Ela falha mesmo quando o usuário digita admin. Por quê?",
+    "options": [
+      "== compara tamanhos primeiro, e o request adiciona uma quebra de linha oculta no final",
+      "Literais de string são guardados em UTF-16, mas parâmetros do request ficam em UTF-8",
+      "== diferencia maiúsculas, e parâmetros do request vêm em maiúsculas por padrão",
+      "== compara referências, e uma string criada em runtime é um objeto distinto"
+    ],
+    "explanation": "Para objetos, == verifica se os dois operandos são a mesma instância. O literal \"admin\" é internado, mas uma string extraída de um request é um objeto novo com os mesmos caracteres, então == é false. Use \"admin\".equals(input), que compara o conteúdo e, nessa ordem, também é seguro contra null."
+  },
+  {
+    "id": "ds-str-turkish-i",
+    "title": "Conversão de maiúsculas dependente de cultura",
+    "question": "Uma checagem em C# usa ext.ToUpper() == \"FILE\". Ela passa nos testes, mas falha em servidores cuja cultura atual é tr-TR. Por quê, e qual é a correção?",
+    "options": [
+      "Em turco, i vira o I com ponto (U+0130); compare com OrdinalIgnoreCase",
+      "tr-TR guarda strings internamente em UTF-32; converta os dois lados para UTF-8",
+      "ToUpper é avaliado de forma lazy em algumas culturas; chame ToString() para forçar",
+      "tr-TR ordena maiúsculas depois de minúsculas; use String.Compare com CurrentCulture"
+    ],
+    "explanation": "ToUpper() usa a cultura atual, e em turco o i minúsculo com ponto vira U+0130 (I maiúsculo com ponto), então \"file\" vira \"FİLE\" e a comparação falha. Identificadores, extensões de arquivo e tokens de protocolo devem usar string.Equals(a, b, StringComparison.OrdinalIgnoreCase) ou conversão invariante. Strings .NET são sempre UTF-16 e ToUpper não é lazy."
+  },
+  {
+    "id": "ds-hash-open-addressing-delete",
+    "title": "Removendo de uma tabela com open addressing",
+    "question": "Em uma tabela hash com linear probing, remover uma chave simplesmente marcando o slot como vazio faz buscas posteriores por outras chaves falharem. Por quê, e qual é a correção padrão?",
+    "options": [
+      "Um slot vazio corta a cadeia de sondagem; use tombstones ou recue as entradas seguintes",
+      "Remover muda a seed de hash de todas as chaves; faça rehash da tabela a cada remoção",
+      "Um slot vazio derruba o load factor abaixo do mínimo; encolha a tabela a cada remoção",
+      "A sondagem recomeça do slot zero após um slot vazio; varra a tabela inteira no lugar"
+    ],
+    "explanation": "Uma busca sonda slots sucessivos até achar a chave ou um slot vazio, então esvaziar um slot no meio de um cluster torna inalcançáveis as chaves colocadas depois dele. As implementações marcam slots removidos com um tombstone (como o dict do CPython faz com entradas dummy) ou movem de volta as entradas seguintes do cluster. A remoção não mexe na função de hash nem exige encolher a tabela."
+  },
+  {
+    "id": "ds-ll-index-access",
+    "title": "Lendo o k-ésimo nó",
+    "question": "Qual é o custo de ler o k-ésimo elemento de uma lista simplesmente ligada quando você só tem uma referência para o head?",
+    "options": [
+      "O(1), já que cada nó guarda o próprio índice",
+      "O(log k), já que dá para fazer busca binária na lista",
+      "O(k), já que você precisa seguir k ponteiros next",
+      "O(1) amortizado, já que os nós visitados ficam em cache"
+    ],
+    "explanation": "Os nós de uma lista ligada ficam espalhados na memória e só conhecem o seu sucessor, então chegar à posição k significa percorrer k links a partir do head. Não existe aritmética de índice como nos arrays, e a busca binária precisa de acesso aleatório, que uma lista ligada não oferece."
+  },
+  {
+    "id": "ds-ll-reverse-in-place",
+    "title": "Invertendo uma lista simplesmente ligada",
+    "question": "Você precisa inverter uma lista simplesmente ligada de n nós em tempo O(n) usando O(1) de memória extra. Qual abordagem funciona?",
+    "options": [
+      "Empilhar todos os nós em uma pilha e desempilhar para religar a lista",
+      "Inverter recursivamente a cauda e depois anexar o head ao final dela",
+      "Percorrer uma vez com prev, curr e next, invertendo cada link",
+      "Trocar os valores do nó i e do nó n-1-i para cada i abaixo de n/2"
+    ],
+    "explanation": "A abordagem iterativa guarda curr.next, aponta curr.next para prev e então avança, tocando cada nó uma vez com três ponteiros: tempo O(n) e espaço O(1). Uma pilha precisa de O(n) de memória extra, a recursão usa O(n) frames na call stack, e trocar valores das duas pontas exige caminhar até o nó n-1-i a cada vez em uma lista simplesmente ligada, o que é O(n^2)."
+  },
+  {
+    "id": "ds-ll-lru-cache",
+    "title": "Estruturas de dados por trás de um cache LRU",
+    "question": "Um cache LRU em memória precisa suportar get e put em O(1) e remover a entrada usada há mais tempo quando estiver cheio. Qual combinação é o design padrão?",
+    "options": [
+      "Uma min-heap indexada pelo último acesso mais um array com os valores",
+      "Um hash map apontando para nós de uma lista duplamente ligada por recência",
+      "Uma lista simplesmente ligada percorrida a partir do head a cada get",
+      "Um array ordenado de timestamps de acesso consultado com busca binária a cada vez"
+    ],
+    "explanation": "O hash map encontra o nó de uma chave em O(1), e a lista duplamente ligada permite desligar esse nó e movê-lo para a frente em O(1), porque ele tem um ponteiro prev; o tail é a vítima da remoção. Uma heap torna as atualizações O(log n), e varrer ou manter um array ordenado custa O(n). O LinkedHashMap do Java com access order e removeEldestEntry implementa exatamente isso."
+  },
+  {
+    "id": "ds-stack-lifo-pops",
+    "title": "Ordem de pop em uma pilha",
+    "question": "Uma pilha começa vazia. Você faz push de 1, push de 2, push de 3 e depois dois pops. Quais valores são retornados, em ordem?",
+    "options": [
+      "1, depois 2",
+      "3, depois 1",
+      "2, depois 3",
+      "3, depois 2"
+    ],
+    "explanation": "Uma pilha é last-in, first-out: o elemento empilhado mais recentemente sai primeiro, então os pops retornam 3 e depois 2, deixando o 1. Retornar 1 primeiro seria o comportamento FIFO de uma fila."
+  },
+  {
+    "id": "ds-stack-postfix-eval",
+    "title": "Avaliando notação pós-fixa com uma pilha",
+    "question": "Uma calculadora avalia a expressão pós-fixa (RPN) 3 4 + 2 * com uma pilha: operandos são empilhados, e cada operador desempilha dois valores e empilha o resultado. Qual é o valor final?",
+    "options": [
+      "14",
+      "11",
+      "24",
+      "9"
+    ],
+    "explanation": "Empilhe 3 e 4; + desempilha os dois e empilha 7; empilhe 2; * desempilha 7 e 2 e empilha 14, o único valor que sobra. 11 seria a expressão infixa 3 + 4 * 2 com a precedência normal. A notação pós-fixa não precisa de parênteses nem de regras de precedência, porque a ordem dos operandos na pilha já codifica o agrupamento."
+  },
+  {
+    "id": "ds-stack-min-stack",
+    "title": "Pilha com mínimo em tempo constante",
+    "question": "Uma pilha precisa suportar push, pop e getMin, todos em tempo O(1). Qual design consegue isso?",
+    "options": [
+      "Manter uma segunda pilha registrando o mínimo atual a cada push",
+      "Guardar o mínimo em uma variável, atualizando-a a cada push",
+      "Manter os elementos ordenados na inserção para o mínimo ficar no fundo",
+      "Varrer a pilha a cada getMin e guardar o resultado em cache"
+    ],
+    "explanation": "Empilhar min(value, mínimo atual) em uma pilha auxiliar mantém o mínimo para cada altura da pilha, então o pop simplesmente desempilha das duas e o getMin espia o topo. Uma única variável não consegue recuperar o mínimo anterior depois que o mínimo é desempilhado, ordenar torna o push O(n) e quebra a ordem LIFO, e varrer é O(n)."
+  },
+  {
+    "id": "ds-queue-two-stacks",
+    "title": "Fila construída com duas pilhas",
+    "question": "Uma fila FIFO é construída com duas pilhas, in e out. O enqueue faz push em in; o dequeue faz pop de out, reabastecendo out a partir de in só quando out está vazia. Qual é o custo por operação?",
+    "options": [
+      "O(n) em todo dequeue, já que in é invertida a cada chamada",
+      "O(log n) por operação, já que duas pilhas agem como uma árvore balanceada",
+      "O(1) amortizado, pois cada elemento passa entre as pilhas uma só vez",
+      "O(1) no pior caso em toda chamada, sem etapas caras de reabastecimento"
+    ],
+    "explanation": "Cada elemento é empilhado em in uma vez, movido para out uma vez e desempilhado uma vez, então n operações fazem O(n) de trabalho no total: O(1) amortizado. Um dequeue específico que dispara o reabastecimento é O(n), então o pior caso por chamada não é O(1), mas os reabastecimentos só acontecem quando out está vazia, não a cada chamada."
+  },
+  {
+    "id": "ds-queue-python-thread-queue",
+    "title": "Fila bloqueante para threads worker",
+    "question": "Em Python, threads worker precisam bloquear até haver um job disponível, e o produtor precisa esperar até todos os jobs serem processados. Qual classe atende diretamente?",
+    "options": [
+      "queue.Queue, com get/put bloqueantes mais task_done() e join()",
+      "collections.deque, cujo popleft() bloqueia enquanto o deque está vazio",
+      "Uma lista com pop(0), que o GIL transforma em fila bloqueante",
+      "heapq, cujo heappop() espera até um produtor inserir outro item"
+    ],
+    "explanation": "queue.Queue é a fila FIFO sincronizada para threads: get() bloqueia até chegar um item, task_done() marca o trabalho como concluído e join() espera todos os itens. O append e o popleft do deque são thread-safe, mas o popleft lança IndexError com o deque vazio em vez de bloquear, e listas e heapq não oferecem bloqueio nem acompanhamento de conclusão."
+  },
+  {
+    "id": "ds-queue-bounded-backpressure",
+    "title": "Fila ilimitada e crescimento de memória",
+    "question": "Um serviço de ingestão em .NET escreve mensagens em um Channel<T> ilimitado mais rápido do que os workers conseguem processar, e a memória cresce até o pod ser morto por OOM. Qual é a correção mais adequada?",
+    "options": [
+      "Trocar para ConcurrentQueue<T>, que descarta itens antigos sob pressão de memória",
+      "Usar Channel.CreateBounded para os writers esperarem ou descartarem quando cheio",
+      "Aumentar o limite de memória do pod, já que a fila esvazia quando o tráfego cair",
+      "Chamar GC.Collect() após cada lote para que as mensagens na fila sejam recuperadas"
+    ],
+    "explanation": "Um canal limitado aplica backpressure: com BoundedChannelFullMode.Wait, o WriteAsync espera até haver espaço, ou você pode escolher uma política de descarte. ConcurrentQueue também é ilimitada, mais memória só adia a queda enquanto a carga continuar maior que a vazão, e o GC não consegue coletar mensagens que a fila ainda referencia."
+  },
+  {
+    "id": "ds-queue-sliding-window-max",
+    "title": "Máximo em janela deslizante",
+    "question": "Um job de monitoramento precisa produzir a latência máxima de cada janela de k amostras consecutivas sobre n amostras em tempo total O(n). Qual abordagem consegue isso?",
+    "options": [
+      "Uma max-heap da janela atual que remove a amostra expirada a cada passo",
+      "Uma lista ordenada da janela, inserindo e removendo com busca binária a cada passo",
+      "Um deque de índices em ordem decrescente de valor, expirando os antigos na frente",
+      "Um único máximo corrente, recalculado só quando o máximo antigo sai da janela"
+    ],
+    "explanation": "Cada nova amostra remove do final do deque os valores menores (eles nunca poderão ser um máximo futuro), índices fora da janela são removidos da frente, e a frente é o máximo da janela; cada índice entra e sai uma vez, então o total é O(n). Uma heap dá O(n log n) ou O(n log k), a inserção em lista desloca elementos, e recalcular o máximo pode custar O(k) por passo com entrada decrescente."
+  },
+  {
+    "id": "ds-tree-level-capacity",
+    "title": "Número máximo de nós em um nível",
+    "question": "Em uma árvore binária, a raiz está no nível 0. Qual é o número máximo de nós que o nível 4 pode conter?",
+    "options": [
+      "8",
+      "16",
+      "31",
+      "4"
+    ],
+    "explanation": "Cada nó tem no máximo dois filhos, então o máximo dobra a cada nível: 2^k nós no nível k, o que dá 2^4 = 16 no nível 4. 31 é o máximo da árvore inteira até o nível 4 (2^5 - 1), e 8 é o máximo do nível 3."
+  },
+  {
+    "id": "ds-tree-rebuild-traversals",
+    "title": "Reconstruindo uma árvore a partir de percursos",
+    "question": "Um serviço guarda uma árvore binária com chaves distintas como sequências de percurso, sem marcadores de null, e precisa reconstruir exatamente o mesmo formato. Quais percursos são suficientes?",
+    "options": [
+      "Pré-ordem junto com in-order",
+      "Percurso in-order sozinho",
+      "Pré-ordem junto com pós-ordem",
+      "Percurso por níveis sozinho"
+    ],
+    "explanation": "A pré-ordem identifica a raiz de cada subárvore, e a posição da raiz na sequência in-order divide as chaves restantes entre as subárvores esquerda e direita, o que determina a árvore de forma única. Um único percurso serve para muitos formatos, e pré-ordem mais pós-ordem não conseguem dizer se um filho único é esquerdo ou direito. Com marcadores de null, uma única pré-ordem bastaria."
+  },
+  {
+    "id": "ds-tree-balanced-check",
+    "title": "Verificando o balanceamento com eficiência",
+    "question": "Para verificar se uma árvore binária é balanceada em altura, uma função chama height(left) e height(right) em cada nó, e height() percorre a subárvore inteira, então os nós são visitados muitas vezes. Qual abordagem faz a checagem em O(n)?",
+    "options": [
+      "Uma passada pós-ordem que retorna a altura de cada subárvore ou uma flag de falha",
+      "Uma passada pré-ordem que compara as profundidades da primeira e da última folha",
+      "Uma passada por níveis que verifica se cada nível está completamente cheio",
+      "Uma passada in-order que verifica se as chaves saem em ordem crescente"
+    ],
+    "explanation": "Calcular as alturas de baixo para cima permite que cada nó decida o balanceamento a partir das alturas retornadas pelos filhos, então cada nó é visitado uma vez; um sentinela como -1 propaga a falha cedo. Comparar duas folhas ignora o resto da árvore, testar níveis completamente cheios verifica um formato muito mais restrito, e uma saída in-order ordenada verifica a propriedade de BST, não o balanceamento."
+  },
+  {
+    "id": "ds-bst-minimum",
+    "title": "Encontrando o mínimo em uma BST",
+    "question": "Onde fica a menor chave em uma árvore binária de busca?",
+    "options": [
+      "Na raiz, já que uma BST mantém a menor chave no topo como uma heap",
+      "Na folha mais profunda, qualquer que seja a subárvore da raiz que a contém",
+      "No nó mais à direita, achado seguindo os links direitos a partir da raiz",
+      "No nó mais à esquerda, achado seguindo os links esquerdos a partir da raiz"
+    ],
+    "explanation": "Toda chave na subárvore esquerda de um nó é menor que ele, então ir repetidamente para a esquerda até não haver filho esquerdo chega ao mínimo em O(h) passos. Esse nó ainda pode ter um filho direito, então não é necessariamente uma folha. A raiz só guarda o mínimo em uma heap, e o nó mais à direita guarda o máximo."
+  },
+  {
+    "id": "ds-bst-avl-vs-redblack",
+    "title": "Árvores AVL versus red-black",
+    "question": "Você está escolhendo uma BST autobalanceada para um índice em memória. Comparada com uma árvore red-black, qual é o tradeoff típico de uma árvore AVL?",
+    "options": [
+      "Balanceamento mais frouxo acelera inserções, mas buscas viram O(n) com chaves ordenadas",
+      "Ela não precisa de rotação nenhuma, mas guarda um ponteiro extra para o pai em cada nó",
+      "Balanceamento mais rígido dá buscas mais rápidas, mas atualizações rebalanceiam mais",
+      "Ela garante buscas O(1), mas só quando as chaves chegam em ordem aleatória"
+    ],
+    "explanation": "Uma árvore AVL mantém as alturas das subárvores com diferença de no máximo um, limitando sua altura a cerca de 1.44 log2 n, enquanto uma red-black só garante altura de no máximo 2 log2(n+1), então as buscas na AVL fazem menos comparações. O preço são mais rotações nas atualizações (remoções podem rotacionar ao longo de todo o caminho), enquanto árvores red-black precisam de O(1) rotações por inserção ou remoção, e é por isso que muitas bibliotecas as usam. Ambas continuam O(log n) e ambas fazem rotações."
+  },
+  {
+    "id": "ds-heap-array-children",
+    "title": "Índices dos filhos em uma heap em array",
+    "question": "O heapq do Python guarda uma heap binária em uma lista indexada a partir de zero. Quais índices guardam os filhos do elemento no índice k?",
+    "options": [
+      "2*k e 2*k + 1",
+      "2*k + 1 e 2*k + 2",
+      "k + 1 e k + 2",
+      "k // 2 e k // 2 + 1"
+    ],
+    "explanation": "Com indexação a partir de zero, o invariante da heap é heap[k] <= heap[2*k+1] e heap[k] <= heap[2*k+2], e o pai de i é (i - 1) // 2. O par 2k e 2k+1 é a convenção indexada a partir de um, usada em muitos livros, e k // 2 se relaciona ao pai, não aos filhos."
+  },
+  {
+    "id": "ds-heap-merge-k-sorted",
+    "title": "Fazendo merge de k arquivos ordenados",
+    "question": "Você precisa fazer merge de k arquivos de log ordenados, com N linhas no total, em um único stream ordenado. Qual abordagem roda em O(N log k)?",
+    "options": [
+      "Concatenar todos os arquivos em uma lista e ordená-la com um sort genérico",
+      "Varrer a linha atual de todos os k arquivos para escolher a menor a cada vez",
+      "Fazer merge do arquivo 1 com o 2, depois do resultado com o 3, e assim por diante",
+      "Manter uma min-heap com a linha atual de cada arquivo; fazer pop e repor"
+    ],
+    "explanation": "A heap nunca tem mais que k entradas, então cada um dos N pops e pushes custa O(log k), e o stream precisa de só O(k) de memória; o heapq.merge do Python funciona assim. Ordenar tudo é O(N log N) e exige todos os dados em memória, varrer as k linhas atuais é O(N k), e fazer merges sequenciais em pares recopia as primeiras linhas até k vezes."
+  },
+  {
+    "id": "ds-trie-end-marker",
+    "title": "Flag de fim de palavra em uma trie",
+    "question": "Uma trie contém só a palavra \"cart\". Por que cada nó precisa de uma flag de fim de palavra além dos links para os filhos?",
+    "options": [
+      "Para o nó raiz saber quantos filhos ele tem no momento",
+      "Para que uma busca por \"car\" não seja tratada como palavra",
+      "Para que remover \"cart\" libere todos os seus nós em tempo O(1)",
+      "Para que a trie retorne as palavras em ordem alfabética inversa"
+    ],
+    "explanation": "O caminho c-a-r existe porque é um prefixo de cart, então a simples existência do caminho não distingue palavras armazenadas de prefixos; a flag no nó final marca uma palavra completa. Contagem de filhos, custo de remoção e ordem de saída não têm relação com esse marcador."
+  },
+  {
+    "id": "ds-trie-unicode-children",
+    "title": "Armazenamento dos filhos em um nó de trie",
+    "question": "Uma trie de busca de produtos dá a cada nó um array fixo de 65.536 ponteiros para filhos, para indexar qualquer code unit UTF-16. A memória acaba depois de alguns milhares de nomes. Qual é a correção usual?",
+    "options": [
+      "Aumentar o array para 1.114.112 slots para cobrir todo code point",
+      "Guardar os filhos em um map ou lista ordenada só com as arestas usadas",
+      "Converter os nomes para minúsculas para cada nó precisar de 32.768 slots",
+      "Alocar o array de filhos de um nó na primeira busca em vez de na inserção"
+    ],
+    "explanation": "Com ponteiros de 8 bytes, cada nó custa cerca de 512 KB, embora a maioria tenha um ou dois filhos. Um hash map ou array ordenado de pares (caractere, filho) guarda só as arestas existentes, trocando um pouco de velocidade de busca por ordens de grandeza a menos de memória. Um array maior piora as coisas, converter para minúsculas não corta o alfabeto pela metade, e a alocação lazy ainda aloca o array inteiro por nó."
+  },
+  {
+    "id": "ds-trie-aho-corasick",
+    "title": "Casando muitos padrões de uma vez",
+    "question": "Um filtro de conteúdo precisa encontrar toda ocorrência de 50.000 frases proibidas em cada mensagem recebida, em tempo aproximadamente linear no tamanho da mensagem mais o número de ocorrências. Qual estrutura foi projetada para isso?",
+    "options": [
+      "Um hash set de frases consultado com cada substring da mensagem",
+      "Um autômato Aho-Corasick: uma trie das frases mais failure links",
+      "Uma BST balanceada de frases consultada uma vez por palavra da mensagem",
+      "Uma radix tree de frases reiniciada a partir da raiz em cada offset"
+    ],
+    "explanation": "O Aho-Corasick constrói uma trie com todos os padrões e adiciona failure links (como a função de falha do KMP) para que a varredura nunca volte atrás: ela roda em O(tamanho do texto + tamanho total dos padrões + ocorrências). Consultar cada substring é quadrático no tamanho da mensagem, buscas por palavra perdem frases que atravessam palavras ou ficam dentro delas, e reiniciar uma trie em cada offset custa O(tamanho do texto x maior padrão)."
+  },
+  {
+    "id": "ds-graph-adjacency-matrix",
+    "title": "Grafo denso com consultas de aresta",
+    "question": "Uma ferramenta de roteamento trabalha com um grafo denso de 2.000 nós em que a maioria dos pares está conectada, e o hot path pergunta \"existe uma aresta entre u e v?\" milhões de vezes. Qual representação se encaixa melhor?",
+    "options": [
+      "Uma lista de adjacência, varrendo os vizinhos de u a cada checagem",
+      "Uma lista de arestas ordenada por origem, varrida a cada consulta",
+      "Uma lista de incidência por aresta, indexada por hash do peso",
+      "Uma matriz de adjacência, com checagem O(1) e memória O(V^2)"
+    ],
+    "explanation": "Uma matriz V x V responde consultas de aresta com um único acesso por índice; para 2.000 nós, são 4 milhões de células, alguns megabytes ou menos se forem bits, e um grafo denso precisaria de mais ou menos esse espaço de qualquer jeito. Listas de adjacência vencem em grafos esparsos, mas checar uma aresta custa O(grau), que aqui é grande, e listas de arestas exigem uma varredura ou busca por consulta."
+  },
+  {
+    "id": "ds-dsu-initial-sets",
+    "title": "Contando conjuntos após unions",
+    "question": "Uma estrutura union-find é inicializada com 8 elementos, cada um no seu próprio conjunto. Em seguida são chamados union(1, 2), union(3, 4) e union(2, 1). Quantos conjuntos disjuntos restam?",
+    "options": [
+      "5",
+      "8",
+      "6",
+      "4"
+    ],
+    "explanation": "A inicialização cria 8 conjuntos unitários. union(1, 2) e union(3, 4) juntam cada um dois conjuntos diferentes, deixando 6, e union(2, 1) descobre que os dois elementos já compartilham a raiz, então nada muda. Só unions de elementos em conjuntos diferentes reduzem a contagem."
+  },
+  {
+    "id": "ds-dsu-naive-chain",
+    "title": "Union-find sem balanceamento",
+    "question": "Uma implementação de union-find sempre pendura a primeira raiz sob a segunda e nunca comprime caminhos. Depois de union(0,1), union(1,2), ..., union(n-2,n-1), qual é o custo de find no pior caso?",
+    "options": [
+      "O(log n), porque cada union pelo menos dobra o tamanho de uma árvore",
+      "O(n), porque a floresta virou uma única cadeia longa",
+      "O(1), porque todo elemento aponta direto para a sua raiz",
+      "O(alpha(n)), porque os unions fazem path halving implicitamente"
+    ],
+    "explanation": "Cada union pendura a raiz da árvore existente sob o novo elemento, produzindo a cadeia 0 -> 1 -> ... -> n-1, então find(0) percorre n-1 links. O limite O(log n) exige union by size ou rank, find O(1) descreve o quick-find, e o limite quase constante alpha(n) exige tanto balanceamento quanto path compression."
+  },
+  {
+    "id": "ds-dsu-no-deletions",
+    "title": "Dividindo conjuntos no union-find",
+    "question": "Um app social usa union-find para responder \"esses dois usuários estão no mesmo cluster de amigos?\". Agora o produto quer que desfazer uma amizade divida os clusters imediatamente. Por que isso é um problema?",
+    "options": [
+      "Union-find consegue dividir conjuntos, mas só refazendo o path compression ao contrário",
+      "Union-find só junta conjuntos; dividir exige reconstruir ou usar outra estrutura",
+      "Dividir custa O(alpha(n)), mas invalida todos os ranks guardados na floresta",
+      "Union-find só suporta remoções quando se usa union by size em vez de rank"
+    ],
+    "explanation": "Uma floresta disjoint-set não tem operação de divisão: o path compression descarta as arestas originais, então remover uma amizade não pode ser desfeito localmente. As opções incluem reconstruir a partir da lista atual de arestas, processar as remoções offline em ordem temporal inversa (para que virem unions) ou usar estruturas de conectividade totalmente dinâmicas. Nem a heurística de rank nem a de size mudam isso."
+  },
+  {
+    "id": "ds-mat-transpose-shape",
+    "title": "Shape de uma transposta",
+    "question": "Um array NumPy m tem shape (3, 5). Qual é o shape de m.T?",
+    "options": [
+      "(3, 5)",
+      "(15,)",
+      "(5, 3)",
+      "(1, 15)"
+    ],
+    "explanation": "Transpor troca linhas e colunas, então o elemento (i, j) vai para (j, i) e o shape passa a ser (5, 3). Para um array 2-D, o NumPy retorna uma view com strides trocados em vez de copiar os dados. Um reshape, e não uma transposição, produziria (15,) ou (1, 15)."
+  },
+  {
+    "id": "ds-mat-rotate-in-place",
+    "title": "Rotacionando uma matriz quadrada",
+    "question": "Você precisa rotacionar uma matriz de imagem n x n em 90 graus no sentido horário, in-place. Qual sequência de operações faz isso?",
+    "options": [
+      "Inverter cada linha e depois transpor a matriz",
+      "Transpor a matriz e depois inverter cada coluna",
+      "Transpor a matriz e depois inverter cada linha",
+      "Inverter cada coluna e depois inverter cada linha"
+    ],
+    "explanation": "Para [[1,2],[3,4]], transpor dá [[1,3],[2,4]] e inverter cada linha dá [[3,1],[4,2]], a rotação no sentido horário; os dois passos são trocas in-place. Inverter as linhas antes de transpor, ou transpor e depois inverter verticalmente, gera a rotação anti-horária, e inverter linhas e colunas rotaciona 180 graus. No NumPy, np.rot90(m, k=-1) faz a rotação no sentido horário."
+  },
+  {
+    "id": "ds-mat-loop-tiling",
+    "title": "Cache blocking na multiplicação de matrizes",
+    "question": "Uma multiplicação com três loops de duas matrizes double 4096 x 4096 em row-major está lenta. Depois de reordenar os loops para i-k-j, de modo que B seja lida linha por linha, ela continua limitada pela memória porque as linhas de B são removidas do cache antes de serem reutilizadas. Qual otimização ataca isso?",
+    "options": [
+      "Loop unrolling: repetir o corpo várias vezes para cortar o overhead de branches",
+      "Loop tiling: multiplicar blocos do tamanho do cache para cada um ser reutilizado",
+      "Guardar B em um hash map indexado por (row, col) para o layout deixar de importar",
+      "Fazer prefetch de toda a B para registradores uma vez, antes do loop externo"
+    ],
+    "explanation": "O tiling (blocking) divide as matrizes em sub-blocos pequenos o bastante para ficar no L1/L2, então cada elemento carregado é reutilizado muitas vezes antes de ser removido, cortando drasticamente o tráfego de memória; bibliotecas BLAS otimizadas são construídas em torno disso. O unrolling reduz o overhead do loop, mas não os cache misses, um hash map destrói a localidade, e uma matriz de 128 MB não cabe em registradores."
+  }
+]

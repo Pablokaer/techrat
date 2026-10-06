@@ -29,11 +29,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<UserTopicProgress> UserTopicProgress => Set<UserTopicProgress>();
     public DbSet<XPTransaction> XPTransactions => Set<XPTransaction>();
     public DbSet<Roadmap> Roadmaps => Set<Roadmap>();
-    public DbSet<RoadmapModule> RoadmapModules => Set<RoadmapModule>();
-    public DbSet<RoadmapStep> RoadmapSteps => Set<RoadmapStep>();
+    public DbSet<LearningModule> LearningModules => Set<LearningModule>();
+    public DbSet<ModuleStep> ModuleSteps => Set<ModuleStep>();
+    public DbSet<RoadmapModuleLink> RoadmapModuleLinks => Set<RoadmapModuleLink>();
+    public DbSet<ModuleDependency> ModuleDependencies => Set<ModuleDependency>();
     public DbSet<RoadmapDependency> RoadmapDependencies => Set<RoadmapDependency>();
     public DbSet<UserRoadmapProgress> UserRoadmapProgress => Set<UserRoadmapProgress>();
-    public DbSet<UserRoadmapStepCompletion> UserRoadmapStepCompletions => Set<UserRoadmapStepCompletion>();
+    public DbSet<UserModuleProgress> UserModuleProgress => Set<UserModuleProgress>();
+    public DbSet<UserModuleStepCompletion> UserModuleStepCompletions => Set<UserModuleStepCompletion>();
     public DbSet<Achievement> Achievements => Set<Achievement>();
     public DbSet<UserAchievement> UserAchievements => Set<UserAchievement>();
     public DbSet<Notification> Notifications => Set<Notification>();
@@ -72,5 +75,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         configurationBuilder.Properties<RoadmapDifficulty>().HaveConversion<string>().HaveMaxLength(16);
         configurationBuilder.Properties<AchievementRuleType>().HaveConversion<string>().HaveMaxLength(32);
         configurationBuilder.Properties<BadgeTier>().HaveConversion<string>().HaveMaxLength(16);
+        configurationBuilder.Properties<ModuleKind>().HaveConversion<string>().HaveMaxLength(16);
     }
 }
