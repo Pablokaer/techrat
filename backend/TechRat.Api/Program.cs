@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -99,6 +100,22 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
     .WithHeaders("Authorization", "Content-Type", "X-Requested-With", "x-signalr-user-agent")
     .AllowCredentials()));
 
+// ---------------------------------------------------------------- reverse proxy
+// Production: Apache -> Next.js (/api proxy) -> API. Take the client address/scheme from X-Forwarded-* so per-client
+// limits and logs use the real client. Only private-network proxies are trusted, and only when explicitly enabled;
+// otherwise a client could send its own X-Forwarded-For and dodge the limits.
+var reverseProxy = config.GetValue("ReverseProxy:Enabled", false);
+if (reverseProxy)
+    builder.Services.Configure<ForwardedHeadersOptions>(o =>
+    {
+        o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        o.ForwardLimit = config.GetValue("ReverseProxy:ForwardLimit", 2);
+        o.KnownProxies.Clear();
+        o.KnownIPNetworks.Clear();
+        foreach (var network in new[] { "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "::1/128", "fc00::/7" })
+            o.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+    });
+
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -128,6 +145,7 @@ if (config.GetValue("Database:MigrateOnStartup", false))
     await app.Services.InitializeDatabaseAsync(seed: config.GetValue("Database:SeedOnStartup", true));
 
 // ---------------------------------------------------------------- pipeline
+if (reverseProxy) app.UseForwardedHeaders();
 app.UseRequestLocalization();
 app.UseExceptionHandler();
 app.UseStatusCodePages();

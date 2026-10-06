@@ -1,0 +1,83 @@
+# Production stack for a single VPS behind a reverse proxy (Apache or Caddy) — see docs/deploy.md.
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# Only the web app (127.0.0.1:3000) and the API (127.0.0.1:5080, for SignalR websockets) listen on the host, and only on
+# localhost: the reverse proxy terminates HTTPS. PostgreSQL and Redis are reachable only inside the Docker network.
+# Required values come from .env (see .env.production.example); compose refuses to start when they are missing.
+name: techrat
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: techrat
+      POSTGRES_USER: techrat
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U techrat -d techrat"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: ./backend
+      secrets: [extra_ca]
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=techrat;Username=techrat;Password=${POSTGRES_PASSWORD}
+      ConnectionStrings__Redis: redis:6379
+      Database__MigrateOnStartup: "true"
+      Database__SeedOnStartup: "true"
+      Seed__AdminEmail: ${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
+      Seed__AdminPassword: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      App__PublicWebUrl: ${PUBLIC_WEB_URL:?set PUBLIC_WEB_URL in .env}
+      Cors__AllowedOrigins__0: ${PUBLIC_WEB_URL}
+      Cors__AllowedOrigins__1: tauri://localhost
+      Cors__AllowedOrigins__2: http://tauri.localhost
+      OpenApi__ExposeUi: ${OPENAPI_UI:-false}
+      ReverseProxy__Enabled: "true"
+      RateLimiting__AuthPerMinute: ${AUTH_RATE_LIMIT_PER_MINUTE:-20}
+      Smtp__Host: ${SMTP_HOST:-}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__Security: ${SMTP_SECURITY:-StartTls}
+      Smtp__Username: ${SMTP_USERNAME:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__From: ${SMTP_FROM:-}
+      Smtp__ReplyTo: ${SMTP_REPLY_TO:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    ports: ["127.0.0.1:${API_PORT:-5080}:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      secrets: [extra_ca]
+      args:
+        API_INTERNAL_URL: http://api:8080
+    restart: unless-stopped
+    ports: ["127.0.0.1:${WEB_PORT:-3000}:3000"]
+    depends_on:
+      api: { condition: service_started }
+
+volumes:
+  pgdata:
+
+secrets:
+  extra_ca:
+    file: ${EXTRA_CA_CERT:-./docker/no-extra-ca.pem}
