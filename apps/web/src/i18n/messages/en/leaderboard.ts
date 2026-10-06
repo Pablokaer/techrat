@@ -1,0 +1,33 @@
+export const leaderboard = {
+  eyebrow: "Rank up",
+  title: "Leaderboard",
+  subtitle: {
+    Global: "All-time XP.",
+    Weekly: "XP earned since Monday (UTC).",
+    Monthly: "XP earned this month.",
+    Topic: "Topic XP — specialists shine here.",
+  },
+  scopeLabel: "Leaderboard scope",
+  scopes: {
+    Global: "Global",
+    Weekly: "Weekly",
+    Monthly: "Monthly",
+    Topic: "By topic",
+  },
+  topic: "Topic",
+  you: "You",
+  emptyTitle: "No one here yet",
+  emptyText: "Be the first to earn XP in this leaderboard.",
+  startPracticing: "Start practicing",
+  columns: {
+    rank: "Rank",
+    learner: "Learner",
+    level: "Level",
+    xp: "XP",
+    questions: "Questions",
+    accuracy: "Accuracy",
+  },
+  pagination: "Pagination",
+  pageOf: (page: number, pages: number) => `Page ${page} of ${pages}`,
+  levelShort: (n: number) => `Lv ${n}`,
+};

@@ -1,0 +1,79 @@
+# Local development stack: `docker compose up --build`
+#   Web:      http://localhost:3000
+#   API:      http://localhost:5080  (OpenAPI UI at /docs, health at /health/ready)
+#   Mailpit:  http://localhost:8025  (captures password-reset emails)
+# Values below are DEVELOPMENT defaults; override them via a local .env file (see .env.example).
+name: techrat
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: techrat
+      POSTGRES_USER: techrat
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-techrat_dev_password}
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U techrat -d techrat"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports: ["8025:8025", "1025:1025"]
+
+  api:
+    build:
+      context: ./backend
+      secrets: [extra_ca]
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=techrat;Username=techrat;Password=${POSTGRES_PASSWORD:-techrat_dev_password}
+      ConnectionStrings__Redis: redis:6379
+      Database__MigrateOnStartup: "true"
+      Database__SeedOnStartup: "true"
+      Seed__AdminEmail: ${ADMIN_EMAIL:-}
+      Seed__AdminPassword: ${ADMIN_PASSWORD:-}
+      Smtp__Host: mailpit
+      Smtp__Port: "1025"
+      Smtp__UseStartTls: "false"
+      App__PublicWebUrl: http://localhost:3000
+      OpenApi__ExposeUi: "true"
+      RateLimiting__AuthPerMinute: ${AUTH_RATE_LIMIT_PER_MINUTE:-20}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    ports: ["5080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      mailpit: { condition: service_started }
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      secrets: [extra_ca]
+      args:
+        API_INTERNAL_URL: http://api:8080
+    ports: ["3000:3000"]
+    depends_on:
+      api: { condition: service_started }
+
+volumes:
+  pgdata:
+
+# Optional: EXTRA_CA_CERT=/path/to/corporate-ca.crt when building behind a TLS-inspecting proxy.
+secrets:
+  extra_ca:
+    file: ${EXTRA_CA_CERT:-./docker/no-extra-ca.pem}

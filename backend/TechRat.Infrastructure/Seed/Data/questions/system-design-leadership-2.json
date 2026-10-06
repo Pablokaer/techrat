@@ -1,0 +1,733 @@
+[
+  {
+    "id": "lead-cr-cleanup-later",
+    "topic": "engineering-leadership",
+    "subtopic": "code-review",
+    "difficulty": "Medium",
+    "title": "'I'll clean it up later' pushback",
+    "question": "An author asks you to approve their PR now and promises to clean up a confusing, duplicated helper it introduces in a follow-up PR next sprint. There is no emergency. What does Google's code review guidance recommend?",
+    "options": [
+      "Usually insist on the cleanup in this PR, because deferred cleanups rarely end up happening",
+      "Approve now, since blocking on cleanup slows the team down and follow-ups are cheap to schedule",
+      "Approve now but log the cleanup in the backlog as a low-priority technical debt ticket",
+      "Reject the PR outright and ask the author to resubmit after refactoring the whole module"
+    ],
+    "correctIndex": 0,
+    "explanation": "Google's guide notes that the longer the time after the original change, the less likely the cleanup is to happen; unless it is done immediately it usually never happens. So reviewers should generally insist on cleanup now (only true emergencies justify deferring, with a bug filed). Approving with a backlog ticket is exactly the pattern that tends to get lost, while demanding a whole-module refactor goes far beyond what the change requires.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/pushback.html"
+  },
+  {
+    "id": "lead-cr-design-first",
+    "topic": "engineering-leadership",
+    "subtopic": "code-review",
+    "difficulty": "Hard",
+    "title": "Sending major design comments early",
+    "question": "You start reviewing a large PR and, in its main file, find that the core design is fundamentally wrong for the problem. You don't have time to review the remaining 20 files today. What should you do?",
+    "options": [
+      "Wait until you can review every file so the author receives one complete, consolidated round",
+      "Send the design comments now, before reviewing the rest, as much of that code may change",
+      "Leave nit-level comments on the other files first so the author has something to work on now",
+      "Approve with a note on the design so the author can decide whether to rework it at some point"
+    ],
+    "correctIndex": 1,
+    "explanation": "Google's 'Navigating a CL' guidance says to look at the main part first and send major design comments immediately, even without reviewing the rest. Much of the remaining code may disappear once the design changes, authors often build follow-up work on a pending change, and big redesigns take the longest. Waiting for a full pass or polishing details first wastes both people's time, and approving a known-bad design defeats the review.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/navigate.html"
+  },
+  {
+    "id": "sd-403-vs-401",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Easy",
+    "title": "401 vs 403 for missing permissions",
+    "question": "A logged-in user with a valid token calls DELETE /admin/users/7 but lacks the admin role. Which status code fits best?",
+    "options": [
+      "401 Unauthorized, because the request failed the server's authorization check",
+      "404 Not Found, because admin routes should never be visible to any client",
+      "403 Forbidden, because the server knows who the client is but refuses access",
+      "400 Bad Request, because the client sent a request it is not allowed to make"
+    ],
+    "correctIndex": 2,
+    "explanation": "403 means the server understood the request and the client's identity is known, but it lacks permission; re-authenticating will not help. Despite its name, 401 means authentication is missing or invalid and is sent with a WWW-Authenticate challenge. 404 is sometimes used deliberately to hide a resource's existence, but it is not required, and 400 is for malformed requests.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403"
+  },
+  {
+    "id": "sd-http3-hol-blocking",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Hard",
+    "title": "Transport head-of-line blocking in HTTP/2",
+    "question": "A mobile app multiplexes many API requests over one HTTP/2 connection. On lossy cellular networks, a single lost packet stalls every in-flight request on that connection. Why, and what addresses it?",
+    "options": [
+      "HTTP/2 allows only one active stream per connection; enabling HTTP/1.1 pipelining restores parallelism",
+      "HPACK header compression state is corrupted by the loss; disabling header compression avoids the stall",
+      "TLS sessions must be renegotiated after each lost packet; moving to TLS 1.3 removes that extra handshake",
+      "TCP delivers bytes in order, so one loss blocks all streams; HTTP/3 over QUIC recovers per stream"
+    ],
+    "correctIndex": 3,
+    "explanation": "HTTP/2 multiplexes streams, but TCP is unaware of them and must deliver bytes in order, so a retransmission holds back data for every stream (RFC 9114 describes this stall). HTTP/3 runs over QUIC, which provides reliability per stream, so loss on one stream does not block the others. HTTP/2 supports many concurrent streams, TCP retransmission keeps HPACK state intact, and TLS does not renegotiate on loss.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9114.html"
+  },
+  {
+    "id": "sd-db-connection-limit",
+    "topic": "system-design",
+    "subtopic": "scaling",
+    "difficulty": "Medium",
+    "title": "Scale-out exhausting database connections",
+    "question": "To absorb a traffic spike, the web tier scales from 10 to 40 instances, each with a connection pool of 25. PostgreSQL has max_connections = 200, and new instances fail with 'sorry, too many clients already'. What is the best fix?",
+    "options": [
+      "Add a connection pooler such as PgBouncer and size pools to the database's capacity",
+      "Raise max_connections to 5,000 so every instance can open its full pool directly",
+      "Add read replicas, since replicas take over the primary's connection limit for writes",
+      "Open a new database connection for every query and close it as soon as the query ends"
+    ],
+    "correctIndex": 0,
+    "explanation": "40 instances x 25 connections = 1,000 potential connections against a limit of 200. Each PostgreSQL connection is a server process, and the server sizes shared resources from max_connections, so raising it into the thousands degrades performance. A pooler multiplexes many client connections onto a small set of server connections. Replicas do not absorb write connections, and connecting per query adds heavy setup cost.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/runtime-config-connection.html"
+  },
+  {
+    "id": "sd-hpa-replica-math",
+    "topic": "system-design",
+    "subtopic": "scaling",
+    "difficulty": "Medium",
+    "title": "HPA desired replica calculation",
+    "question": "A Deployment has 4 replicas averaging 90% CPU utilisation, and its HorizontalPodAutoscaler targets 60%. Ignoring tolerance and stabilisation windows, how many replicas will the HPA request?",
+    "options": [
+      "5 replicas",
+      "6 replicas",
+      "8 replicas",
+      "9 replicas"
+    ],
+    "correctIndex": 1,
+    "explanation": "The HPA computes desiredReplicas = ceil(currentReplicas x currentMetric / desiredMetric) = ceil(4 x 90 / 60) = ceil(6.0) = 6. It does not add one replica at a time, double the count, or scale by the raw utilisation percentage; it scales proportionally so that average utilisation returns to the target.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/"
+  },
+  {
+    "id": "sd-scale-out-bottleneck",
+    "topic": "system-design",
+    "subtopic": "scaling",
+    "difficulty": "Medium",
+    "title": "Scaling out moves the bottleneck",
+    "question": "During a sale, a stateless API autoscaled from 20 to 80 instances, yet throughput fell and errors rose because the shared database became saturated by the extra concurrent queries. What is the key lesson?",
+    "options": [
+      "Autoscaling should be driven by memory rather than CPU so it reacts before the database does",
+      "Stateless services cannot be scaled out at all while they share a single relational database",
+      "Find the real bottleneck first; adding web servers cannot help when the database is the limit",
+      "The instances should have been scaled up instead, because larger hosts send fewer queries each"
+    ],
+    "correctIndex": 2,
+    "explanation": "Scaling out is not a fix for every performance issue: if the backend database is the bottleneck, more web servers only add contention, so identify and resolve the bottleneck (and cap scale-out or shed load to protect it). The scaling metric does not change the database limit, stateless services can scale out but are bounded by shared stateful parts, and bigger hosts issue the same total queries.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/guide/design-principles/scale-out"
+  },
+  {
+    "id": "sd-sticky-session-drawback",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Easy",
+    "title": "Drawbacks of sticky sessions",
+    "question": "A load balancer uses cookie-based sticky sessions so each user keeps hitting the same instance. Which is a typical drawback?",
+    "options": [
+      "Every request must be decrypted twice, once at the balancer and once at the target",
+      "The balancer can no longer run health checks on targets that hold sticky users",
+      "Sticky cookies disable HTTP keep-alive, so each request opens a new TCP connection",
+      "Load can become uneven, and users on a failed instance lose in-memory sessions"
+    ],
+    "correctIndex": 3,
+    "explanation": "Session affinity pins clients to servers, so a heavy user's traffic is not spread across instances and state kept in that server's memory is lost if it fails or is scaled in. That is why scale-out guidance recommends avoiding stickiness and externalising session state. Affinity does not change TLS termination, health checking, or keep-alive behaviour.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/guide/design-principles/scale-out"
+  },
+  {
+    "id": "sd-lb-deregistration-delay",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Medium",
+    "title": "502s during rolling deploys",
+    "question": "During rolling deploys behind an Application Load Balancer, clients see a burst of 502 errors whenever an old instance is stopped, even though the new instances are healthy. What is the most likely fix?",
+    "options": [
+      "Deregister the instance first and let the deregistration delay drain in-flight requests",
+      "Lower the health check interval so the balancer detects stopped instances a few seconds sooner",
+      "Enable sticky sessions so that users stay pinned to instances that are not being replaced",
+      "Switch to least outstanding requests so instances being stopped receive fewer new requests"
+    ],
+    "correctIndex": 0,
+    "explanation": "When a target is deregistered, Elastic Load Balancing stops sending it new requests and waits for the deregistration delay (300 seconds by default) so in-flight requests can finish; the instance should be stopped only after draining. Faster health checks still cut off requests already in progress, stickiness does not protect users pinned to the replaced instance, and the routing algorithm still sends requests until the target is removed.",
+    "referenceUrl": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-target-group-attributes.html"
+  },
+  {
+    "id": "sd-grpc-l4-imbalance",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Hard",
+    "title": "gRPC traffic stuck on old pods",
+    "question": "gRPC clients reach a 6-pod service through a Kubernetes ClusterIP Service. After scaling to 12 pods, the new pods receive almost no traffic while the original ones stay hot. What is the cause?",
+    "options": [
+      "ClusterIP Services only route to the set of pods that existed when the Service object was first created",
+      "gRPC keeps long-lived HTTP/2 connections, and L4 balancing picks a pod per connection, not per call",
+      "kube-proxy always prefers pods with established client connections to keep TCP warm for gRPC",
+      "New pods stay unready until they first receive traffic, so they never join the Service endpoints"
+    ],
+    "correctIndex": 1,
+    "explanation": "A ClusterIP Service balances at the connection level, and gRPC multiplexes all calls over a few long-lived HTTP/2 connections, so existing connections stay on the original pods. Fixes include request-level (L7) balancing through a proxy or service mesh, client-side load balancing over a headless Service, or limiting connection age. Service endpoints are updated dynamically, kube-proxy has no warm-connection preference, and readiness does not depend on receiving traffic.",
+    "referenceUrl": "https://grpc.io/blog/grpc-load-balancing/"
+  },
+  {
+    "id": "sd-cdn-s-maxage",
+    "topic": "system-design",
+    "subtopic": "cdn",
+    "difficulty": "Easy",
+    "title": "Different TTLs for browser and CDN",
+    "question": "You want browsers to cache a public JSON response for 60 seconds while the CDN keeps it for one hour. Which Cache-Control header does this?",
+    "options": [
+      "public, max-age=3600, s-maxage=60",
+      "public, max-age=60, s-maxage=3600",
+      "public, max-age=60, proxy-revalidate=3600",
+      "private, max-age=60, s-maxage=3600"
+    ],
+    "correctIndex": 1,
+    "explanation": "s-maxage applies only to shared caches such as CDNs and overrides max-age there, while browsers use max-age. Swapping the values reverses the intent, proxy-revalidate takes no value and only forbids shared caches from serving stale copies, and private forbids shared caches from storing the response at all.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control"
+  },
+  {
+    "id": "sd-cdn-stale-if-error",
+    "topic": "system-design",
+    "subtopic": "cdn",
+    "difficulty": "Medium",
+    "title": "Serving stale content during origin errors",
+    "question": "When the origin briefly returns 503s, the CDN passes those errors to users even though it holds recently expired copies of the pages. Which Cache-Control extension lets caches keep serving the stale copies during origin errors?",
+    "options": [
+      "must-revalidate, which lets the cache reuse its copy whenever revalidation fails",
+      "stale-while-revalidate, which applies only during periods when the origin is erroring",
+      "stale-if-error, which allows a stale copy to be used when the origin returns an error",
+      "no-cache, which keeps the stored copy and forces the cache to serve it on any failure"
+    ],
+    "correctIndex": 2,
+    "explanation": "RFC 5861 defines stale-if-error, which permits a cache to return a stale response for a bounded time when the origin errors (for example 5xx or connection failure). stale-while-revalidate is a different extension that serves stale content while revalidating in the background, must-revalidate forbids serving stale responses, and no-cache requires revalidation before every reuse.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc5861.html"
+  },
+  {
+    "id": "sd-cdn-origin-shield",
+    "topic": "system-design",
+    "subtopic": "cdn",
+    "difficulty": "Hard",
+    "title": "Reducing origin load from many edges",
+    "question": "A CDN has hundreds of edge locations. After each purge, the origin receives a flood of identical requests because every edge misses independently. Which feature most directly reduces this origin load?",
+    "options": [
+      "Shorter TTLs on all objects so that edge caches expire gradually instead of all together",
+      "Geo-restriction, so only the edge locations closest to the origin can fetch from it",
+      "Signed URLs, so every edge location must authenticate before fetching an object",
+      "An origin shield: a central caching tier that edge locations consult before the origin"
+    ],
+    "correctIndex": 3,
+    "explanation": "An origin shield (such as CloudFront Origin Shield) adds a caching layer between edges and the origin, so edge misses for the same object are consolidated and mostly served by the shield, improving hit ratio and cutting origin load. Shorter TTLs create more misses, geo-restriction controls which viewers are served rather than how edges fetch, and signed URLs control viewer access.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-shield.html"
+  },
+  {
+    "id": "sd-sharding-vs-replicas",
+    "topic": "system-design",
+    "subtopic": "replication-partitioning",
+    "difficulty": "Easy",
+    "title": "Why replicas do not scale writes",
+    "question": "A single PostgreSQL primary is overwhelmed by write volume, and the dataset will soon exceed one server's storage. Why won't adding read replicas solve this?",
+    "options": [
+      "Each replica stores the full dataset and applies every write, so per-node load does not shrink",
+      "Replicas must run on the same host as the primary, so they share its disks and CPU capacity",
+      "Replicas also accept writes, which doubles the conflicts the primary has to resolve on commit",
+      "Replicas require synchronous commit, which roughly halves the write throughput of the primary server"
+    ],
+    "correctIndex": 0,
+    "explanation": "Replication copies all data and applies every write on each node, which scales reads and availability but not write throughput or per-node storage. Sharding splits the data across nodes so each holds and writes only a subset. PostgreSQL replicas run on separate hosts, standard streaming replicas are read-only, and replication can be asynchronous.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/sharding"
+  },
+  {
+    "id": "sd-kafka-max-poll-interval",
+    "topic": "system-design",
+    "subtopic": "messaging",
+    "difficulty": "Expert",
+    "title": "Kafka rebalance loop from slow batches",
+    "question": "A Kafka consumer fetches up to 500 records per poll() and calls a slow API for each one, so a batch takes about 8 minutes; settings are otherwise default. The group keeps rebalancing and the same records are processed again and again. What is happening?",
+    "options": [
+      "The broker deletes uncommitted records after 5 minutes, so the consumer re-fetches them from replicas",
+      "Processing exceeds max.poll.interval.ms (5 min default), so the member is evicted before committing",
+      "session.timeout.ms expires because heartbeats stop whenever the consumer thread is processing records",
+      "The partition leader changes every few minutes and resets the group's committed offsets to earliest"
+    ],
+    "correctIndex": 1,
+    "explanation": "max.poll.interval.ms (default 300000 ms) bounds the time between poll() calls; if it is exceeded the consumer is considered failed and the group rebalances, so the batch's offsets are never committed and another member reprocesses it. Fixes include lowering max.poll.records, raising max.poll.interval.ms, or processing asynchronously. Modern clients heartbeat from a background thread, retention is not tied to commits, and leader changes do not reset committed offsets.",
+    "referenceUrl": "https://kafka.apache.org/43/configuration/consumer-configs/"
+  },
+  {
+    "id": "sd-event-vs-command",
+    "topic": "system-design",
+    "subtopic": "event-driven",
+    "difficulty": "Easy",
+    "title": "Events versus commands",
+    "question": "Which message is best modelled as an event rather than a command?",
+    "options": [
+      "ChargeCustomerCard, sent to the payment service",
+      "SendWelcomeEmail, sent to the notification service",
+      "OrderPlaced, published for any interested subscribers",
+      "ReserveStock, sent to the inventory service to act on"
+    ],
+    "correctIndex": 2,
+    "explanation": "An event records a fact that already happened (past tense) and is broadcast without knowing who will react, which keeps the publisher decoupled. The other messages are imperative requests aimed at a specific receiver that is expected to perform an action, which makes them commands. Fowler warns against disguising such commands as events.",
+    "referenceUrl": "https://martinfowler.com/articles/201701-event-driven.html"
+  },
+  {
+    "id": "sd-rebuild-projection",
+    "topic": "system-design",
+    "subtopic": "event-driven",
+    "difficulty": "Medium",
+    "title": "Repairing a buggy projection",
+    "question": "In an event-sourced system, a bug in the OrderSummary projection has written wrong totals to the read model for weeks. The events themselves are correct. What is the usual way to repair the data?",
+    "options": [
+      "Append compensating events that subtract the wrong totals so the read model corrects itself",
+      "Edit the stored events to include the correct totals, then let the projection pick them up",
+      "Run manual SQL updates against the read model and leave the projection code unchanged",
+      "Fix the projection code and rebuild the read model by replaying events from the event store"
+    ],
+    "correctIndex": 3,
+    "explanation": "Read models are derived, disposable projections of the event log, so once the projection logic is fixed you can rebuild them by replaying the events. Compensating events are for correcting business facts that were wrong, which is not the case here; events are immutable and should not be edited; and manual patches leave the bug in place to corrupt future data.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing"
+  },
+  {
+    "id": "sd-event-version-ordering",
+    "topic": "system-design",
+    "subtopic": "event-driven",
+    "difficulty": "Hard",
+    "title": "Stale events applied out of order",
+    "question": "A consumer maintains a product price cache from PriceChanged events. Because of retries across consumer instances, it sometimes applies version 7 of a product's price and then a delayed version 6, leaving a stale price. What is the most robust fix?",
+    "options": [
+      "Store the last applied version per product and ignore events with an equal or lower version",
+      "Process all events with one global consumer instance so that everything is strictly ordered",
+      "Add a 30-second delay before applying each event so that late arrivals can catch up first",
+      "Enable exactly-once delivery, which also guarantees ordering across consumer instances"
+    ],
+    "correctIndex": 0,
+    "explanation": "With multiple consumer instances and retries, ordering and duplicates must be handled by the consumer; a per-entity version check makes updates idempotent and discards stale ones regardless of arrival order. A single global consumer kills throughput and still breaks on retries, fixed delays only shrink the window, and exactly-once delivery semantics do not by themselves impose ordering across instances.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/event-driven"
+  },
+  {
+    "id": "sd-rate-limit-by-key",
+    "topic": "system-design",
+    "subtopic": "rate-limiting",
+    "difficulty": "Medium",
+    "title": "Choosing the rate limit key",
+    "question": "A public API limits each client IP to 100 requests per minute. A large customer whose 2,000 employees share one corporate NAT address is constantly throttled, while a scraper rotating through many IPs is not. What is the better design?",
+    "options": [
+      "Raise the per-IP limit to 10,000 per minute so that shared NAT addresses stop being throttled",
+      "Rate limit per authenticated identity, such as API key or subscription, not per IP",
+      "Switch from a fixed window to a token bucket so bursts coming from the NAT are absorbed",
+      "Block the scraper's IP ranges manually and keep per-IP limits for every other client"
+    ],
+    "correctIndex": 1,
+    "explanation": "The limit should be keyed on the entity whose usage you want to control. Keying on an authenticated identity (for example with a counter-key on subscription or API key) treats the NAT customer as one client with an appropriate quota and stops the scraper from multiplying its quota by rotating IPs. A higher per-IP limit weakens protection for everyone, changing the algorithm keeps the wrong key, and manual blocking does not scale.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/api-management/rate-limit-by-key-policy"
+  },
+  {
+    "id": "sd-distributed-rate-limit",
+    "topic": "system-design",
+    "subtopic": "rate-limiting",
+    "difficulty": "Hard",
+    "title": "Rate limiting across many instances",
+    "question": "An API gateway runs 20 instances behind a load balancer, and each enforces '100 requests/s per API key' with an in-memory counter. One client sustains about 2,000 requests/s. What is the most accurate fix?",
+    "options": [
+      "Divide the limit by the instance count, giving each instance a local 5 requests/s per key",
+      "Sync the in-memory counters between all instances once per minute with a background job",
+      "Keep a shared counter per key in a central store such as Redis, updated with atomic INCR",
+      "Switch every instance to a token bucket, which accounts for the traffic other instances see"
+    ],
+    "correctIndex": 2,
+    "explanation": "Independent local counters let a client get the limit once per instance. A shared store with atomic increments (Redis INCR plus an expiry is the classic rate limiter pattern) gives one consistent count per key. Dividing the limit is only approximate and breaks when traffic is uneven or the instance count changes, minute-level sync lets bursts through, and a local token bucket is still local.",
+    "referenceUrl": "https://redis.io/docs/latest/commands/incr/"
+  },
+  {
+    "id": "sd-sliding-window-counter",
+    "topic": "system-design",
+    "subtopic": "rate-limiting",
+    "difficulty": "Expert",
+    "title": "Sliding window counter estimate",
+    "question": "A sliding window counter limiter allows 50 requests per minute. The previous minute had 42 requests; the current minute started 15 seconds ago and has 18 requests so far. Using the usual weighted approximation, what is the estimated rate?",
+    "options": [
+      "About 28.5, weighting the previous minute by 15/60",
+      "About 60, adding both minutes' full request counts",
+      "About 36, weighting both minutes by elapsed time",
+      "About 49.5, weighting the previous minute by 45/60"
+    ],
+    "correctIndex": 3,
+    "explanation": "The sliding window counter assumes the previous window's requests were evenly spread and counts the part of it still inside the last 60 seconds: 42 x (60-15)/60 + 18 = 31.5 + 18 = 49.5, so the next request is still under the limit of 50. Weighting by the elapsed 15 seconds uses the wrong fraction, summing both windows overcounts, and the current window's count is never discounted.",
+    "referenceUrl": "https://blog.cloudflare.com/counting-things-a-lot-of-different-things/"
+  },
+  {
+    "id": "sd-gateway-routing",
+    "topic": "system-design",
+    "subtopic": "api-gateway",
+    "difficulty": "Easy",
+    "title": "One endpoint routing to many services",
+    "question": "Clients call five services at five different hostnames, so every time a service is moved or split, a client release is needed. Which pattern exposes one endpoint and forwards each request to the right service based on its path?",
+    "options": [
+      "Gateway Routing",
+      "Circuit Breaker",
+      "Sidecar",
+      "Competing Consumers"
+    ],
+    "correctIndex": 0,
+    "explanation": "Gateway Routing puts a single endpoint in front of multiple services and uses layer 7 routing (for example by path) to forward requests, so backends can be moved, split or versioned without changing clients. Circuit Breaker handles failing dependencies, Sidecar deploys helper components alongside a service, and Competing Consumers is about parallel message processing.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/gateway-routing"
+  },
+  {
+    "id": "sd-gateway-aggregation",
+    "topic": "system-design",
+    "subtopic": "api-gateway",
+    "difficulty": "Medium",
+    "title": "Chatty mobile client over cellular",
+    "question": "A mobile home screen makes seven separate calls over a high-latency cellular network to different services, and users on poor connections often see half-loaded screens. Which change best addresses this?",
+    "options": [
+      "Make the seven calls sequentially so that each one finishes before the next one starts",
+      "Have a gateway fan out the seven calls on the backend and return one combined response",
+      "Merge the seven services into one deployable so that the client only has a single host",
+      "Increase the client's HTTP timeout so slow calls on weak networks eventually finish"
+    ],
+    "correctIndex": 1,
+    "explanation": "Gateway Aggregation replaces many client round trips over a slow, unreliable network with one request; the gateway calls the backends over the fast internal network and combines the results. Sequential calls make latency worse, merging services trades away independent deployability to fix a network problem, and longer timeouts do not reduce chattiness or failure risk.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/gateway-aggregation"
+  },
+  {
+    "id": "sd-gateway-partial-response",
+    "topic": "system-design",
+    "subtopic": "api-gateway",
+    "difficulty": "Hard",
+    "title": "Aggregation with a slow backend",
+    "question": "An aggregation gateway builds the product page from catalog, pricing and recommendations. When recommendations slows to 8 seconds, the whole page times out. Missing recommendations are acceptable; missing prices are not. What is the best design?",
+    "options": [
+      "Raise the gateway's overall timeout to 10 seconds so that all three calls have time to finish",
+      "Retry the recommendations call up to three times before returning the aggregated response",
+      "Use per-call timeouts and return the page without recommendations, but fail if pricing fails",
+      "Fail the whole request whenever any backend is slow so clients always get consistent pages"
+    ],
+    "correctIndex": 2,
+    "explanation": "Aggregation guidance recommends per-request timeouts, circuit breakers and an explicit decision per operation: return partial data when missing pieces are acceptable, fail when they are essential. Raising the timeout lets one slow dependency degrade every page, retrying a slow call adds even more latency and load, and failing everything turns an optional feature into a full outage.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/gateway-aggregation"
+  },
+  {
+    "id": "sd-delete-404-idempotent",
+    "topic": "system-design",
+    "subtopic": "idempotency",
+    "difficulty": "Medium",
+    "title": "Retried DELETE returning 404",
+    "question": "A client sends DELETE /orders/42, times out, and retries. The first attempt had succeeded, so the retry returns 404 Not Found. Does this violate DELETE's idempotency?",
+    "options": [
+      "Yes: an idempotent method must return exactly the same status code for every repeated request",
+      "Yes: DELETE is idempotent only when the client also sends an Idempotency-Key header",
+      "No: DELETE is not defined as idempotent, so any response to a retry is acceptable",
+      "No: idempotency concerns the effect on server state, which is the same after both calls"
+    ],
+    "correctIndex": 3,
+    "explanation": "RFC 9110 defines a method as idempotent if the intended effect on the server of multiple identical requests is the same as for one; PUT, DELETE and safe methods are idempotent. The order is gone either way, so a different status code on the retry is fine. Idempotency does not require identical responses, and no extra header is needed for DELETE to have this property.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9110.html"
+  },
+  {
+    "id": "sd-natural-idempotency",
+    "topic": "system-design",
+    "subtopic": "idempotency",
+    "difficulty": "Easy",
+    "title": "Naturally idempotent updates",
+    "question": "A worker may process the same message twice. Which update is naturally idempotent, so a duplicate does no harm?",
+    "options": [
+      "UPDATE orders SET status = 'SHIPPED' WHERE id = 42",
+      "UPDATE accounts SET balance = balance - 20 WHERE id = 7",
+      "INSERT INTO payments (order_id, amount) VALUES (42, 20)",
+      "UPDATE stats SET views = views + 1 WHERE page_id = 9"
+    ],
+    "correctIndex": 0,
+    "explanation": "Setting a field to an absolute value leaves the same final state no matter how many times it runs. Relative updates (decrement, increment) and plain inserts change state again on each duplicate, so they need an idempotency key, a processed-message record or a unique constraint to be safe to retry.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/"
+  },
+  {
+    "id": "sd-dynamodb-consistent-read",
+    "topic": "system-design",
+    "subtopic": "consistency",
+    "difficulty": "Easy",
+    "title": "Stale read right after a write",
+    "question": "Right after a successful PutItem to DynamoDB, a GetItem with default settings sometimes returns the previous version of the item. What explains this, and how can the read see the write?",
+    "options": [
+      "PutItem is fire-and-forget and returns before storing; wait for a TableActive event before reading",
+      "Default reads are eventually consistent; set ConsistentRead to true for a strongly consistent read",
+      "GetItem reads from a global secondary index by default; query the base table explicitly instead",
+      "The SDK caches items on the client for one minute; disable that cache to see the newest value"
+    ],
+    "correctIndex": 1,
+    "explanation": "DynamoDB reads are eventually consistent by default and may not reflect a just-completed write; setting ConsistentRead=true on GetItem, Query or Scan returns the most up-to-date data (at double the read cost, and not supported on global secondary indexes). PutItem returns after the write is durable, GetItem always targets the base table, and the SDK does not cache items.",
+    "referenceUrl": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadConsistency.html"
+  },
+  {
+    "id": "sd-saga-pivot",
+    "topic": "system-design",
+    "subtopic": "distributed-transactions",
+    "difficulty": "Hard",
+    "title": "The pivot step in a saga",
+    "question": "A travel saga books a refundable hotel, then issues a non-refundable airline ticket, then sends a confirmation email and awards loyalty points. In saga terms, how should the ticket step be treated?",
+    "options": [
+      "As a compensable step, cancelled through a refund request if the email step fails later on",
+      "As a step in a two-phase commit with the hotel booking so that both commit atomically",
+      "As the pivot: steps before it must be compensable, and steps after it retryable",
+      "As a step outside the saga, so its failure never triggers compensation of the hotel booking"
+    ],
+    "correctIndex": 2,
+    "explanation": "A pivot transaction is the saga's point of no return: once it succeeds, compensation no longer applies and all later steps must be completed, so they are designed as retryable. Steps before the pivot must be compensable so the saga can roll back if the pivot fails. The ticket cannot be compensated, 2PC across external providers is the coupling sagas avoid, and taking it out of the saga loses the hotel compensation.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/saga"
+  },
+  {
+    "id": "sd-multi-az-why",
+    "topic": "system-design",
+    "subtopic": "high-availability",
+    "difficulty": "Easy",
+    "title": "Why deploy across availability zones",
+    "question": "Why do teams spread production instances across multiple availability zones within a region?",
+    "options": [
+      "Traffic between zones is free and faster than traffic within one zone, which lowers user latency",
+      "Each zone keeps a full backup of the region, so data survives even if the whole region is lost",
+      "Deploying to several zones is required before a service can be given a public IP address",
+      "Zones have independent power, cooling and networking, so one failing zone leaves the others"
+    ],
+    "correctIndex": 3,
+    "explanation": "Availability zones are separated groups of datacenters within a region with independent power, cooling and networking, so an outage in one zone leaves the others serving. Cross-zone traffic usually adds a little latency and often has a cost, zones do not protect against a full regional loss (that needs multi-region DR), and public IPs do not depend on zone count.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/reliability/availability-zones-overview"
+  },
+  {
+    "id": "sd-split-brain-fencing",
+    "topic": "system-design",
+    "subtopic": "high-availability",
+    "difficulty": "Expert",
+    "title": "Split brain during automatic failover",
+    "question": "A two-node database cluster fails over automatically when the standby loses its heartbeat to the primary. During a network glitch between them, the standby promotes itself while the old primary keeps accepting writes from some clients. What design prevents this?",
+    "options": [
+      "Decide failover with a witness or quorum, and fence the old primary (STONITH) before promotion",
+      "Shorten the heartbeat interval so the standby can detect a failed primary within about one second",
+      "Switch replication to asynchronous mode so the standby is never blocked by the primary",
+      "Let both nodes accept writes and reconcile diverged rows later with last-write-wins merges"
+    ],
+    "correctIndex": 0,
+    "explanation": "With only two nodes, the standby cannot tell a dead primary from a broken link, so both can act as primary (split brain). A third vote (witness/quorum) decides failover, and fencing such as STONITH guarantees the old primary stops accepting writes; PostgreSQL's docs warn that without it both systems may think they are primary, leading to data loss. Faster heartbeats make false failovers more likely, async replication is unrelated, and last-write-wins silently loses data.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/warm-standby-failover.html"
+  },
+  {
+    "id": "lead-incident-comms-role",
+    "topic": "engineering-leadership",
+    "subtopic": "incident-handling",
+    "difficulty": "Easy",
+    "title": "Who updates stakeholders",
+    "question": "In Google's incident management model, which role issues periodic updates to stakeholders and keeps the incident document up to date?",
+    "options": [
+      "Incident commander",
+      "Operations lead",
+      "Communication lead",
+      "Planning lead"
+    ],
+    "correctIndex": 2,
+    "explanation": "The communication role is the public face of the response, sending periodic updates and keeping the incident document accurate. The incident commander holds the overall state and assigns roles, the ops lead (and only the ops team) changes the system, and the planning role handles longer-term tasks such as filing bugs and arranging handoffs.",
+    "referenceUrl": "https://sre.google/sre-book/managing-incidents/"
+  },
+  {
+    "id": "lead-incident-declare-early",
+    "topic": "engineering-leadership",
+    "subtopic": "incident-handling",
+    "difficulty": "Medium",
+    "title": "When to declare an incident",
+    "question": "An engineer has spent 75 minutes alone debugging intermittent failures in a nightly reconciliation job. No customer impact is visible yet and no other team is involved. Per Google's SRE guidance on when to declare an incident, what should happen?",
+    "options": [
+      "Keep debugging alone, since incidents are declared only once customers are visibly affected",
+      "Wait for the next business day and raise the problem in the weekly operations review",
+      "Declare an incident only once a second team has to be brought in to help fix the problem",
+      "Declare an incident, because the issue is still unsolved after an hour of focused analysis"
+    ],
+    "correctIndex": 3,
+    "explanation": "Google recommends declaring early, and treats an event as an incident if any condition holds: a second team is needed, the outage is customer-visible, or the issue is unsolved after an hour of concentrated analysis. Declaring early and closing quickly is cheaper than spinning up the process hours later; the other options treat a single criterion as required or delay the response.",
+    "referenceUrl": "https://sre.google/sre-book/managing-incidents/"
+  },
+  {
+    "id": "lead-postmortem-trigger",
+    "topic": "engineering-leadership",
+    "subtopic": "incident-handling",
+    "difficulty": "Hard",
+    "title": "Postmortem after a quick rollback",
+    "question": "An on-call engineer saw latency rise after a release and rolled it back within 10 minutes. No SLO was breached and no user complained. The team's criteria follow Google's common postmortem triggers. Should a postmortem be written?",
+    "options": [
+      "Yes, because on-call intervention such as a release rollback is a common trigger",
+      "No, because postmortems are needed only when users saw downtime or any data was lost",
+      "No, because the rollback fixed it quickly and the cause of the problem is already known",
+      "Yes, but only if a manager asks for one after reviewing the metrics for that release"
+    ],
+    "correctIndex": 0,
+    "explanation": "Google lists common triggers: user-visible downtime or degradation beyond a threshold, any data loss, on-call intervention (release rollback, rerouting traffic), resolution time above a threshold, and monitoring failures. A rollback is an intervention, so it qualifies even without user impact. Criteria should be defined before incidents rather than left to a manager's ad hoc request.",
+    "referenceUrl": "https://sre.google/sre-book/postmortem-culture/"
+  },
+  {
+    "id": "lead-sacrificial-architecture",
+    "topic": "engineering-leadership",
+    "subtopic": "technical-decisions",
+    "difficulty": "Medium",
+    "title": "Designing for today vs 10x later",
+    "question": "A startup must validate a product idea in three months and is unsure it will reach even 1,000 users. Some engineers want to design for 10 million users from day one. What does Fowler's 'Sacrificial Architecture' suggest?",
+    "options": [
+      "Design for 10 million users now, since a later rewrite always costs more than building it right",
+      "Build for current needs and accept that the code may be replaced once real needs are clear",
+      "Avoid production code until an architecture for every future growth stage has been approved",
+      "Start with microservices so that each part can be thrown away independently in the future"
+    ],
+    "correctIndex": 1,
+    "explanation": "Sacrificial Architecture argues that early in a system's life you understand its needs poorly, so it is often right to build something you expect to replace later; Google's rule of thumb is to design for about 10x growth and plan to rewrite before 100x. Overbuilding for a scale that may never come wastes scarce time, and microservices add operational cost rather than making replacement free.",
+    "referenceUrl": "https://martinfowler.com/bliki/SacrificialArchitecture.html"
+  },
+  {
+    "id": "lead-branch-by-abstraction",
+    "topic": "engineering-leadership",
+    "subtopic": "technical-decisions",
+    "difficulty": "Hard",
+    "title": "Replacing a library while releasing",
+    "question": "A team on trunk-based development must replace an ORM used by 300 classes. The migration will take months, and they must keep releasing weekly. Which technique fits?",
+    "options": [
+      "A long-lived feature branch merged back to trunk once all 300 classes have been migrated",
+      "A big-bang cutover weekend in which the whole team rewrites the data layer in one release",
+      "Branch by Abstraction: route callers via a layer over the ORM, then swap what's behind it",
+      "Fork the repository so the old and new data layers evolve separately until they reach parity"
+    ],
+    "correctIndex": 2,
+    "explanation": "Branch by Abstraction makes a large-scale change gradually while the system keeps releasing: introduce an abstraction over the current supplier, move clients onto it, build the new implementation behind it, then switch and remove the old one. Long-lived branches and forks create painful merges and delay integration, and a big-bang cutover concentrates all the risk in one release.",
+    "referenceUrl": "https://martinfowler.com/bliki/BranchByAbstraction.html"
+  },
+  {
+    "id": "lead-sli-measurement-point",
+    "topic": "engineering-leadership",
+    "subtopic": "reliability",
+    "difficulty": "Medium",
+    "title": "Where to measure an SLI",
+    "question": "A service's availability SLI, computed from application server logs, shows 99.98% success, yet users report many failures. Requests failing at the load balancer never reach the servers. What does the SRE workbook suggest?",
+    "options": [
+      "Keep server logs as the SLI source but raise the SLO to 99.999% to make up for the missing errors",
+      "Exclude load balancer failures from the SLI, since they belong to the infrastructure team's area",
+      "Replace the availability SLI with CPU and memory utilisation, which better reflect user experience",
+      "Measure the SLI closer to users, for example from load balancer metrics or client instrumentation"
+    ],
+    "correctIndex": 3,
+    "explanation": "The workbook lists SLI sources (application server logs, load balancer monitoring, black-box monitoring, client-side instrumentation) and prefers those closer to the user's experience; server logs cannot see requests that never arrive. Raising the target does not capture missing failures, excluding them hides real user pain, and resource utilisation is not a user-facing indicator.",
+    "referenceUrl": "https://sre.google/workbook/implementing-slos/"
+  },
+  {
+    "id": "lead-pair-navigator-role",
+    "topic": "engineering-leadership",
+    "subtopic": "mentoring",
+    "difficulty": "Easy",
+    "title": "The navigator's role in pairing",
+    "question": "In the classic driver/navigator style of pair programming, what is the navigator's main job?",
+    "options": [
+      "Review the code as it is written and keep an eye on larger issues and next steps",
+      "Type the code while explaining every step aloud so the driver can follow along",
+      "Stay silent until the driver finishes the task and then do a formal code review",
+      "Look up documentation and handle messages so that the driver is never interrupted"
+    ],
+    "correctIndex": 0,
+    "explanation": "The driver has the keyboard and focuses tactically on the immediate step while talking it through; the navigator reviews code on the go, gives directions, and watches larger issues, bugs and next steps. Typing is the driver's job, staying silent wastes the second perspective, and acting as an assistant who handles messages is not navigating.",
+    "referenceUrl": "https://martinfowler.com/articles/on-pair-programming.html"
+  },
+  {
+    "id": "lead-review-comment-courtesy",
+    "topic": "engineering-leadership",
+    "subtopic": "mentoring",
+    "difficulty": "Easy",
+    "title": "Phrasing critical review comments",
+    "question": "You are mentoring a developer through code review and need to criticise an unnecessarily complex concurrency design. Which comment follows Google's review guidance?",
+    "options": [
+      "Why did you use threads here when there's obviously no benefit to concurrency at all?",
+      "This concurrency adds complexity without a clear gain, so single-threaded seems better.",
+      "I would never have written it this way; please rethink your whole approach to this.",
+      "LGTM overall, though at some point you might want to read up on how concurrency works in practice."
+    ],
+    "correctIndex": 1,
+    "explanation": "Google's guidance says to be courteous and to comment on the code, not the developer, while explaining your reasoning. The good comment names the problem and the why. The rhetorical question targets the person, the vague 'rethink everything' gives no direction, and approving while hinting at a knowledge gap skips the actual problem.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/comments.html"
+  },
+  {
+    "id": "lead-pair-rotation-anchor",
+    "topic": "engineering-leadership",
+    "subtopic": "mentoring",
+    "difficulty": "Medium",
+    "title": "Rotating pairs without losing context",
+    "question": "Only one engineer understands the billing module, and the team pairs daily. To spread that knowledge without losing the context of in-progress stories, which rotation practice does Fowler's pairing article describe?",
+    "options": [
+      "Swap both people off a story every day so that fresh pairs always restart it from scratch",
+      "Keep the billing expert permanently paired with the same partner until the module retires",
+      "Keep one person as the story's 'anchor' while the other half of the pair rotates in",
+      "Pause pairing on billing and have the expert record videos that explain the module instead"
+    ],
+    "correctIndex": 2,
+    "explanation": "When rotating, one half of the pair leaves the story while the other stays and onboards the newcomer; the person who stays is the story's anchor. Rotating people through different pairs and areas of code avoids knowledge silos and builds collective ownership. Swapping both people loses context, a fixed pairing keeps the silo at two people, and recordings are a weak substitute for working together.",
+    "referenceUrl": "https://martinfowler.com/articles/on-pair-programming.html"
+  },
+  {
+    "id": "lead-pair-five-second-rule",
+    "topic": "engineering-leadership",
+    "subtopic": "mentoring",
+    "difficulty": "Hard",
+    "title": "Navigator who interrupts constantly",
+    "question": "A senior engineer navigating a pairing session with a junior interrupts every time the driver mistypes or hesitates, and the junior has stopped thinking for themselves. Which concrete practice does Fowler's pairing article suggest?",
+    "options": [
+      "Have the senior take the keyboard full-time so that the junior can learn by watching closely",
+      "Switch to asynchronous code review only, since pairing does not work across skill levels",
+      "Have the senior dictate each line precisely so that mistakes never reach the editor at all",
+      "Apply the '5 seconds rule': wait before pointing out a mistake, as the driver may fix it"
+    ],
+    "correctIndex": 3,
+    "explanation": "The article's advice against impatience is the '5 seconds rule': when the navigator sees something 'wrong', wait at least five seconds, since the driver may already have it in mind, or note it for later. Taking the keyboard is keyboard hogging, dictating every line is the micro-management mode it warns against, and pairing across skill levels is a challenge to manage rather than a reason to stop.",
+    "referenceUrl": "https://martinfowler.com/articles/on-pair-programming.html"
+  },
+  {
+    "id": "lead-c4-deployment",
+    "topic": "engineering-leadership",
+    "subtopic": "communication",
+    "difficulty": "Medium",
+    "title": "Showing containers on infrastructure",
+    "question": "Your operations team asks how the system's C4 containers (web app, API, database) map onto Kubernetes clusters and cloud regions in production. Which C4 diagram answers this?",
+    "options": [
+      "Deployment diagram",
+      "System context diagram",
+      "Container diagram",
+      "Component diagram"
+    ],
+    "correctIndex": 0,
+    "explanation": "A C4 deployment diagram shows how instances of software systems and containers are deployed onto infrastructure (deployment nodes such as clusters, servers or regions) in a given environment. The context diagram shows users and external systems, the container diagram shows applications and data stores and how they interact without infrastructure, and the component diagram zooms into one container.",
+    "referenceUrl": "https://c4model.com/diagrams/deployment"
+  },
+  {
+    "id": "lead-team-topologies-enabling",
+    "topic": "engineering-leadership",
+    "subtopic": "communication",
+    "difficulty": "Easy",
+    "title": "Team that coaches other teams",
+    "question": "In Team Topologies, a small group of security specialists coaches product teams so those teams can own security practices themselves, instead of doing the work for them. What type of team is this?",
+    "options": [
+      "Stream-aligned team",
+      "Enabling team",
+      "Platform team",
+      "Complicated-subsystem team"
+    ],
+    "correctIndex": 1,
+    "explanation": "Enabling teams grow skills inside other teams through the facilitating interaction mode: they coach and educate rather than write code or enforce standards, so stream-aligned teams stay independent. Stream-aligned teams own a business capability, platform teams provide self-service internal services, and complicated-subsystem teams own a part requiring deep specialist knowledge.",
+    "referenceUrl": "https://martinfowler.com/bliki/TeamTopologies.html"
+  },
+  {
+    "id": "lead-team-topologies-xaas",
+    "topic": "engineering-leadership",
+    "subtopic": "communication",
+    "difficulty": "Expert",
+    "title": "Platform team stuck in collaboration",
+    "question": "A platform team has worked in close collaboration mode with three stream-aligned teams for 18 months to build a deployment platform. Every new team now needs weeks of hand-holding, and the platform team is a bottleneck. What does Team Topologies recommend?",
+    "options": [
+      "Embed one platform engineer permanently in each stream-aligned team to keep collaborating",
+      "Merge the platform team into the largest stream-aligned team so decisions happen in one place",
+      "Move from temporary collaboration to X-as-a-Service, running the platform as a product",
+      "Turn the platform team into an enabling team that writes every deployment for the other teams"
+    ],
+    "correctIndex": 2,
+    "explanation": "Team Topologies treats collaboration mode as an intensive, temporary partnership while a service is being shaped; once the platform is mature, interaction should move to X-as-a-Service, with the platform built as a product that stream-aligned teams consume self-service. Permanent embedding keeps the bottleneck, merging teams adds cognitive load, and enabling teams coach rather than doing other teams' work.",
+    "referenceUrl": "https://martinfowler.com/bliki/TeamTopologies.html"
+  }
+]

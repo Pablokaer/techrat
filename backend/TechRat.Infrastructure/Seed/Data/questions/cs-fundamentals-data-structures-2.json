@@ -1,0 +1,1039 @@
+[
+ {
+  "id": "pf-vt-decimal-money",
+  "topic": "programming-fundamentals",
+  "subtopic": "variables-types",
+  "difficulty": "Medium",
+  "title": "Choosing a type for money",
+  "question": "A C# billing service stores prices as double. Adding 0.10 ten times yields 0.9999999999999999 instead of 1.0, and invoices are off by a cent. Which type should hold the money amounts?",
+  "options": [
+   "float, since its smaller size reduces the accumulated rounding error",
+   "decimal, since it represents base-10 fractions like 0.10 exactly",
+   "double, rounded with Math.Round after every addition to fix the drift",
+   "BigInteger, since only arbitrary precision removes rounding entirely"
+  ],
+  "correctIndex": 1,
+  "explanation": "double is a binary floating-point type, so 0.10 has no exact representation and errors accumulate. decimal is a base-10 floating-point type with 28-29 significant digits, so amounts like 0.10 are exact, which is why it is recommended for financial values. float is even less precise, rounding after each step only hides the symptom, and BigInteger cannot hold fractions at all.",
+  "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/floating-point-numeric-types"
+ },
+ {
+  "id": "pf-vt-integer-cache-identity",
+  "topic": "programming-fundamentals",
+  "subtopic": "variables-types",
+  "difficulty": "Hard",
+  "title": "Boxed Integer identity",
+  "question": "With default JVM settings, what does this Java code print?\n\nInteger a = 127, b = 127;\nInteger c = 128, d = 128;\nSystem.out.println(a == b);\nSystem.out.println(c == d);",
+  "options": [
+   "true, then true",
+   "false, then false",
+   "false, then true",
+   "true, then false"
+  ],
+  "correctIndex": 3,
+  "explanation": "Autoboxing goes through Integer.valueOf, and JLS 5.1.7 requires boxed values in the range -128 to 127 to be cached, so a and b refer to the same object. 128 is outside the guaranteed cache, so c and d are normally distinct objects and == (a reference comparison) is false. Compare boxed numbers with equals() or unbox them to int.",
+  "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-5.html"
+ },
+ {
+  "id": "pf-cf-while-continue",
+  "topic": "programming-fundamentals",
+  "subtopic": "control-flow",
+  "difficulty": "Easy",
+  "title": "continue inside a while loop",
+  "question": "What does this Python code print?\n\ni = 0\nwhile i < 5:\n    i += 1\n    if i == 3:\n        continue\n    print(i, end=' ')",
+  "options": [
+   "1 2",
+   "1 2 4 5",
+   "1 2 3 4 5",
+   "0 1 2 4"
+  ],
+  "correctIndex": 1,
+  "explanation": "continue skips the rest of the current iteration and jumps back to the loop condition, so only the print for i == 3 is skipped. Because i is incremented before the check, the loop still advances and does not spin forever. Output 1 2 is what break would produce, and 0 is never printed because the increment happens first.",
+  "referenceUrl": "https://docs.python.org/3/tutorial/controlflow.html"
+ },
+ {
+  "id": "pf-cf-foreach-return",
+  "topic": "programming-fundamentals",
+  "subtopic": "control-flow",
+  "difficulty": "Medium",
+  "title": "return inside forEach",
+  "question": "A developer wants to stop processing at the first value greater than 2:\n\n[1, 3, 2].forEach(x => {\n  if (x > 2) return;\n  console.log(x);\n});\n\nWhat is logged?",
+  "options": [
+   "Only 1, because return exits the whole forEach loop",
+   "Nothing, because return inside forEach is a SyntaxError",
+   "1, 3 and 2, because forEach ignores callback return values",
+   "1 and then 2, because return only ends that callback"
+  ],
+  "correctIndex": 3,
+  "explanation": "return inside the arrow function only ends that single callback invocation; forEach still calls the callback for every remaining element. So 3 is skipped (its return comes before console.log) and 2 is logged. forEach cannot be stopped early except by throwing; use for...of with break, or some()/find() when early exit is needed.",
+  "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach"
+ },
+ {
+  "id": "pf-cf-switch-expression-unmatched",
+  "topic": "programming-fundamentals",
+  "subtopic": "control-flow",
+  "difficulty": "Hard",
+  "title": "Unmatched C# switch expression",
+  "question": "A C# method uses a switch expression with no discard arm:\n\nstring Label(int code) => code switch\n{\n    1 => \"low\",\n    2 => \"high\"\n};\n\nWhat happens when Label(3) is called at runtime?",
+  "options": [
+   "It throws a SwitchExpressionException because no arm matched",
+   "It returns null, because no arm matched the input value",
+   "It returns string.Empty, the default for string results",
+   "Nothing; the compiler rejects the non-exhaustive switch with an error"
+  ],
+  "correctIndex": 0,
+  "explanation": "The compiler only emits warning CS8509 for a non-exhaustive switch expression, so the code builds. At runtime, when no pattern matches, .NET throws System.Runtime.CompilerServices.SwitchExpressionException rather than returning null or a default value. Add a discard arm (_ => ...) that returns a fallback or throws a meaningful exception.",
+  "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/switch-expression"
+ },
+ {
+  "id": "pf-fn-implicit-none",
+  "topic": "programming-fundamentals",
+  "subtopic": "functions",
+  "difficulty": "Easy",
+  "title": "Function without return",
+  "question": "What is the value of result after this Python code runs?\n\ndef greet(name):\n    print('Hi', name)\n\nresult = greet('Ana')",
+  "options": [
+   "'Hi Ana', the text that the function printed",
+   "An empty string, which is what print() returns",
+   "None, since the function has no return statement",
+   "Nothing; it raises an error since greet returns nothing"
+  ],
+  "correctIndex": 2,
+  "explanation": "A Python function that finishes without executing a return statement returns None. Printing writes to standard output but is not the function's return value, and print() itself also returns None, not an empty string. Assigning the None result is perfectly legal.",
+  "referenceUrl": "https://docs.python.org/3/tutorial/controlflow.html"
+ },
+ {
+  "id": "pf-fn-keyword-only-args",
+  "topic": "programming-fundamentals",
+  "subtopic": "functions",
+  "difficulty": "Medium",
+  "title": "Keyword-only parameters",
+  "question": "A Python helper is declared as def connect(host, *, timeout=5). What happens when it is called as connect('db.local', 10)?",
+  "options": [
+   "timeout is set to 10, since it is the second parameter",
+   "10 is silently ignored and timeout keeps its default of 5",
+   "10 is collected into a tuple bound to the bare * marker",
+   "A TypeError is raised, because timeout is keyword-only"
+  ],
+  "correctIndex": 3,
+  "explanation": "Parameters after a bare * are keyword-only, so the function accepts only one positional argument and the call fails with TypeError (takes 1 positional argument but 2 were given). The bare * does not collect anything, unlike *args. The caller must write connect('db.local', timeout=10), which makes call sites self-documenting.",
+  "referenceUrl": "https://docs.python.org/3/tutorial/controlflow.html"
+ },
+ {
+  "id": "pf-fn-lru-cache-method-leak",
+  "topic": "programming-fundamentals",
+  "subtopic": "functions",
+  "difficulty": "Hard",
+  "title": "lru_cache on instance methods",
+  "question": "A long-running Python service decorates an instance method with @functools.lru_cache(maxsize=None). Memory keeps growing even after Report objects are no longer used. Why?",
+  "options": [
+   "lru_cache keeps results in a weak-keyed dictionary that the garbage collector never sweeps",
+   "The decorator copies the method into each instance, so every object owns a full cache",
+   "self is part of every cache key, so the cache keeps each instance alive",
+   "lru_cache turns off reference counting for any argument object passed to the method"
+  ],
+  "correctIndex": 2,
+  "explanation": "The cache lives on the function object shared by the class, and its keys include self, so it holds strong references to every instance it has seen; with maxsize=None nothing is ever evicted. The Python FAQ notes that this approach keeps instances alive until they age out or the cache is cleared. Use a bounded cache, functools.cached_property, or a per-instance cache instead.",
+  "referenceUrl": "https://docs.python.org/3/faq/programming.html"
+ },
+ {
+  "id": "pf-rec-call-stack-frames",
+  "topic": "programming-fundamentals",
+  "subtopic": "recursion",
+  "difficulty": "Easy",
+  "title": "Where recursive calls live",
+  "question": "While a recursive function is running, where does the runtime keep each pending call's local variables and return address?",
+  "options": [
+   "In a global hash table keyed by function name",
+   "Only in CPU registers, never in main memory",
+   "On the heap, compacted after every return",
+   "In a stack frame pushed onto the call stack"
+  ],
+  "correctIndex": 3,
+  "explanation": "Each call pushes a frame holding its parameters, locals and return address onto the call stack, and the frame is popped when the call returns. That is why deep recursion can exhaust the stack. A shared table keyed by name could not hold several active calls of the same function, and registers are far too few to hold every pending frame.",
+  "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Call_stack"
+ },
+ {
+  "id": "pf-rec-slicing-cost",
+  "topic": "programming-fundamentals",
+  "subtopic": "recursion",
+  "difficulty": "Medium",
+  "title": "Hidden cost of slicing in recursion",
+  "question": "What is the time complexity of this recursive Python sum for a list of n numbers?\n\ndef total(xs):\n    return 0 if not xs else xs[0] + total(xs[1:])",
+  "options": [
+   "O(n), since each element is added exactly once",
+   "O(n log n), since the list halves on every call",
+   "O(n^2), since each xs[1:] slice copies the rest",
+   "O(log n), since a slice is a constant-time view"
+  ],
+  "correctIndex": 2,
+  "explanation": "A list slice creates a new list and costs O(k) for k copied elements, so the calls copy n-1, n-2, ... elements for O(n^2) total. The list shrinks by one per call, not by half, and Python list slices are copies, not views. Passing an index instead of slicing makes it O(n), though large n will still hit the recursion limit.",
+  "referenceUrl": "https://wiki.python.org/moin/TimeComplexity"
+ },
+ {
+  "id": "pf-mem-pointer-arithmetic",
+  "topic": "programming-fundamentals",
+  "subtopic": "memory-pointers",
+  "difficulty": "Medium",
+  "title": "C pointer arithmetic scaling",
+  "question": "In C: int arr[8]; int *p = arr; On a platform where int is 4 bytes and p holds address 0x1000, which address does p + 2 hold?",
+  "options": [
+   "0x1008",
+   "0x1002",
+   "0x1004",
+   "0x1010"
+  ],
+  "correctIndex": 0,
+  "explanation": "Adding an integer to a pointer advances it by that many elements, not bytes, so p + 2 moves 2 * sizeof(int) = 8 bytes to 0x1008. 0x1002 would be byte arithmetic, which you only get with a char pointer. This scaling is also why arr[i] is defined as *(arr + i).",
+  "referenceUrl": "https://learn.microsoft.com/en-us/cpp/c-language/pointer-arithmetic"
+ },
+ {
+  "id": "pf-mem-vector-invalidation",
+  "topic": "programming-fundamentals",
+  "subtopic": "memory-pointers",
+  "difficulty": "Hard",
+  "title": "Pointer into a growing vector",
+  "question": "This C++ code sometimes prints garbage or crashes:\n\nstd::vector<int> v{1, 2, 3};\nint* first = &v[0];\nv.push_back(4);\nstd::cout << *first;\n\nWhat is the cause?",
+  "options": [
+   "push_back may reallocate the buffer, leaving first dangling",
+   "Taking the address of a vector element is undefined behavior",
+   "std::cout cannot print a value that is read through a raw pointer",
+   "push_back shifts existing elements one slot to the right"
+  ],
+  "correctIndex": 0,
+  "explanation": "When push_back exceeds the current capacity, the vector allocates a new buffer, moves the elements and frees the old one, invalidating all pointers, references and iterators to elements. Reading through first is then a use-after-free. Taking element addresses is fine while no reallocation happens; call reserve() up front or keep indices instead of pointers.",
+  "referenceUrl": "https://en.cppreference.com/w/cpp/container/vector/push_back"
+ },
+ {
+  "id": "pf-mem-go-escape-analysis",
+  "topic": "programming-fundamentals",
+  "subtopic": "memory-pointers",
+  "difficulty": "Expert",
+  "title": "Returning a pointer to a Go local",
+  "question": "A reviewer with a C background flags this Go function as returning a dangling pointer:\n\nfunc newUser() *User {\n    u := User{Name: \"ana\"}\n    return &u\n}\n\nWhat actually happens?",
+  "options": [
+   "The program panics when the caller dereferences the returned pointer",
+   "The compiler rejects returning the address of a local variable",
+   "The struct is copied into the caller's stack frame on return",
+   "Escape analysis sees u outlive the call and allocates it on the heap"
+  ],
+  "correctIndex": 3,
+  "explanation": "Go decides stack versus heap placement through escape analysis: because &u escapes the function, the compiler allocates u on the garbage-collected heap, so the pointer stays valid. This is idiomatic Go, not a bug. The cost is a heap allocation and GC pressure; go build -gcflags=-m prints these escape decisions when tuning hot paths.",
+  "referenceUrl": "https://go.dev/doc/faq"
+ },
+ {
+  "id": "pf-ps-binary-search-precondition",
+  "topic": "programming-fundamentals",
+  "subtopic": "problem-solving",
+  "difficulty": "Easy",
+  "title": "Binary search precondition",
+  "question": "A teammate wants to use binary search (Python's bisect module) to look up IDs in a list. What must be true of the list for the results to be correct?",
+  "options": [
+   "It must contain no duplicate values",
+   "Its length must be a power of two",
+   "It must be sorted by the search key",
+   "It must contain only integer values"
+  ],
+  "correctIndex": 2,
+  "explanation": "Binary search discards half of the remaining range at each step based on a comparison, which is only valid if the data is ordered by the key being searched. Duplicates are fine (bisect_left and bisect_right handle them), any length works, and any comparable type such as strings can be searched.",
+  "referenceUrl": "https://docs.python.org/3/library/bisect.html"
+ },
+ {
+  "id": "pf-ps-merge-intervals",
+  "topic": "programming-fundamentals",
+  "subtopic": "problem-solving",
+  "difficulty": "Medium",
+  "title": "Merging overlapping intervals",
+  "question": "A calendar service must merge overlapping meetings such as [1,3], [2,6], [8,10] into [1,6], [8,10]. The input is unsorted. Which approach is correct and runs in O(n log n)?",
+  "options": [
+   "Compare every pair of intervals once and merge any two that overlap",
+   "Sweep the input in its original order, merging each with its neighbour",
+   "Sort by start time, then sweep and extend the last merged interval",
+   "Put intervals in a hash set keyed by start time and merge collisions"
+  ],
+  "correctIndex": 2,
+  "explanation": "After sorting by start, any interval that overlaps the current merged block must come next, so one linear sweep that extends or closes the block is enough: O(n log n) overall. A single pass over all pairs is O(n^2) and can still miss chains of merges, the original order gives no adjacency guarantee, and hashing by start only catches identical starts.",
+  "referenceUrl": "https://docs.python.org/3/howto/sorting.html"
+ },
+ {
+  "id": "pf-ps-meet-in-the-middle",
+  "topic": "programming-fundamentals",
+  "subtopic": "problem-solving",
+  "difficulty": "Expert",
+  "title": "Subset sum with huge capacity",
+  "question": "You must choose a subset of 40 items whose total weight is as large as possible without exceeding a capacity of 10^12. DP over the capacity is impossible and checking all 2^40 subsets is too slow. What is a practical exact approach?",
+  "options": [
+   "Split into two halves, list 2^20 subset sums each, sort one and binary-search",
+   "Take the heaviest items first, greedily, while they still fit in the capacity",
+   "Run DP over the capacity using a rolling one-dimensional array to save memory",
+   "Sample random subsets and keep the best feasible total within a time budget"
+  ],
+  "correctIndex": 0,
+  "explanation": "Meet in the middle enumerates about one million sums per half, sorts one list, and for each sum a in the other half binary-searches the largest b <= capacity - a, giving roughly O(2^(n/2) * n) work instead of O(2^n). Greedy is not optimal for knapsack-style problems, DP over a capacity of 10^12 is pseudo-polynomial and infeasible even with a rolling array, and random sampling is not exact.",
+  "referenceUrl": "https://xlinux.nist.gov/dads/HTML/knapsackProblem.html"
+ },
+ {
+  "id": "pf-dm-combinations",
+  "topic": "programming-fundamentals",
+  "subtopic": "discrete-math",
+  "difficulty": "Easy",
+  "title": "Choosing a reviewer group",
+  "question": "Three code reviewers must be picked from a team of 10 engineers, and the order of selection does not matter. How many different reviewer groups are possible?",
+  "options": [
+   "720",
+   "120",
+   "1000",
+   "30"
+  ],
+  "correctIndex": 1,
+  "explanation": "This is a combination: C(10, 3) = 10 * 9 * 8 / 3! = 120, which Python computes with math.comb(10, 3). 720 counts ordered selections (permutations), 1000 = 10^3 allows the same person to be picked repeatedly, and 30 is just 10 * 3.",
+  "referenceUrl": "https://docs.python.org/3/library/math.html"
+ },
+ {
+  "id": "pf-dm-floor-mod",
+  "topic": "programming-fundamentals",
+  "subtopic": "discrete-math",
+  "difficulty": "Medium",
+  "title": "Negative modulo in Java",
+  "question": "A Java ring buffer steps backwards with idx = (idx - 1) % size. When idx is 0 it throws ArrayIndexOutOfBoundsException. Why, and what is the fix?",
+  "options": [
+   "% keeps the dividend's sign, giving -1; use Math.floorMod(idx - 1, size)",
+   "% overflows to Integer.MIN_VALUE for negatives; cast both operands to long first",
+   "% rounds toward positive infinity and returns size; subtract one from the result",
+   "% is undefined for negative operands in Java; wrap the computation in a try/catch"
+  ],
+  "correctIndex": 0,
+  "explanation": "Java's integer division truncates toward zero, and the remainder satisfies (a / b) * b + a % b == a, so -1 % size is -1, an invalid index. Math.floorMod returns a result with the sign of the divisor, giving size - 1 as intended. Python's % already floors, which is why the same code works there.",
+  "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Math.html"
+ },
+ {
+  "id": "pf-dm-modular-exponentiation",
+  "topic": "programming-fundamentals",
+  "subtopic": "discrete-math",
+  "difficulty": "Hard",
+  "title": "Fast modular exponentiation",
+  "question": "An exercise needs 7^(10^18) mod 1,000,000,007 in Python. Why does pow(7, 10**18, 1_000_000_007) return instantly while (7 ** 10**18) % 1_000_000_007 never finishes?",
+  "options": [
+   "Three-argument pow memoises earlier calls, so repeated exponents cost nothing",
+   "The ** operator converts both operands to float and then has to retry exactly",
+   "pow offloads the work to native threads while ** runs on one interpreter thread",
+   "Three-argument pow does square-and-multiply mod m, needing only ~60 squarings"
+  ],
+  "correctIndex": 3,
+  "explanation": "7 ** 10**18 tries to build an exact integer with roughly 8.5e17 decimal digits, which can never fit in memory. pow(base, exp, mod) reduces modulo m after every step of binary exponentiation, so it needs O(log exp) multiplications of small numbers; since 10^18 < 2^60 that is about 60 squarings. Python ints stay exact (no float conversion) and pow does not cache or use threads.",
+  "referenceUrl": "https://docs.python.org/3/library/functions.html"
+ },
+ {
+  "id": "pf-bool-xor",
+  "topic": "programming-fundamentals",
+  "subtopic": "boolean-logic",
+  "difficulty": "Easy",
+  "title": "Exactly one condition true",
+  "question": "A feature must be enabled when exactly one of two flags, a or b, is true, but not when both are. Which operation expresses that?",
+  "options": [
+   "a OR b (inclusive or)",
+   "a AND b (conjunction)",
+   "a XOR b (exclusive or)",
+   "NOT (a AND b) (NAND)"
+  ],
+  "correctIndex": 2,
+  "explanation": "Exclusive or is true when its inputs differ: true for (true, false) and (false, true), false for (true, true) and (false, false). OR is also true when both flags are set, AND requires both, and NAND is true when neither is set. For booleans, a != b expresses the same thing in most languages.",
+  "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_XOR"
+ },
+ {
+  "id": "pf-bool-or-default-zero",
+  "topic": "programming-fundamentals",
+  "subtopic": "boolean-logic",
+  "difficulty": "Medium",
+  "title": "Falsy values with or-defaults",
+  "question": "A Python config loader uses timeout = settings.get('timeout') or 30. A user sets timeout to 0 to disable it, but the service still uses 30. Why?",
+  "options": [
+   "dict.get() turns stored integer zero values into None when returning them",
+   "or always evaluates both operands and returns the larger of the two values",
+   "Python caches the first value an or-expression yields within each module",
+   "or returns its right operand when the left is falsy, and 0 is falsy"
+  ],
+  "correctIndex": 3,
+  "explanation": "x or y returns x if x is truthy, otherwise y, and 0, empty strings and empty collections are all falsy, so an explicit 0 is replaced by the default. dict.get returns the stored 0 unchanged and or short-circuits rather than comparing magnitudes. Use an explicit check such as 30 if value is None else value.",
+  "referenceUrl": "https://docs.python.org/3/library/stdtypes.html"
+ },
+ {
+  "id": "pf-bool-sql-not-in-null",
+  "topic": "programming-fundamentals",
+  "subtopic": "boolean-logic",
+  "difficulty": "Hard",
+  "title": "NOT IN with a NULL in the subquery",
+  "question": "This PostgreSQL query returns zero rows, although many users manage no team:\n\nSELECT * FROM users\nWHERE id NOT IN (SELECT manager_id FROM teams);\n\nOne row in teams has manager_id = NULL. What explains it?",
+  "options": [
+   "NOT IN over a list containing NULL is never true, only false or null",
+   "The planner stops scanning a NOT IN subquery at its first NULL row",
+   "NULL compares equal to every value, so each id matches the NULL row",
+   "PostgreSQL rejects NULL in subqueries and quietly returns no rows at all"
+  ],
+  "correctIndex": 0,
+  "explanation": "SQL uses three-valued logic: id <> NULL is unknown, so when no match is found but the subquery yields a NULL, NOT IN evaluates to null rather than true, and WHERE discards the row. NULL is not equal to anything, including itself. Use NOT EXISTS, or filter the subquery with WHERE manager_id IS NOT NULL.",
+  "referenceUrl": "https://www.postgresql.org/docs/current/functions-subquery.html"
+ },
+ {
+  "id": "pf-num-binary-to-decimal",
+  "topic": "programming-fundamentals",
+  "subtopic": "number-systems",
+  "difficulty": "Easy",
+  "title": "Binary to decimal",
+  "question": "What is the decimal value of the binary number 0b1011?",
+  "options": [
+   "13",
+   "9",
+   "22",
+   "11"
+  ],
+  "correctIndex": 3,
+  "explanation": "Reading right to left the bits are worth 1, 2, 4 and 8, so 1011 = 8 + 0 + 2 + 1 = 11; Python's int('1011', 2) confirms it. 13 is 0b1101 (bits reversed), 9 is 0b1001, and 22 is 0b10110, the value shifted left by one.",
+  "referenceUrl": "https://docs.python.org/3/library/functions.html"
+ },
+ {
+  "id": "pf-num-octal-permissions",
+  "topic": "programming-fundamentals",
+  "subtopic": "number-systems",
+  "difficulty": "Medium",
+  "title": "Octal file permissions",
+  "question": "A deploy script runs chmod 754 app.sh. Which permissions result?",
+  "options": [
+   "Owner rwx, group r--, others r-x",
+   "Owner r-x, group rwx, others r--",
+   "Owner rwx, group r-x, others r--",
+   "Owner rw-, group r-x, others r--"
+  ],
+  "correctIndex": 2,
+  "explanation": "Each octal digit encodes three bits: read = 4, write = 2, execute = 1. So 7 = rwx for the owner, 5 = r-x for the group and 4 = r-- for others, in that fixed order. Octal is used precisely because one digit maps cleanly to one 3-bit permission group.",
+  "referenceUrl": "https://man7.org/linux/man-pages/man1/chmod.1.html"
+ },
+ {
+  "id": "pf-num-float32-counter",
+  "topic": "programming-fundamentals",
+  "subtopic": "number-systems",
+  "difficulty": "Hard",
+  "title": "A float counter that stops counting",
+  "question": "A game engine keeps a frame counter in a 32-bit float and runs counter += 1.0f every frame. After about 16.7 million frames the value stops increasing. Why?",
+  "options": [
+   "float32 has a 24-bit significand, so past 2^24 adding 1 rounds back down",
+   "float32 saturates at 2^24 and clamps every larger result to that value",
+   "The CPU flushes the counter to zero after it becomes denormal at 2^24",
+   "Single-precision addition overflows into the exponent bits at 2^24"
+  ],
+  "correctIndex": 0,
+  "explanation": "A float has 24 bits of significand precision, so integers are exact only up to 2^24 = 16,777,216; beyond that, adjacent floats are 2 apart and 16,777,216 + 1 rounds back to 16,777,216 (round-half-to-even). The type's range goes up to about 3.4e38, so nothing saturates or overflows, and denormals concern tiny values. Use an integer counter.",
+  "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-4.html"
+ },
+ {
+  "id": "pf-arch-32bit-address-space",
+  "topic": "programming-fundamentals",
+  "subtopic": "computer-architecture",
+  "difficulty": "Easy",
+  "title": "32-bit address space limit",
+  "question": "Why can a 32-bit process address at most about 4 GB of virtual memory?",
+  "options": [
+   "The OS reserves every address above 4 GB for the kernel",
+   "Memory modules for 32-bit CPUs are built only up to 4 GB",
+   "The C heap allocator refuses requests larger than 2^32 bytes",
+   "32-bit pointers can encode only 2^32 distinct byte addresses"
+  ],
+  "correctIndex": 3,
+  "explanation": "A 32-bit address can name 2^32 = 4,294,967,296 bytes, so that is the whole virtual address space of the process; on Windows part of it is further reserved for the system, leaving 2 GB to 4 GB for user mode. The limit is about pointer width, not physical RAM modules or a particular allocator.",
+  "referenceUrl": "https://learn.microsoft.com/en-us/windows/win32/memory/memory-limits-for-windows-releases"
+ },
+ {
+  "id": "pf-arch-cache-line-elements",
+  "topic": "programming-fundamentals",
+  "subtopic": "computer-architecture",
+  "difficulty": "Medium",
+  "title": "Elements per cache line",
+  "question": "On a typical x86-64 CPU with 64-byte cache lines, a loop reads a contiguous, aligned array of 16-byte structs in order. Roughly how many structs does each cache miss bring in?",
+  "options": [
+   "1, because every struct triggers its own memory fetch",
+   "4, because 64 / 16 = 4 structs fit in one line",
+   "16, because a line reserves 16 bytes per struct field",
+   "64, because a cache line always holds 64 separate elements"
+  ],
+  "correctIndex": 1,
+  "explanation": "Memory moves between DRAM and cache in whole lines, 64 bytes on modern x86-64, so one miss loads four adjacent 16-byte structs and the next three reads hit the cache. Line size is measured in bytes, not elements. This is why sequential access over compact data is fast, and hardware prefetchers make it even faster.",
+  "referenceUrl": "https://lwn.net/Articles/252125/"
+ },
+ {
+  "id": "pf-arch-huge-pages-tlb",
+  "topic": "programming-fundamentals",
+  "subtopic": "computer-architecture",
+  "difficulty": "Hard",
+  "title": "Huge pages and TLB misses",
+  "question": "A database with a 200 GB in-memory buffer pool shows heavy dTLB misses in perf. Why does backing the pool with 2 MB huge pages usually help?",
+  "options": [
+   "Huge pages are pinned in the L3 cache, so reads never go out to DRAM",
+   "Huge pages bypass virtual memory, so addresses need no translation",
+   "Huge pages compress the data in RAM, so more of the pool fits per page",
+   "Each TLB entry then maps 2 MB instead of 4 KB, so misses drop sharply"
+  ],
+  "correctIndex": 3,
+  "explanation": "The TLB caches a limited number of virtual-to-physical translations; with 4 KB pages, a 200 GB working set needs millions of entries and constant page walks. A 2 MB page covers 512 times more memory per entry, greatly increasing TLB reach and shortening page walks. Huge pages are still virtual memory and are not tied to the CPU caches or compressed.",
+  "referenceUrl": "https://docs.kernel.org/admin-guide/mm/hugetlbpage.html"
+ },
+ {
+  "id": "ds-arr-insert-middle",
+  "topic": "data-structures",
+  "subtopic": "arrays",
+  "difficulty": "Easy",
+  "title": "Inserting in the middle of a list",
+  "question": "A .NET List<int> holds 1,000,000 items. What is the cost of list.Insert(500000, x)?",
+  "options": [
+   "O(1), since List<T> keeps spare capacity for inserts",
+   "O(n), since later elements shift one slot right",
+   "O(log n), since List<T> finds the slot by binary search",
+   "O(1) amortized, the same as appending at the end"
+  ],
+  "correctIndex": 1,
+  "explanation": "List<T> is backed by a contiguous array, so inserting at an index must move every element after it one position to the right; the documentation calls Insert an O(n) operation. Spare capacity only makes appends at the end amortized O(1), and indexing never needs a search.",
+  "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1.insert"
+ },
+ {
+  "id": "ds-arr-covariance-store",
+  "topic": "data-structures",
+  "subtopic": "arrays",
+  "difficulty": "Hard",
+  "title": "Java array covariance",
+  "question": "This Java code compiles. What happens when it runs?\n\nObject[] items = new String[2];\nitems[0] = 42;",
+  "options": [
+   "It throws ArrayStoreException, as the runtime array is String[]",
+   "It stores \"42\" as a string through an implicit conversion",
+   "It succeeds, since the declared element type is Object",
+   "It throws ClassCastException only when items[0] is read"
+  ],
+  "correctIndex": 0,
+  "explanation": "Java arrays are covariant, so a String[] can be assigned to an Object[] variable, but every store is checked against the array's runtime component type (JLS 10.5) and storing an Integer throws ArrayStoreException. Java never converts 42 to a string here. Generic collections avoid the problem at compile time because List<String> is not a List<Object>.",
+  "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-10.html"
+ },
+ {
+  "id": "ds-str-immutable-assign",
+  "topic": "data-structures",
+  "subtopic": "strings",
+  "difficulty": "Easy",
+  "title": "Assigning to a string index",
+  "question": "What happens when this Python code runs?\n\ns = 'cat'\ns[0] = 'b'",
+  "options": [
+   "TypeError, because str objects are immutable",
+   "s becomes 'bat', since strings allow item assignment",
+   "A new string 'bat' is created and rebound to s",
+   "IndexError, because index 0 holds the string length"
+  ],
+  "correctIndex": 0,
+  "explanation": "Python strings are immutable sequences, so item assignment raises TypeError: 'str' object does not support item assignment. To change a character you build a new string, for example s = 'b' + s[1:] or s.replace('c', 'b'). Python never rebinds the variable implicitly, and index 0 is simply the first character.",
+  "referenceUrl": "https://docs.python.org/3/library/stdtypes.html"
+ },
+ {
+  "id": "ds-str-java-equals",
+  "topic": "data-structures",
+  "subtopic": "strings",
+  "difficulty": "Medium",
+  "title": "Comparing strings with ==",
+  "question": "A Java login check uses if (input == \"admin\"), where input comes from request.getParameter(). It fails even when the user types admin. Why?",
+  "options": [
+   "== compares lengths first, and the request adds a hidden trailing newline",
+   "String literals are stored as UTF-16 but request parameters stay UTF-8",
+   "== is case-sensitive, and request parameters are upper-cased by default",
+   "== compares references, and a runtime-built string is a distinct object"
+  ],
+  "correctIndex": 3,
+  "explanation": "For objects, == checks whether both operands are the same instance. The literal \"admin\" is interned, but a string parsed from a request is a new object with the same characters, so == is false. Use \"admin\".equals(input), which compares contents and is also null-safe in that order.",
+  "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html"
+ },
+ {
+  "id": "ds-str-turkish-i",
+  "topic": "data-structures",
+  "subtopic": "strings",
+  "difficulty": "Expert",
+  "title": "Culture-sensitive case conversion",
+  "question": "A C# check uses ext.ToUpper() == \"FILE\". It passes in tests but fails on servers whose current culture is tr-TR. Why, and what is the fix?",
+  "options": [
+   "Turkish upper-cases i to dotted I (U+0130); compare with OrdinalIgnoreCase",
+   "tr-TR stores strings as UTF-32 internally; convert both sides to UTF-8 first",
+   "ToUpper is evaluated lazily under some cultures; call ToString() to force it",
+   "tr-TR sorts capitals after lowercase; use String.Compare with CurrentCulture"
+  ],
+  "correctIndex": 0,
+  "explanation": "ToUpper() uses the current culture, and in Turkish the lowercase dotted i maps to U+0130 (capital I with dot), so \"file\" becomes \"F\u0130LE\" and the comparison fails. Identifiers, file extensions and protocol tokens should use string.Equals(a, b, StringComparison.OrdinalIgnoreCase) or invariant casing. .NET strings are always UTF-16 and ToUpper is not lazy.",
+  "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/base-types/best-practices-strings"
+ },
+ {
+  "id": "ds-hash-open-addressing-delete",
+  "topic": "data-structures",
+  "subtopic": "hash-tables",
+  "difficulty": "Hard",
+  "title": "Deleting from an open-addressing table",
+  "question": "In a linear-probing hash table, deleting a key by simply marking its slot empty causes later lookups of other keys to fail. Why, and what is the standard fix?",
+  "options": [
+   "An empty slot cuts the probe chain; use tombstones or shift later entries back",
+   "Deleting changes the hash seed of every key; rehash the table after each delete",
+   "An empty slot drops the load factor below its minimum; shrink on every delete",
+   "Probing restarts from slot zero after an empty slot; scan the whole table instead"
+  ],
+  "correctIndex": 0,
+  "explanation": "A lookup probes successive slots until it finds the key or an empty slot, so emptying a slot in the middle of a cluster makes keys placed after it unreachable. Implementations mark deleted slots with a tombstone (as CPython's dict does with dummy entries) or move later cluster entries back. Deletion does not touch the hash function or require shrinking.",
+  "referenceUrl": "https://xlinux.nist.gov/dads/HTML/openAddressing.html"
+ },
+ {
+  "id": "ds-ll-index-access",
+  "topic": "data-structures",
+  "subtopic": "linked-lists",
+  "difficulty": "Easy",
+  "title": "Reading the k-th node",
+  "question": "What is the cost of reading the k-th element of a singly linked list when you only hold a reference to the head?",
+  "options": [
+   "O(1), since each node stores its own index",
+   "O(log k), since the list can be binary searched",
+   "O(k), since you must follow k next pointers",
+   "O(1) amortized, since visited nodes are cached"
+  ],
+  "correctIndex": 2,
+  "explanation": "Linked list nodes are scattered in memory and only know their successor, so reaching position k means walking k links from the head. There is no index arithmetic as with arrays, and binary search needs random access, which a linked list does not offer.",
+  "referenceUrl": "https://xlinux.nist.gov/dads/HTML/linkedList.html"
+ },
+ {
+  "id": "ds-ll-reverse-in-place",
+  "topic": "data-structures",
+  "subtopic": "linked-lists",
+  "difficulty": "Medium",
+  "title": "Reversing a singly linked list",
+  "question": "You must reverse a singly linked list of n nodes in O(n) time using O(1) extra memory. Which approach works?",
+  "options": [
+   "Push every node onto a stack, then pop them to relink the list",
+   "Recursively reverse the tail, then append the head at its end",
+   "Walk once with prev, curr and next pointers, flipping each link",
+   "Swap the values of node i and node n-1-i for each i below n/2"
+  ],
+  "correctIndex": 2,
+  "explanation": "The iterative approach saves curr.next, points curr.next at prev, then advances, touching each node once with three pointers: O(n) time and O(1) space. A stack needs O(n) extra memory, recursion uses O(n) call-stack frames, and swapping values from both ends requires walking to node n-1-i each time in a singly linked list, which is O(n^2).",
+  "referenceUrl": "https://xlinux.nist.gov/dads/HTML/linkedList.html"
+ },
+ {
+  "id": "ds-ll-lru-cache",
+  "topic": "data-structures",
+  "subtopic": "linked-lists",
+  "difficulty": "Hard",
+  "title": "Data structures behind an LRU cache",
+  "question": "An in-memory LRU cache must support get and put in O(1) and evict the least recently used entry when full. Which combination is the standard design?",
+  "options": [
+   "A min-heap keyed by last access time plus an array holding the values",
+   "A hash map pointing to nodes of a doubly linked list kept in recency order",
+   "A singly linked list that is scanned from the head on every get call",
+   "A sorted array of access timestamps searched with binary search each time"
+  ],
+  "correctIndex": 1,
+  "explanation": "The hash map finds a key's node in O(1), and the doubly linked list lets you unlink that node and move it to the front in O(1) because it has a prev pointer; the tail is the eviction victim. A heap makes updates O(log n), and scanning or keeping a sorted array costs O(n). Java's LinkedHashMap with access order and removeEldestEntry implements exactly this.",
+  "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/LinkedHashMap.html"
+ },
+ {
+  "id": "ds-stack-lifo-pops",
+  "topic": "data-structures",
+  "subtopic": "stacks",
+  "difficulty": "Easy",
+  "title": "Pop order of a stack",
+  "question": "A stack starts empty. You push 1, push 2, push 3, then pop twice. Which values are returned, in order?",
+  "options": [
+   "1, then 2",
+   "3, then 1",
+   "2, then 3",
+   "3, then 2"
+  ],
+  "correctIndex": 3,
+  "explanation": "A stack is last-in, first-out: the most recently pushed element is removed first, so the pops return 3 and then 2, leaving 1. Returning 1 first would be FIFO queue behaviour.",
+  "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.stack-1"
+ },
+ {
+  "id": "ds-stack-postfix-eval",
+  "topic": "data-structures",
+  "subtopic": "stacks",
+  "difficulty": "Medium",
+  "title": "Evaluating postfix with a stack",
+  "question": "A calculator evaluates the postfix (RPN) expression 3 4 + 2 * with a stack: operands are pushed, and each operator pops two values and pushes the result. What is the final value?",
+  "options": [
+   "14",
+   "11",
+   "24",
+   "9"
+  ],
+  "correctIndex": 0,
+  "explanation": "Push 3 and 4; + pops them and pushes 7; push 2; * pops 7 and 2 and pushes 14, the only value left. 11 would be infix 3 + 4 * 2 with normal precedence. Postfix needs no parentheses or precedence rules because operand order on the stack already encodes the grouping.",
+  "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.stack-1"
+ },
+ {
+  "id": "ds-stack-min-stack",
+  "topic": "data-structures",
+  "subtopic": "stacks",
+  "difficulty": "Hard",
+  "title": "Stack with constant-time minimum",
+  "question": "A stack must support push, pop and getMin, all in O(1) time. Which design achieves it?",
+  "options": [
+   "Keep a second stack recording the current minimum at each push",
+   "Track the minimum in one variable, updating it whenever you push",
+   "Keep the elements sorted on insert so the minimum sits at the bottom",
+   "Scan the stack on each getMin call and cache the result for later"
+  ],
+  "correctIndex": 0,
+  "explanation": "Pushing min(value, current minimum) onto an auxiliary stack keeps the minimum for every stack height, so pop simply pops both stacks and getMin peeks. A single variable cannot recover the previous minimum after the minimum is popped, sorting makes push O(n) and breaks LIFO order, and scanning is O(n).",
+  "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.stack-1"
+ },
+ {
+  "id": "ds-queue-two-stacks",
+  "topic": "data-structures",
+  "subtopic": "queues",
+  "difficulty": "Medium",
+  "title": "Queue built from two stacks",
+  "question": "A FIFO queue is built from two stacks, in and out. Enqueue pushes onto in; dequeue pops from out, refilling out from in only when out is empty. What is the cost per operation?",
+  "options": [
+   "O(n) for every dequeue, since in is reversed on each call",
+   "O(log n) per operation, since two stacks act as a balanced tree",
+   "Amortized O(1), as each element moves between stacks only once",
+   "O(1) worst case for every call, with no expensive refill steps"
+  ],
+  "correctIndex": 2,
+  "explanation": "Each element is pushed onto in once, moved to out once and popped once, so n operations do O(n) work in total: amortized O(1). An individual dequeue that triggers a refill is O(n), so the worst case per call is not O(1), but refills only happen when out is empty, not on every call.",
+  "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.queue-1"
+ },
+ {
+  "id": "ds-queue-python-thread-queue",
+  "topic": "data-structures",
+  "subtopic": "queues",
+  "difficulty": "Medium",
+  "title": "Blocking queue for worker threads",
+  "question": "In Python, worker threads must block until a job is available, and the producer must wait until all jobs are processed. Which class fits directly?",
+  "options": [
+   "queue.Queue, with blocking get/put plus task_done() and join()",
+   "collections.deque, whose popleft() blocks while the deque is empty",
+   "A list with pop(0), which the GIL turns into a blocking queue",
+   "heapq, whose heappop() waits until a producer pushes another item"
+  ],
+  "correctIndex": 0,
+  "explanation": "queue.Queue is the synchronized FIFO for threads: get() blocks until an item arrives, task_done() marks work finished and join() waits for all items. deque's append and popleft are thread-safe but popleft raises IndexError on an empty deque instead of blocking, and lists and heapq provide no blocking or completion tracking.",
+  "referenceUrl": "https://docs.python.org/3/library/queue.html"
+ },
+ {
+  "id": "ds-queue-bounded-backpressure",
+  "topic": "data-structures",
+  "subtopic": "queues",
+  "difficulty": "Hard",
+  "title": "Unbounded queue and memory growth",
+  "question": "A .NET ingestion service writes messages into an unbounded Channel<T> faster than workers can process them, and memory grows until the pod is OOM-killed. What is the most appropriate fix?",
+  "options": [
+   "Switch to ConcurrentQueue<T>, which trims old items under memory pressure",
+   "Use Channel.CreateBounded so writers wait or drop when it is full",
+   "Raise the pod's memory limit, since the queue will drain once traffic drops",
+   "Call GC.Collect() after each batch so the queued messages are reclaimed"
+  ],
+  "correctIndex": 1,
+  "explanation": "A bounded channel applies backpressure: with BoundedChannelFullMode.Wait, WriteAsync waits until there is room, or you can choose a drop policy. ConcurrentQueue is also unbounded, more memory only delays the crash while load stays higher than throughput, and the GC cannot collect messages that the queue still references.",
+  "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/extensions/channels"
+ },
+ {
+  "id": "ds-queue-sliding-window-max",
+  "topic": "data-structures",
+  "subtopic": "queues",
+  "difficulty": "Expert",
+  "title": "Sliding window maximum",
+  "question": "A monitoring job must output the maximum latency of every window of k consecutive samples over n samples in O(n) total time. Which approach achieves it?",
+  "options": [
+   "A max-heap of the current window that removes the expired sample every step",
+   "A sorted list of the window, inserting and deleting with binary search each step",
+   "A deque of indices in decreasing value order, expiring old ones at the front",
+   "One running maximum that is recomputed only when the old maximum leaves the window"
+  ],
+  "correctIndex": 2,
+  "explanation": "Each new sample pops smaller values off the back of the deque (they can never be a future maximum), indices outside the window are removed from the front, and the front is the window maximum; every index enters and leaves once, so the total is O(n). A heap gives O(n log n) or O(n log k), list insertion shifts elements, and recomputing the maximum can cost O(k) per step on decreasing input.",
+  "referenceUrl": "https://docs.python.org/3/library/collections.html"
+ },
+ {
+  "id": "ds-tree-level-capacity",
+  "topic": "data-structures",
+  "subtopic": "trees",
+  "difficulty": "Easy",
+  "title": "Maximum nodes on a level",
+  "question": "In a binary tree, the root is at level 0. What is the maximum number of nodes that level 4 can contain?",
+  "options": [
+   "8",
+   "16",
+   "31",
+   "4"
+  ],
+  "correctIndex": 1,
+  "explanation": "Each node has at most two children, so the maximum doubles at every level: 2^k nodes on level k, which is 2^4 = 16 at level 4. 31 is the maximum for the whole tree through level 4 (2^5 - 1), and 8 is the maximum for level 3.",
+  "referenceUrl": "https://xlinux.nist.gov/dads/HTML/binarytree.html"
+ },
+ {
+  "id": "ds-tree-rebuild-traversals",
+  "topic": "data-structures",
+  "subtopic": "trees",
+  "difficulty": "Medium",
+  "title": "Rebuilding a tree from traversals",
+  "question": "A service stores a binary tree with distinct keys as traversal sequences, without null markers, and must rebuild exactly the same shape. Which traversals are sufficient?",
+  "options": [
+   "Pre-order together with in-order",
+   "In-order traversal on its own",
+   "Pre-order together with post-order",
+   "Level-order traversal on its own"
+  ],
+  "correctIndex": 0,
+  "explanation": "Pre-order identifies each subtree's root, and the root's position in the in-order sequence splits the remaining keys into left and right subtrees, which determines the tree uniquely. A single traversal fits many shapes, and pre-order plus post-order cannot tell whether a lone child is a left or a right child. With null markers, a single pre-order would suffice.",
+  "referenceUrl": "https://xlinux.nist.gov/dads/HTML/inorderTraversal.html"
+ },
+ {
+  "id": "ds-tree-balanced-check",
+  "topic": "data-structures",
+  "subtopic": "trees",
+  "difficulty": "Hard",
+  "title": "Checking height balance efficiently",
+  "question": "To check whether a binary tree is height-balanced, a function calls height(left) and height(right) at every node, and height() recurses through the whole subtree, so nodes are visited many times. Which approach does the check in O(n)?",
+  "options": [
+   "A post-order pass returning each subtree's height or a failure flag",
+   "A pre-order pass comparing the depths of the first and last leaves",
+   "A level-order pass that checks every level is completely filled",
+   "An in-order pass that verifies the keys come out in sorted order"
+  ],
+  "correctIndex": 0,
+  "explanation": "Computing heights bottom-up lets each node decide balance from its children's returned heights, so every node is visited once; a sentinel such as -1 propagates failure early. Comparing two leaves ignores the rest of the tree, a completely filled level test checks a much stricter shape, and sorted in-order output checks the BST property, not balance.",
+  "referenceUrl": "https://xlinux.nist.gov/dads/HTML/heightBalancedTree.html"
+ },
+ {
+  "id": "ds-bst-minimum",
+  "topic": "data-structures",
+  "subtopic": "binary-search-trees",
+  "difficulty": "Easy",
+  "title": "Finding the minimum in a BST",
+  "question": "Where is the smallest key in a binary search tree?",
+  "options": [
+   "At the root, since a BST keeps its smallest key on top like a heap",
+   "At the deepest leaf, whichever subtree of the root contains it",
+   "At the rightmost node, found by following right links from the root",
+   "At the leftmost node, found by following left links from the root"
+  ],
+  "correctIndex": 3,
+  "explanation": "Every key in a node's left subtree is smaller than the node, so repeatedly going left until there is no left child reaches the minimum in O(h) steps. That node may still have a right child, so it is not necessarily a leaf. The root holds the minimum only in a heap, and the rightmost node holds the maximum.",
+  "referenceUrl": "https://xlinux.nist.gov/dads/HTML/binarySearchTree.html"
+ },
+ {
+  "id": "ds-bst-avl-vs-redblack",
+  "topic": "data-structures",
+  "subtopic": "binary-search-trees",
+  "difficulty": "Expert",
+  "title": "AVL versus red-black trees",
+  "question": "You are choosing a self-balancing BST for an in-memory index. Compared with a red-black tree, what is the typical tradeoff of an AVL tree?",
+  "options": [
+   "Looser balance speeds up inserts, but lookups degrade to O(n) on sorted keys",
+   "It needs no rotations at all, but stores an extra parent pointer per node",
+   "Stricter balance gives faster lookups, but updates do more rebalancing",
+   "It guarantees O(1) lookups, but only when keys arrive in random order"
+  ],
+  "correctIndex": 2,
+  "explanation": "An AVL tree keeps subtree heights within one, bounding its height near 1.44 log2 n, while a red-black tree only guarantees height at most 2 log2(n+1), so AVL lookups take fewer comparisons. The price is more rotations on updates (deletions can rotate along the whole path), whereas red-black trees need O(1) rotations per insert or delete, which is why many libraries use them. Both stay O(log n) and both rotate.",
+  "referenceUrl": "https://xlinux.nist.gov/dads/HTML/redblack.html"
+ },
+ {
+  "id": "ds-heap-array-children",
+  "topic": "data-structures",
+  "subtopic": "heaps",
+  "difficulty": "Easy",
+  "title": "Child indices in an array heap",
+  "question": "Python's heapq stores a binary heap in a zero-based list. Which indices hold the children of the element at index k?",
+  "options": [
+   "2*k and 2*k + 1",
+   "2*k + 1 and 2*k + 2",
+   "k + 1 and k + 2",
+   "k // 2 and k // 2 + 1"
+  ],
+  "correctIndex": 1,
+  "explanation": "With zero-based indexing the heap invariant is heap[k] <= heap[2*k+1] and heap[k] <= heap[2*k+2], and the parent of i is (i - 1) // 2. The pair 2k and 2k+1 is the one-based convention used in many textbooks, and k // 2 relates to the parent, not the children.",
+  "referenceUrl": "https://docs.python.org/3/library/heapq.html"
+ },
+ {
+  "id": "ds-heap-merge-k-sorted",
+  "topic": "data-structures",
+  "subtopic": "heaps",
+  "difficulty": "Medium",
+  "title": "Merging k sorted files",
+  "question": "You must merge k sorted log files with N lines in total into a single sorted stream. Which approach runs in O(N log k)?",
+  "options": [
+   "Concatenate every file into one list and sort it with a general sort",
+   "Scan the head line of all k files to pick the smallest one each time",
+   "Merge file 1 with file 2, then that result with file 3, and so on",
+   "Keep a min-heap of each file's current head line; pop and refill"
+  ],
+  "correctIndex": 3,
+  "explanation": "The heap never holds more than k entries, so each of the N pops and pushes costs O(log k), and the stream needs only O(k) memory; Python's heapq.merge works this way. Sorting everything is O(N log N) and needs all data in memory, scanning k heads is O(N k), and sequential pairwise merging re-copies early lines up to k times.",
+  "referenceUrl": "https://docs.python.org/3/library/heapq.html"
+ },
+ {
+  "id": "ds-trie-end-marker",
+  "topic": "data-structures",
+  "subtopic": "tries",
+  "difficulty": "Easy",
+  "title": "End-of-word flag in a trie",
+  "question": "A trie contains only the word \"cart\". Why does each node need an end-of-word flag in addition to its child links?",
+  "options": [
+   "So the root node knows how many children it currently has",
+   "So a search for \"car\" is not reported as a stored word",
+   "So deleting \"cart\" can free all of its nodes in O(1) time",
+   "So the trie can return its words in reverse alphabetical order"
+  ],
+  "correctIndex": 1,
+  "explanation": "The path c-a-r exists because it is a prefix of cart, so path existence alone cannot distinguish stored words from prefixes; the flag on the final node marks a complete word. Child counts, deletion cost and output order are unrelated to this marker.",
+  "referenceUrl": "https://xlinux.nist.gov/dads/HTML/trie.html"
+ },
+ {
+  "id": "ds-trie-unicode-children",
+  "topic": "data-structures",
+  "subtopic": "tries",
+  "difficulty": "Medium",
+  "title": "Trie node child storage",
+  "question": "A product-search trie gives every node a fixed array of 65,536 child pointers so it can index any UTF-16 code unit. Memory runs out after a few thousand names. What is the usual fix?",
+  "options": [
+   "Grow the array to 1,114,112 slots so it covers every code point",
+   "Store children in a map or sorted list holding only the edges used",
+   "Lowercase every name so each node needs only 32,768 child slots",
+   "Allocate a node's child array on first lookup instead of on insert"
+  ],
+  "correctIndex": 1,
+  "explanation": "With 8-byte pointers each node costs about 512 KB even though most have one or two children. A hash map or sorted array of (character, child) pairs stores only existing edges, trading a little lookup speed for orders of magnitude less memory. A bigger array makes things worse, lowercasing does not halve the alphabet, and lazy allocation still allocates the full array per node.",
+  "referenceUrl": "https://xlinux.nist.gov/dads/HTML/trie.html"
+ },
+ {
+  "id": "ds-trie-aho-corasick",
+  "topic": "data-structures",
+  "subtopic": "tries",
+  "difficulty": "Expert",
+  "title": "Matching many patterns at once",
+  "question": "A content filter must find every occurrence of 50,000 banned phrases in each incoming message in time roughly linear in the message length plus the number of matches. Which structure is designed for this?",
+  "options": [
+   "A hash set of phrases probed with every substring of the message",
+   "An Aho-Corasick automaton: a trie of phrases plus failure links",
+   "A balanced BST of phrases searched once per word in the message",
+   "A radix tree of phrases restarted from its root at every offset"
+  ],
+  "correctIndex": 1,
+  "explanation": "Aho-Corasick builds a trie of all patterns and adds failure links (like KMP's failure function) so the scan never backs up: it runs in O(text length + total pattern length + matches). Probing every substring is quadratic in message length, per-word lookups miss phrases that span words or sit inside words, and restarting a trie at every offset costs O(text length x longest pattern).",
+  "referenceUrl": "https://xlinux.nist.gov/dads/HTML/ahoCorasick.html"
+ },
+ {
+  "id": "ds-graph-adjacency-matrix",
+  "topic": "data-structures",
+  "subtopic": "graphs",
+  "difficulty": "Medium",
+  "title": "Dense graph with edge queries",
+  "question": "A routing tool works on a dense graph of 2,000 nodes in which most pairs are connected, and its hot path asks \"is there an edge between u and v?\" millions of times. Which representation fits best?",
+  "options": [
+   "An adjacency list, scanning u's neighbours on each single check",
+   "An edge list sorted by source node, scanned for every query",
+   "An incidence list per edge, hashed by the weight of each edge",
+   "An adjacency matrix, giving O(1) edge checks at O(V^2) memory"
+  ],
+  "correctIndex": 3,
+  "explanation": "A V x V matrix answers edge queries with one index lookup; for 2,000 nodes that is 4 million cells, a few megabytes or less as bits, and a dense graph would need about that much space anyway. Adjacency lists win for sparse graphs but checking an edge costs O(degree), which is large here, and edge lists need a scan or search per query.",
+  "referenceUrl": "https://xlinux.nist.gov/dads/HTML/adjacencyMatrixRep.html"
+ },
+ {
+  "id": "ds-dsu-initial-sets",
+  "topic": "data-structures",
+  "subtopic": "disjoint-set",
+  "difficulty": "Easy",
+  "title": "Counting sets after unions",
+  "question": "A union-find structure is initialised with 8 elements, each in its own set. Then union(1, 2), union(3, 4) and union(2, 1) are called. How many disjoint sets remain?",
+  "options": [
+   "5",
+   "8",
+   "6",
+   "4"
+  ],
+  "correctIndex": 2,
+  "explanation": "Initialisation creates 8 singleton sets. union(1, 2) and union(3, 4) each merge two different sets, leaving 6, and union(2, 1) finds that both elements already share a root, so nothing changes. Only unions of elements in different sets reduce the count.",
+  "referenceUrl": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.DisjointSet.html"
+ },
+ {
+  "id": "ds-dsu-naive-chain",
+  "topic": "data-structures",
+  "subtopic": "disjoint-set",
+  "difficulty": "Medium",
+  "title": "Union-find without balancing",
+  "question": "A union-find implementation always attaches the first root under the second and never compresses paths. After union(0,1), union(1,2), ..., union(n-2,n-1), what is the worst-case cost of find?",
+  "options": [
+   "O(log n), because every union at least doubles a tree's size",
+   "O(n), because the forest has become one long chain",
+   "O(1), because every element points directly at its root",
+   "O(alpha(n)), because unions perform path halving implicitly"
+  ],
+  "correctIndex": 1,
+  "explanation": "Each union hangs the existing tree's root under the new element, producing the chain 0 -> 1 -> ... -> n-1, so find(0) walks n-1 links. The O(log n) bound needs union by size or rank, O(1) find describes quick-find, and the near-constant alpha(n) bound requires both balancing and path compression.",
+  "referenceUrl": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.DisjointSet.html"
+ },
+ {
+  "id": "ds-dsu-no-deletions",
+  "topic": "data-structures",
+  "subtopic": "disjoint-set",
+  "difficulty": "Hard",
+  "title": "Splitting sets in union-find",
+  "question": "A social app uses union-find to answer \"are these two users in the same friend cluster?\". Product now wants unfriending to split clusters immediately. Why is this a problem?",
+  "options": [
+   "Union-find can split sets, but only by replaying path compression in reverse",
+   "Union-find only merges sets; splitting needs a rebuild or another structure",
+   "Splitting costs O(alpha(n)) but invalidates every rank stored in the forest",
+   "Union-find supports deletes only when union by size is used instead of rank"
+  ],
+  "correctIndex": 1,
+  "explanation": "A disjoint-set forest has no split operation: path compression discards the original edges, so removing a friendship cannot be undone locally. Options include rebuilding from the current edge list, processing deletions offline in reverse time order (so they become unions), or using fully dynamic connectivity structures. Neither rank nor size heuristics change this.",
+  "referenceUrl": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.DisjointSet.html"
+ },
+ {
+  "id": "ds-mat-transpose-shape",
+  "topic": "data-structures",
+  "subtopic": "matrices",
+  "difficulty": "Easy",
+  "title": "Shape of a transpose",
+  "question": "A NumPy array m has shape (3, 5). What is the shape of m.T?",
+  "options": [
+   "(3, 5)",
+   "(15,)",
+   "(5, 3)",
+   "(1, 15)"
+  ],
+  "correctIndex": 2,
+  "explanation": "Transposing swaps rows and columns, so element (i, j) moves to (j, i) and the shape becomes (5, 3). For a 2-D array NumPy returns a view with swapped strides rather than copying data. Reshaping, not transposing, would produce (15,) or (1, 15).",
+  "referenceUrl": "https://numpy.org/doc/stable/reference/generated/numpy.transpose.html"
+ },
+ {
+  "id": "ds-mat-rotate-in-place",
+  "topic": "data-structures",
+  "subtopic": "matrices",
+  "difficulty": "Medium",
+  "title": "Rotating a square matrix",
+  "question": "You must rotate an n x n image matrix 90 degrees clockwise in place. Which sequence of operations does it?",
+  "options": [
+   "Reverse each row, then transpose the matrix",
+   "Transpose the matrix, then reverse each column",
+   "Transpose the matrix, then reverse each row",
+   "Reverse each column, then reverse each row"
+  ],
+  "correctIndex": 2,
+  "explanation": "For [[1,2],[3,4]], transposing gives [[1,3],[2,4]] and reversing each row gives [[3,1],[4,2]], the clockwise rotation; both steps are in-place swaps. Reversing rows before transposing, or transposing then flipping vertically, yields the counter-clockwise rotation, and reversing both rows and columns rotates by 180 degrees. In NumPy, np.rot90(m, k=-1) does the clockwise rotation.",
+  "referenceUrl": "https://numpy.org/doc/stable/reference/generated/numpy.rot90.html"
+ },
+ {
+  "id": "ds-mat-loop-tiling",
+  "topic": "data-structures",
+  "subtopic": "matrices",
+  "difficulty": "Expert",
+  "title": "Cache blocking for matrix multiply",
+  "question": "A triple-loop multiply of two 4096 x 4096 row-major double matrices is slow. After reordering the loops to i-k-j so B is read row by row, it is still memory-bound because B's rows are evicted from cache before they are reused. Which optimisation targets this?",
+  "options": [
+   "Loop unrolling: repeat the body several times to cut branch overhead",
+   "Loop tiling: multiply blocks sized to fit in cache so each is reused",
+   "Store B in a hash map keyed by (row, col) so layout stops mattering",
+   "Prefetch all of B into registers once, before the outer loop begins"
+  ],
+  "correctIndex": 1,
+  "explanation": "Tiling (blocking) splits the matrices into sub-blocks small enough to stay in L1/L2, so each loaded element is reused many times before eviction, cutting memory traffic dramatically; optimised BLAS libraries are built around it. Unrolling reduces loop overhead but not cache misses, a hash map destroys locality, and a 128 MB matrix cannot fit in registers.",
+  "referenceUrl": "https://lwn.net/Articles/255364/"
+ }
+]

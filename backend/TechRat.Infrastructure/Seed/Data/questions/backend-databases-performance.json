@@ -1,0 +1,1498 @@
+[
+  {
+    "id": "be-http-put-idempotent",
+    "topic": "backend-engineering",
+    "subtopic": "http-rest",
+    "difficulty": "Easy",
+    "title": "Idempotent HTTP methods",
+    "question": "Which set of HTTP methods is defined as idempotent by RFC 9110?",
+    "options": [
+      "POST, PUT and DELETE",
+      "GET, POST and PATCH",
+      "GET, PUT and DELETE",
+      "PATCH, PUT and GET"
+    ],
+    "correctIndex": 2,
+    "explanation": "RFC 9110 defines PUT, DELETE and all safe methods (GET, HEAD, OPTIONS, TRACE) as idempotent: repeating the request has the same intended effect on the server as sending it once. POST is not idempotent, and PATCH is not guaranteed to be idempotent because a patch document may describe a relative change (e.g. 'append item').",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9110.html"
+  },
+  {
+    "id": "be-http-201-location",
+    "topic": "backend-engineering",
+    "subtopic": "http-rest",
+    "difficulty": "Easy",
+    "title": "Response for a created resource",
+    "question": "A POST /orders request successfully creates a new order with id 42. Which response best follows HTTP semantics?",
+    "options": [
+      "201 Created with a Location header pointing to /orders/42",
+      "200 OK with the order id in a custom X-Id header",
+      "202 Accepted with a Content-Location of /orders",
+      "204 No Content with a Link header to /orders/42"
+    ],
+    "correctIndex": 0,
+    "explanation": "201 Created signals that one or more new resources were created, and the Location header identifies the primary one. 200 works but loses meaning, 202 implies the work is not finished yet, and 204 says there is no body without conveying creation.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/201"
+  },
+  {
+    "id": "be-http-409-vs-422",
+    "topic": "backend-engineering",
+    "subtopic": "http-rest",
+    "difficulty": "Medium",
+    "title": "Choosing 409, 412 or 422",
+    "question": "A client sends a PUT with If-Match: \"v7\", but the resource's current ETag is \"v8\" because another client updated it. Which status code should the server return?",
+    "options": [
+      "409 Conflict",
+      "428 Precondition Required",
+      "422 Unprocessable Content",
+      "412 Precondition Failed"
+    ],
+    "correctIndex": 3,
+    "explanation": "When a conditional request header such as If-Match evaluates to false, RFC 9110 specifies 412 Precondition Failed. 409 is for conflicts with resource state not expressed via preconditions, 422 is for syntactically valid but semantically invalid content, and 428 is used when the server requires a precondition the client did not send.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/412"
+  },
+  {
+    "id": "be-http-vary-header",
+    "topic": "backend-engineering",
+    "subtopic": "http-rest",
+    "difficulty": "Hard",
+    "title": "Caches serving the wrong representation",
+    "question": "An API returns gzip-compressed JSON when the request has Accept-Encoding: gzip and plain JSON otherwise. A shared CDN cache sometimes serves gzip bytes to clients that cannot decode them. What is the root-cause fix?",
+    "options": [
+      "Send Cache-Control: no-transform on every compressed response",
+      "Send Vary: Accept-Encoding so the cache keys on that request header",
+      "Add an ETag so the CDN revalidates each compressed response",
+      "Set Content-Location to a different URL for compressed bodies"
+    ],
+    "correctIndex": 1,
+    "explanation": "Vary tells caches which request headers were used to select the representation, so they store separate variants per Accept-Encoding value. no-transform only stops intermediaries from modifying the payload, an ETag enables revalidation but does not split the cache key, and Content-Location does not change how the cache keys the original request URL.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Vary"
+  },
+  {
+    "id": "be-api-cursor-pagination",
+    "topic": "backend-engineering",
+    "subtopic": "api-design",
+    "difficulty": "Medium",
+    "title": "Offset vs cursor pagination",
+    "question": "A feed endpoint uses ?offset=N&limit=50 over a table that receives many inserts per second. Users report duplicated and skipped items while scrolling, and deep pages are slow. Which change addresses both problems?",
+    "options": [
+      "Increase the page size so fewer pages are fetched",
+      "Keyset (cursor) pagination on a stable, unique sort key",
+      "Cache each offset page for a few minutes in Redis",
+      "Add COUNT(*) to return the total number of pages"
+    ],
+    "correctIndex": 1,
+    "explanation": "With OFFSET, new rows shift positions between requests (duplicates/skips) and the database must still read and discard the first N rows. A cursor like WHERE (created_at, id) < (:c, :id) ORDER BY created_at DESC, id DESC LIMIT 50 is stable under inserts and uses an index seek. Bigger pages or caching only mask the problem, and COUNT(*) adds cost.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-limit.html"
+  },
+  {
+    "id": "be-api-versioning-breaking",
+    "topic": "backend-engineering",
+    "subtopic": "api-design",
+    "difficulty": "Easy",
+    "title": "What is a breaking change",
+    "question": "Which change to a public JSON REST API is most likely to be a breaking change for existing clients?",
+    "options": [
+      "Renaming an existing response field from userName to username",
+      "Adding a new field to a response object",
+      "Adding a brand-new endpoint under the same version",
+      "Adding a new optional query parameter to a list endpoint"
+    ],
+    "correctIndex": 0,
+    "explanation": "Clients that read userName will silently get nothing after the rename, so it needs a new version or a deprecation period. Adding optional parameters, new response fields, or new endpoints are additive changes that well-behaved clients (which ignore unknown fields) tolerate.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design"
+  },
+  {
+    "id": "be-api-problem-details",
+    "topic": "backend-engineering",
+    "subtopic": "api-design",
+    "difficulty": "Easy",
+    "title": "Standard error body format",
+    "question": "Which standard defines a machine-readable JSON error format with fields like type, title, status and detail, served as application/problem+json?",
+    "options": [
+      "RFC 9457 Problem Details for HTTP APIs",
+      "RFC 7519 JSON Web Token",
+      "RFC 6749 OAuth 2.0 Authorization Framework",
+      "RFC 8288 Web Linking"
+    ],
+    "correctIndex": 0,
+    "explanation": "RFC 9457 (which obsoletes RFC 7807) defines Problem Details, giving APIs a consistent error envelope. RFC 7519 is JWT, RFC 8288 defines the Link header (useful for pagination links), and RFC 6749 is OAuth 2.0.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9457.html"
+  },
+  {
+    "id": "be-api-patch-semantics",
+    "topic": "backend-engineering",
+    "subtopic": "api-design",
+    "difficulty": "Hard",
+    "title": "PATCH vs PUT for partial updates",
+    "question": "A client wants to change only a user's email. Sending PUT /users/7 with body {\"email\":\"a@b.c\"} wiped the user's name and phone. Why, and what is the correct alternative?",
+    "options": [
+      "The server ignored If-Match; resend PUT with a strong ETag",
+      "PUT is not idempotent; retry it with an Idempotency-Key header",
+      "PUT replaces the whole representation; use PATCH with a patch format such as JSON Merge Patch",
+      "PUT requires all fields to be null-safe; send POST to /users/7/email"
+    ],
+    "correctIndex": 2,
+    "explanation": "PUT semantics are to replace the target resource's state with the enclosed representation, so omitted fields are legitimately cleared. PATCH applies a partial modification described by a patch document (e.g. application/merge-patch+json or JSON Patch). PUT is idempotent, and ETags prevent lost updates but do not change replacement semantics.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/PATCH"
+  },
+  {
+    "id": "be-auth-cookie-flags",
+    "topic": "backend-engineering",
+    "subtopic": "auth",
+    "difficulty": "Easy",
+    "title": "Secure session cookie attributes",
+    "question": "Which Set-Cookie attributes best protect a session cookie from JavaScript access and from being sent over plain HTTP?",
+    "options": [
+      "HttpOnly and Secure",
+      "Partitioned and Expires",
+      "Domain and Max-Age",
+      "SameSite=None and Path=/"
+    ],
+    "correctIndex": 0,
+    "explanation": "HttpOnly prevents document.cookie access (limiting theft via XSS), and Secure ensures the cookie is only sent over HTTPS. SameSite=None actually loosens cross-site sending, Domain/Max-Age control scope and lifetime, and Partitioned relates to third-party cookie partitioning.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie"
+  },
+  {
+    "id": "be-auth-pkce",
+    "topic": "backend-engineering",
+    "subtopic": "auth",
+    "difficulty": "Medium",
+    "title": "Why PKCE exists",
+    "question": "A mobile app uses the OAuth 2.0 authorization code flow. What attack does adding PKCE (code_verifier/code_challenge) primarily mitigate?",
+    "options": [
+      "Replay of an expired refresh token by the user",
+      "Interception of the authorization code by a malicious app",
+      "Forgery of the access token's signature",
+      "Brute-forcing of the user's password at the login page"
+    ],
+    "correctIndex": 1,
+    "explanation": "PKCE (RFC 7636) binds the authorization request to a secret code_verifier, so an attacker who intercepts the authorization code (e.g. via a custom URI scheme) cannot redeem it. It does not address token signature forgery, refresh token replay, or password brute force; current OAuth security guidance recommends PKCE for all clients.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc7636.html"
+  },
+  {
+    "id": "be-auth-jwt-alg-none",
+    "topic": "backend-engineering",
+    "subtopic": "auth",
+    "difficulty": "Hard",
+    "title": "JWT algorithm validation",
+    "question": "An API verifies JWTs by reading the alg value from the token header and using whatever algorithm it names. What is the main risk?",
+    "options": [
+      "Tokens become larger and exceed header size limits",
+      "Attackers can choose 'none' or swap RS256 for HS256 to forge tokens",
+      "The exp claim is ignored for asymmetric algorithms",
+      "Clock skew causes valid tokens to be rejected"
+    ],
+    "correctIndex": 1,
+    "explanation": "RFC 8725 (JWT Best Current Practices) requires libraries to let the application specify an allow-list of algorithms and not trust the header's alg blindly. Otherwise an attacker may send alg=none or use the public RSA key as an HMAC secret. Size, clock skew, and exp handling are unrelated to algorithm selection.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc8725.html"
+  },
+  {
+    "id": "be-auth-jwt-revocation",
+    "topic": "backend-engineering",
+    "subtopic": "auth",
+    "difficulty": "Expert",
+    "title": "Revoking stateless access tokens",
+    "question": "Your system issues self-contained JWT access tokens valid for 24 hours. Security asks that a compromised user's access be cut off within minutes without a database lookup on every request. Which design best fits?",
+    "options": [
+      "Keep 24h tokens and rotate the signing key whenever any user is compromised",
+      "Store the JWT in localStorage and clear it remotely via a push message",
+      "Encrypt the JWT with JWE so a stolen token cannot be read",
+      "Short-lived access tokens (~5 min) plus revocable refresh tokens checked at refresh time"
+    ],
+    "correctIndex": 3,
+    "explanation": "Self-contained tokens cannot be revoked without state, so bounding their lifetime limits exposure, while server-side refresh tokens (ideally rotated) give a revocation point. Rotating keys logs everyone out, remote clearing does nothing against an attacker's copy, and encryption hides claims but does not stop replay of a stolen token.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9700.html"
+  },
+  {
+    "id": "be-rt-sse-vs-ws",
+    "topic": "backend-engineering",
+    "subtopic": "realtime",
+    "difficulty": "Easy",
+    "title": "SSE vs WebSockets",
+    "question": "A dashboard only needs to push one-way server updates to browsers over HTTP, with automatic reconnection. Which technology fits best with the least complexity?",
+    "options": [
+      "WebRTC data channels",
+      "Long polling with a 1-second interval",
+      "A WebSocket with a custom heartbeat protocol",
+      "Server-Sent Events via EventSource"
+    ],
+    "correctIndex": 3,
+    "explanation": "SSE is a one-way server-to-client stream over plain HTTP; the browser's EventSource reconnects automatically and supports Last-Event-ID resumption. WebSockets are full-duplex and require handling reconnection yourself, long polling adds overhead and latency, and WebRTC is designed for peer-to-peer media/data.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events"
+  },
+  {
+    "id": "be-rt-ws-scaleout",
+    "topic": "backend-engineering",
+    "subtopic": "realtime",
+    "difficulty": "Hard",
+    "title": "Scaling WebSocket chat servers",
+    "question": "A chat service runs 6 WebSocket server instances behind a load balancer. Messages sent by a user connected to instance A never reach recipients connected to instance D. What is the standard fix?",
+    "options": [
+      "Increase the load balancer idle timeout to 1 hour",
+      "Fan out messages through a shared backplane such as Redis pub/sub",
+      "Enable sticky sessions so all users land on instance A",
+      "Switch from WebSockets to HTTP/2 server push"
+    ],
+    "correctIndex": 1,
+    "explanation": "Each instance only knows its own connections, so cross-instance delivery needs a backplane (Redis pub/sub, a message broker) that every instance subscribes to. Sticky sessions keep one client on one instance but do not put different users together, HTTP/2 push was for preloading resources and is deprecated in browsers, and idle timeouts affect disconnects, not routing.",
+    "referenceUrl": "https://redis.io/docs/latest/develop/interact/pubsub/"
+  },
+  {
+    "id": "be-grpc-streaming-kinds",
+    "topic": "backend-engineering",
+    "subtopic": "grpc",
+    "difficulty": "Medium",
+    "title": "gRPC RPC types",
+    "question": "In a .proto file, which declaration defines a bidirectional streaming RPC?",
+    "options": [
+      "rpc Chat(stream Msg) returns (stream Msg);",
+      "rpc Chat(stream Msg) returns (Msg);",
+      "rpc Chat(Msg) returns (stream Msg);",
+      "rpc Chat(repeated Msg) returns (repeated Msg);"
+    ],
+    "correctIndex": 0,
+    "explanation": "gRPC supports unary, server streaming, client streaming, and bidirectional streaming, indicated by the stream keyword on request, response, or both. Stream only on the response is server streaming, stream only on the request is client streaming, and repeated is a field label, not valid in an rpc signature.",
+    "referenceUrl": "https://grpc.io/docs/what-is-grpc/core-concepts/"
+  },
+  {
+    "id": "be-grpc-deadlines",
+    "topic": "backend-engineering",
+    "subtopic": "grpc",
+    "difficulty": "Hard",
+    "title": "gRPC deadline propagation",
+    "question": "Service A calls B, which calls C via gRPC. During a C slowdown, A's callers time out after 2s but B and C keep working on abandoned requests for 30s, exhausting threads. What should be done?",
+    "options": [
+      "Add retries with exponential backoff from B to C",
+      "Set deadlines on calls and propagate the remaining deadline downstream",
+      "Raise B's thread pool size so abandoned work does not starve new requests",
+      "Switch B to client streaming so C can return partial results"
+    ],
+    "correctIndex": 1,
+    "explanation": "gRPC deadlines let a client specify how long it will wait; servers can check them and stop work, and propagating the remaining budget prevents downstream services from processing requests nobody is waiting for. More threads just delays exhaustion, streaming does not cancel work, and retries amplify load during a slowdown.",
+    "referenceUrl": "https://grpc.io/docs/guides/deadlines/"
+  },
+  {
+    "id": "be-jobs-at-least-once",
+    "topic": "backend-engineering",
+    "subtopic": "background-jobs",
+    "difficulty": "Medium",
+    "title": "At-least-once delivery consequences",
+    "question": "A queue offers at-least-once delivery. A worker charges a card, then crashes before acknowledging the message. What must the worker design account for?",
+    "options": [
+      "The message moves straight to the dead-letter queue",
+      "The message will be redelivered, so processing must be idempotent",
+      "The broker guarantees exactly-once, so no change is needed",
+      "The message is lost, so the charge must be logged separately"
+    ],
+    "correctIndex": 1,
+    "explanation": "With at-least-once semantics an unacknowledged message is redelivered after the lock/visibility timeout expires, so the charge could happen twice unless the worker deduplicates (e.g. by a payment idempotency key). The message is not lost, exactly-once is not implied, and dead-lettering only happens after the max delivery count is exceeded.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/competing-consumers"
+  },
+  {
+    "id": "be-jobs-dead-letter",
+    "topic": "backend-engineering",
+    "subtopic": "background-jobs",
+    "difficulty": "Easy",
+    "title": "Purpose of a dead-letter queue",
+    "question": "What is the main purpose of a dead-letter queue (DLQ) in a messaging system?",
+    "options": [
+      "Hold messages that repeatedly fail processing so they can be inspected",
+      "Buffer high-priority messages ahead of the main queue",
+      "Replicate messages to a second region for disaster recovery",
+      "Store messages until a consumer subscribes for the first time"
+    ],
+    "correctIndex": 0,
+    "explanation": "A DLQ isolates poison messages that exceed a max delivery count or expire, preventing them from blocking or endlessly retrying in the main queue, and lets operators inspect and resubmit them. It is not a subscription buffer, priority lane, or geo-replication mechanism.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-dead-letter-queues"
+  },
+  {
+    "id": "be-jobs-outbox",
+    "topic": "backend-engineering",
+    "subtopic": "background-jobs",
+    "difficulty": "Expert",
+    "title": "Dual-write between DB and broker",
+    "question": "An order service saves an order in PostgreSQL and then publishes OrderCreated to a broker. Occasionally the DB commit succeeds but the publish fails, so downstream services never learn about the order. Which pattern fixes this reliably?",
+    "options": [
+      "Publish the event first, then commit the order if the publish succeeds",
+      "Transactional outbox: write the event to an outbox table in the same transaction and relay it",
+      "Use a distributed lock in Redis around the commit and the publish",
+      "Wrap the DB write and the publish in a try/catch with three retries"
+    ],
+    "correctIndex": 1,
+    "explanation": "The outbox pattern makes the state change and the event record atomic in one local transaction; a relay later publishes outbox rows (at-least-once), so consumers must be idempotent. Reversing the order just flips the inconsistency, retries cannot cover a crash between the steps, and a lock does not make two systems commit atomically.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/databases/guide/transactional-outbox-cosmos"
+  },
+  {
+    "id": "be-webhook-signature",
+    "topic": "backend-engineering",
+    "subtopic": "webhooks",
+    "difficulty": "Medium",
+    "title": "Verifying webhook authenticity",
+    "question": "How should a receiver verify that a webhook delivery really came from the provider and was not modified?",
+    "options": [
+      "Compute an HMAC of the raw body with the shared secret and compare in constant time",
+      "Allow the request only if it arrives over HTTPS on port 443",
+      "Check that the User-Agent header matches the provider's name",
+      "Parse the JSON and confirm the event id exists in the payload"
+    ],
+    "correctIndex": 0,
+    "explanation": "Providers such as GitHub send an HMAC-SHA256 signature header computed over the raw payload; recomputing it with the shared secret proves authenticity and integrity, and a constant-time comparison avoids timing leaks. Headers and payload fields can be forged, and TLS protects transport but not who sent the request.",
+    "referenceUrl": "https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries"
+  },
+  {
+    "id": "be-webhook-fast-ack",
+    "topic": "backend-engineering",
+    "subtopic": "webhooks",
+    "difficulty": "Hard",
+    "title": "Webhook timeouts and duplicates",
+    "question": "Your webhook handler does 15s of processing before replying. The provider times out at 10s, retries, and you end up processing events several times. What is the best design?",
+    "options": [
+      "Process synchronously but cache the response for 10 seconds",
+      "Verify, enqueue the event, return 2xx quickly, and dedupe by delivery id",
+      "Return 500 until processing finishes so the provider waits",
+      "Ask the provider to increase its timeout to 60 seconds"
+    ],
+    "correctIndex": 1,
+    "explanation": "Best practice is to acknowledge quickly and do the work asynchronously, while using the delivery/event id to ignore duplicates, since providers retry on timeouts and errors. You rarely control the provider's timeout, returning 500 triggers more retries, and caching a response does not stop the slow first attempt from timing out.",
+    "referenceUrl": "https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks"
+  },
+  {
+    "id": "be-cache-idempotency-key",
+    "topic": "backend-engineering",
+    "subtopic": "backend-caching",
+    "difficulty": "Medium",
+    "title": "Idempotency keys for POST",
+    "question": "A payment client retries POST /payments after a network timeout, not knowing whether the first attempt succeeded. How can the API guarantee the payment is created only once?",
+    "options": [
+      "The server returns 409 for any POST that arrives within 5 seconds",
+      "The server caches POST responses by URL using Cache-Control",
+      "Client sends a unique Idempotency-Key; the server stores and replays the first result",
+      "The client switches the request to PUT with the same body"
+    ],
+    "correctIndex": 2,
+    "explanation": "An idempotency key lets the server recognise retries of the same logical operation, persist the outcome atomically, and return the original response instead of charging again. A time window would reject legitimate payments, changing the verb does not change server behaviour, and POST responses keyed only by URL would mix up different requests.",
+    "referenceUrl": "https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/"
+  },
+  {
+    "id": "be-cache-etag-304",
+    "topic": "backend-engineering",
+    "subtopic": "backend-caching",
+    "difficulty": "Easy",
+    "title": "Conditional GET revalidation",
+    "question": "A client has a cached response with ETag \"abc\". It sends GET with If-None-Match: \"abc\" and the resource has not changed. What should the server return?",
+    "options": [
+      "412 Precondition Failed",
+      "304 Not Modified with no body",
+      "204 No Content with the same ETag",
+      "200 OK with the full body again"
+    ],
+    "correctIndex": 1,
+    "explanation": "If-None-Match on GET lets the server reply 304 Not Modified when the ETag still matches, so the client reuses its cached body and saves bandwidth. 200 would resend the body, 204 means a successful response with no content (not revalidation), and 412 is for failed preconditions on state-changing requests like If-Match.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/ETag"
+  },
+  {
+    "id": "be-cache-private-shared",
+    "topic": "backend-engineering",
+    "subtopic": "backend-caching",
+    "difficulty": "Hard",
+    "title": "Caching personalised responses",
+    "question": "GET /me/profile returns user-specific data with Cache-Control: max-age=300. After adding a CDN, users start seeing other people's profiles. Which header change is correct?",
+    "options": [
+      "Cache-Control: public, s-maxage=300",
+      "Cache-Control: private, max-age=300",
+      "Cache-Control: max-age=300, immutable",
+      "Cache-Control: must-revalidate, max-age=300"
+    ],
+    "correctIndex": 1,
+    "explanation": "private allows only the user's browser cache to store the response and forbids shared caches such as CDNs. public and s-maxage explicitly target shared caches, immutable only says the body will not change during freshness, and must-revalidate controls stale handling but still allows shared storage.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control"
+  },
+  {
+    "id": "be-http-429-retry-after",
+    "topic": "backend-engineering",
+    "subtopic": "http-rest",
+    "difficulty": "Medium",
+    "title": "Signalling rate limits",
+    "question": "A client exceeds its per-minute quota. Which response lets well-behaved clients back off correctly?",
+    "options": [
+      "503 Service Unavailable with Connection: close",
+      "403 Forbidden with a WWW-Authenticate header",
+      "400 Bad Request with an error message body",
+      "429 Too Many Requests with a Retry-After header"
+    ],
+    "correctIndex": 3,
+    "explanation": "429 (RFC 6585) indicates the user sent too many requests in a given time, and Retry-After tells the client how long to wait. 503 implies the server itself is unavailable, 403 means the request is refused for authorization reasons, and 400 signals malformed input.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/429"
+  },
+  {
+    "id": "be-api-filter-sort",
+    "topic": "backend-engineering",
+    "subtopic": "api-design",
+    "difficulty": "Medium",
+    "title": "Stable sort for pagination",
+    "question": "A cursor-paginated endpoint sorts only by created_at. Several rows share the same timestamp and some are skipped between pages. What is the fix?",
+    "options": [
+      "Add a unique tiebreaker such as id to the sort key and cursor",
+      "Switch the sort direction from DESC to ASC",
+      "Return a larger page whenever duplicate timestamps exist",
+      "Round created_at to the nearest second before sorting"
+    ],
+    "correctIndex": 0,
+    "explanation": "Keyset pagination requires a total order; with ties, a cursor on created_at alone cannot tell which rows of that timestamp were already returned. Sorting and comparing on (created_at, id) makes the order deterministic. Changing direction, rounding (which creates more ties), or variable page sizes do not remove ambiguity.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-limit.html"
+  },
+  {
+    "id": "be-auth-csrf-samesite",
+    "topic": "backend-engineering",
+    "subtopic": "auth",
+    "difficulty": "Medium",
+    "title": "CSRF with cookie sessions",
+    "question": "A web app authenticates with a session cookie. Which measure most directly defends state-changing endpoints against cross-site request forgery?",
+    "options": [
+      "SameSite=Lax/Strict cookies combined with anti-CSRF tokens",
+      "Requiring HTTPS and enabling HSTS for the whole domain",
+      "Adding a Content-Security-Policy that blocks inline scripts",
+      "Storing the session id in a Base64-encoded cookie"
+    ],
+    "correctIndex": 0,
+    "explanation": "CSRF works because browsers attach cookies to cross-site requests; SameSite limits that and synchronizer or double-submit tokens prove the request originated from your pages. Encoding the id adds no protection, HTTPS/HSTS protect transport, and CSP mainly mitigates XSS rather than cross-site request forgery.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "be-jobs-retry-jitter",
+    "topic": "backend-engineering",
+    "subtopic": "background-jobs",
+    "difficulty": "Hard",
+    "title": "Retry storms after an outage",
+    "question": "When a downstream API recovered from a 2-minute outage, thousands of failed jobs retried at exactly the same fixed 30s intervals and knocked it down again. Which change best prevents this?",
+    "options": [
+      "Use a fixed 60-second interval instead of 30 seconds",
+      "Run all retries from one worker to serialize them",
+      "Retry immediately so the backlog clears before peak traffic",
+      "Exponential backoff with random jitter and a max retry count"
+    ],
+    "correctIndex": 3,
+    "explanation": "Synchronized retries create thundering herds; exponential backoff spreads load over time and jitter desynchronizes clients, while a cap stops endless retrying. Immediate retries worsen the spike, a longer fixed interval still synchronizes retries, and a single worker kills throughput and is a single point of failure.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/retry"
+  },
+  {
+    "id": "db-sql-null-compare",
+    "topic": "databases",
+    "subtopic": "sql-basics",
+    "difficulty": "Easy",
+    "title": "Comparing with NULL",
+    "question": "Table users has 10 rows where deleted_at IS NULL. How many rows does SELECT * FROM users WHERE deleted_at = NULL return?",
+    "options": [
+      "All rows in the table",
+      "It raises a syntax error",
+      "0 rows, because = NULL evaluates to unknown",
+      "10 rows, the same as IS NULL"
+    ],
+    "correctIndex": 2,
+    "explanation": "In SQL, any comparison with NULL using = yields NULL (unknown), and WHERE only keeps rows where the condition is true, so nothing is returned. Use IS NULL (or IS DISTINCT FROM for null-safe comparison). The statement is syntactically valid, so no error is raised.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/functions-comparison.html"
+  },
+  {
+    "id": "db-sql-not-in-null",
+    "topic": "databases",
+    "subtopic": "sql-basics",
+    "difficulty": "Medium",
+    "title": "NOT IN with a NULL in the subquery",
+    "question": "SELECT id FROM customers WHERE id NOT IN (SELECT customer_id FROM orders);\nThe query returns no rows even though many customers have no orders. orders.customer_id is nullable. Why?",
+    "options": [
+      "The subquery must be correlated for NOT IN to return rows",
+      "NOT IN always performs a semi-join that ignores unmatched rows",
+      "A NULL in the subquery makes NOT IN evaluate to unknown for every row",
+      "NOT IN only works when both columns have a UNIQUE constraint"
+    ],
+    "correctIndex": 2,
+    "explanation": "x NOT IN (a, b, NULL) is never true: it is false if x matches and NULL otherwise, so WHERE filters every row. Use NOT EXISTS (correlated) or add WHERE customer_id IS NOT NULL. NOT IN needs neither correlation nor uniqueness, and it is an anti-join, not a semi-join.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/functions-subquery.html"
+  },
+  {
+    "id": "db-join-left-where",
+    "topic": "databases",
+    "subtopic": "joins",
+    "difficulty": "Medium",
+    "title": "LEFT JOIN turned into INNER JOIN",
+    "question": "SELECT c.name, o.id FROM customers c\nLEFT JOIN orders o ON o.customer_id = c.id\nWHERE o.status = 'paid';\nCustomers without orders are missing from the result. Why?",
+    "options": [
+      "The WHERE filter on o.status discards NULL-extended rows",
+      "LEFT JOIN requires a GROUP BY to keep unmatched rows",
+      "The ON clause must reference the left table first",
+      "LEFT JOIN drops rows when the ON column is indexed"
+    ],
+    "correctIndex": 0,
+    "explanation": "For customers without orders the LEFT JOIN produces o.* = NULL, and WHERE o.status = 'paid' is unknown for them, so they are removed, effectively making it an inner join. Move the predicate into the ON clause (ON o.customer_id = c.id AND o.status = 'paid') to keep them. Indexes, operand order, and GROUP BY do not affect this.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-table-expressions.html"
+  },
+  {
+    "id": "db-join-fanout-sum",
+    "topic": "databases",
+    "subtopic": "joins",
+    "difficulty": "Hard",
+    "title": "Join fan-out inflating SUM",
+    "question": "SELECT o.id, SUM(p.amount) AS paid, COUNT(i.id) AS items\nFROM orders o\nJOIN payments p ON p.order_id = o.id\nJOIN order_items i ON i.order_id = o.id\nGROUP BY o.id;\nAn order with 2 payments and 3 items shows paid three times too high. What is happening?",
+    "options": [
+      "GROUP BY o.id must also include p.amount to be correct",
+      "SUM ignores NULL amounts and double-counts the rest",
+      "COUNT and SUM cannot be used in the same SELECT list",
+      "Joining two one-to-many tables multiplies rows before aggregation"
+    ],
+    "correctIndex": 3,
+    "explanation": "Each payment row is paired with each item row (2 x 3 = 6 rows), so each payment is summed 3 times. Pre-aggregate each child table in a subquery/CTE and join the aggregates, or use correlated subqueries. SUM ignoring NULLs does not cause inflation, grouping by amount changes the meaning, and mixing aggregates is legal.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-table-expressions.html"
+  },
+  {
+    "id": "db-join-anti-join",
+    "topic": "databases",
+    "subtopic": "joins",
+    "difficulty": "Easy",
+    "title": "Finding rows without a match",
+    "question": "Which query returns customers that have never placed an order?",
+    "options": [
+      "SELECT c.* FROM customers c INNER JOIN orders o ON o.customer_id = c.id WHERE o.id IS NULL",
+      "SELECT c.* FROM customers c RIGHT JOIN orders o ON o.customer_id = c.id WHERE c.id IS NULL",
+      "SELECT c.* FROM customers c CROSS JOIN orders o WHERE o.customer_id <> c.id",
+      "SELECT c.* FROM customers c LEFT JOIN orders o ON o.customer_id = c.id WHERE o.id IS NULL"
+    ],
+    "correctIndex": 3,
+    "explanation": "A LEFT JOIN keeps all customers and fills order columns with NULL when there is no match, so filtering on o.id IS NULL leaves only unmatched customers (an anti-join; NOT EXISTS is equivalent). An inner join never yields NULL o.id, the cross join returns customers paired with other customers' orders, and the RIGHT JOIN version finds orders without customers.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-table-expressions.html"
+  },
+  {
+    "id": "db-join-lateral",
+    "topic": "databases",
+    "subtopic": "joins",
+    "difficulty": "Hard",
+    "title": "Top-N per group with LATERAL",
+    "question": "You need the 3 most recent orders for each customer in PostgreSQL, using an index on orders(customer_id, created_at DESC). Which construct expresses this most directly and efficiently?",
+    "options": [
+      "GROUP BY customer_id with HAVING COUNT(*) <= 3",
+      "CROSS JOIN LATERAL (SELECT ... WHERE customer_id = c.id ORDER BY created_at DESC LIMIT 3)",
+      "A NATURAL JOIN between customers and orders ordered by created_at",
+      "A FULL OUTER JOIN between customers and orders with LIMIT 3"
+    ],
+    "correctIndex": 1,
+    "explanation": "LATERAL lets a subquery reference columns from preceding FROM items, so it runs per customer and can do an index scan stopping after 3 rows. FULL OUTER JOIN with a global LIMIT returns only 3 rows total, HAVING filters groups (not rows within a group), and NATURAL JOIN joins on same-named columns with a global ordering.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-table-expressions.html"
+  },
+  {
+    "id": "db-agg-where-having",
+    "topic": "databases",
+    "subtopic": "aggregation",
+    "difficulty": "Easy",
+    "title": "WHERE vs HAVING",
+    "question": "You need departments whose average salary exceeds 100000. Where must the condition AVG(salary) > 100000 go?",
+    "options": [
+      "In the WHERE clause before GROUP BY",
+      "In the ON clause of a self-join",
+      "In the ORDER BY clause",
+      "In a HAVING clause after GROUP BY department"
+    ],
+    "correctIndex": 3,
+    "explanation": "WHERE filters individual rows before grouping and cannot reference aggregates; HAVING filters groups after aggregation. ORDER BY only sorts, and an ON clause applies to join conditions between rows, not aggregated groups.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/tutorial-agg.html"
+  },
+  {
+    "id": "db-agg-count-star-col",
+    "topic": "databases",
+    "subtopic": "aggregation",
+    "difficulty": "Easy",
+    "title": "COUNT(*) vs COUNT(column)",
+    "question": "A table has 100 rows; 20 have phone = NULL and the remaining 80 contain 50 distinct numbers. What do COUNT(*), COUNT(phone) and COUNT(DISTINCT phone) return?",
+    "options": [
+      "100, 100, 50",
+      "80, 80, 50",
+      "100, 80, 50",
+      "100, 80, 51"
+    ],
+    "correctIndex": 2,
+    "explanation": "COUNT(*) counts rows, COUNT(expr) counts non-NULL values, and COUNT(DISTINCT expr) counts distinct non-NULL values, so NULL is not counted as a distinct value. That gives 100, 80 and 50.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/functions-aggregate.html"
+  },
+  {
+    "id": "db-agg-filter-clause",
+    "topic": "databases",
+    "subtopic": "aggregation",
+    "difficulty": "Medium",
+    "title": "Conditional aggregation",
+    "question": "In PostgreSQL, which query returns per-day totals of all orders and of refunded orders in a single pass?",
+    "options": [
+      "SELECT day, COUNT(*) FROM orders GROUP BY day HAVING status = 'refunded'",
+      "SELECT day, COUNT(*), COUNT(*) WHERE status = 'refunded' FROM orders GROUP BY day",
+      "SELECT day, COUNT(*), COUNT(status = 'refunded') FROM orders GROUP BY day",
+      "SELECT day, COUNT(*), COUNT(*) FILTER (WHERE status = 'refunded') FROM orders GROUP BY day"
+    ],
+    "correctIndex": 3,
+    "explanation": "The aggregate FILTER clause restricts which rows feed a given aggregate (equivalent to SUM(CASE WHEN ... THEN 1 ELSE 0 END)). COUNT(status = 'refunded') counts every non-NULL boolean, including false; HAVING cannot reference a non-grouped column; and WHERE cannot appear inside the SELECT list.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/sql-expressions.html"
+  },
+  {
+    "id": "db-adv-row-number-dedupe",
+    "topic": "databases",
+    "subtopic": "advanced-sql",
+    "difficulty": "Medium",
+    "title": "Latest row per key",
+    "question": "You need each user's most recent login from logins(user_id, at, ip). Which approach returns exactly one full row per user?",
+    "options": [
+      "SELECT user_id, MAX(at), ip FROM logins GROUP BY user_id",
+      "ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY at DESC) and keep rn = 1",
+      "SELECT DISTINCT user_id, at, ip FROM logins ORDER BY at DESC",
+      "RANK() OVER (ORDER BY at DESC) and keep rank = 1"
+    ],
+    "correctIndex": 1,
+    "explanation": "ROW_NUMBER numbers rows within each user partition so rn = 1 is exactly one latest row per user (PostgreSQL's DISTINCT ON is an alternative). Selecting ip with MAX(at) is invalid (ungrouped column) in standard SQL, RANK without PARTITION BY ranks globally and ties yield multiple rows, and DISTINCT on all columns keeps every login.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/tutorial-window.html"
+  },
+  {
+    "id": "db-adv-running-total",
+    "topic": "databases",
+    "subtopic": "advanced-sql",
+    "difficulty": "Medium",
+    "title": "Running totals with window frames",
+    "question": "SELECT day, amount, SUM(amount) OVER (ORDER BY day) FROM sales;\nTwo rows have the same day. What value does the window sum show for those rows?",
+    "options": [
+      "Each shows a different total because rows are summed one at a time",
+      "The query fails because a frame clause is required with ORDER BY",
+      "Both show NULL because ORDER BY ties are ambiguous",
+      "Both show the same total including both rows, due to the default RANGE frame"
+    ],
+    "correctIndex": 3,
+    "explanation": "With ORDER BY and no frame clause the default frame is RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW, which includes all peers (rows with equal ORDER BY values). Use ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW for a strict per-row running total. No NULLs or errors occur.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/sql-expressions.html#SYNTAX-WINDOW-FUNCTIONS"
+  },
+  {
+    "id": "db-adv-recursive-cte",
+    "topic": "databases",
+    "subtopic": "advanced-sql",
+    "difficulty": "Hard",
+    "title": "Traversing a hierarchy",
+    "question": "employees(id, manager_id) stores an org chart of unknown depth. Which SQL feature retrieves all direct and indirect reports of manager 7 in a single query?",
+    "options": [
+      "WITH RECURSIVE with an anchor member UNION ALL a recursive join",
+      "A self-join repeated once for each known level",
+      "A correlated subquery in the SELECT list",
+      "LAG() OVER (PARTITION BY manager_id)"
+    ],
+    "correctIndex": 0,
+    "explanation": "A recursive CTE starts with the anchor (direct reports of 7) and repeatedly joins employees to the previous iteration's rows until no new rows appear, handling any depth. Correlated subqueries and LAG operate on a fixed relationship, and repeated self-joins only work for a fixed, known depth.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-with.html"
+  },
+  {
+    "id": "db-adv-cte-materialized",
+    "topic": "databases",
+    "subtopic": "advanced-sql",
+    "difficulty": "Expert",
+    "title": "CTE inlining in PostgreSQL",
+    "question": "In PostgreSQL 12+, WITH t AS (SELECT * FROM big) SELECT * FROM t WHERE id = 5; runs fast using an index on big.id, but after adding MATERIALIZED to the CTE it becomes a sequential scan. Why?",
+    "options": [
+      "MATERIALIZED stops the planner from inlining the CTE and pushing the predicate in",
+      "MATERIALIZED forces the CTE to be cached on disk as a temp table with no stats",
+      "MATERIALIZED disables all index scans for the whole statement",
+      "MATERIALIZED converts the CTE into a recursive CTE"
+    ],
+    "correctIndex": 0,
+    "explanation": "Since PostgreSQL 12, a non-recursive, side-effect-free CTE referenced once is inlined into the outer query so WHERE id = 5 can use the index. MATERIALIZED forces separate evaluation of the whole CTE (an optimization fence). It does not make it recursive or disable indexes elsewhere, and materialization is not necessarily a disk temp table.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-with.html"
+  },
+  {
+    "id": "db-tx-acid-durability",
+    "topic": "databases",
+    "subtopic": "transactions",
+    "difficulty": "Easy",
+    "title": "Durability in ACID",
+    "question": "Which ACID property guarantees that once COMMIT returns success, the changes survive a subsequent crash?",
+    "options": [
+      "Durability",
+      "Consistency",
+      "Isolation",
+      "Atomicity"
+    ],
+    "correctIndex": 0,
+    "explanation": "Durability means committed data persists (PostgreSQL ensures this by flushing WAL before acknowledging the commit). Atomicity is all-or-nothing, consistency means constraints/invariants hold, and isolation controls how concurrent transactions see each other.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/tutorial-transactions.html"
+  },
+  {
+    "id": "db-tx-savepoint",
+    "topic": "databases",
+    "subtopic": "transactions",
+    "difficulty": "Medium",
+    "title": "Partial rollback with savepoints",
+    "question": "Inside a transaction you insert an order, then attempt an optional audit insert that may fail. You want to keep the order even if the audit insert fails. What should you use?",
+    "options": [
+      "SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED before the audit insert",
+      "SAVEPOINT before the audit insert and ROLLBACK TO SAVEPOINT on error",
+      "Run the audit insert with autocommit off in the same session",
+      "COMMIT after the audit insert and catch the error in the application"
+    ],
+    "correctIndex": 1,
+    "explanation": "Savepoints let you roll back part of a transaction while keeping earlier work. In PostgreSQL an error otherwise aborts the whole transaction, rejecting further commands until rollback. Committing does not help once it is aborted, isolation levels do not affect error handling, and autocommit settings do not create partial rollback points.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/tutorial-transactions.html"
+  },
+  {
+    "id": "db-tx-async-commit",
+    "topic": "databases",
+    "subtopic": "transactions",
+    "difficulty": "Expert",
+    "title": "synchronous_commit = off",
+    "question": "To boost write throughput, a team sets synchronous_commit = off in PostgreSQL. What is the precise risk?",
+    "options": [
+      "A crash can lose the most recent committed transactions, but not corrupt the database",
+      "Foreign key and unique constraints are checked only at checkpoint time",
+      "A crash can leave the database in an inconsistent, corrupted state",
+      "Concurrent transactions may read uncommitted data from each other"
+    ],
+    "correctIndex": 0,
+    "explanation": "With asynchronous commit, COMMIT returns before WAL is flushed, so a crash may lose the last few transactions (bounded by roughly three times wal_writer_delay), yet the database remains consistent, unlike fsync = off. It does not change isolation or constraint checking.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/wal-async-commit.html"
+  },
+  {
+    "id": "db-cc-lost-update",
+    "topic": "databases",
+    "subtopic": "concurrency",
+    "difficulty": "Medium",
+    "title": "Lost update",
+    "question": "Two requests run concurrently under READ COMMITTED:\nSELECT balance FROM accounts WHERE id=1; -- both read 100\nUPDATE accounts SET balance = 100 + 10 WHERE id=1; -- app computed\nThe final balance is 110 instead of 120. Which fix is simplest and correct?",
+    "options": [
+      "Run the SELECT with NOWAIT to fail fast",
+      "Do the arithmetic in SQL: UPDATE accounts SET balance = balance + 10 WHERE id = 1",
+      "Wrap each request's SELECT in its own transaction",
+      "Add an index on accounts.id to speed up the read"
+    ],
+    "correctIndex": 1,
+    "explanation": "This is a lost update: both computed from a stale read. An atomic UPDATE ... SET balance = balance + 10 makes the second writer wait for the first and re-evaluate on the new row version. Alternatives are SELECT ... FOR UPDATE or optimistic versioning. An index, separate transactions, or NOWAIT on a plain SELECT do not prevent it.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/transaction-iso.html"
+  },
+  {
+    "id": "db-cc-write-skew",
+    "topic": "databases",
+    "subtopic": "concurrency",
+    "difficulty": "Expert",
+    "title": "Write skew under snapshot isolation",
+    "question": "Rule: at least one doctor must be on call. Under REPEATABLE READ in PostgreSQL, Alice and Bob concurrently run: check COUNT(*) of on-call doctors (both see 2), then each sets their own row on_call = false. Both commit and nobody is on call. Which statement is correct?",
+    "options": [
+      "This is a lost update; REPEATABLE READ should have blocked it",
+      "This is a dirty read; READ COMMITTED would prevent it",
+      "This is a phantom read; a unique index would prevent it",
+      "This is write skew; SERIALIZABLE (SSI) would abort one transaction"
+    ],
+    "correctIndex": 3,
+    "explanation": "Each transaction updates a different row based on a premise the other invalidates, so snapshot isolation sees no write-write conflict. PostgreSQL's SERIALIZABLE detects the rw-dependency cycle and fails one with a serialization error (or you can lock the relevant rows with FOR UPDATE). Dirty reads never happen in PostgreSQL, and there is no same-row conflict for REPEATABLE READ to catch.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/transaction-iso.html"
+  },
+  {
+    "id": "db-cc-nonrepeatable-read",
+    "topic": "databases",
+    "subtopic": "concurrency",
+    "difficulty": "Easy",
+    "title": "Non-repeatable read",
+    "question": "Under READ COMMITTED, a transaction reads a row's price twice and gets different values because another transaction committed an update between the reads. What is this anomaly called?",
+    "options": [
+      "Non-repeatable read",
+      "Phantom read",
+      "Serialization anomaly",
+      "Dirty read"
+    ],
+    "correctIndex": 0,
+    "explanation": "A non-repeatable read is re-reading the same row and seeing a committed change. A dirty read sees uncommitted data, a phantom read is a different set of rows matching a predicate, and a serialization anomaly is a result inconsistent with any serial order. READ COMMITTED allows non-repeatable reads because each statement takes a new snapshot.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/transaction-iso.html"
+  },
+  {
+    "id": "db-cc-skip-locked",
+    "topic": "databases",
+    "subtopic": "concurrency",
+    "difficulty": "Hard",
+    "title": "Job queue table with many workers",
+    "question": "Ten workers poll a jobs table with SELECT ... WHERE status='pending' ORDER BY id LIMIT 1 FOR UPDATE. Throughput barely improves over one worker. What is the best PostgreSQL fix?",
+    "options": [
+      "Raise the isolation level to SERIALIZABLE",
+      "Use FOR SHARE so all workers can lock the same row",
+      "Add SKIP LOCKED so each worker claims a different unlocked row",
+      "Replace FOR UPDATE with a table-level ACCESS EXCLUSIVE lock"
+    ],
+    "correctIndex": 2,
+    "explanation": "Without SKIP LOCKED, all workers target the same first pending row and block behind each other's lock. FOR UPDATE SKIP LOCKED skips rows locked by others, giving each worker its own job. FOR SHARE would allow duplicate processing, SERIALIZABLE adds aborts, and a table lock serializes everything.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/sql-select.html"
+  },
+  {
+    "id": "db-cc-deadlock",
+    "topic": "databases",
+    "subtopic": "concurrency",
+    "difficulty": "Hard",
+    "title": "Deadlocks in transfers",
+    "question": "A transfer endpoint locks the source account row, then the destination row. Under load, PostgreSQL periodically aborts transactions with 'deadlock detected'. What is the most robust fix?",
+    "options": [
+      "Lower the isolation level to READ UNCOMMITTED",
+      "Increase deadlock_timeout so the detector waits longer",
+      "Always lock both rows in a consistent order, e.g. by ascending account id",
+      "Remove the transaction and update each row separately"
+    ],
+    "correctIndex": 2,
+    "explanation": "A transfer A->B and a concurrent B->A acquire locks in opposite orders and wait on each other. Acquiring locks in a globally consistent order removes the cycle. A longer deadlock_timeout only delays detection, READ UNCOMMITTED behaves as READ COMMITTED in PostgreSQL and does not affect row locks, and dropping the transaction breaks atomicity.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/explicit-locking.html"
+  },
+  {
+    "id": "db-idx-composite-order",
+    "topic": "databases",
+    "subtopic": "indexing",
+    "difficulty": "Medium",
+    "title": "Composite index column order",
+    "question": "There is an index on orders(customer_id, created_at). Which query can use it most effectively?",
+    "options": [
+      "WHERE customer_id > 10 OR created_at = '2026-01-01'",
+      "WHERE created_at > '2026-01-01'",
+      "WHERE created_at > '2026-01-01' OR customer_id = 42",
+      "WHERE customer_id = 42 AND created_at > '2026-01-01'"
+    ],
+    "correctIndex": 3,
+    "explanation": "A B-tree multicolumn index is most efficient with equality on leading columns and a range on the next column: here it can seek to customer 42 and scan the date range. A condition only on created_at lacks the leading column, and OR conditions cannot be satisfied by a single range scan of this index.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/indexes-multicolumn.html"
+  },
+  {
+    "id": "db-idx-function-lower",
+    "topic": "databases",
+    "subtopic": "indexing",
+    "difficulty": "Medium",
+    "title": "Index not used with LOWER()",
+    "question": "users has a B-tree index on email. The query WHERE LOWER(email) = 'a@b.com' does a sequential scan. What enables an index scan?",
+    "options": [
+      "Run ANALYZE users to refresh statistics",
+      "CREATE INDEX ON users (email) INCLUDE (id)",
+      "CREATE INDEX ON users (LOWER(email))",
+      "CREATE INDEX ON users USING hash (email)"
+    ],
+    "correctIndex": 2,
+    "explanation": "An index on email cannot match the expression LOWER(email); an expression index on LOWER(email) can. A hash index is still on the raw column, ANALYZE cannot make an unusable index usable, and INCLUDE adds payload columns for covering scans without changing the key.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/indexes-expressional.html"
+  },
+  {
+    "id": "db-idx-explain-analyze",
+    "topic": "databases",
+    "subtopic": "indexing",
+    "difficulty": "Easy",
+    "title": "Reading actual vs estimated rows",
+    "question": "Which command shows both the planner's estimated row counts and the actual row counts and timings for a query?",
+    "options": [
+      "EXPLAIN",
+      "ANALYZE",
+      "EXPLAIN ANALYZE",
+      "EXPLAIN (COSTS OFF)"
+    ],
+    "correctIndex": 2,
+    "explanation": "EXPLAIN shows only the estimated plan; EXPLAIN ANALYZE actually executes the statement and reports actual rows, loops and time per node, which is how you spot misestimates. Plain ANALYZE collects table statistics, and COSTS OFF hides cost estimates. Remember EXPLAIN ANALYZE really runs writes, so wrap DML in a rolled-back transaction.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/using-explain.html"
+  },
+  {
+    "id": "db-idx-misestimate",
+    "topic": "databases",
+    "subtopic": "indexing",
+    "difficulty": "Hard",
+    "title": "Planner misestimate diagnosis",
+    "question": "EXPLAIN ANALYZE shows: Nested Loop (rows=1 estimated, actual rows=480000) driving an inner Index Scan executed 480000 times. Query takes 40s. What is the most likely root cause to investigate first?",
+    "options": [
+      "The nested loop node is always slower than a hash join",
+      "work_mem is too high, forcing a nested loop",
+      "Stale or insufficient statistics causing a severe row underestimate",
+      "The inner index is corrupted and must be rebuilt with REINDEX"
+    ],
+    "correctIndex": 2,
+    "explanation": "The planner chose a nested loop because it expected 1 outer row; with 480000 actual rows a hash or merge join would be far better. Run ANALYZE, raise the statistics target, or add extended statistics for correlated columns. There is no sign of corruption, low (not high) work_mem discourages hash joins, and nested loops are ideal for small outer inputs.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/using-explain.html"
+  },
+  {
+    "id": "db-idx-partial",
+    "topic": "databases",
+    "subtopic": "indexing",
+    "difficulty": "Medium",
+    "title": "Partial index",
+    "question": "A 50M-row tasks table has only ~2000 rows with status = 'pending', and workers always query WHERE status = 'pending' ORDER BY priority. Which index is most efficient?",
+    "options": [
+      "CREATE INDEX ON tasks (status)",
+      "CREATE INDEX ON tasks USING brin (status)",
+      "CREATE INDEX ON tasks (priority) WHERE status = 'pending'",
+      "CREATE INDEX ON tasks (status, priority, id, created_at)"
+    ],
+    "correctIndex": 2,
+    "explanation": "A partial index stores only rows matching its predicate, so it is tiny, cheap to maintain, and directly serves the ordered scan. An index on status alone still needs a sort and holds 50M entries; a wide composite indexes every row; and BRIN works best for values correlated with physical order, not a low-cardinality status.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/indexes-partial.html"
+  },
+  {
+    "id": "db-idx-covering",
+    "topic": "databases",
+    "subtopic": "indexing",
+    "difficulty": "Expert",
+    "title": "Index-only scan still hitting the heap",
+    "question": "A query uses an index-only scan on (customer_id) INCLUDE (total), but EXPLAIN (ANALYZE, BUFFERS) shows 'Heap Fetches: 950000' on a heavily updated table. What is the likely cause?",
+    "options": [
+      "The index is a hash index, which cannot be covering",
+      "INCLUDE columns are always fetched from the heap",
+      "The visibility map is not up to date because VACUUM has not run recently",
+      "Index-only scans are disabled when the table has more than 1M rows"
+    ],
+    "correctIndex": 2,
+    "explanation": "Index-only scans skip the heap only for pages marked all-visible in the visibility map; frequent updates clear those bits until VACUUM (or autovacuum) sets them again. INCLUDE columns are stored in the index, there is no row-count cutoff, and the INCLUDE syntax here implies a B-tree, which supports covering scans.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/indexes-index-only-scans.html"
+  },
+  {
+    "id": "db-model-3nf",
+    "topic": "databases",
+    "subtopic": "data-modeling",
+    "difficulty": "Easy",
+    "title": "Update anomaly",
+    "question": "An orders table stores customer_email on every order row. When a customer changes email, some old orders keep the old address. Which design principle was violated?",
+    "options": [
+      "Indexing: customer_email needs a unique index",
+      "Sharding: orders should be partitioned by customer",
+      "Denormalization: email should be copied to more tables",
+      "Normalization: customer data should live in a customers table referenced by id"
+    ],
+    "correctIndex": 3,
+    "explanation": "Repeating a customer attribute on each order creates update anomalies; normalizing it into a customers table referenced by a foreign key stores the fact once. More copies worsens the issue, sharding is about scale, and a unique index on orders.customer_email would wrongly prevent multiple orders per customer.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/ddl-constraints.html"
+  },
+  {
+    "id": "db-model-check-exclusion",
+    "topic": "databases",
+    "subtopic": "data-modeling",
+    "difficulty": "Hard",
+    "title": "Preventing overlapping bookings",
+    "question": "A room booking table must never contain two bookings for the same room with overlapping time ranges, even under concurrent inserts. What is the most robust PostgreSQL solution?",
+    "options": [
+      "A CHECK constraint comparing start_time and end_time",
+      "An application-level SELECT before INSERT in READ COMMITTED",
+      "A UNIQUE constraint on (room_id, start_time)",
+      "An EXCLUDE constraint using GiST on (room_id WITH =, during WITH &&)"
+    ],
+    "correctIndex": 3,
+    "explanation": "Exclusion constraints guarantee that no two rows satisfy the given operators pairwise, here same room and overlapping range, enforced atomically by the database (btree_gist is needed for the = on a scalar). CHECK sees only one row, UNIQUE catches identical starts but not overlaps, and check-then-insert races under concurrency.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/ddl-constraints.html"
+  },
+  {
+    "id": "db-scale-replica-lag",
+    "topic": "databases",
+    "subtopic": "scaling-databases",
+    "difficulty": "Medium",
+    "title": "Read-your-writes with replicas",
+    "question": "After updating their profile, users sometimes see their old data because reads go to asynchronous read replicas. Which approach fixes this for the affected user?",
+    "options": [
+      "Add more read replicas to spread the load",
+      "Increase the connection pool size on the replicas",
+      "Route that user's reads to the primary for a short window after a write",
+      "Switch the replicas to logical replication"
+    ],
+    "correctIndex": 2,
+    "explanation": "Asynchronous replicas lag the primary, breaking read-your-writes consistency. Pinning a user's reads to the primary briefly (or waiting until the replica has replayed the write's LSN) restores it. More replicas, a different replication type, or bigger pools do not remove lag.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/warm-standby.html"
+  },
+  {
+    "id": "db-scale-pgbouncer-modes",
+    "topic": "databases",
+    "subtopic": "scaling-databases",
+    "difficulty": "Hard",
+    "title": "Transaction pooling caveats",
+    "question": "After placing PgBouncer in transaction pooling mode in front of PostgreSQL, an app that uses session-level SET and session advisory locks behaves erratically. Why?",
+    "options": [
+      "PgBouncer rewrites SET commands into SET LOCAL automatically",
+      "Advisory locks are not supported by PostgreSQL behind any proxy",
+      "Consecutive transactions may run on different server connections, losing session state",
+      "Transaction mode disables prepared statements at the server level"
+    ],
+    "correctIndex": 2,
+    "explanation": "In transaction pooling, a server connection is returned to the pool after each transaction, so session state such as SET values and session advisory locks may apply to another client or disappear. Use session pooling or transaction-scoped alternatives (SET LOCAL, pg_advisory_xact_lock). PgBouncer does not rewrite SET, and advisory locks work fine with session pooling.",
+    "referenceUrl": "https://www.pgbouncer.org/features.html"
+  },
+  {
+    "id": "db-scale-shard-key",
+    "topic": "databases",
+    "subtopic": "scaling-databases",
+    "difficulty": "Expert",
+    "title": "Choosing a shard key",
+    "question": "A multi-tenant SaaS shards its events table. Proposed shard keys: created_at, a random UUID, tenant_id, or event_type. Most queries filter by tenant, and tenant sizes are moderately uneven. Which key is generally best, with what caveat?",
+    "options": [
+      "event_type, since it has low cardinality and is easy to route",
+      "A random UUID, since it makes every query single-shard",
+      "created_at, since time-ordered keys spread writes evenly",
+      "tenant_id, while watching for very large tenants creating hotspots"
+    ],
+    "correctIndex": 3,
+    "explanation": "Sharding by tenant_id keeps each tenant's data on one shard so most queries hit one shard; the caveat is that a huge tenant can become a hot shard needing special handling. Monotonic created_at sends all new writes to one shard, a random UUID spreads writes but forces scatter-gather for tenant queries, and low-cardinality event_type limits distribution.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/sharding"
+  },
+  {
+    "id": "db-nosql-redis-sorted-set",
+    "topic": "databases",
+    "subtopic": "nosql",
+    "difficulty": "Easy",
+    "title": "Redis data structure for leaderboards",
+    "question": "Which Redis data type is designed for a leaderboard that must return the top 10 players by score efficiently?",
+    "options": [
+      "List (LPUSH / LRANGE)",
+      "Sorted set (ZADD / ZRANGE ... REV)",
+      "Hash (HSET / HGETALL)",
+      "Set (SADD / SMEMBERS)"
+    ],
+    "correctIndex": 1,
+    "explanation": "Sorted sets keep members ordered by score, so inserting is O(log N) and fetching the top N is fast. Lists are ordered by insertion, hashes are field-value maps, and sets are unordered, so all would require sorting in the client.",
+    "referenceUrl": "https://redis.io/docs/latest/develop/data-types/sorted-sets/"
+  },
+  {
+    "id": "db-nosql-redis-lock",
+    "topic": "databases",
+    "subtopic": "nosql",
+    "difficulty": "Medium",
+    "title": "Safe Redis key acquisition",
+    "question": "A worker needs to claim a job key in Redis only if nobody holds it, with automatic expiry if the worker dies. Which single command does this atomically?",
+    "options": [
+      "SET job:42 worker-7 XX EX 30",
+      "SET job:42 worker-7 NX PX 30000",
+      "SETNX job:42 worker-7 followed by EXPIRE job:42 30",
+      "GET job:42 then SET job:42 worker-7 if empty"
+    ],
+    "correctIndex": 1,
+    "explanation": "SET with NX (only if not exists) and PX/EX (expiry) is atomic, so there is no window where the key exists without a TTL. SETNX plus EXPIRE is two commands, and a crash between them leaves a permanent key; GET then SET races; XX only sets when the key already exists. Release with a compare-and-delete script checking the value.",
+    "referenceUrl": "https://redis.io/docs/latest/commands/set/"
+  },
+  {
+    "id": "db-nosql-mongo-embed",
+    "topic": "databases",
+    "subtopic": "nosql",
+    "difficulty": "Medium",
+    "title": "Embedding vs referencing in MongoDB",
+    "question": "In MongoDB, a blog post has a handful of tags always read with the post, and also comments that can grow to tens of thousands. Which model fits best?",
+    "options": [
+      "Embed tags in the post; store comments in a separate collection referencing the post",
+      "Reference tags from a separate collection; embed all comments",
+      "Embed both tags and all comments in the post document",
+      "Store everything in separate collections joined with $lookup"
+    ],
+    "correctIndex": 0,
+    "explanation": "Embed small, bounded data read together; reference unbounded, growing data to avoid huge documents and hitting the 16 MB BSON document limit. Embedding all comments risks unbounded growth, and splitting tags out adds needless lookups for data always read with the post.",
+    "referenceUrl": "https://www.mongodb.com/docs/manual/core/data-modeling-introduction/"
+  },
+  {
+    "id": "db-nosql-redis-eviction",
+    "topic": "databases",
+    "subtopic": "nosql",
+    "difficulty": "Hard",
+    "title": "Redis used as cache and store",
+    "question": "A Redis instance with maxmemory set holds both cache entries (with TTLs) and session data (without TTLs). Under memory pressure you want only cache entries evicted. Which policy matches?",
+    "options": [
+      "allkeys-random",
+      "noeviction",
+      "volatile-lru",
+      "allkeys-lru"
+    ],
+    "correctIndex": 2,
+    "explanation": "volatile-* policies only evict keys that have an expiry set, so TTL-less session keys are kept. allkeys-lru and allkeys-random can evict sessions, and noeviction rejects writes once memory is full. A cleaner long-term design is separate instances for cache and durable data.",
+    "referenceUrl": "https://redis.io/docs/latest/develop/reference/eviction/"
+  },
+  {
+    "id": "db-sql-upsert",
+    "topic": "databases",
+    "subtopic": "sql-basics",
+    "difficulty": "Medium",
+    "title": "Upsert in PostgreSQL",
+    "question": "You must insert a row into counters(key PRIMARY KEY, n) or increment n if the key exists, atomically under concurrency. Which statement does this?",
+    "options": [
+      "INSERT ... ON CONFLICT (key) DO UPDATE SET n = counters.n + 1",
+      "UPDATE ... SET n = n + 1, then INSERT if zero rows were updated",
+      "MERGE INTO counters ... with no unique constraint on key",
+      "INSERT ... ON CONFLICT DO NOTHING followed by an application retry"
+    ],
+    "correctIndex": 0,
+    "explanation": "INSERT ... ON CONFLICT DO UPDATE is an atomic upsert relying on the unique index to arbitrate conflicts. DO NOTHING skips the increment, UPDATE-then-INSERT races (two sessions can both insert), and MERGE in PostgreSQL can still fail with unique violations under concurrent inserts and needs a unique key to be meaningful.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/sql-insert.html"
+  },
+  {
+    "id": "db-tx-isolation-default",
+    "topic": "databases",
+    "subtopic": "transactions",
+    "difficulty": "Easy",
+    "title": "PostgreSQL default isolation",
+    "question": "What is the default transaction isolation level in PostgreSQL?",
+    "options": [
+      "READ UNCOMMITTED",
+      "REPEATABLE READ",
+      "SERIALIZABLE",
+      "READ COMMITTED"
+    ],
+    "correctIndex": 3,
+    "explanation": "PostgreSQL defaults to READ COMMITTED, where each statement sees data committed before it began. READ UNCOMMITTED is accepted but behaves like READ COMMITTED, while REPEATABLE READ and SERIALIZABLE must be requested explicitly.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/transaction-iso.html"
+  },
+  {
+    "id": "db-agg-group-by-functional",
+    "topic": "databases",
+    "subtopic": "aggregation",
+    "difficulty": "Hard",
+    "title": "Grouping by primary key",
+    "question": "In PostgreSQL, SELECT u.id, u.name, COUNT(o.id) FROM users u LEFT JOIN orders o ON o.user_id = u.id GROUP BY u.id; runs without error. Why is u.name allowed without being in GROUP BY?",
+    "options": [
+      "Columns from the left side of a LEFT JOIN are exempt from grouping",
+      "u.name is functionally dependent on u.id, the primary key of users",
+      "PostgreSQL picks an arbitrary name value like MySQL's loose mode",
+      "COUNT() implicitly groups by every column in the SELECT list"
+    ],
+    "correctIndex": 1,
+    "explanation": "PostgreSQL allows ungrouped columns when they are functionally dependent on grouped columns, which it recognises when a table's primary key is in GROUP BY. It does not pick arbitrary values, there is no exemption for join sides, and aggregates never add implicit grouping.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/sql-select.html"
+  },
+  {
+    "id": "perf-fund-percentiles",
+    "topic": "performance",
+    "subtopic": "fundamentals",
+    "difficulty": "Easy",
+    "title": "Why use percentiles",
+    "question": "An API's average latency is 120 ms, but users complain about slowness. Which metric best reveals the experience of the slowest requests?",
+    "options": [
+      "Mean latency",
+      "Median (p50) latency",
+      "p99 latency",
+      "Requests per second"
+    ],
+    "correctIndex": 2,
+    "explanation": "Averages and medians hide the tail; p99 shows what the slowest 1% of requests experience, which often dominates user perception and fan-out calls. Throughput (requests per second) measures volume, not individual latency.",
+    "referenceUrl": "https://sre.google/sre-book/monitoring-distributed-systems/"
+  },
+  {
+    "id": "perf-fund-littles-law",
+    "topic": "performance",
+    "subtopic": "fundamentals",
+    "difficulty": "Medium",
+    "title": "Little's Law for capacity",
+    "question": "A service handles 200 requests/second with an average latency of 250 ms. By Little's Law, roughly how many requests are in flight on average?",
+    "options": [
+      "800",
+      "50",
+      "200",
+      "0.8"
+    ],
+    "correctIndex": 1,
+    "explanation": "Little's Law: concurrency L = arrival rate lambda x time in system W = 200/s x 0.25 s = 50. This helps size thread pools and connection pools: if latency doubles at constant load, in-flight requests double too.",
+    "referenceUrl": "https://sre.google/sre-book/handling-overload/"
+  },
+  {
+    "id": "perf-fund-queueing-utilization",
+    "topic": "performance",
+    "subtopic": "fundamentals",
+    "difficulty": "Hard",
+    "title": "Latency near saturation",
+    "question": "A CPU-bound service's latency is flat up to 70% utilization, then spikes sharply at 90%, while throughput barely rises. What best explains this?",
+    "options": [
+      "The OS scheduler stops time-slicing above 90% utilization",
+      "Network bandwidth is consumed by the extra latency",
+      "Queueing delay grows non-linearly as utilization approaches 100%",
+      "The garbage collector disables itself above 80% CPU"
+    ],
+    "correctIndex": 2,
+    "explanation": "In queueing theory, wait time grows roughly in proportion to u/(1-u), so close to saturation small load increases add large queues. That is why capacity plans keep headroom and why load shedding helps. The GC, bandwidth, and scheduler claims are not how systems behave.",
+    "referenceUrl": "https://sre.google/sre-book/handling-overload/"
+  },
+  {
+    "id": "perf-prof-flamegraph",
+    "topic": "performance",
+    "subtopic": "profiling-benchmarking",
+    "difficulty": "Easy",
+    "title": "Reading a flame graph",
+    "question": "In a CPU flame graph, what does the width of a frame represent?",
+    "options": [
+      "The proportion of samples in which that function was on the stack",
+      "The number of distinct callers of the function",
+      "The amount of memory the function allocated",
+      "The wall-clock time at which the function was first called"
+    ],
+    "correctIndex": 0,
+    "explanation": "Flame graphs aggregate sampled stacks; width is the share of samples including that frame, so wide frames are where CPU time goes (inclusive). The x-axis is not a timeline, and standard CPU flame graphs do not encode allocations or caller counts.",
+    "referenceUrl": "https://www.brendangregg.com/flamegraphs.html"
+  },
+  {
+    "id": "perf-prof-microbench",
+    "topic": "performance",
+    "subtopic": "profiling-benchmarking",
+    "difficulty": "Medium",
+    "title": "Microbenchmark pitfalls",
+    "question": "A developer times a method with a Stopwatch around one call in a debug build and concludes version B is 3x faster than A. Why is this unreliable, and what is better?",
+    "options": [
+      "Debug builds are faster, so results overstate the difference",
+      "No warmup, JIT and noise effects; use a harness like BenchmarkDotNet in Release",
+      "Stopwatch is inaccurate below one second; use DateTime.Now instead",
+      "One call is enough, but it must run on a different machine"
+    ],
+    "correctIndex": 1,
+    "explanation": "Single timings in Debug ignore JIT warmup, tiered compilation, GC, and run-to-run noise. Benchmark harnesses run in Release, warm up, run many iterations, and report statistics like mean and error. DateTime.Now is less precise than Stopwatch, and Debug builds are typically slower, not faster.",
+    "referenceUrl": "https://benchmarkdotnet.org/articles/overview.html"
+  },
+  {
+    "id": "perf-prof-production-trace",
+    "topic": "performance",
+    "subtopic": "profiling-benchmarking",
+    "difficulty": "Hard",
+    "title": "Profiling a production slowdown",
+    "question": "A .NET service in production shows high CPU only under real traffic and cannot be reproduced locally. What is the most appropriate first step?",
+    "options": [
+      "Add Console.WriteLine timestamps to every method and redeploy",
+      "Attach a debugger and step through requests in production",
+      "Run a microbenchmark of the suspected method on a laptop",
+      "Collect a sampling CPU trace with dotnet-trace from the running process"
+    ],
+    "correctIndex": 3,
+    "explanation": "Sampling profilers like dotnet-trace capture where CPU is spent with low overhead on a live process, ideal for issues that only appear under real load. Debugger breakpoints pause the process, blanket logging distorts timing and requires redeploys, and laptop benchmarks may miss the production conditions.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-trace"
+  },
+  {
+    "id": "perf-mem-loh",
+    "topic": "performance",
+    "subtopic": "memory-allocations",
+    "difficulty": "Medium",
+    "title": "Large object heap pressure",
+    "question": "A .NET API allocates a new 200 KB byte[] buffer per request, and gen2 collections are frequent. Which change best reduces this pressure?",
+    "options": [
+      "Mark the buffer variable as static readonly per request",
+      "Allocate 50 KB buffers four times instead of one 200 KB buffer",
+      "Call GC.Collect() at the end of each request",
+      "Rent buffers from ArrayPool<byte>.Shared and return them after use"
+    ],
+    "correctIndex": 3,
+    "explanation": "Objects of 85,000 bytes or more go on the large object heap, which is collected with gen2, so per-request LOH allocations drive expensive collections. Pooling reuses buffers and avoids the allocations. Forced GC makes things worse, splitting buffers still allocates per request, and a static shared buffer is not thread-safe across requests.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/large-object-heap"
+  },
+  {
+    "id": "perf-mem-generational",
+    "topic": "performance",
+    "subtopic": "memory-allocations",
+    "difficulty": "Easy",
+    "title": "Generational GC hypothesis",
+    "question": "Why do generational garbage collectors such as .NET's collect gen0 far more often than gen2?",
+    "options": [
+      "Most objects die young, so scanning only new objects reclaims most garbage cheaply",
+      "Gen2 is stored on disk and is expensive to read",
+      "Gen0 objects are larger, so they consume memory faster",
+      "Gen0 contains only static fields, which change frequently"
+    ],
+    "correctIndex": 0,
+    "explanation": "The generational hypothesis says most allocations are short-lived, so collecting the small young generation frequently is cheap and productive, while long-lived objects are promoted and scanned rarely. Gen0 objects are not larger, gen2 is in memory, and statics are roots, not gen0 objects.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/fundamentals"
+  },
+  {
+    "id": "perf-mem-leak-cache",
+    "topic": "performance",
+    "subtopic": "memory-allocations",
+    "difficulty": "Expert",
+    "title": "Memory growing without bound",
+    "question": "A service's memory grows steadily for days until it is OOM-killed. A heap dump shows millions of entries in a static Dictionary used as a cache keyed by request id. What is the correct fix?",
+    "options": [
+      "Call GC.Collect() when memory exceeds 80% of the limit",
+      "Switch to Server GC so collections run more often",
+      "Increase the container memory limit and restart nightly",
+      "Replace it with a bounded cache with size limits and expiration"
+    ],
+    "correctIndex": 3,
+    "explanation": "Objects reachable from a static root are never collected, so an unbounded dictionary is a managed memory leak. A bounded cache (size limit, eviction, TTL) caps growth; keying by request id also gives near-zero hit rate. More memory and restarts only postpone the crash, and GC settings cannot free reachable objects.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/fundamentals"
+  },
+  {
+    "id": "perf-db-n-plus-one",
+    "topic": "performance",
+    "subtopic": "database-performance",
+    "difficulty": "Easy",
+    "title": "Spotting N+1 queries",
+    "question": "An endpoint lists 100 blogs and, inside a loop, accesses blog.Posts, which lazily loads posts. The SQL log shows 101 queries. What is this problem called?",
+    "options": [
+      "The N+1 query problem",
+      "A lost update",
+      "A Cartesian explosion",
+      "Connection pool exhaustion"
+    ],
+    "correctIndex": 0,
+    "explanation": "One query fetches N parents and then N additional queries fetch each child collection, which adds a round trip per item. Fix it with eager loading (Include), a projection, or a batched IN query. Cartesian explosion is the opposite issue of a single join duplicating rows, and pool exhaustion and lost updates are unrelated.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/ef/core/performance/efficient-querying"
+  },
+  {
+    "id": "perf-db-cartesian-split",
+    "topic": "performance",
+    "subtopic": "database-performance",
+    "difficulty": "Hard",
+    "title": "Cartesian explosion with eager loading",
+    "question": "An EF Core query does .Include(o => o.Items).Include(o => o.Payments) for 1000 orders averaging 20 items and 10 payments. It is slow and transfers huge result sets. What helps most?",
+    "options": [
+      "Increase the command timeout to 120 seconds",
+      "Replace Include with lazy loading proxies",
+      "Add AsNoTracking() to avoid change tracking",
+      "Use AsSplitQuery() so each collection is loaded in a separate query"
+    ],
+    "correctIndex": 3,
+    "explanation": "Including two sibling collections in one JOIN returns roughly 20 x 10 = 200 rows per order, duplicating data (cartesian explosion). Split queries load each collection separately, at the cost of more round trips and no single-snapshot consistency. AsNoTracking reduces overhead but not row count, lazy loading reintroduces N+1, and timeouts hide the cost.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/ef/core/querying/single-split-queries"
+  },
+  {
+    "id": "perf-db-pool-exhaustion",
+    "topic": "performance",
+    "subtopic": "database-performance",
+    "difficulty": "Medium",
+    "title": "Connection pool timeouts",
+    "question": "Under load, an app logs 'Timeout expired. The timeout period elapsed prior to obtaining a connection from the pool', while the database CPU is only 20%. What is the most likely cause?",
+    "options": [
+      "The database has run out of disk space for new connections",
+      "The SQL queries are using too many indexes",
+      "Connections are held too long, e.g. leaked or kept open across slow external calls",
+      "The pool size is too small for any amount of traffic"
+    ],
+    "correctIndex": 2,
+    "explanation": "With low database load, the pool is usually starved because connections are not returned promptly: missing dispose/using, or holding a connection or transaction while awaiting an HTTP call. Fix the lifetime first; blindly increasing the pool can overload the database. Disk space and index counts do not produce pool-acquisition timeouts.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/ef/core/performance/efficient-querying"
+  },
+  {
+    "id": "perf-db-pool-sizing",
+    "topic": "performance",
+    "subtopic": "database-performance",
+    "difficulty": "Expert",
+    "title": "Oversized connection pools",
+    "question": "Forty app instances each use a pool of 100 connections against one PostgreSQL server with 8 cores. During peaks, throughput drops and latency rises. Which change is most likely to help?",
+    "options": [
+      "Disable autovacuum during peaks to free CPU for queries",
+      "Give each instance its own read replica regardless of write traffic",
+      "Reduce total connections, e.g. via smaller pools or PgBouncer, so active backends stay near core count",
+      "Raise max_connections to 8000 so no instance waits for a connection"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each PostgreSQL connection is a backend process; thousands of active ones cause context switching, lock contention, and memory pressure, so throughput falls. A small number of active connections near the core count plus queueing in a pooler is usually faster. More connections worsens contention, replicas do not help writes, and disabling autovacuum causes bloat.",
+    "referenceUrl": "https://www.pgbouncer.org/features.html"
+  },
+  {
+    "id": "perf-db-select-star",
+    "topic": "performance",
+    "subtopic": "database-performance",
+    "difficulty": "Medium",
+    "title": "Over-fetching columns",
+    "question": "A list view needs only id and title, but the ORM query loads entire entities including a large body text column. What is the main performance improvement?",
+    "options": [
+      "Project only the needed columns, e.g. Select(p => new { p.Id, p.Title })",
+      "Add an index on the body column",
+      "Load the entities one by one with Find()",
+      "Wrap the query in a serializable transaction"
+    ],
+    "correctIndex": 0,
+    "explanation": "Projection reduces I/O, network transfer, and materialization cost, and may enable index-only scans. Indexing body does not shrink the payload, isolation level is unrelated, and loading rows one at a time introduces N+1 round trips.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/ef/core/performance/efficient-querying"
+  },
+  {
+    "id": "perf-cache-stampede",
+    "topic": "performance",
+    "subtopic": "caching-batching",
+    "difficulty": "Hard",
+    "title": "Cache stampede",
+    "question": "A hot key with a 60s TTL expires and 2000 concurrent requests miss the cache simultaneously, all running the same expensive query and overloading the database. Which mitigation targets this directly?",
+    "options": [
+      "Request coalescing: let one caller recompute while others wait or serve stale",
+      "Compress the cached value to reduce memory",
+      "Lower the TTL to 10 seconds so entries are fresher",
+      "Store the value in more cache nodes for redundancy"
+    ],
+    "correctIndex": 0,
+    "explanation": "A stampede (dogpile) happens when many callers regenerate the same expired entry at once. Single-flight locking, serving stale while revalidating, or probabilistic early refresh limit recomputation to one. Shorter TTLs cause more stampedes, replication does not stop the concurrent misses, and compression is unrelated.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside"
+  },
+  {
+    "id": "perf-cache-redis-pipeline",
+    "topic": "performance",
+    "subtopic": "caching-batching",
+    "difficulty": "Medium",
+    "title": "Many small Redis calls",
+    "question": "A request performs 500 sequential Redis GET calls, each with ~0.5 ms round-trip latency. Which change reduces the time the most?",
+    "options": [
+      "Increase the Redis maxmemory setting",
+      "Batch the reads using MGET or pipelining",
+      "Use a larger connection pool with the same sequential calls",
+      "Switch the values from strings to hashes"
+    ],
+    "correctIndex": 1,
+    "explanation": "Time is dominated by 500 network round trips (about 250 ms). MGET or pipelining sends commands in one batch so you pay roughly one RTT. Changing data types or memory does not reduce round trips, and a bigger pool does not help when calls are issued sequentially.",
+    "referenceUrl": "https://redis.io/docs/latest/develop/using-commands/pipelining/"
+  },
+  {
+    "id": "perf-cache-compression",
+    "topic": "performance",
+    "subtopic": "caching-batching",
+    "difficulty": "Easy",
+    "title": "Response compression trade-off",
+    "question": "When does enabling HTTP response compression (gzip/Brotli) typically help most?",
+    "options": [
+      "CPU-saturated servers sending binary video streams",
+      "Responses under 100 bytes on a local network",
+      "Large text payloads like JSON over bandwidth-limited links",
+      "Small already-compressed images such as JPEG"
+    ],
+    "correctIndex": 2,
+    "explanation": "Text compresses well, so compression cuts transfer time for larger JSON/HTML, especially on slow links. Already-compressed formats gain little, tiny responses do not benefit, and on CPU-bound servers compression's CPU cost can hurt.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Compression"
+  },
+  {
+    "id": "perf-load-test-types",
+    "topic": "performance",
+    "subtopic": "load-testing",
+    "difficulty": "Easy",
+    "title": "Load vs stress vs soak",
+    "question": "You want to find out whether memory leaks or slow degradation appear when the system runs at normal load for 8 hours. Which test type is this?",
+    "options": [
+      "Stress test",
+      "Smoke test",
+      "Spike test",
+      "Soak test"
+    ],
+    "correctIndex": 3,
+    "explanation": "A soak (endurance) test runs typical load for a long period to expose leaks, resource exhaustion, and degradation. Spike tests apply sudden bursts, smoke tests verify basic functionality with minimal load, and stress tests push beyond normal capacity to find breaking points.",
+    "referenceUrl": "https://grafana.com/docs/k6/latest/testing-guides/test-types/"
+  },
+  {
+    "id": "perf-load-open-model",
+    "topic": "performance",
+    "subtopic": "load-testing",
+    "difficulty": "Hard",
+    "title": "Coordinated omission",
+    "question": "A load test uses 50 virtual users that each wait for a response before sending the next request. When the system slows down, the test reports fewer requests but p99 latency barely changes. What is the issue?",
+    "options": [
+      "The p99 percentile is too coarse; report p50 instead",
+      "Virtual users share cookies, so responses come from cache",
+      "A closed model reduces arrivals as latency rises, hiding queueing; use an arrival-rate executor",
+      "The test needs more think time between requests to be realistic"
+    ],
+    "correctIndex": 2,
+    "explanation": "In a closed model, slow responses throttle the load generator itself, so it under-samples the slow periods (coordinated omission). Open-model executors like constant-arrival-rate keep injecting requests at a fixed rate, exposing real queueing latency. More think time worsens the effect, and switching to p50 hides the tail further.",
+    "referenceUrl": "https://grafana.com/docs/k6/latest/using-k6/scenarios/"
+  },
+  {
+    "id": "perf-load-thresholds",
+    "topic": "performance",
+    "subtopic": "load-testing",
+    "difficulty": "Medium",
+    "title": "Pass/fail criteria in load tests",
+    "question": "You want a CI load test to fail automatically if p95 latency exceeds 300 ms or the error rate exceeds 1%. What k6 feature provides this?",
+    "options": [
+      "Groups, which split metrics by logical section",
+      "Checks, which abort the test on the first failed assertion",
+      "Tags, which mark slow requests as failures",
+      "Thresholds, e.g. http_req_duration: ['p(95)<300']"
+    ],
+    "correctIndex": 3,
+    "explanation": "Thresholds define pass/fail criteria on metrics, and a failed threshold makes k6 exit non-zero for CI. Checks record assertion results but do not fail the run by themselves, while groups and tags organise metrics without setting criteria.",
+    "referenceUrl": "https://grafana.com/docs/k6/latest/using-k6/thresholds/"
+  },
+  {
+    "id": "perf-fund-tail-fanout",
+    "topic": "performance",
+    "subtopic": "fundamentals",
+    "difficulty": "Expert",
+    "title": "Tail latency at scale",
+    "question": "A request fans out to 100 backend shards in parallel and waits for all of them. Each shard has a p99 of 50 ms. Roughly what fraction of user requests will see at least one shard slower than its p99?",
+    "options": [
+      "About 1%",
+      "About 63%",
+      "About 99%",
+      "About 10%"
+    ],
+    "correctIndex": 1,
+    "explanation": "The probability that all 100 calls are faster than p99 is 0.99^100, about 0.366, so about 63% of requests hit at least one slow shard. This is why fan-out amplifies tail latency and why techniques like hedged requests matter.",
+    "referenceUrl": "https://sre.google/sre-book/addressing-cascading-failures/"
+  }
+]

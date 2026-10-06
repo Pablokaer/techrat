@@ -1,0 +1,767 @@
+[
+  {
+    "id": "be-http-308-preserve-method",
+    "topic": "backend-engineering",
+    "subtopic": "http-rest",
+    "difficulty": "Medium",
+    "title": "Redirect that preserves POST",
+    "question": "An API permanently moved POST /v1/orders to /v2/orders and answers old calls with 301 Moved Permanently. Some HTTP clients follow that redirect by re-sending the request as a GET without the body. Which status code should the API use instead?",
+    "options": [
+      "302 Found, so clients treat the move as only temporary",
+      "303 See Other, pointing clients to the new URI",
+      "308 Permanent Redirect, which keeps method and body",
+      "410 Gone, with the new URI described in the response body"
+    ],
+    "correctIndex": 2,
+    "explanation": "For historical reasons many clients change POST to GET when following 301 or 302. 308 Permanent Redirect requires the client to repeat the request with the same method and body (307 is its temporary counterpart). 303 explicitly tells the client to GET the new URI, and 410 Gone does not redirect at all.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/308"
+  },
+  {
+    "id": "be-api-async-request-reply",
+    "topic": "backend-engineering",
+    "subtopic": "api-design",
+    "difficulty": "Medium",
+    "title": "Long-running operations over HTTP",
+    "question": "POST /reports starts an export that takes 3 to 10 minutes. Holding the HTTP request open causes gateway timeouts. Which API design is the standard fix?",
+    "options": [
+      "Return 200 OK once the job is queued and email the file to the user later",
+      "Return 202 Accepted with a Location header to a status resource the client polls",
+      "Raise the gateway and client timeouts to 15 minutes so every request can complete",
+      "Return 201 Created immediately with an empty report body that fills in later"
+    ],
+    "correctIndex": 1,
+    "explanation": "This is the Asynchronous Request-Reply pattern: 202 Accepted means the request was accepted but not completed, and Location points to a status endpoint the client polls (optionally guided by Retry-After) until it links to the finished result. Longer timeouts tie up connections and still break on network hiccups, while 200 or 201 falsely signal that the work is done.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/async-request-reply"
+  },
+  {
+    "id": "be-webhook-receiver-endpoint",
+    "topic": "backend-engineering",
+    "subtopic": "webhooks",
+    "difficulty": "Easy",
+    "title": "Who calls whom in a webhook",
+    "question": "In a typical webhook integration between a payment provider and your application, which side exposes the HTTP endpoint and which side initiates the request when an event occurs?",
+    "options": [
+      "Your app polls an endpoint the provider exposes and pulls new events on a schedule",
+      "The provider opens a WebSocket to your app and streams every event as it happens",
+      "Both sides expose endpoints and exchange events through a shared message broker",
+      "Your app exposes a URL, and the provider sends an HTTP POST to it on each event"
+    ],
+    "correctIndex": 3,
+    "explanation": "A webhook is a reverse API call: the consumer registers a URL, and the provider sends an HTTP request (usually a POST with a JSON payload) to it when an event happens. Polling is exactly what webhooks replace, and WebSockets or shared brokers are different integration mechanisms.",
+    "referenceUrl": "https://docs.github.com/en/webhooks/about-webhooks"
+  },
+  {
+    "id": "be-webhook-dedupe-event-id",
+    "topic": "backend-engineering",
+    "subtopic": "webhooks",
+    "difficulty": "Medium",
+    "title": "Duplicate webhook deliveries",
+    "question": "Your webhook handler credits loyalty points for each payment.succeeded event. Logs show the same event (same event id) occasionally arriving twice, and some customers get double points. What should the handler do?",
+    "options": [
+      "Record processed event ids and skip any event id it has already handled",
+      "Return HTTP 500 for the second copy so the provider stops sending duplicates",
+      "Compare payload timestamps and drop any event older than five seconds",
+      "Ask the provider to disable retries so each event is delivered only once"
+    ],
+    "correctIndex": 0,
+    "explanation": "Webhook providers deliver at least once, so the same event can arrive more than once; Stripe's docs recommend logging processed event IDs and skipping ones already handled. A 500 triggers even more retries, timestamps do not identify duplicates (distinct events can share one), and disabling retries would lose events during outages.",
+    "referenceUrl": "https://docs.stripe.com/webhooks"
+  },
+  {
+    "id": "be-webhook-out-of-order",
+    "topic": "backend-engineering",
+    "subtopic": "webhooks",
+    "difficulty": "Hard",
+    "title": "Out-of-order webhook events",
+    "question": "A subscription webhook consumer sometimes receives invoice.paid before customer.subscription.created for the same subscription, and the handler fails because the subscription row does not exist yet. What is the most robust approach?",
+    "options": [
+      "Sort incoming events by their created timestamp before processing each of them",
+      "Ask the provider to send all events for one customer over a single connection",
+      "Don't rely on order: fetch the missing object from the provider's API or retry later",
+      "Reject the early event with HTTP 400 so the provider re-sends it in the right order"
+    ],
+    "correctIndex": 2,
+    "explanation": "Providers such as Stripe explicitly do not guarantee that events arrive in the order they were generated, so handlers must be order-independent: fetch or upsert the missing object via the API, or requeue the event for a later retry. created timestamps have one-second granularity and can be shared, and a 4xx does not make the provider re-sequence anything.",
+    "referenceUrl": "https://docs.stripe.com/webhooks"
+  },
+  {
+    "id": "be-webhook-raw-body-hmac",
+    "topic": "backend-engineering",
+    "subtopic": "webhooks",
+    "difficulty": "Expert",
+    "title": "Signature fails after re-serializing JSON",
+    "question": "A receiver verifies webhook HMAC signatures. After a framework upgrade it parses the JSON body into an object and computes the HMAC over JSON.stringify(parsed). Now many genuine deliveries fail verification. What is the root cause?",
+    "options": [
+      "The provider rotated its signing secret during the framework upgrade window",
+      "The HMAC must be computed over the exact raw request bytes, not re-serialized JSON",
+      "HMAC-SHA256 output differs between language runtimes for the same secret key",
+      "JSON bodies must be canonicalized by sorting their keys before computing the HMAC value"
+    ],
+    "correctIndex": 1,
+    "explanation": "The provider signs the exact bytes it sent. Parsing and re-serializing can change whitespace, key order, Unicode escaping or number formatting, so the digest no longer matches; Stripe's docs require the raw request body for verification. HMAC is deterministic across runtimes, and canonicalizing keys produces bytes the provider never signed.",
+    "referenceUrl": "https://docs.stripe.com/webhooks/signature"
+  },
+  {
+    "id": "db-sql-truncate-all-rows",
+    "topic": "databases",
+    "subtopic": "sql-basics",
+    "difficulty": "Easy",
+    "title": "Emptying a table quickly",
+    "question": "In PostgreSQL you need to remove all rows from a large staging table but keep the table itself, its columns and its indexes. Which command does this fastest?",
+    "options": [
+      "DROP TABLE staging;",
+      "DELETE FROM staging WHERE 1 = 1;",
+      "TRUNCATE TABLE staging;",
+      "VACUUM FULL staging;"
+    ],
+    "correctIndex": 2,
+    "explanation": "TRUNCATE removes all rows without scanning the table and reclaims the space immediately, while keeping the table definition and indexes. DELETE scans every row and leaves dead tuples for VACUUM, DROP TABLE removes the table itself, and VACUUM FULL only compacts space from rows that are already dead.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/sql-truncate.html"
+  },
+  {
+    "id": "db-sql-between-timestamps",
+    "topic": "databases",
+    "subtopic": "sql-basics",
+    "difficulty": "Medium",
+    "title": "BETWEEN on timestamp columns",
+    "question": "created_at is a timestamp column. The filter WHERE created_at BETWEEN '2026-01-01' AND '2026-01-31' is meant to return all January orders, but orders placed in the afternoon of January 31 are missing. What is the best fix?",
+    "options": [
+      "Use created_at >= '2026-01-01' AND created_at < '2026-02-01'",
+      "Use BETWEEN SYMMETRIC so that both range boundaries are inclusive",
+      "Cast the literals to date so BETWEEN compares whole calendar days",
+      "Use created_at > '2025-12-31' AND created_at <= '2026-01-31'"
+    ],
+    "correctIndex": 0,
+    "explanation": "'2026-01-31' becomes midnight at the start of January 31, so the inclusive BETWEEN stops at 00:00 that day. A half-open range (>= start AND < next month) is correct for any precision and index-friendly. BETWEEN SYMMETRIC only handles reversed bounds, casting the literals to date still compares against midnight, and the last option has the same midnight cutoff.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/functions-comparison.html"
+  },
+  {
+    "id": "db-sql-desc-nulls-first",
+    "topic": "databases",
+    "subtopic": "sql-basics",
+    "difficulty": "Medium",
+    "title": "NULLs at the top of a DESC sort",
+    "question": "In PostgreSQL, SELECT name FROM users ORDER BY last_login_at DESC LIMIT 10; should list the most recently active users, but it returns users who never logged in (last_login_at IS NULL). Why, and what fixes it?",
+    "options": [
+      "LIMIT is applied before ORDER BY runs; wrap the sorted query in an outer subquery",
+      "NULL compares equal to every timestamp; add WHERE last_login_at <> NULL",
+      "DESC sorts NULLs first by default; use ORDER BY last_login_at DESC NULLS LAST",
+      "The sort is unstable for NULL values; add the primary key as a tie-breaker"
+    ],
+    "correctIndex": 2,
+    "explanation": "PostgreSQL sorts NULLs as if larger than any non-null value, so NULLS FIRST is the default for DESC order. Adding NULLS LAST (or filtering IS NOT NULL) fixes it. LIMIT is applied after ORDER BY, a comparison with <> NULL is never true, and a tie-breaker does not change where NULLs land.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-order.html"
+  },
+  {
+    "id": "db-join-full-outer",
+    "topic": "databases",
+    "subtopic": "joins",
+    "difficulty": "Easy",
+    "title": "Rows from both sides of a join",
+    "question": "You compare a warehouse_stock table with an erp_stock table by sku and need every SKU that appears in either table, with NULLs on the side where it is missing. Which join produces this?",
+    "options": [
+      "INNER JOIN on sku",
+      "LEFT JOIN on sku",
+      "CROSS JOIN with a WHERE on sku",
+      "FULL OUTER JOIN on sku"
+    ],
+    "correctIndex": 3,
+    "explanation": "FULL OUTER JOIN returns the matched rows plus the unmatched rows from both sides, padded with NULLs. INNER JOIN keeps only matches, LEFT JOIN keeps unmatched rows from the left table only, and a CROSS JOIN filtered by equality is just an inner join.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-table-expressions.html"
+  },
+  {
+    "id": "db-join-collapse-limit",
+    "topic": "databases",
+    "subtopic": "joins",
+    "difficulty": "Expert",
+    "title": "Join order in very large joins",
+    "question": "A PostgreSQL reporting query joins 14 tables using explicit INNER JOIN syntax. Its plan is poor, and simply reordering the JOIN clauses in the SQL text changes the runtime dramatically. Which explanation fits best?",
+    "options": [
+      "PostgreSQL always executes inner joins strictly in the order they are written",
+      "Past join_collapse_limit (default 8), the written JOIN order constrains the plan",
+      "Queries with more than 12 joins are forced to use nested loops for every join",
+      "Planner statistics are discarded for tables that appear in more than 8 joins"
+    ],
+    "correctIndex": 1,
+    "explanation": "The planner only flattens explicit JOINs into a freely reorderable list while the list stays within join_collapse_limit (default 8), so in larger queries the written JOIN structure limits which orders are considered; at geqo_threshold (default 12) items, the genetic optimizer also replaces exhaustive search. For small queries PostgreSQL does reorder inner joins freely, and neither join methods nor statistics are restricted by join count.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/explicit-joins.html"
+  },
+  {
+    "id": "db-tx-autocommit-partial",
+    "topic": "databases",
+    "subtopic": "transactions",
+    "difficulty": "Medium",
+    "title": "Statements without BEGIN",
+    "question": "A migration script runs two UPDATE statements through psql without BEGIN. The first succeeds and the second fails on a constraint violation. What is the state of the database?",
+    "options": [
+      "Both updates are rolled back, since the script is treated as one transaction",
+      "Neither is committed until the session ends, at which point both are rolled back",
+      "The first update is committed; only the failing second statement had no effect",
+      "The first update stays uncommitted and locked until someone issues COMMIT"
+    ],
+    "correctIndex": 2,
+    "explanation": "Without an explicit BEGIN, PostgreSQL wraps each statement in its own implicit transaction and commits it on success (autocommit), so the first UPDATE is durable. To make the script all-or-nothing, wrap it in BEGIN/COMMIT or run psql with --single-transaction.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/tutorial-transactions.html"
+  },
+  {
+    "id": "db-tx-idle-in-transaction",
+    "topic": "databases",
+    "subtopic": "transactions",
+    "difficulty": "Hard",
+    "title": "Sessions idle in transaction",
+    "question": "pg_stat_activity shows an application connection that updated some rows and then sat in state 'idle in transaction' for 6 hours, and heavily updated tables keep growing even though autovacuum runs. What is the link, and which setting guards against it?",
+    "options": [
+      "The open transaction pins the xmin horizon, so VACUUM can't remove dead rows; set idle_in_transaction_session_timeout",
+      "Idle transactions hold ACCESS EXCLUSIVE locks that make autovacuum wait; set lock_timeout on the application's role",
+      "The session's temporary buffers leak into the shared table files; lower temp_buffers for the application role",
+      "Autovacuum skips any table touched by an open connection; set statement_timeout so idle sessions close sooner"
+    ],
+    "correctIndex": 0,
+    "explanation": "Under MVCC, VACUUM can only remove row versions that no open transaction could still see. A transaction left open (even idle) holds back the oldest xmin, so dead tuples accumulate and tables bloat. idle_in_transaction_session_timeout terminates such sessions. Idle transactions only hold the locks they already took, and statement_timeout does not apply while no statement is running.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/runtime-config-client.html"
+  },
+  {
+    "id": "be-auth-session-id-cookie",
+    "topic": "backend-engineering",
+    "subtopic": "auth",
+    "difficulty": "Easy",
+    "title": "What a session cookie holds",
+    "question": "In a classic server-side session design, what should the session cookie sent to the browser contain?",
+    "options": [
+      "The user's id and roles, Base64-encoded so the server can read them back",
+      "A JSON object of the session data, encrypted with the user's own password",
+      "The user's password hash, so that each request can be re-authenticated",
+      "A long, random, opaque session id that maps to state stored on the server"
+    ],
+    "correctIndex": 3,
+    "explanation": "With server-side sessions the cookie carries only a meaningless, high-entropy identifier; the session data (user id, roles, etc.) stays on the server. Base64 is encoding, not protection, so users could forge roles; password hashes must never leave the server; and encrypting with the user's password is neither practical nor necessary.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+  },
+  {
+    "id": "be-rt-sse-content-type",
+    "topic": "backend-engineering",
+    "subtopic": "realtime",
+    "difficulty": "Easy",
+    "title": "Content-Type for Server-Sent Events",
+    "question": "A browser EventSource connects to /stream, but its onmessage handler never fires even though the server writes lines like 'data: hello' followed by a blank line. Which response Content-Type must the server send for Server-Sent Events?",
+    "options": [
+      "application/json",
+      "text/plain; charset=utf-8",
+      "application/x-ndjson",
+      "text/event-stream"
+    ],
+    "correctIndex": 3,
+    "explanation": "The SSE protocol requires the response to use the text/event-stream MIME type; EventSource rejects the connection otherwise. Messages are 'data:' lines terminated by a blank line. JSON and NDJSON are payload formats you might stream with fetch, not something EventSource accepts.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events"
+  },
+  {
+    "id": "be-rt-ws-idle-heartbeat",
+    "topic": "backend-engineering",
+    "subtopic": "realtime",
+    "difficulty": "Medium",
+    "title": "WebSockets dropped when idle",
+    "question": "WebSocket connections to a notifications service are silently closed after exactly 60 seconds whenever no messages are sent, even though client and server are healthy. A load balancer sits in between. What is the usual fix?",
+    "options": [
+      "Send periodic Ping/Pong control frames more often than the idle timeout",
+      "Switch from wss:// to ws:// so the load balancer stops inspecting traffic",
+      "Reconnect the client every 50 seconds with a fresh HTTP Upgrade handshake",
+      "Increase the server's maximum frame size so messages keep the link open"
+    ],
+    "correctIndex": 0,
+    "explanation": "Proxies and load balancers close connections that stay idle longer than their timeout. RFC 6455 Ping and Pong control frames act as heartbeats that keep traffic flowing and also detect dead peers (raising the balancer's idle timeout can complement this). Dropping TLS does not change idle timeouts, forced reconnects churn connections, and frame size is irrelevant when nothing is sent.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc6455.html"
+  },
+  {
+    "id": "be-rt-sse-http1-limit",
+    "topic": "backend-engineering",
+    "subtopic": "realtime",
+    "difficulty": "Medium",
+    "title": "SSE and per-domain connection limits",
+    "question": "A dashboard opens one EventSource per browser tab. Users with more than five or six tabs of the app open report that new tabs hang while loading, but only on an HTTP/1.1 deployment. What explains it?",
+    "options": [
+      "Each EventSource takes a server thread-pool slot that is shared across all users",
+      "Browsers allow about 6 HTTP/1.1 connections per domain, and each stream holds one",
+      "EventSource re-sends cookies with each event, so headers exceed the server limit",
+      "SSE needs HTTP/2 server push, which HTTP/1.1 servers emulate with long polling"
+    ],
+    "correctIndex": 1,
+    "explanation": "Over HTTP/1.1, browsers cap open connections per browser and domain at a low number (6), and every open SSE stream permanently occupies one, so further requests queue. HTTP/2 multiplexes many streams over one connection, removing the problem. EventSource does not send cookies per event, and SSE has nothing to do with HTTP/2 server push.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events"
+  },
+  {
+    "id": "be-rt-cswsh-origin",
+    "topic": "backend-engineering",
+    "subtopic": "realtime",
+    "difficulty": "Hard",
+    "title": "Cross-site WebSocket hijacking",
+    "question": "A WebSocket endpoint authenticates users only with the session cookie sent during the handshake. A malicious site opens a socket to it from a logged-in victim's browser and reads private messages. What is the key missing defense?",
+    "options": [
+      "Enabling CORS headers on the WebSocket endpoint to block cross-origin reads",
+      "Using wss:// so the browser refuses to attach cookies to cross-site sockets",
+      "Validating the Origin header in the handshake against an allowlist",
+      "Requiring the client to send a Sec-WebSocket-Key header on every handshake"
+    ],
+    "correctIndex": 2,
+    "explanation": "This is Cross-Site WebSocket Hijacking: WebSocket handshakes are not restricted by CORS, and browsers attach cookies to them, so the server must check the Origin header against allowed origins (ideally also using SameSite cookies or token-based auth). Sec-WebSocket-Key is sent automatically by browsers and only proves the server speaks WebSocket, and wss:// encrypts traffic without changing cookie behavior.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/WebSocket_Security_Cheat_Sheet.html"
+  },
+  {
+    "id": "be-grpc-protobuf-idl",
+    "topic": "backend-engineering",
+    "subtopic": "grpc",
+    "difficulty": "Easy",
+    "title": "gRPC's default IDL and format",
+    "question": "By default, what does gRPC use both to define service interfaces and to serialize request and response messages?",
+    "options": [
+      "JSON Schema",
+      "OpenAPI 3.1",
+      "Protocol Buffers",
+      "Apache Avro"
+    ],
+    "correctIndex": 2,
+    "explanation": "gRPC uses Protocol Buffers by default as both its Interface Definition Language (services and messages in .proto files, compiled into client and server stubs) and its binary message format. Other encodings can be plugged in, but they are not the default; OpenAPI describes HTTP/REST APIs.",
+    "referenceUrl": "https://grpc.io/docs/what-is-grpc/introduction/"
+  },
+  {
+    "id": "be-grpc-reserved-field-numbers",
+    "topic": "backend-engineering",
+    "subtopic": "grpc",
+    "difficulty": "Medium",
+    "title": "Deleting protobuf fields safely",
+    "question": "A team deletes 'string nickname = 4;' from a protobuf message and a month later adds 'int64 score = 4;'. Old clients still in production start misreading or failing to parse messages. What should the team have done when deleting the field?",
+    "options": [
+      "Keep field 4 but change its type, since protobuf converts types for you",
+      "Bump the package version so old clients reject messages from the new schema",
+      "Renumber the remaining fields so that the message stays densely numbered",
+      "Mark field number 4 (and the name) as reserved so it can never be reused"
+    ],
+    "correctIndex": 3,
+    "explanation": "Field numbers identify fields on the wire, so reusing a number with a different meaning makes old binaries decode new data as the old field. The proto3 guide says to reserve deleted field numbers (and names) so the compiler blocks reuse. Renumbering existing fields is itself a breaking change, package names do not affect wire decoding, and most type changes are not wire-compatible.",
+    "referenceUrl": "https://protobuf.dev/programming-guides/proto3/"
+  },
+  {
+    "id": "be-grpc-retry-unavailable",
+    "topic": "backend-engineering",
+    "subtopic": "grpc",
+    "difficulty": "Medium",
+    "title": "Which gRPC status codes to retry",
+    "question": "Calls from service A to service B occasionally fail while B's pods restart during rolling deployments. You add a retryPolicy to A's gRPC service config. Which status code is the typical entry for retryableStatusCodes?",
+    "options": [
+      "INVALID_ARGUMENT",
+      "PERMISSION_DENIED",
+      "UNAVAILABLE",
+      "FAILED_PRECONDITION"
+    ],
+    "correctIndex": 2,
+    "explanation": "UNAVAILABLE signals a transient condition such as a server shutting down or a refused connection, and is the status gRPC's retry documentation uses in its retryPolicy example; retries use exponential backoff with jitter. INVALID_ARGUMENT, PERMISSION_DENIED and FAILED_PRECONDITION will fail the same way on every retry. Retrying non-idempotent methods still requires idempotency on the server.",
+    "referenceUrl": "https://grpc.io/docs/guides/retry/"
+  },
+  {
+    "id": "be-grpc-l4-load-balancing",
+    "topic": "backend-engineering",
+    "subtopic": "grpc",
+    "difficulty": "Hard",
+    "title": "Uneven load behind an L4 balancer",
+    "question": "Six gRPC server pods sit behind a Layer 4 (TCP) load balancer. Monitoring shows one or two pods handling almost all requests while the others sit idle, even though clients send thousands of RPCs per second. Why?",
+    "options": [
+      "gRPC servers reject requests above a fixed per-pod concurrency limit by default",
+      "HTTP/2 multiplexes RPCs over long-lived connections, and L4 balances only connections",
+      "Protobuf payloads are hashed by size, so the balancer sends similar calls to one pod",
+      "The load balancer cannot read gRPC trailers, so it falls back to sticky sessions by IP"
+    ],
+    "correctIndex": 1,
+    "explanation": "gRPC runs over HTTP/2, which multiplexes many RPCs on a few persistent connections. A Layer 4 balancer chooses a backend once per TCP connection, so all RPCs on that connection go to the same pod. Use an HTTP/2-aware L7 proxy or client-side load balancing (for example round_robin across resolved addresses), or cap connection age.",
+    "referenceUrl": "https://grpc.io/blog/grpc-load-balancing/"
+  },
+  {
+    "id": "be-jobs-offload-email",
+    "topic": "backend-engineering",
+    "subtopic": "background-jobs",
+    "difficulty": "Easy",
+    "title": "Slow side effects in requests",
+    "question": "A sign-up endpoint sends a welcome email through a third-party SMTP service that sometimes takes 8 seconds to respond, so sign-ups feel slow and occasionally time out. What is the standard improvement?",
+    "options": [
+      "Enqueue the email as a background job and return the response immediately",
+      "Increase the endpoint's HTTP timeout so that slow SMTP calls can finish",
+      "Send the email in a loop until the SMTP service answers within one second",
+      "Cache the welcome email HTML so that the SMTP call has less work to do"
+    ],
+    "correctIndex": 0,
+    "explanation": "Slow, non-essential work should not block the user's request: put it on a queue so a background worker sends it (with retries) while the endpoint responds right away. Longer timeouts keep the user waiting, tight retry loops amplify the problem, and caching the HTML does not change SMTP latency.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/background-jobs"
+  },
+  {
+    "id": "be-jobs-scheduled-singleton",
+    "topic": "backend-engineering",
+    "subtopic": "background-jobs",
+    "difficulty": "Medium",
+    "title": "Scheduled jobs after scaling out",
+    "question": "A nightly billing task is scheduled with an in-process cron library inside the web app. After the app is scaled out to 3 instances, customers receive three invoices each night. What is the best fix?",
+    "options": [
+      "Add a random startup delay so the instances rarely fire at the same moment",
+      "Run it from a single scheduler or under a distributed lock, and make it idempotent",
+      "Reduce the schedule frequency to every third night to match the instance count",
+      "Store the cron expression in the database so all instances share a single copy"
+    ],
+    "correctIndex": 1,
+    "explanation": "Every instance hosts its own scheduler, so each one fires the job. Azure's background-jobs guidance warns that scaling the compute that runs a scheduler creates multiple scheduler instances; run such tasks as a single instance (a dedicated scheduled job or a lease/lock) and design them to be idempotent. Random delays and a shared cron expression still let every instance run the task.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/background-jobs"
+  },
+  {
+    "id": "be-cache-aside-basics",
+    "topic": "backend-engineering",
+    "subtopic": "backend-caching",
+    "difficulty": "Easy",
+    "title": "Cache-aside on a cache miss",
+    "question": "With the cache-aside pattern, what does the application do when a read request misses the cache?",
+    "options": [
+      "Return an error and wait for a background process to warm the cache",
+      "Ask the cache to fetch the data from the database on the app's behalf",
+      "Load the data from the database, store it in the cache, then return it",
+      "Read from the database but never store it, to keep the cache consistent"
+    ],
+    "correctIndex": 2,
+    "explanation": "In cache-aside the application owns population: check the cache, on a miss read from the data store, put the value into the cache (usually with an expiry) and return it. A cache that loads from the database by itself is read-through, a different pattern; failing on misses or never storing values defeats the purpose of the cache.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside"
+  },
+  {
+    "id": "be-cache-stale-while-revalidate",
+    "topic": "backend-engineering",
+    "subtopic": "backend-caching",
+    "difficulty": "Medium",
+    "title": "Serving stale while refreshing",
+    "question": "A product API sits behind a CDN with Cache-Control: max-age=60. Every minute, when the entry expires, a few users wait 2 seconds for the origin. Which header lets the cache keep serving the expired copy while it refreshes in the background?",
+    "options": [
+      "Cache-Control: max-age=60, stale-while-revalidate=30",
+      "Cache-Control: max-age=60, must-revalidate, proxy-revalidate",
+      "Cache-Control: no-cache, max-age=60",
+      "Cache-Control: max-age=60, immutable"
+    ],
+    "correctIndex": 0,
+    "explanation": "stale-while-revalidate=N lets a cache reuse a stale response for up to N seconds while it revalidates in the background, hiding origin latency. must-revalidate and proxy-revalidate forbid serving stale content, no-cache forces revalidation before every use, and immutable only says the body will not change while fresh.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control"
+  },
+  {
+    "id": "be-cache-idempotency-key-reuse",
+    "topic": "backend-engineering",
+    "subtopic": "backend-caching",
+    "difficulty": "Hard",
+    "title": "Idempotency-Key misuse responses",
+    "question": "An API implements the Idempotency-Key header for POST /payments. What should it return when (a) a client reuses a key with a different request body, and (b) a retry arrives while the original request with that key is still being processed?",
+    "options": [
+      "(a) 200 with the original stored response; (b) 202 Accepted",
+      "(a) 409 Conflict; (b) 429 Too Many Requests with Retry-After",
+      "(a) 400 Bad Request; (b) 200 with the response once it is ready",
+      "(a) 422 Unprocessable Content; (b) 409 Conflict"
+    ],
+    "correctIndex": 3,
+    "explanation": "The IETF Idempotency-Key draft says reusing a key with a different payload should get 422, because it is client misuse rather than a retry, and a retry that arrives while the first request is still in progress should get 409 Conflict. Replaying the stored response for a different body would hide a client bug, and 400 is reserved for a missing key on an endpoint that requires one.",
+    "referenceUrl": "https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header"
+  },
+  {
+    "id": "db-agg-sum-empty-null",
+    "topic": "databases",
+    "subtopic": "aggregation",
+    "difficulty": "Medium",
+    "title": "SUM over zero rows",
+    "question": "SELECT SUM(amount) FROM payments WHERE user_id = 42; feeds a balance calculation. For a user with no payments the app crashes on a null value. Why, and what is the idiomatic fix?",
+    "options": [
+      "SUM over zero rows returns 0, so the null comes from user_id; use COUNT",
+      "SUM over zero rows returns NULL; use COALESCE(SUM(amount), 0)",
+      "SUM ignores WHERE when nothing matches; move the filter into HAVING",
+      "SUM returns NULL if any amount is NULL; add WHERE amount IS NOT NULL"
+    ],
+    "correctIndex": 1,
+    "explanation": "Except for count, aggregate functions return NULL when no rows are selected, so the sum of no rows is NULL rather than zero; COALESCE(SUM(amount), 0) supplies the default. SUM simply skips NULL inputs instead of returning NULL, and HAVING filters groups after aggregation, which does not change this.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/functions-aggregate.html"
+  },
+  {
+    "id": "db-agg-rollup-grouping",
+    "topic": "databases",
+    "subtopic": "aggregation",
+    "difficulty": "Hard",
+    "title": "Telling subtotals from real NULLs",
+    "question": "A sales report uses GROUP BY ROLLUP (region, product) to add subtotals and a grand total. Some sales genuinely have region = NULL, so readers cannot tell those rows from subtotal rows. What solves this?",
+    "options": [
+      "Use the GROUPING() function to flag rows where a column was rolled up",
+      "Replace ROLLUP with CUBE, which labels its subtotal rows automatically",
+      "Add ORDER BY region NULLS LAST so subtotals always appear at the end",
+      "Use COALESCE(region, 'Total'), since ROLLUP never emits real NULL values"
+    ],
+    "correctIndex": 0,
+    "explanation": "GROUPING(col) returns 1 when the column was aggregated away in that grouping set (a subtotal or total row) and 0 when it is a real grouping value, so genuine NULL regions can be distinguished. CUBE also uses NULL placeholders, sorting does not disambiguate anything, and COALESCE would mislabel genuine NULL groups as totals.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/functions-aggregate.html"
+  },
+  {
+    "id": "db-adv-rank-dense-rank",
+    "topic": "databases",
+    "subtopic": "advanced-sql",
+    "difficulty": "Easy",
+    "title": "RANK versus DENSE_RANK",
+    "question": "Scores ordered descending are 100, 100, 90. Which values do RANK() and DENSE_RANK() assign to the row with score 90?",
+    "options": [
+      "RANK = 2, DENSE_RANK = 3",
+      "RANK = 3, DENSE_RANK = 3",
+      "RANK = 2, DENSE_RANK = 2",
+      "RANK = 3, DENSE_RANK = 2"
+    ],
+    "correctIndex": 3,
+    "explanation": "Both functions give tied peers the same rank (1 and 1). RANK leaves a gap after ties, so the next row gets 3, while DENSE_RANK has no gaps, so it gets 2. ROW_NUMBER would instead give 1, 2, 3.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/functions-window.html"
+  },
+  {
+    "id": "db-adv-last-value-frame",
+    "topic": "databases",
+    "subtopic": "advanced-sql",
+    "difficulty": "Hard",
+    "title": "LAST_VALUE and the default frame",
+    "question": "SELECT day, price, LAST_VALUE(price) OVER (PARTITION BY sku ORDER BY day) AS last_price FROM prices; returns each row's own price in last_price instead of the SKU's latest price. Why?",
+    "options": [
+      "LAST_VALUE needs DESC ordering; with ascending ORDER BY it returns the current row",
+      "The default frame stops at the current row; extend it to UNBOUNDED FOLLOWING",
+      "PARTITION BY resets LAST_VALUE on each row, so it must be replaced with GROUP BY",
+      "LAST_VALUE ignores ORDER BY and returns values in physical storage order"
+    ],
+    "correctIndex": 1,
+    "explanation": "With ORDER BY, the default window frame runs from the start of the partition to the current row (and its peers), so the last value in the frame is the current row's. Use ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING, or FIRST_VALUE with descending order. PARTITION BY does not reset per row, and LAST_VALUE does respect the window ordering.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/functions-window.html"
+  },
+  {
+    "id": "db-cc-mvcc-readers-writers",
+    "topic": "databases",
+    "subtopic": "concurrency",
+    "difficulty": "Easy",
+    "title": "Readers and writers under MVCC",
+    "question": "In PostgreSQL, a long-running report SELECTs from orders while other sessions UPDATE rows in the same table. How do they interact under MVCC?",
+    "options": [
+      "The UPDATEs wait until the SELECT finishes, because readers hold shared row locks",
+      "The SELECT blocks until each UPDATE commits so that it can read the newest rows",
+      "They don't block each other; the SELECT reads a consistent snapshot of the data",
+      "The SELECT is aborted with a serialization error as soon as any row is updated"
+    ],
+    "correctIndex": 2,
+    "explanation": "PostgreSQL's MVCC gives each statement (or transaction) a snapshot, so reading never blocks writing and writing never blocks reading. Row-level locks taken by writers only conflict with other writers, and serialization failures affect conflicting writers under REPEATABLE READ or SERIALIZABLE, not plain readers.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/mvcc-intro.html"
+  },
+  {
+    "id": "db-model-numeric-money",
+    "topic": "databases",
+    "subtopic": "data-modeling",
+    "difficulty": "Easy",
+    "title": "Column type for money",
+    "question": "An invoices table stores totals in a double precision column, and summed totals show values like 10.299999999. Which PostgreSQL type is recommended for monetary amounts?",
+    "options": [
+      "real, since it uses less storage than double precision",
+      "integer, storing amounts rounded to whole dollars",
+      "numeric(12,2), an exact decimal type",
+      "text, formatted with exactly two decimal places"
+    ],
+    "correctIndex": 2,
+    "explanation": "Floating-point types store inexact binary approximations, so decimal amounts drift; PostgreSQL recommends numeric for monetary amounts and other quantities where exactness is required. real is even less precise, whole-dollar integers lose cents (integer cents would be a valid alternative), and text prevents arithmetic and validation.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/datatype-numeric.html"
+  },
+  {
+    "id": "db-model-junction-table",
+    "topic": "databases",
+    "subtopic": "data-modeling",
+    "difficulty": "Medium",
+    "title": "Modeling many-to-many",
+    "question": "Students can enroll in many courses and each course has many students. A developer proposes a course_ids text column holding '3,7,12' on the students table. What is the standard relational design instead?",
+    "options": [
+      "Separate courses_N tables per student, created the first time a student enrolls in a course",
+      "A student_id column on courses, duplicating the course row once for every enrolled student",
+      "A JSON array column of course ids on students, with a CHECK that validates the array length",
+      "An enrollments table with student_id and course_id foreign keys and a composite primary key"
+    ],
+    "correctIndex": 3,
+    "explanation": "A many-to-many relationship is modeled with a junction (associative) table holding foreign keys to both sides; the composite primary key prevents duplicate enrollments, and the foreign keys enforce integrity. Delimited lists and JSON arrays break first normal form and cannot carry foreign keys, while duplicating course rows causes update anomalies.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/ddl-constraints.html"
+  },
+  {
+    "id": "db-model-nulls-not-distinct",
+    "topic": "databases",
+    "subtopic": "data-modeling",
+    "difficulty": "Hard",
+    "title": "Unique constraints and NULLs",
+    "question": "A table has UNIQUE (tenant_id, external_ref), where external_ref is nullable. Duplicate rows such as (5, NULL) and (5, NULL) keep appearing. In PostgreSQL 15+, what makes the constraint treat those rows as duplicates?",
+    "options": [
+      "Declare it as UNIQUE NULLS NOT DISTINCT (tenant_id, external_ref)",
+      "Make it DEFERRABLE INITIALLY DEFERRED so NULLs are compared at commit time",
+      "Replace it with a primary key, which ignores NULL values when comparing rows",
+      "Add an index on external_ref with NULLS FIRST so that NULL values group together"
+    ],
+    "correctIndex": 0,
+    "explanation": "For unique constraints, NULLs are not considered equal by default, so any number of (5, NULL) rows are allowed. PostgreSQL 15 added NULLS NOT DISTINCT to treat NULLs as equal. Deferring only changes when the check runs, primary key columns cannot be NULL at all, and index sort order has no effect on uniqueness.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/sql-createtable.html"
+  },
+  {
+    "id": "db-model-fk-not-valid",
+    "topic": "databases",
+    "subtopic": "data-modeling",
+    "difficulty": "Expert",
+    "title": "Adding a foreign key to a huge table",
+    "question": "You must add a foreign key from a 400-million-row orders table to customers in production. A plain ALTER TABLE ... ADD FOREIGN KEY would scan the whole table while holding locks that block writes. What is the lower-impact approach in PostgreSQL?",
+    "options": [
+      "Create the constraint as DEFERRABLE so its check runs only at commit",
+      "Add the constraint in a transaction after SET lock_timeout = 0",
+      "Disable triggers on orders, add the foreign key, then re-enable them",
+      "Add the constraint NOT VALID, then run VALIDATE CONSTRAINT separately"
+    ],
+    "correctIndex": 3,
+    "explanation": "NOT VALID skips the scan of existing rows, so the ADD commits quickly while new writes are already checked. VALIDATE CONSTRAINT later checks existing rows holding only a SHARE UPDATE EXCLUSIVE lock (plus ROW SHARE on the referenced table), which does not block normal reads and writes. DEFERRABLE only changes timing inside transactions, disabling triggers would skip enforcement, and lock_timeout = 0 means waiting forever.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/sql-altertable.html"
+  },
+  {
+    "id": "perf-db-fk-index-delete",
+    "topic": "performance",
+    "subtopic": "database-performance",
+    "difficulty": "Hard",
+    "title": "Slow deletes on a parent table",
+    "question": "Deleting a single row from customers takes about 4 seconds. orders.customer_id references customers(id) with ON DELETE RESTRICT, and orders has 50 million rows. What is the most likely cause?",
+    "options": [
+      "Foreign keys force PostgreSQL to rewrite the whole customers table on delete",
+      "The FK check must find matching orders, and orders.customer_id has no index",
+      "ON DELETE RESTRICT locks every row in orders until the delete transaction ends",
+      "The primary key index on customers(id) is too large to be cached in memory"
+    ],
+    "correctIndex": 1,
+    "explanation": "Deleting a referenced row requires scanning the referencing table for matching rows, and PostgreSQL does not automatically index referencing columns. Without an index on orders.customer_id each delete triggers a sequential scan of 50 million rows; adding that index fixes it. No table rewrite happens, RESTRICT does not lock every child row, and a single PK lookup is cheap.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/ddl-constraints.html"
+  },
+  {
+    "id": "db-scale-read-replicas-purpose",
+    "topic": "databases",
+    "subtopic": "scaling-databases",
+    "difficulty": "Easy",
+    "title": "What read replicas scale",
+    "question": "A PostgreSQL primary is overloaded mostly by dashboard SELECT queries, while writes are light. Which scaling step targets this workload most directly?",
+    "options": [
+      "Add read replicas (hot standbys) and route the dashboard queries to them",
+      "Shard the tables across several primaries using a hash of the primary key",
+      "Increase max_connections so more dashboard queries can run at the same time",
+      "Switch to synchronous replication so that a standby confirms every write"
+    ],
+    "correctIndex": 0,
+    "explanation": "Hot standby replicas accept read-only queries, so read-heavy traffic can be offloaded from the primary (they do not scale writes). Sharding mainly addresses write throughput and data volume at a large complexity cost, more connections add contention on the same overloaded server, and synchronous replication adds write latency without offloading reads.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/hot-standby.html"
+  },
+  {
+    "id": "db-scale-partition-retention",
+    "topic": "databases",
+    "subtopic": "scaling-databases",
+    "difficulty": "Medium",
+    "title": "Data retention on huge tables",
+    "question": "An events table grows by 200 million rows per month, and a nightly DELETE of rows older than 12 months runs for hours and leaves heavy bloat. What PostgreSQL design handles retention far more efficiently?",
+    "options": [
+      "Move the DELETE into a single transaction to reduce WAL and lock overhead",
+      "Run VACUUM FULL right after each nightly DELETE to reclaim the free space",
+      "Add an index on created_at so the nightly DELETE can find old rows faster",
+      "Range-partition the table by month and drop or detach the oldest partition"
+    ],
+    "correctIndex": 3,
+    "explanation": "With partitioning, removing old data becomes DROP TABLE or ALTER TABLE DETACH PARTITION on the oldest partition, which is far faster than a bulk DELETE and avoids the VACUUM overhead it causes. VACUUM FULL rewrites the table under an ACCESS EXCLUSIVE lock, and an index or a single transaction still deletes every row one by one and leaves dead tuples.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/ddl-partitioning.html"
+  },
+  {
+    "id": "db-scale-replication-slot-wal",
+    "topic": "databases",
+    "subtopic": "scaling-databases",
+    "difficulty": "Hard",
+    "title": "Abandoned replication slots",
+    "question": "The primary's pg_wal directory keeps growing until the disk is nearly full. pg_replication_slots shows an inactive slot for a CDC consumer that was decommissioned weeks ago. What is happening, and what prevents a recurrence?",
+    "options": [
+      "WAL archiving is lagging; set archive_timeout lower so old segments are recycled faster",
+      "The slot pins WAL its consumer never confirmed; drop it and set max_slot_wal_keep_size",
+      "Checkpoints are suspended while any slot exists; run CHECKPOINT manually every hour",
+      "Inactive slots turn their WAL into table data; run VACUUM FULL on the affected tables"
+    ],
+    "correctIndex": 1,
+    "explanation": "A replication slot makes the primary retain all WAL its consumer has not yet confirmed, even while the consumer is gone, which can fill pg_wal. Drop the abandoned slot with pg_drop_replication_slot, cap retention with max_slot_wal_keep_size, and monitor slots. archive_timeout only forces segment switches, checkpoints still run, and VACUUM does not touch WAL.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/warm-standby.html"
+  },
+  {
+    "id": "db-nosql-mongo-bson",
+    "topic": "databases",
+    "subtopic": "nosql",
+    "difficulty": "Easy",
+    "title": "MongoDB's storage format",
+    "question": "In what format does MongoDB store documents internally and send them over the wire?",
+    "options": [
+      "Plain UTF-8 JSON text, compressed with gzip",
+      "BSON, a binary JSON-like format",
+      "Protocol Buffers messages",
+      "XML with a JSON schema overlay"
+    ],
+    "correctIndex": 1,
+    "explanation": "MongoDB stores records as BSON documents, a binary representation of JSON that adds types such as Date, ObjectId, Decimal128 and binary data. Tools show documents as JSON-like text, but that is only a display format; Protocol Buffers and XML are not used for documents.",
+    "referenceUrl": "https://www.mongodb.com/docs/manual/core/document/"
+  },
+  {
+    "id": "db-nosql-mongo-esr",
+    "topic": "databases",
+    "subtopic": "nosql",
+    "difficulty": "Hard",
+    "title": "Compound index field order in MongoDB",
+    "question": "A MongoDB query filters status: 'open' (equality) and createdAt > X (range), and sorts by priority. Which compound index follows MongoDB's Equality, Sort, Range guideline?",
+    "options": [
+      "{ createdAt: 1, status: 1, priority: 1 }",
+      "{ status: 1, createdAt: 1, priority: 1 }",
+      "{ priority: 1, status: 1, createdAt: 1 }",
+      "{ status: 1, priority: 1, createdAt: 1 }"
+    ],
+    "correctIndex": 3,
+    "explanation": "ESR puts equality fields first (they narrow the scan to a contiguous index range), then sort fields (so results come out of the index already ordered, avoiding a blocking in-memory sort), then range fields. Placing the range field before the sort field forces an in-memory sort, and leading with the range or sort field makes the index scan far less selective.",
+    "referenceUrl": "https://www.mongodb.com/docs/manual/tutorial/equality-sort-range-guideline/"
+  },
+  {
+    "id": "perf-prof-sampling-profiler",
+    "topic": "performance",
+    "subtopic": "profiling-benchmarking",
+    "difficulty": "Easy",
+    "title": "How sampling profilers work",
+    "question": "How does a sampling CPU profiler, such as Linux perf in its common mode, find out where a program spends its time?",
+    "options": [
+      "It inserts timing code at the entry and exit of every function",
+      "It replays recorded requests and times each one individually",
+      "It periodically captures the call stacks of running threads",
+      "It counts how many lines of source code each method contains"
+    ],
+    "correctIndex": 2,
+    "explanation": "A sampling profiler interrupts the program at a fixed frequency (for example 99 Hz) and records the current stack; functions that appear in more samples consumed more CPU. This is statistical and low-overhead, unlike instrumentation, which injects timing code into every function and adds significant overhead.",
+    "referenceUrl": "https://www.brendangregg.com/perf.html"
+  },
+  {
+    "id": "perf-prof-memory-diagnoser",
+    "topic": "performance",
+    "subtopic": "profiling-benchmarking",
+    "difficulty": "Medium",
+    "title": "Measuring allocations in benchmarks",
+    "question": "Two JSON serializers benchmark at nearly the same mean time with BenchmarkDotNet, but in production one causes far more GC pauses. Which BenchmarkDotNet feature would have exposed the difference?",
+    "options": [
+      "[MemoryDiagnoser], which reports allocated bytes and GC counts per op",
+      "[RankColumn], which adds a column ranking benchmarks by mean execution time",
+      "[DisassemblyDiagnoser], which shows the machine code generated by the JIT",
+      "[SimpleJob(warmupCount: 0)], which skips warmup to expose first-call costs"
+    ],
+    "correctIndex": 0,
+    "explanation": "MemoryDiagnoser adds Allocated bytes and Gen0/Gen1/Gen2 collection columns per operation. Allocation-heavy code can look just as fast in a microbenchmark yet drive GC pressure under real load. Ranking, disassembly and warmup settings do not measure allocations.",
+    "referenceUrl": "https://benchmarkdotnet.org/articles/configs/diagnosers.html"
+  },
+  {
+    "id": "perf-prof-dead-code-elimination",
+    "topic": "performance",
+    "subtopic": "profiling-benchmarking",
+    "difficulty": "Expert",
+    "title": "Benchmarks that measure nothing",
+    "question": "A BenchmarkDotNet method computes Math.Sqrt(x) * 3 but discards the result, and the report shows a mean of about 0 ns. What is the most likely cause and fix?",
+    "options": [
+      "The JIT removed the unused computation; return the result from the method",
+      "The timer's resolution is too low; increase InvocationCount to one million",
+      "BenchmarkDotNet caches return values; mark the method with [NoInlining]",
+      "Tiered compilation skipped it; disable tiering with an environment variable"
+    ],
+    "correctIndex": 0,
+    "explanation": "A pure computation whose result is never used can be removed by the JIT (dead code elimination), so the benchmark measures an empty method. Returning the value lets BenchmarkDotNet consume it, which prevents elimination. BenchmarkDotNet already picks invocation counts to overcome timer resolution, it does not cache results, and tiering changes which code version runs, not whether unused work is removed.",
+    "referenceUrl": "https://benchmarkdotnet.org/articles/guides/good-practices.html"
+  }
+]

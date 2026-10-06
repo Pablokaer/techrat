@@ -1,0 +1,886 @@
+[
+  {
+    "id": "cs-concurrency-semaphoreslim-throttle",
+    "topic": "csharp",
+    "subtopic": "concurrency",
+    "difficulty": "Medium",
+    "title": "Capping concurrent async calls",
+    "question": "A partner API allows at most 4 concurrent requests. Many callers run `await client.GetAsync(...)` at the same time and you must cap in-flight calls at 4. Which primitive fits best?",
+    "options": [
+      "A `lock` statement around the await, using a shared gate object",
+      "A `SemaphoreSlim(4, 4)` with `await WaitAsync()` and `Release()` in finally",
+      "A `Mutex` acquired with WaitOne before each call and released after it",
+      "`Interlocked.Increment` on a counter, skipping the call when it exceeds 4"
+    ],
+    "correctIndex": 1,
+    "explanation": "SemaphoreSlim counts up to N holders and supports asynchronous waiting via WaitAsync; releasing in finally prevents permanently leaking a slot. A lock admits one holder and cannot contain an await, a Mutex has thread affinity (the continuation after await may run on another thread) and is heavyweight, and an Interlocked counter that skips calls drops work instead of queueing it.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.semaphoreslim"
+  },
+  {
+    "id": "cs-concurrency-volatile-stop-flag",
+    "topic": "csharp",
+    "subtopic": "concurrency",
+    "difficulty": "Expert",
+    "title": "Stop flag never observed in Release",
+    "question": "A worker thread runs `while (!_stop) { counter++; }` where `_stop` is a plain bool field. Another thread later sets `_stop = true`. In a Release build the loop sometimes never ends. What is the cause and fix?",
+    "options": [
+      "The JIT may hoist the read of `_stop` out of the loop; use Volatile.Read or volatile",
+      "Bool writes are not atomic in .NET, so the field tears; set it via Interlocked.Exchange",
+      "The writer's store sits in its CPU store buffer forever; call GC.Collect to flush it",
+      "Release builds drop writes to fields read only by other threads; disable optimization"
+    ],
+    "correctIndex": 0,
+    "explanation": "Without volatile semantics the JIT may assume no other thread changes the field, read it once into a register and turn the loop into an infinite one. Volatile.Read, the volatile keyword or a CancellationToken forces a fresh read on each iteration. Bool writes are atomic, store buffers drain on their own, and the compiler does not remove the writer's assignment.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.volatile"
+  },
+  {
+    "id": "cs-record-with-expression",
+    "topic": "csharp",
+    "subtopic": "language-basics",
+    "difficulty": "Easy",
+    "title": "Nondestructive mutation with `with`",
+    "question": "record Person(string Name, int Age);\n\nvar p1 = new Person(\"Ann\", 30);\nvar p2 = p1 with { Age = 31 };\nConsole.WriteLine($\"{p1.Age} {p2.Age}\");\n\nWhat is printed?",
+    "options": [
+      "31 31",
+      "30 30",
+      "Compile error: positional records are immutable",
+      "30 31"
+    ],
+    "correctIndex": 3,
+    "explanation": "A `with` expression creates a copy of the record with the listed properties changed, leaving the original untouched, so p1 keeps 30 and p2 gets 31. Init-only properties of positional records can be set inside a `with` initializer, so it compiles.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/with-expression"
+  },
+  {
+    "id": "cs-record-with-shallow-copy",
+    "topic": "csharp",
+    "subtopic": "language-basics",
+    "difficulty": "Medium",
+    "title": "`with` makes a shallow copy",
+    "question": "record Order(string Id, List<string> Items);\n\nvar a = new Order(\"1\", new List<string> { \"pen\" });\nvar b = a with { Id = \"2\" };\nb.Items.Add(\"ink\");\nConsole.WriteLine(a.Items.Count);\n\nWhat is printed and why?",
+    "options": [
+      "1, because `with` deep-clones every reference-type member of the record",
+      "1, because records snapshot collections into immutable arrays on creation",
+      "2, because `with` copies member values, so both records share one List",
+      "Compile error, because a record's List member cannot be mutated after init"
+    ],
+    "correctIndex": 2,
+    "explanation": "`with` performs a shallow copy: reference-type members are copied as references, so a and b point at the same List and the Add is visible through both. Records do not deep-clone or freeze collections, and init-only only prevents reassigning the property, not mutating the object it refers to.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/with-expression"
+  },
+  {
+    "id": "cs-struct-array-skips-ctor",
+    "topic": "csharp",
+    "subtopic": "language-basics",
+    "difficulty": "Hard",
+    "title": "Struct arrays ignore constructors",
+    "question": "struct Config\n{\n    public int Retries = 3;\n    public Config() { }\n}\n\nvar one = new Config();\nvar many = new Config[2];\nConsole.WriteLine($\"{one.Retries} {many[0].Retries}\");\n\nWhat is printed?",
+    "options": [
+      "3 3",
+      "0 0",
+      "0 3",
+      "3 0"
+    ],
+    "correctIndex": 3,
+    "explanation": "`new Config()` runs the explicit parameterless constructor, which executes the field initializer, so Retries is 3. Creating an array of structs (like `default(Config)`) ignores constructors and fills elements with the zero bit pattern, so each element's Retries is 0.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/struct"
+  },
+  {
+    "id": "cs-oop-abstract-member-not-implemented",
+    "topic": "csharp",
+    "subtopic": "oop",
+    "difficulty": "Easy",
+    "title": "Abstract member left unimplemented",
+    "question": "abstract class Shape { public abstract double Area(); }\nclass Circle : Shape { }\n\nWhat happens when you compile this?",
+    "options": [
+      "Error: Circle must override Area() or be declared abstract itself",
+      "It compiles; Circle.Area() throws NotImplementedException when called",
+      "It compiles; Circle inherits an Area() that returns 0 by default",
+      "Error: abstract classes cannot declare methods that lack a body"
+    ],
+    "correctIndex": 0,
+    "explanation": "A non-abstract class deriving from an abstract class must override every inherited abstract member (error CS0534), or itself be marked abstract. Abstract methods have no body by definition and there is no default implementation or runtime stub.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/abstract"
+  },
+  {
+    "id": "cs-oop-explicit-interface-impl",
+    "topic": "csharp",
+    "subtopic": "oop",
+    "difficulty": "Medium",
+    "title": "Calling an explicit interface implementation",
+    "question": "interface ILogger { void Log(string m); }\nclass FileLogger : ILogger\n{\n    void ILogger.Log(string m) { /* ... */ }\n}\n\nvar f = new FileLogger();\nf.Log(\"hi\");\n\nWhat happens?",
+    "options": [
+      "It compiles and calls ILogger.Log, as for any implemented member",
+      "It compiles but throws MissingMethodException at runtime",
+      "Compile error: interface members must be implemented as public methods",
+      "Compile error: an explicit implementation is callable only via ILogger"
+    ],
+    "correctIndex": 3,
+    "explanation": "Explicitly implemented members are not part of the class's public surface; you call them through the interface, e.g. `((ILogger)f).Log(\"hi\")` or a variable typed as ILogger. Explicit implementation is a valid alternative to a public method, and the failure is at compile time, not at runtime.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/interfaces/explicit-interface-implementation"
+  },
+  {
+    "id": "cs-oop-sealed-override",
+    "topic": "csharp",
+    "subtopic": "oop",
+    "difficulty": "Medium",
+    "title": "Overriding a sealed override",
+    "question": "class A { public virtual void Run() { } }\nclass B : A { public sealed override void Run() { } }\nclass C : B { public override void Run() { } }\n\nWhat is the result?",
+    "options": [
+      "It compiles; sealed only prevents classes from deriving from B",
+      "It compiles, but C.Run() is never reached through an A reference",
+      "Compile error: C cannot override Run because B sealed it",
+      "Compile error: sealed is only valid on classes, not on methods"
+    ],
+    "correctIndex": 2,
+    "explanation": "`sealed` combined with `override` stops further overriding of that member in derived classes, so C's override is error CS0239 (C could only hide it with `new`). Sealing a method is valid, and it does not prevent deriving from B itself.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/sealed"
+  },
+  {
+    "id": "cs-generics-new-constraint",
+    "topic": "csharp",
+    "subtopic": "generics",
+    "difficulty": "Easy",
+    "title": "Constraint for `new T()`",
+    "question": "Inside `static T Create<T>()`, which constraint lets you write `return new T();`?",
+    "options": [
+      "where T : class",
+      "where T : new()",
+      "where T : notnull",
+      "where T : ICloneable"
+    ],
+    "correctIndex": 1,
+    "explanation": "The new() constraint requires a public parameterless constructor, which is what `new T()` needs. `class` only requires a reference type (which may lack such a constructor), `notnull` only excludes nullable types, and an interface constraint says nothing about constructors.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/generics/constraints-on-type-parameters"
+  },
+  {
+    "id": "cs-generics-unconstrained-nullable-t",
+    "topic": "csharp",
+    "subtopic": "generics",
+    "difficulty": "Medium",
+    "title": "Unconstrained T? with a value type",
+    "question": "static T? FirstOrNone<T>(IList<T> xs) => xs.Count > 0 ? xs[0] : default;\n\nvar r = FirstOrNone(new List<int>());\n\nWith nullable reference types enabled (C# 9+), what is `r`?",
+    "options": [
+      "int holding 0, since unconstrained T? is just T for value types",
+      "int? holding null, because T? always means Nullable<T> here",
+      "object holding null, because T? boxes value-type arguments",
+      "Compile error: T? is only legal when T has a class or struct constraint"
+    ],
+    "correctIndex": 0,
+    "explanation": "For an unconstrained type parameter, T? is a nullability annotation: it means a nullable reference for reference types but plain T for value types, so `default` yields 0. This is why Enumerable.FirstOrDefault (declared to return TSource?) returns 0 for an empty List<int>. Getting Nullable<int> requires a `struct` constraint, and unconstrained T? has been legal since C# 9.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.linq.enumerable.firstordefault"
+  },
+  {
+    "id": "cs-generics-generic-math",
+    "topic": "csharp",
+    "subtopic": "generics",
+    "difficulty": "Medium",
+    "title": "Arithmetic in generic code",
+    "question": "You want one method `T Sum<T>(IEnumerable<T> xs)` that uses `T.Zero` and the `+` operator and works for int, double and decimal. Which approach does .NET 7+ support directly?",
+    "options": [
+      "Constrain `where T : struct` so the compiler allows arithmetic operators",
+      "Constrain `where T : IComparable<T>`, which exposes operators and Zero",
+      "Cast each value to `dynamic` inside the loop; generics can't use operators",
+      "Constrain `where T : INumber<T>`, using static abstract interface members"
+    ],
+    "correctIndex": 3,
+    "explanation": "Generic math (.NET 7 / C# 11) defines interfaces such as INumber<TSelf> with static abstract members like Zero and operator +, which the built-in numeric types implement. A struct constraint grants no operators, IComparable<T> only provides CompareTo, and `dynamic` works but is slow and not type-safe; generics can now use operators through these interfaces.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/generics/math"
+  },
+  {
+    "id": "cs-generics-jit-value-type-specialization",
+    "topic": "csharp",
+    "subtopic": "generics",
+    "difficulty": "Expert",
+    "title": "Why generic value-type calls avoid boxing",
+    "question": "static bool Less<T>(T a, T b) where T : IComparable<T> => a.CompareTo(b) < 0;\n\nProfiling shows `Less<int>` allocates nothing, while a non-generic version taking `IComparable` parameters boxed every int. Why does the generic version avoid boxing?",
+    "options": [
+      "The C# compiler emits a separate IL copy of Less for every value type it is called with",
+      "The runtime caches one boxed int per distinct value and reuses it for each CompareTo call",
+      "The JIT emits a specialized native body per value type and calls CompareTo directly",
+      "Generic methods run in the interpreter tier, which unboxes value-type arguments for free"
+    ],
+    "correctIndex": 2,
+    "explanation": "The IL for Less exists once; at run time the CLR generates specialized native code for each value-type instantiation (reference types share one canonical version). In the int-specialized code, the constrained interface call binds straight to Int32.CompareTo with no box. There is no per-value box cache and .NET does not interpret generic methods.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/generics/generics-in-the-run-time"
+  },
+  {
+    "id": "cs-delegates-func-signature",
+    "topic": "csharp",
+    "subtopic": "delegates-events",
+    "difficulty": "Easy",
+    "title": "Matching a method to Func/Action",
+    "question": "Which delegate type matches a method `string Format(int value)`?",
+    "options": [
+      "Action<int, string>",
+      "Func<int, string>",
+      "Func<string, int>",
+      "Predicate<int>"
+    ],
+    "correctIndex": 1,
+    "explanation": "In Func, the last type argument is the return type and the preceding ones are parameters, so Func<int, string> takes an int and returns a string. Action delegates return void, Predicate<int> returns bool, and Func<string, int> has the types reversed.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.func-2"
+  },
+  {
+    "id": "cs-delegates-multicast-return",
+    "topic": "csharp",
+    "subtopic": "delegates-events",
+    "difficulty": "Medium",
+    "title": "Return value of a multicast delegate",
+    "question": "Func<int> f = () => 1;\nf += () => 2;\nf += () => 3;\nConsole.WriteLine(f());\n\nWhat is printed?",
+    "options": [
+      "3",
+      "1",
+      "6",
+      "Compile error: Func cannot be combined with +="
+    ],
+    "correctIndex": 0,
+    "explanation": "Combining delegates builds an invocation list; invoking it calls every target in order, and the result of the call is the return value of the last one, so 3 is printed. Results are not summed, and += works for any delegate type. To collect every result, iterate GetInvocationList().",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/delegates/how-to-combine-delegates-multicast-delegates"
+  },
+  {
+    "id": "cs-delegates-multicast-exception",
+    "topic": "csharp",
+    "subtopic": "delegates-events",
+    "difficulty": "Hard",
+    "title": "Exception in one event handler",
+    "question": "An event has three subscribers. During `Changed?.Invoke(this, EventArgs.Empty)` the second handler throws. What happens to the third handler, and how can a publisher isolate failures?",
+    "options": [
+      "It still runs, because the runtime invokes each handler inside its own try/catch",
+      "It runs on the thread pool, because a failing handler moves the rest off the caller",
+      "It runs first next time, since a throwing handler is moved to the end of the list",
+      "It never runs; iterate GetInvocationList() and invoke each handler in a try/catch"
+    ],
+    "correctIndex": 3,
+    "explanation": "A multicast delegate calls its targets sequentially on the caller's thread; an exception propagates immediately and the remaining targets are skipped. A publisher that must notify everyone can iterate GetInvocationList() and wrap each call in try/catch. The runtime adds no per-handler protection and never reorders or reschedules handlers.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.delegate.getinvocationlist"
+  },
+  {
+    "id": "cs-linq-orderby-twice",
+    "topic": "csharp",
+    "subtopic": "linq",
+    "difficulty": "Medium",
+    "title": "OrderBy followed by OrderBy",
+    "question": "var sorted = people\n    .OrderBy(p => p.LastName)\n    .OrderBy(p => p.FirstName)\n    .ToList();\n\nThe intent was 'by last name, then first name'. What does LINQ to Objects actually produce?",
+    "options": [
+      "Sorted by LastName then FirstName, the same as using ThenBy for the second key",
+      "Sorted by FirstName only, with ties in arbitrary order since the first sort is lost",
+      "Sorted by FirstName, with ties ordered by LastName because OrderBy is stable",
+      "An InvalidOperationException, because OrderBy cannot follow another OrderBy"
+    ],
+    "correctIndex": 2,
+    "explanation": "The second OrderBy starts a new primary sort on FirstName. Because Enumerable.OrderBy is a stable sort, elements with equal first names keep the LastName order from the first pass, so the keys end up reversed from the intent. Use OrderBy(LastName).ThenBy(FirstName) for a secondary key.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.linq.enumerable.orderby"
+  },
+  {
+    "id": "cs-null-forgiving-runtime",
+    "topic": "csharp",
+    "subtopic": "exceptions-nullability",
+    "difficulty": "Easy",
+    "title": "What the null-forgiving operator does",
+    "question": "string? name = FindName();\nstring display = name!;\n\nWhat does the `!` do at run time if FindName returns null?",
+    "options": [
+      "It throws ArgumentNullException at the assignment",
+      "Nothing: it only silences the compiler's nullable warning",
+      "It replaces null with an empty string automatically",
+      "It throws a NullReferenceException right at the assignment"
+    ],
+    "correctIndex": 1,
+    "explanation": "The null-forgiving operator is purely a compile-time annotation that suppresses nullable warnings; it emits no check. `display` simply becomes null, and any failure happens later when it is dereferenced. Use a real null check or `?? \"\"` when null is possible.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/null-forgiving"
+  },
+  {
+    "id": "cs-catch-order-unreachable",
+    "topic": "csharp",
+    "subtopic": "exceptions-nullability",
+    "difficulty": "Easy",
+    "title": "Order of catch clauses",
+    "question": "try { File.ReadAllText(path); }\ncatch (Exception ex) { Log(ex); }\ncatch (IOException ex) { Retry(); }\n\nWhat happens?",
+    "options": [
+      "Compile error: the IOException clause is unreachable after catch (Exception)",
+      "It compiles; the most specific matching catch clause is always chosen first",
+      "It compiles; IOExceptions run both catch blocks, from the top one down",
+      "It compiles with a warning, and IOException is handled by Retry() at runtime"
+    ],
+    "correctIndex": 0,
+    "explanation": "Catch clauses are checked top to bottom and only the first match runs, so a clause for a derived type after one for its base type can never be reached; the compiler reports error CS0160. Order clauses from most specific to most general.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/exception-handling-statements"
+  },
+  {
+    "id": "cs-exception-filter-logging",
+    "topic": "csharp",
+    "subtopic": "exceptions-nullability",
+    "difficulty": "Hard",
+    "title": "Logging from an exception filter",
+    "question": "catch (Exception ex) when (LogAndReturnFalse(ex)) { }\n\nWhy do some teams log exceptions inside a `when` filter that always returns false?",
+    "options": [
+      "Filters run on a background thread, so logging there never slows the request",
+      "Returning false turns the exception into a cheap first-chance-only event",
+      "The filter swallows the exception after logging, so callers never see it at all",
+      "It logs before the stack unwinds, and the exception keeps propagating untouched"
+    ],
+    "correctIndex": 3,
+    "explanation": "Exception filters are evaluated before the stack is unwound. Returning false means the catch block is never entered, so the exception continues to propagate with its original stack and state, which also keeps crash dumps and debuggers pointing at the throw site. Filters run synchronously on the throwing thread and do not swallow anything.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/exception-handling-statements"
+  },
+  {
+    "id": "cs-hashset-add-duplicate",
+    "topic": "csharp",
+    "subtopic": "collections",
+    "difficulty": "Easy",
+    "title": "HashSet.Add with a duplicate",
+    "question": "var tags = new HashSet<string>();\nbool a = tags.Add(\"net\");\nbool b = tags.Add(\"net\");\nConsole.WriteLine($\"{a} {b} {tags.Count}\");\n\nWhat is printed?",
+    "options": [
+      "True True 2",
+      "True True 1",
+      "True False 1",
+      "Throws ArgumentException on the second Add"
+    ],
+    "correctIndex": 2,
+    "explanation": "HashSet<T>.Add returns true when the element was added and false when it was already present; duplicates are silently ignored, so the count stays 1. Unlike Dictionary.Add, a duplicate does not throw.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.hashset-1.add"
+  },
+  {
+    "id": "cs-list-modify-during-foreach",
+    "topic": "csharp",
+    "subtopic": "collections",
+    "difficulty": "Medium",
+    "title": "Removing items inside foreach",
+    "question": "foreach (var o in orders)\n    if (o.IsCancelled) orders.Remove(o);\n\n`orders` is a List<Order> containing two cancelled orders. What happens?",
+    "options": [
+      "Both are removed, since List<T> adjusts the enumerator after each Remove",
+      "InvalidOperationException: the collection was modified during enumeration",
+      "Only the first is removed; the enumerator silently skips the next element",
+      "It does not compile, because Remove cannot be called inside a foreach body"
+    ],
+    "correctIndex": 1,
+    "explanation": "List<T> keeps a version number; after the first Remove, the enumerator's next MoveNext detects the change and throws InvalidOperationException. It compiles fine. Use `orders.RemoveAll(o => o.IsCancelled)` or iterate backwards with a for loop instead.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1.getenumerator"
+  },
+  {
+    "id": "cs-priorityqueue-min-first",
+    "topic": "csharp",
+    "subtopic": "collections",
+    "difficulty": "Medium",
+    "title": "PriorityQueue dequeue order",
+    "question": "var q = new PriorityQueue<string, int>();\nq.Enqueue(\"email\", 5);\nq.Enqueue(\"page\", 1);\nq.Enqueue(\"sms\", 3);\nConsole.WriteLine(q.Dequeue());\n\nWhat is printed?",
+    "options": [
+      "page",
+      "email",
+      "sms",
+      "It depends on insertion order, as with Queue<T>"
+    ],
+    "correctIndex": 0,
+    "explanation": "PriorityQueue<TElement, TPriority> is a min-heap: Dequeue returns the element with the lowest priority value, here \"page\" with 1. It is not FIFO, and to dequeue the highest value first you pass a reversed IComparer<TPriority>.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.priorityqueue-2"
+  },
+  {
+    "id": "cs-frozendictionary-read-heavy",
+    "topic": "csharp",
+    "subtopic": "collections",
+    "difficulty": "Hard",
+    "title": "Read-only lookup built once at startup",
+    "question": "A service builds a 50,000-entry currency lookup once at startup and then reads it millions of times per second from many threads, never modifying it. Which choice fits best?",
+    "options": [
+      "ConcurrentDictionary, since lock-free reads beat any other structure",
+      "ImmutableDictionary, since its tree layout makes lookups O(1) and cache friendly",
+      "SortedDictionary, since binary search outperforms hashing on large sets",
+      "FrozenDictionary via ToFrozenDictionary(): slower to build, faster lookups"
+    ],
+    "correctIndex": 3,
+    "explanation": "FrozenDictionary (.NET 8+) spends extra time at creation analysing the keys to optimise lookups, and being immutable it is safe for concurrent reads, which is ideal for build-once, read-many data. ConcurrentDictionary pays for supporting writes, ImmutableDictionary is a balanced tree with O(log n) lookups, and SortedDictionary is also O(log n).",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.collections.frozen.frozendictionary-2"
+  },
+  {
+    "id": "cs-finalizer-survives-collection",
+    "topic": "csharp",
+    "subtopic": "memory-gc",
+    "difficulty": "Medium",
+    "title": "Why finalizable objects live longer",
+    "question": "A profiler shows that short-lived objects of a class with a finalizer (`~Wrapper()`) reach gen 1 and gen 2 far more often than similar classes without one. Why?",
+    "options": [
+      "Finalizable objects are allocated directly in gen 2 so they live long enough",
+      "The finalizer pins the object, preventing the GC from compacting or collecting it",
+      "When found dead they wait for the finalizer thread, so they survive a collection",
+      "The GC scans finalizable objects only during full gen 2 collections, by design"
+    ],
+    "correctIndex": 2,
+    "explanation": "Objects with finalizers are tracked on a finalization queue. When the GC finds one unreachable it cannot free it yet; it is kept alive (and promoted) until the finalizer thread runs, and only a later collection reclaims it. That is why classes should avoid finalizers unless they own unmanaged resources, and call GC.SuppressFinalize in Dispose.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/finalizers"
+  },
+  {
+    "id": "cs-reflection-gettype-runtime",
+    "topic": "csharp",
+    "subtopic": "reflection-attributes",
+    "difficulty": "Easy",
+    "title": "GetType returns the runtime type",
+    "question": "object o = \"hello\";\nConsole.WriteLine(o.GetType().Name);\n\nWhat is printed?",
+    "options": [
+      "Object",
+      "String",
+      "RuntimeType",
+      "Char[]"
+    ],
+    "correctIndex": 1,
+    "explanation": "GetType returns the exact runtime type of the instance, not the static type of the variable, so a string stored in an object variable reports String. `typeof(object)` would give Object; RuntimeType is the internal class of the Type object itself, not of the instance.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.object.gettype"
+  },
+  {
+    "id": "cs-attributeusage-target",
+    "topic": "csharp",
+    "subtopic": "reflection-attributes",
+    "difficulty": "Easy",
+    "title": "Applying an attribute to the wrong target",
+    "question": "[AttributeUsage(AttributeTargets.Method)]\nclass CachedAttribute : Attribute { }\n\n[Cached]\nclass ProductService { }\n\nWhat happens?",
+    "options": [
+      "Compile error: the attribute is not valid on this declaration type",
+      "It compiles; AttributeUsage is only a hint for documentation tools",
+      "It compiles, and the attribute is applied to every method of the class",
+      "It compiles, but GetCustomAttributes throws when reading the class"
+    ],
+    "correctIndex": 0,
+    "explanation": "AttributeUsage restricts where an attribute may be applied, and the compiler enforces it (error CS0592). It is not merely documentation, and the compiler never propagates a class-level attribute onto members.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.attributeusageattribute"
+  },
+  {
+    "id": "cs-reflection-private-field-bindingflags",
+    "topic": "csharp",
+    "subtopic": "reflection-attributes",
+    "difficulty": "Medium",
+    "title": "GetField and non-public members",
+    "question": "class Account { private decimal _balance = 10; }\n\nvar f = typeof(Account).GetField(\"_balance\");\nConsole.WriteLine(f is null);\n\nWhat is printed, and why?",
+    "options": [
+      "False; GetField searches all fields regardless of their access modifier",
+      "False, but reading it later throws FieldAccessException from outside the class",
+      "True; private fields are removed from metadata by the compiler in Release builds",
+      "True; GetField() defaults to public members, so pass NonPublic | Instance"
+    ],
+    "correctIndex": 3,
+    "explanation": "The single-argument GetField overload searches only public instance and static fields. To find `_balance` you call GetField(\"_balance\", BindingFlags.NonPublic | BindingFlags.Instance). Private fields remain in metadata in every build configuration.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.reflection.bindingflags"
+  },
+  {
+    "id": "cs-reflection-cached-delegate",
+    "topic": "csharp",
+    "subtopic": "reflection-attributes",
+    "difficulty": "Hard",
+    "title": "Speeding up reflection on a hot path",
+    "question": "A serializer calls `prop.GetMethod!.Invoke(obj, null)` for every property of millions of objects, and MethodInfo.Invoke dominates the CPU profile. Which change usually helps the most?",
+    "options": [
+      "Call Type.GetProperties() again before each Invoke so lookups stay fresh",
+      "Wrap Invoke in a lock so the runtime can reuse its internal argument arrays",
+      "Create a typed delegate once per property with CreateDelegate and cache it",
+      "Switch to `dynamic`, which needs no metadata and removes all binding cost"
+    ],
+    "correctIndex": 2,
+    "explanation": "MethodInfo.Invoke validates arguments and goes through a generic invocation path on every call. Creating a strongly typed delegate (e.g. Func<T, TProp>) once with CreateDelegate and caching it turns each access into a near-direct call. Re-fetching metadata adds cost, a lock only adds contention, and `dynamic` still binds through reflection and needs member names at compile time.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.reflection.methodinfo.createdelegate"
+  },
+  {
+    "id": "cs-span-slice-no-copy",
+    "topic": "csharp",
+    "subtopic": "performance",
+    "difficulty": "Easy",
+    "title": "Span slices share memory",
+    "question": "byte[] data = new byte[1024];\nSpan<byte> header = data.AsSpan().Slice(0, 16);\nheader[0] = 0xFF;\n\nWhat is true after this runs?",
+    "options": [
+      "data[0] is 0, since Slice copies the 16 bytes into a new stack buffer",
+      "data[0] is 0xFF, since the slice is a view over the same memory",
+      "data[0] is 0, since spans are read-only unless created with stackalloc",
+      "It throws, because a span over a managed array cannot be written to"
+    ],
+    "correctIndex": 1,
+    "explanation": "A Span<T> is a pointer plus length over existing memory; Slice just narrows that window without allocating or copying, so writes go straight into the array. Span<T> is writable over arrays (ReadOnlySpan<T> is the read-only variant).",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.span-1.slice"
+  },
+  {
+    "id": "cs-stackalloc-unbounded-size",
+    "topic": "csharp",
+    "subtopic": "performance",
+    "difficulty": "Hard",
+    "title": "stackalloc with an untrusted length",
+    "question": "static void Handle(int len)\n{\n    Span<byte> buf = stackalloc byte[len];\n    // ...\n}\n\n`len` comes from a client-supplied header. What is the risk and the usual pattern?",
+    "options": [
+      "Possible stack overflow; stackalloc below a small threshold, else ArrayPool",
+      "None; the runtime moves large stackalloc buffers to the heap automatically",
+      "A memory leak, because stack memory is freed only when the thread exits",
+      "The GC must scan the buffer, so allocate it once in a static field instead"
+    ],
+    "correctIndex": 0,
+    "explanation": "stackalloc reserves memory on the thread's limited stack; a large or attacker-controlled size can trigger a StackOverflowException, which cannot be caught and kills the process. The usual pattern is `len <= 256 ? stackalloc byte[len] : pooled/heap buffer`. Stack memory is released when the method returns, and the runtime never relocates it to the heap.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/stackalloc"
+  },
+  {
+    "id": "cs-struct-default-equals-cost",
+    "topic": "csharp",
+    "subtopic": "performance",
+    "difficulty": "Hard",
+    "title": "Struct dictionary keys without IEquatable",
+    "question": "`struct GeoKey { public string Region; public int Cell; }` has no Equals/GetHashCode overrides and is used as a Dictionary key on a hot path. Profiling shows heavy time in ValueType.Equals plus allocations. What is the best fix?",
+    "options": [
+      "Change GeoKey to a class so Dictionary uses reference equality instead",
+      "Mark the struct readonly so the runtime can compare fields bitwise",
+      "Pass the key with `in` everywhere so Dictionary can skip its defensive copies",
+      "Implement IEquatable<GeoKey> and override GetHashCode (or use record struct)"
+    ],
+    "correctIndex": 3,
+    "explanation": "The inherited ValueType.Equals(object) boxes the argument and, for structs containing reference fields, compares fields through a slow generic path; Microsoft recommends overriding it for performance. Implementing IEquatable<T> lets EqualityComparer<T>.Default call a typed Equals with no boxing, and a record struct generates this for you. A class without overrides would break lookups by value, and readonly or `in` do not change how equality is computed.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.valuetype.equals"
+  },
+  {
+    "id": "net-runtime-il-and-jit",
+    "topic": "dotnet",
+    "subtopic": "runtime",
+    "difficulty": "Easy",
+    "title": "What a .NET assembly contains",
+    "question": "What does the C# compiler put in a .dll for a normal `dotnet build`, and what turns it into machine code?",
+    "options": [
+      "Native x64 machine code; the CLR just loads and links it at startup",
+      "Compressed C# source, which the CLR compiles in full on first launch",
+      "IL and metadata; the JIT turns methods into native code at run time",
+      "Bytecode run line by line by an interpreter built into the CLR host"
+    ],
+    "correctIndex": 2,
+    "explanation": "Roslyn emits Intermediate Language plus metadata. At run time the CLR's JIT compiler translates each method to native code (typically on first call, refined later by tiered compilation). Source is not shipped, and ahead-of-time native code only appears with options such as ReadyToRun or Native AOT.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/managed-execution-process"
+  },
+  {
+    "id": "net-runtime-server-gc-aspnetcore",
+    "topic": "dotnet",
+    "subtopic": "runtime",
+    "difficulty": "Medium",
+    "title": "Higher memory in an ASP.NET Core app",
+    "question": "An ASP.NET Core API on .NET 8 running on a 16-core VM uses far more memory than a console tool processing the same data. No GC settings were changed. What is the most likely explanation?",
+    "options": [
+      "ASP.NET Core disables background GC, so gen 2 collections are postponed",
+      "ASP.NET Core defaults to Server GC, which uses a heap per core",
+      "Web apps run on the 32-bit runtime by default, which fragments the heap",
+      "Kestrel pins all request buffers, so the GC can never compact the heap"
+    ],
+    "correctIndex": 1,
+    "explanation": "ASP.NET Core apps use Server GC by default, which creates a heap and GC thread per core and lets heaps grow larger in exchange for throughput; console apps default to Workstation GC. Background GC is not disabled, apps are 64-bit by default, and Kestrel uses pooled, not permanently pinned, buffers. (.NET 9's DATAS reduces this gap by adapting the heap count.)",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/performance/memory"
+  },
+  {
+    "id": "net-runtime-readytorun-tiering",
+    "topic": "dotnet",
+    "subtopic": "runtime",
+    "difficulty": "Hard",
+    "title": "ReadyToRun code under load",
+    "question": "A team publishes with `<PublishReadyToRun>true</PublishReadyToRun>` to cut cold-start time. What happens to hot methods after the app has been running under load?",
+    "options": [
+      "Tiered compilation re-JITs them, because R2R code is less optimized than tier-1 code",
+      "They stay as precompiled R2R code forever, since the JIT is disabled for R2R assemblies",
+      "They switch to the interpreter, since R2R code cannot be profiled for optimization",
+      "They are recompiled by Native AOT in the background and swapped in at the next GC"
+    ],
+    "correctIndex": 0,
+    "explanation": "ReadyToRun code avoids JIT work at startup but is less optimized than JIT output, so tiered compilation replaces frequently called R2R methods with fully optimized tier-1 code. The JIT stays enabled, there is no interpreter fallback, and Native AOT is a separate publish model, not a runtime recompiler.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/deploying/ready-to-run"
+  },
+  {
+    "id": "net-runtime-static-readonly-tier1",
+    "topic": "dotnet",
+    "subtopic": "runtime",
+    "difficulty": "Expert",
+    "title": "Branch on static readonly disappears",
+    "question": "static readonly bool UseFastPath = Environment.GetEnvironmentVariable(\"FAST\") == \"1\";\n\nvoid Process() { if (UseFastPath) A(); else B(); }\n\nAfter warm-up on .NET 8+, the optimized code for Process has no branch at all. Why?",
+    "options": [
+      "Roslyn evaluates the environment variable at build time and folds the result",
+      "Dynamic PGO measured that B() was never called and deleted it permanently",
+      "static readonly fields are stored in CPU registers, so the branch is free",
+      "Tier-1 JIT runs after the static ctor, so it treats the field as a constant"
+    ],
+    "correctIndex": 3,
+    "explanation": "With tiered compilation, the tier-1 recompile happens after the class's static constructor has run; since a static readonly value can no longer change, the JIT embeds it as a constant and removes the dead branch. Roslyn cannot know a run-time environment variable, PGO adds guarded fast paths rather than deleting code, and fields are not pinned to registers.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/runtime-config/compilation"
+  },
+  {
+    "id": "net-di-async-disposable-scope",
+    "topic": "dotnet",
+    "subtopic": "dependency-injection",
+    "difficulty": "Expert",
+    "title": "Sync scope disposal of IAsyncDisposable",
+    "question": "A singleton creates scopes with:\n\nusing var scope = _scopeFactory.CreateScope();\nvar exporter = scope.ServiceProvider.GetRequiredService<Exporter>();\n\nExporter is scoped and implements only IAsyncDisposable. What happens when the scope is disposed?",
+    "options": [
+      "Nothing; Exporter is never disposed and the scope leaks it silently",
+      "DisposeAsync runs fire-and-forget on the thread pool after Dispose returns",
+      "It throws InvalidOperationException; use await using + CreateAsyncScope()",
+      "DisposeAsync is blocked on synchronously, which is safe for scoped services"
+    ],
+    "correctIndex": 2,
+    "explanation": "When a scope is disposed synchronously and it tracks a service that implements only IAsyncDisposable, the built-in container throws InvalidOperationException saying the type only implements IAsyncDisposable. Create the scope with CreateAsyncScope() and dispose it with `await using`, so DisposeAsync is awaited properly. The container neither ignores it nor fires and forgets.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection-guidelines"
+  },
+  {
+    "id": "net-options-validate-on-start",
+    "topic": "dotnet",
+    "subtopic": "configuration",
+    "difficulty": "Medium",
+    "title": "Failing fast on invalid options",
+    "question": "SmtpOptions.Port has `[Range(1, 65535)]`. A typo in appsettings leaves Port at 0; the app starts fine and only fails hours later when the first email is sent. Which registration makes it fail at startup?",
+    "options": [
+      "services.Configure<SmtpOptions>(config.GetSection(\"Smtp\")) on its own",
+      "AddOptions<SmtpOptions>().Bind(...).ValidateDataAnnotations().ValidateOnStart()",
+      "Inject IOptionsMonitor<SmtpOptions> so changes are re-read on demand",
+      "Register it with services.AddSingleton(new SmtpOptions()) and bind it manually"
+    ],
+    "correctIndex": 1,
+    "explanation": "ValidateDataAnnotations runs the attribute checks when options are created, and ValidateOnStart forces that validation while the host starts, so a bad value stops the app immediately. Plain Configure does no validation, IOptionsMonitor only changes reload behaviour, and a manually registered instance bypasses the options pipeline entirely.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/extensions/options"
+  },
+  {
+    "id": "net-options-named-ioptions",
+    "topic": "dotnet",
+    "subtopic": "configuration",
+    "difficulty": "Hard",
+    "title": "Named options through IOptions<T>",
+    "question": "services.Configure<SmtpOptions>(\"Primary\", config.GetSection(\"Smtp:Primary\"));\nservices.Configure<SmtpOptions>(\"Backup\", config.GetSection(\"Smtp:Backup\"));\n\nA class injects IOptions<SmtpOptions> and reads `.Value.Host`, which is null. Why?",
+    "options": [
+      "IOptions<T> only exposes the unnamed instance; use IOptionsSnapshot/Monitor.Get(name)",
+      "Named options merge in registration order, so Backup's empty Host overwrote Primary",
+      "Named options are bound lazily and only after the first IOptionsMonitor change event",
+      "Section keys that contain a colon cannot be bound unless they are escaped with __"
+    ],
+    "correctIndex": 0,
+    "explanation": "IOptions<T> does not support named options: .Value returns the default (unnamed) instance, which nothing configured here. Named instances are read with IOptionsSnapshot<T>.Get(\"Primary\") or IOptionsMonitor<T>.Get(\"Primary\"). Named instances are kept separate, and the colon is the normal configuration key separator (__ is only for environment variables).",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options"
+  },
+  {
+    "id": "net-minimal-api-query-binding",
+    "topic": "dotnet",
+    "subtopic": "aspnetcore",
+    "difficulty": "Easy",
+    "title": "Minimal API simple parameter binding",
+    "question": "app.MapGet(\"/search\", (string term, int page) => ...);\n\nWith no attributes, where does ASP.NET Core bind `term` and `page` from for `GET /search?term=net&page=2`?",
+    "options": [
+      "From the JSON request body, which GET requests send by default",
+      "From request headers named term and page, matched case-insensitively",
+      "From DI services, since parameters without attributes come from there",
+      "From the query string, since simple types not in the route use it"
+    ],
+    "correctIndex": 3,
+    "explanation": "Minimal APIs infer sources: simple types such as string and int that do not match a route parameter are bound from the query string. JSON bodies are inferred only for complex types (and GET requests normally have no body), headers require [FromHeader], and only registered service types are resolved from DI.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/parameter-binding"
+  },
+  {
+    "id": "net-middleware-headers-after-start",
+    "topic": "dotnet",
+    "subtopic": "aspnetcore",
+    "difficulty": "Hard",
+    "title": "Setting headers after the response started",
+    "question": "app.Use(async (ctx, next) =>\n{\n    var sw = Stopwatch.StartNew();\n    await next();\n    ctx.Response.Headers[\"X-Elapsed\"] = sw.ElapsedMilliseconds.ToString();\n});\n\nFor endpoints that write a body, this throws. Why, and what is the usual fix?",
+    "options": [
+      "Header names starting with X- are reserved; prefix custom headers differently",
+      "next() disposes HttpContext, so capture the Response object before calling it",
+      "Headers were already sent with the body; set them in Response.OnStarting(...)",
+      "Stopwatch is not thread-safe across awaits; use DateTime.UtcNow differences"
+    ],
+    "correctIndex": 2,
+    "explanation": "Once the endpoint starts writing the body, the status line and headers are flushed and the response has started; changing headers afterwards throws. Registering a callback with Response.OnStarting runs just before headers are sent, which is the right moment to add them. X- headers are allowed, HttpContext is still valid after next(), and the Stopwatch is not the problem.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/"
+  },
+  {
+    "id": "net-auth-allowanonymous-action",
+    "topic": "dotnet",
+    "subtopic": "aspnetcore-security",
+    "difficulty": "Easy",
+    "title": "AllowAnonymous inside an Authorize controller",
+    "question": "A controller has `[Authorize]` at class level. One action, Login, is marked `[AllowAnonymous]`. What happens when an unauthenticated user calls Login?",
+    "options": [
+      "401, because the class-level attribute always overrides action attributes",
+      "The request succeeds; AllowAnonymous skips authorization for that action",
+      "403, because anonymous users are authenticated but lack any role claims",
+      "500, because mixing Authorize and AllowAnonymous is a configuration error"
+    ],
+    "correctIndex": 1,
+    "explanation": "[AllowAnonymous] bypasses authorization for the endpoint it decorates, even when [Authorize] is applied at the controller level, which is the standard way to expose a login action. Anonymous users are not authenticated at all, and combining the two attributes is a supported pattern.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/security/authorization/simple"
+  },
+  {
+    "id": "net-auth-policy-requireclaim",
+    "topic": "dotnet",
+    "subtopic": "aspnetcore-security",
+    "difficulty": "Medium",
+    "title": "Requiring a claim value",
+    "question": "Only users whose token has the claim `department` = `Finance` may call the reports endpoints. What is the idiomatic ASP.NET Core way to express this?",
+    "options": [
+      "A named policy built with RequireClaim(\"department\", \"Finance\") on [Authorize]",
+      "Check User.Claims at the start of every action and return Forbid() if it's absent",
+      "[Authorize(Roles = \"department=Finance\")], since Roles also accepts claim filters",
+      "A middleware that deletes non-Finance claims before the authorization step runs"
+    ],
+    "correctIndex": 0,
+    "explanation": "Claims-based authorization uses a policy: `options.AddPolicy(\"FinanceOnly\", p => p.RequireClaim(\"department\", \"Finance\"))` and `[Authorize(Policy = \"FinanceOnly\")]` on the endpoints. Manual checks scatter and duplicate the rule, Roles matches only role claims by name, and stripping claims in middleware does not enforce anything.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/security/authorization/claims"
+  },
+  {
+    "id": "net-dataprotection-key-ring-scaleout",
+    "topic": "dotnet",
+    "subtopic": "aspnetcore-security",
+    "difficulty": "Expert",
+    "title": "Random logouts after scaling out",
+    "question": "After scaling an ASP.NET Core app that uses cookie auth from 1 to 4 container replicas behind a round-robin load balancer, users are randomly logged out, antiforgery validation fails, and every deploy logs everyone out. What is the root cause?",
+    "options": [
+      "Cookies exceed the 4 KB browser limit once more replicas add their own signatures",
+      "The load balancer strips Set-Cookie headers unless sticky sessions are configured",
+      "JWT signing keys rotate on each replica start, invalidating every issued token",
+      "Each replica keeps its own Data Protection keys; persist them to shared storage"
+    ],
+    "correctIndex": 3,
+    "explanation": "Auth cookies and antiforgery tokens are protected with the Data Protection key ring. Inside containers each replica generates its own keys in ephemeral storage, so a cookie issued by one replica cannot be decrypted by another, and redeploys discard all keys. Persist keys to shared storage (e.g. PersistKeysToAzureBlobStorage, a shared file system or Redis) and use the same SetApplicationName on every instance.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/security/data-protection/configuration/overview"
+  },
+  {
+    "id": "net-hosting-addhostedservice",
+    "topic": "dotnet",
+    "subtopic": "hosting",
+    "difficulty": "Easy",
+    "title": "Registering a BackgroundService",
+    "question": "You wrote `class OutboxWorker : BackgroundService`. How do you get the host to start it together with the app?",
+    "options": [
+      "builder.Services.AddSingleton<OutboxWorker>(), which starts it on first use",
+      "Call new OutboxWorker().StartAsync() at the end of Program.cs after app.Run()",
+      "builder.Services.AddHostedService<OutboxWorker>()",
+      "builder.Services.AddScoped<IHostedService, OutboxWorker>() for each request"
+    ],
+    "correctIndex": 2,
+    "explanation": "AddHostedService registers the type as an IHostedService, and the host calls StartAsync on all hosted services during startup and StopAsync on shutdown. A plain singleton is never started, code after app.Run() runs only once the app is shutting down, and hosted services are not per-request.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/host/hosted-services"
+  },
+  {
+    "id": "net-health-degraded-status-code",
+    "topic": "dotnet",
+    "subtopic": "hosting",
+    "difficulty": "Medium",
+    "title": "HTTP status for a Degraded check",
+    "question": "A health check returns `HealthCheckResult.Degraded(\"cache slow\")`. With default MapHealthChecks options, which HTTP status does the endpoint return?",
+    "options": [
+      "503 Service Unavailable",
+      "200 OK",
+      "500 Internal Server Error",
+      "429 Too Many Requests"
+    ],
+    "correctIndex": 1,
+    "explanation": "By default ResultStatusCodes maps Healthy and Degraded to 200 and only Unhealthy to 503, so probes keep routing traffic to a degraded instance. You can change the mapping through HealthCheckOptions.ResultStatusCodes if Degraded should fail the probe.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks"
+  },
+  {
+    "id": "net-backgroundservice-stopping-token",
+    "topic": "dotnet",
+    "subtopic": "hosting",
+    "difficulty": "Hard",
+    "title": "Graceful shutdown of a queue consumer",
+    "question": "A queue consumer's ExecuteAsync loops `while (true)` and calls `await handler.ProcessAsync(msg)` without passing any token. During rolling deploys Kubernetes sends SIGTERM and some messages end up half-processed. What is the right fix?",
+    "options": [
+      "Loop on !stoppingToken.IsCancellationRequested and pass the token to async calls",
+      "Catch SIGTERM with Console.CancelKeyPress and call Environment.Exit(0) at once",
+      "Make ExecuteAsync synchronous so the host cannot stop it partway through",
+      "Set HostOptions.ShutdownTimeout to zero so the host stops before new work begins"
+    ],
+    "correctIndex": 0,
+    "explanation": "On SIGTERM the host begins graceful shutdown and signals the stoppingToken passed to ExecuteAsync, then waits up to HostOptions.ShutdownTimeout for it to finish. Honouring the token lets the worker stop taking new messages and finish or abandon the current one cleanly. Exiting immediately or a zero timeout makes interruption worse, and blocking code just ignores shutdown.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/host/hosted-services"
+  },
+  {
+    "id": "net-efcore-identity-resolution-stale",
+    "topic": "dotnet",
+    "subtopic": "ef-core",
+    "difficulty": "Hard",
+    "title": "Long-lived DbContext returns stale data",
+    "question": "A worker reuses one DbContext for hours. Another app updates Product 7's price, but `await db.Products.FirstAsync(p => p.Id == 7)` in the worker keeps returning the old price. Why?",
+    "options": [
+      "EF Core caches query results for 24 hours unless AsNoTracking is applied",
+      "FirstAsync reads from the change tracker only, never from the database",
+      "SQL Server keeps returning the cached plan's results until the connection pool resets",
+      "The row is queried, but EF returns the tracked instance without its new values"
+    ],
+    "correctIndex": 3,
+    "explanation": "Tracking queries always execute against the database, but identity resolution means that if an entity with that key is already tracked, EF returns the existing instance and does not overwrite its values with the database values. Use a short-lived DbContext per unit of work (or AsNoTracking / Reload) to see fresh data. EF has no time-based result cache, and plan caching does not cache results.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/ef/core/change-tracking/identity-resolution"
+  },
+  {
+    "id": "net-efcore-dbcontext-pooling",
+    "topic": "dotnet",
+    "subtopic": "ef-core-performance",
+    "difficulty": "Medium",
+    "title": "Caveat of DbContext pooling",
+    "question": "A high-throughput API switches from AddDbContext to `AddDbContextPool<AppDbContext>()`. What must the team be careful about?",
+    "options": [
+      "Pooled contexts are shared by concurrent requests, so add locks around SaveChanges",
+      "Pooling disables change tracking, so every update must use ExecuteUpdateAsync",
+      "Custom state on the context (e.g. a tenant field set per request) is not reset",
+      "Pooled contexts keep tracked entities between requests as a 2nd-level cache"
+    ],
+    "correctIndex": 2,
+    "explanation": "With pooling EF Core resets its own state (change tracker, etc.) when a context is returned, but the constructor runs only once per pooled instance and your own fields are not reset, so per-request state can leak between requests. Each rented context is still used by one request at a time, change tracking works normally, and tracked entities are cleared on return.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/ef/core/performance/advanced-performance-topics"
+  },
+  {
+    "id": "net-testing-xunit-theory-inlinedata",
+    "topic": "dotnet",
+    "subtopic": "testing-dotnet",
+    "difficulty": "Easy",
+    "title": "Data-driven tests in xUnit",
+    "question": "In xUnit, you want to run the same test method for the inputs (2, 4), (3, 9) and (4, 16). Which attributes do you use?",
+    "options": [
+      "[Fact] on the method, copied three times with different names",
+      "[Theory] with three [InlineData(...)] attributes on the method",
+      "[TestCase(...)] three times, which xUnit reads like NUnit does",
+      "[Fact(Repeat = 3)] plus a static array holding the input pairs"
+    ],
+    "correctIndex": 1,
+    "explanation": "In xUnit, [Fact] marks a parameterless test and [Theory] marks a parameterised one whose data comes from [InlineData], [MemberData] or [ClassData]. [TestCase] belongs to NUnit, and Fact has no Repeat property; copying the method duplicates code.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-csharp-with-xunit"
+  },
+  {
+    "id": "net-testing-mock-vs-stub",
+    "topic": "dotnet",
+    "subtopic": "testing-dotnet",
+    "difficulty": "Easy",
+    "title": "Mock versus stub",
+    "question": "A unit test replaces IEmailSender with a fake and then asserts that SendAsync was called exactly once with the customer's address. In the usual terminology, that fake is a:",
+    "options": [
+      "Mock",
+      "Stub",
+      "Dummy",
+      "Fixture"
+    ],
+    "correctIndex": 0,
+    "explanation": "A mock is a fake the test asserts against, so it decides whether the test passes; here the test verifies the interaction. A stub only supplies canned responses so the code under test can run, a dummy is passed but never used, and a fixture is shared setup rather than a test double.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-best-practices"
+  },
+  {
+    "id": "net-testing-xunit-class-fixture",
+    "topic": "dotnet",
+    "subtopic": "testing-dotnet",
+    "difficulty": "Medium",
+    "title": "Expensive setup runs for every test",
+    "question": "An xUnit test class starts a PostgreSQL container in its constructor. With 20 tests in the class, the container starts 20 times and the suite takes minutes. Why, and what is the fix?",
+    "options": [
+      "xUnit runs every test in a new process; enable a shared AppDomain in xunit.runner.json",
+      "Constructors run before each assertion; move setup into a static constructor instead",
+      "Tests run in parallel inside a class; add [Collection] to make them run in sequence",
+      "xUnit creates a new class instance per test; move setup into an IClassFixture<T>"
+    ],
+    "correctIndex": 3,
+    "explanation": "xUnit deliberately creates a fresh instance of the test class for every test, so constructor setup repeats each time. A class fixture (IClassFixture<T>, optionally with IAsyncLifetime) is created once and shared by all tests in the class, or a collection fixture shares it across classes. Tests in the same class run sequentially, and xUnit does not start a process per test.",
+    "referenceUrl": "https://xunit.net/docs/shared-context"
+  },
+  {
+    "id": "net-testing-timeprovider",
+    "topic": "dotnet",
+    "subtopic": "testing-dotnet",
+    "difficulty": "Hard",
+    "title": "Testing time-dependent code",
+    "question": "A TokenCache expires entries after 30 minutes using `DateTime.UtcNow`. Its tests use Thread.Sleep and are slow and flaky. What is the recommended .NET 8+ approach?",
+    "options": [
+      "Mark tests [Fact(Timeout = 1800000)] so xUnit waits for the real expiry",
+      "Set the machine clock forward in test setup and restore it in Dispose()",
+      "Inject TimeProvider, use GetUtcNow(), and advance a FakeTimeProvider in tests",
+      "Replace DateTime.UtcNow with Stopwatch.GetTimestamp(), which tests can freeze at will"
+    ],
+    "correctIndex": 2,
+    "explanation": "TimeProvider (.NET 8) abstracts the clock and timers; production code injects TimeProvider.System, while tests use FakeTimeProvider from Microsoft.Extensions.TimeProvider.Testing and call Advance to move time instantly and deterministically. Waiting in real time is slow, changing the machine clock affects everything else, and Stopwatch timestamps cannot be frozen by tests.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/datetime/timeprovider-overview"
+  }
+]

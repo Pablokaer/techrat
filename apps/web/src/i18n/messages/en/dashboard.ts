@@ -1,0 +1,46 @@
+export const dashboard = {
+  greeting: { morning: "Good morning", afternoon: "Good afternoon", evening: "Good evening" },
+  eyebrow: "Your learning journey, gamified",
+  tagline: "Keep learning. Small steps build big developers.",
+  dayStreak: "Day streak",
+  levelProgress: "Level progress",
+  xpProgress: (current: string, total: string) => `${current} / ${total} XP`,
+  stats: {
+    totalXp: "Total XP",
+    questionsSolved: "Questions solved",
+    accuracy: "Accuracy",
+    globalRank: "Global rank",
+  },
+  continueLearning: {
+    title: "Continue Learning",
+    cta: "View all topics",
+  },
+  roadmap: {
+    title: "Your Learning Roadmap",
+    viewFull: "View full roadmap",
+    choose: "Choose a roadmap",
+    progress: (completed: number, total: number, percent: number) => `${completed} of ${total} steps · ${percent}%`,
+    progressLabel: "Roadmap progress",
+    emptyTitle: "Pick a path and start leveling up",
+    emptyText: "32 structured roadmaps from Junior Software Engineer to System Design and AI Engineering.",
+    browse: "Browse roadmaps",
+  },
+  recommended: {
+    title: "Recommended Practice",
+  },
+  daily: {
+    title: "Daily Challenge",
+    questions: (n: number) => `${n} mixed questions`,
+    descriptionBefore: "One per topic, refreshed every day. Bonus ",
+    descriptionAfter: " once a day.",
+    progressLabel: "Daily challenge progress",
+    completedToday: (correct: number, total: number) => `Completed today · ${correct}/${total} correct`,
+    resume: "Resume challenge",
+    start: "Start challenge",
+    startError: "Could not start the daily challenge",
+  },
+  achievements: {
+    title: "Recent Achievements",
+    empty: "Answer your first question to unlock your first badge.",
+  },
+};

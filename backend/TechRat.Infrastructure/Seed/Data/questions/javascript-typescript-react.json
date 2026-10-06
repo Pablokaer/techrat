@@ -1,0 +1,1464 @@
+[
+  {
+    "id": "js-types-typeof-null",
+    "topic": "javascript",
+    "subtopic": "types",
+    "difficulty": "Easy",
+    "title": "typeof null",
+    "question": "What does `typeof null` evaluate to in JavaScript?",
+    "options": [
+      "\"null\"",
+      "\"undefined\"",
+      "\"object\"",
+      "\"symbol\""
+    ],
+    "correctIndex": 2,
+    "explanation": "`typeof null` returns \"object\", a historical bug from the first JavaScript implementation that was kept for web compatibility. null has its own type in the spec, but typeof cannot report it, so null checks should use `value === null` instead of typeof.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/typeof"
+  },
+  {
+    "id": "js-types-plus-minus-coercion",
+    "topic": "javascript",
+    "subtopic": "types",
+    "difficulty": "Medium",
+    "title": "Mixed + and - coercion",
+    "question": "What does this log?\n\nconsole.log(1 + \"2\" - 1);",
+    "options": [
+      "\"111\"",
+      "2",
+      "11",
+      "NaN"
+    ],
+    "correctIndex": 2,
+    "explanation": "Evaluation is left to right: `1 + \"2\"` sees a string operand, so + performs string concatenation and yields \"12\". The - operator only works numerically, so \"12\" is converted to 12 and 12 - 1 gives 11. \"111\" would require - to concatenate, and 2 would require + to add numerically.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Equality_comparisons_and_sameness"
+  },
+  {
+    "id": "js-types-nan-indexof-includes",
+    "topic": "javascript",
+    "subtopic": "types",
+    "difficulty": "Medium",
+    "title": "NaN with indexOf vs includes",
+    "question": "What does this log?\n\nconst xs = [NaN];\nconsole.log(xs.indexOf(NaN), xs.includes(NaN));",
+    "options": [
+      "0 true",
+      "-1 false",
+      "0 false",
+      "-1 true"
+    ],
+    "correctIndex": 3,
+    "explanation": "indexOf uses strict equality (===), and NaN === NaN is false, so it can never find NaN and returns -1. includes uses the SameValueZero algorithm, which treats NaN as equal to NaN, so it returns true. Use Number.isNaN or includes when NaN may be present.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Equality_comparisons_and_sameness"
+  },
+  {
+    "id": "js-closure-counter-instances",
+    "topic": "javascript",
+    "subtopic": "scope-closures",
+    "difficulty": "Easy",
+    "title": "Independent closure instances",
+    "question": "What does this log?\n\nfunction makeCounter() { let c = 0; return () => ++c; }\nconst a = makeCounter(), b = makeCounter();\na(); a(); b();\nconsole.log(a(), b());",
+    "options": [
+      "4 4",
+      "3 3",
+      "3 2",
+      "1 1"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each call to makeCounter creates a new lexical environment with its own `c`, and the returned arrow function closes over that specific binding. Counter a was called twice before, so the next call returns 3; counter b was called once, so it returns 2. The counters never share state.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Closures"
+  },
+  {
+    "id": "js-scope-let-tdz",
+    "topic": "javascript",
+    "subtopic": "scope-closures",
+    "difficulty": "Easy",
+    "title": "Temporal dead zone",
+    "question": "What happens when this code runs?\n\nconsole.log(x);\nlet x = 1;",
+    "options": [
+      "It logs undefined",
+      "It throws a ReferenceError",
+      "It logs 1",
+      "It throws a TypeError"
+    ],
+    "correctIndex": 1,
+    "explanation": "let and const declarations are hoisted but not initialized; accessing them before the declaration line hits the temporal dead zone and throws a ReferenceError. Logging undefined is the behavior of var, which is initialized to undefined when hoisted.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/let"
+  },
+  {
+    "id": "js-closure-var-settimeout-loop",
+    "topic": "javascript",
+    "subtopic": "scope-closures",
+    "difficulty": "Medium",
+    "title": "var in a loop with setTimeout",
+    "question": "What does this log?\n\nfor (var i = 0; i < 3; i++) {\n  setTimeout(() => console.log(i), 0);\n}",
+    "options": [
+      "0 1 2",
+      "0 0 0",
+      "3 3 3",
+      "undefined undefined undefined"
+    ],
+    "correctIndex": 2,
+    "explanation": "var is function-scoped, so all three callbacks close over the same single `i`. The timeouts run only after the loop has finished, when i is already 3. Replacing var with let creates a fresh binding per iteration and prints 0 1 2.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/var"
+  },
+  {
+    "id": "js-closure-let-per-iteration-mutation",
+    "topic": "javascript",
+    "subtopic": "scope-closures",
+    "difficulty": "Expert",
+    "title": "Per-iteration let bindings mutated in the body",
+    "question": "What does this log?\n\nconst fns = [];\nfor (let i = 0; i < 3; i++) {\n  fns.push(() => i);\n  i++;\n}\nconsole.log(fns.map(f => f()));",
+    "options": [
+      "[0, 2]",
+      "[1, 3]",
+      "[0, 1, 2]",
+      "[2, 4]"
+    ],
+    "correctIndex": 1,
+    "explanation": "A for-let loop creates a new binding of i for each iteration, but closures capture the binding, not the value at push time. The first iteration's binding is incremented to 1 inside the body; that value is copied to the next binding and then incremented to 2, which the body bumps to 3. Only two iterations run, so the closures return 1 and 3.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/let"
+  },
+  {
+    "id": "js-proto-shadowing-assignment",
+    "topic": "javascript",
+    "subtopic": "objects-prototypes",
+    "difficulty": "Easy",
+    "title": "Assignment shadows a prototype property",
+    "question": "What does this log?\n\nconst a = { x: 1 };\nconst b = Object.create(a);\nb.x = 2;\nconsole.log(a.x, b.x);",
+    "options": [
+      "2 2",
+      "1 1",
+      "2 1",
+      "1 2"
+    ],
+    "correctIndex": 3,
+    "explanation": "Object.create(a) makes a the prototype of b. Assigning b.x creates a new own property on b that shadows the inherited one; it does not write through to the prototype. Reads of a.x still see 1 while b.x finds its own value 2 first.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Inheritance_and_the_prototype_chain"
+  },
+  {
+    "id": "js-class-field-vs-method-identity",
+    "topic": "javascript",
+    "subtopic": "objects-prototypes",
+    "difficulty": "Medium",
+    "title": "Class methods vs arrow-function fields",
+    "question": "What does this log?\n\nclass A {\n  m() {}\n  f = () => {};\n}\nconst a = new A(), b = new A();\nconsole.log(a.m === b.m, a.f === b.f);",
+    "options": [
+      "true false",
+      "true true",
+      "false false",
+      "false true"
+    ],
+    "correctIndex": 0,
+    "explanation": "Methods declared in the class body live once on A.prototype, so both instances share the same function. Class fields are initialized per instance in the constructor, so every instance gets a new arrow function. This is why arrow fields bind `this` conveniently but cost memory per instance.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/class"
+  },
+  {
+    "id": "js-object-freeze-shallow",
+    "topic": "javascript",
+    "subtopic": "objects-prototypes",
+    "difficulty": "Hard",
+    "title": "Object.freeze is shallow",
+    "question": "In a classic (non-module, sloppy-mode) script, what does this log?\n\nconst o = Object.freeze({ n: 1, inner: { n: 1 } });\no.n = 2;\no.inner.n = 2;\nconsole.log(o.n, o.inner.n);",
+    "options": [
+      "2 2",
+      "1 1",
+      "1 2",
+      "It throws a TypeError"
+    ],
+    "correctIndex": 2,
+    "explanation": "Object.freeze only freezes the object's own properties; nested objects remain mutable, so o.inner.n changes to 2. Writing o.n silently fails in sloppy mode and stays 1. In strict mode (including ES modules) the write to o.n would throw a TypeError instead.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/freeze"
+  },
+  {
+    "id": "js-proto-inherited-setter",
+    "topic": "javascript",
+    "subtopic": "objects-prototypes",
+    "difficulty": "Expert",
+    "title": "Assignment through an inherited setter",
+    "question": "What does this log?\n\nconst proto = { set x(v) { this._x = v * 2; } };\nconst o = Object.create(proto);\no.x = 5;\nconsole.log(Object.hasOwn(o, \"x\"), o._x);",
+    "options": [
+      "true 5",
+      "false 10",
+      "true 10",
+      "false undefined"
+    ],
+    "correctIndex": 1,
+    "explanation": "When assignment finds an accessor property on the prototype chain, it calls that setter with `this` set to the receiver instead of creating an own property. So o gets no own `x`, and the setter stores 10 in o._x. Only data properties on the prototype are shadowed by assignment.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Inheritance_and_the_prototype_chain"
+  },
+  {
+    "id": "js-this-detached-method-strict",
+    "topic": "javascript",
+    "subtopic": "functions-this",
+    "difficulty": "Easy",
+    "title": "Detached method in an ES module",
+    "question": "In an ES module, what happens here?\n\nconst counter = { n: 1, get() { return this.n; } };\nconst g = counter.get;\ng();",
+    "options": [
+      "It returns 1",
+      "It returns undefined",
+      "It throws a ReferenceError for n",
+      "It throws a TypeError because this is undefined"
+    ],
+    "correctIndex": 3,
+    "explanation": "`this` is determined by how a function is called, not where it is defined. g() is a plain call, and modules run in strict mode, so this is undefined and reading this.n throws a TypeError. Calling counter.get() or using counter.get.bind(counter) would return 1.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this"
+  },
+  {
+    "id": "js-this-bind-twice",
+    "topic": "javascript",
+    "subtopic": "functions-this",
+    "difficulty": "Hard",
+    "title": "Binding an already bound function",
+    "question": "What does this log?\n\nfunction f() { return this.v; }\nconst b = f.bind({ v: 1 }).bind({ v: 2 });\nconsole.log(b());",
+    "options": [
+      "1",
+      "2",
+      "undefined",
+      "It throws a TypeError"
+    ],
+    "correctIndex": 0,
+    "explanation": "bind returns a bound function whose `this` is fixed permanently. Binding that bound function again creates a wrapper, but the inner bound function ignores the new thisArg, so the first binding ({ v: 1 }) wins. Only partially applied arguments accumulate across repeated bind calls.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind"
+  },
+  {
+    "id": "js-this-setinterval-callback",
+    "topic": "javascript",
+    "subtopic": "functions-this",
+    "difficulty": "Medium",
+    "title": "this inside a timer callback",
+    "question": "A Timer class never updates its count:\n\nclass Timer {\n  count = 0;\n  start() {\n    setInterval(function () { this.count++; }, 1000);\n  }\n}\n\nWhat is the cause and the simplest fix?",
+    "options": [
+      "The callback's `this` is not the instance; use an arrow function",
+      "setInterval callbacks cannot mutate class fields; use a static field",
+      "count is private by default; declare it as public count",
+      "start() must be async for timers to fire; add async"
+    ],
+    "correctIndex": 0,
+    "explanation": "A regular function passed to setInterval is invoked by the timer machinery, so its `this` is not the Timer instance (it is the global object in browsers or a Timeout object in Node). An arrow function has no own `this` and lexically uses start()'s `this`, which is the instance. Class fields are public by default and timers fire without async.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions"
+  },
+  {
+    "id": "js-async-await-sync-part",
+    "topic": "javascript",
+    "subtopic": "async",
+    "difficulty": "Easy",
+    "title": "Code before the first await runs synchronously",
+    "question": "What does this log?\n\nasync function f() {\n  console.log(1);\n  await null;\n  console.log(2);\n}\nf();\nconsole.log(3);",
+    "options": [
+      "1 2 3",
+      "3 1 2",
+      "1 3",
+      "1 3 2"
+    ],
+    "correctIndex": 3,
+    "explanation": "An async function runs synchronously until its first await, so 1 is logged immediately. await then suspends f and schedules the rest as a microtask, letting the caller continue and log 3. The microtask runs once the current script finishes, logging 2.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function"
+  },
+  {
+    "id": "js-eventloop-timeout-vs-promise",
+    "topic": "javascript",
+    "subtopic": "async",
+    "difficulty": "Medium",
+    "title": "setTimeout vs Promise.then ordering",
+    "question": "What does this log?\n\nconsole.log(\"A\");\nsetTimeout(() => console.log(\"B\"), 0);\nPromise.resolve().then(() => console.log(\"C\"));\nconsole.log(\"D\");",
+    "options": [
+      "A B C D",
+      "A D C B",
+      "A C D B",
+      "A D B C"
+    ],
+    "correctIndex": 1,
+    "explanation": "Synchronous code runs first, logging A and D. Promise reactions are microtasks, which drain as soon as the call stack is empty, so C comes next. setTimeout schedules a macrotask (task), which only runs after the microtask queue is empty, even with a 0 ms delay.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide"
+  },
+  {
+    "id": "js-async-foreach-not-awaited",
+    "topic": "javascript",
+    "subtopic": "async",
+    "difficulty": "Medium",
+    "title": "await inside forEach",
+    "question": "Why does \"done\" print before any item is saved?\n\nasync function saveAll(items) {\n  items.forEach(async (item) => { await save(item); });\n  console.log(\"done\");\n}",
+    "options": [
+      "await inside an arrow function is a syntax error and is skipped",
+      "save() runs on a worker thread and cannot be awaited",
+      "console.log is hoisted above forEach in async functions",
+      "forEach ignores the promises its callback returns, so nothing is awaited"
+    ],
+    "correctIndex": 3,
+    "explanation": "forEach calls the async callback, which returns a promise immediately, and forEach discards that promise. saveAll therefore continues straight to console.log. Use `for (const item of items) await save(item)` for sequential work or `await Promise.all(items.map(save))` for parallel work.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises"
+  },
+  {
+    "id": "js-async-promise-all-rejection",
+    "topic": "javascript",
+    "subtopic": "async",
+    "difficulty": "Medium",
+    "title": "Promise.all when one input rejects",
+    "question": "You run `await Promise.all([fetchA(), fetchB(), fetchC()])` and fetchB rejects after 100 ms while the others take 2 s. What happens?",
+    "options": [
+      "Promise.all rejects after ~100 ms; fetchA and fetchC keep running",
+      "Promise.all waits 2 s and then rejects with an array of results",
+      "Promise.all rejects after ~100 ms and cancels fetchA and fetchC",
+      "Promise.all resolves with undefined in place of fetchB's result"
+    ],
+    "correctIndex": 0,
+    "explanation": "Promise.all rejects as soon as any input rejects, with that rejection reason. Promises are not cancellable, so the other operations keep running and their results are simply ignored. If you need every outcome, use Promise.allSettled; to actually stop requests, use an AbortController.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all"
+  },
+  {
+    "id": "js-eventloop-nested-microtasks",
+    "topic": "javascript",
+    "subtopic": "async",
+    "difficulty": "Hard",
+    "title": "Microtasks queued from microtasks",
+    "question": "What does this log?\n\nsetTimeout(() => console.log(\"t1\"));\nPromise.resolve().then(() => {\n  console.log(\"p1\");\n  setTimeout(() => console.log(\"t2\"));\n  Promise.resolve().then(() => console.log(\"p2\"));\n});\nqueueMicrotask(() => console.log(\"m1\"));",
+    "options": [
+      "p1 m1 p2 t1 t2",
+      "p1 p2 m1 t1 t2",
+      "t1 p1 m1 p2 t2",
+      "p1 m1 t1 p2 t2"
+    ],
+    "correctIndex": 0,
+    "explanation": "After the script, the microtask queue holds p1's callback and then m1. Running p1 queues p2 at the end of the microtask queue (after m1) and schedules t2 behind t1. The whole microtask queue drains, including newly added jobs, before any timer task runs, so t1 and t2 come last in registration order.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide"
+  },
+  {
+    "id": "js-async-return-promise-extra-ticks",
+    "topic": "javascript",
+    "subtopic": "async",
+    "difficulty": "Expert",
+    "title": "Returning a promise from an async function",
+    "question": "What does this log?\n\nasync function f() { return Promise.resolve(\"f\"); }\nf().then(console.log);\nPromise.resolve()\n  .then(() => console.log(\"a\"))\n  .then(() => console.log(\"b\"))\n  .then(() => console.log(\"c\"));",
+    "options": [
+      "a b f c",
+      "f a b c",
+      "a f b c",
+      "a b c f"
+    ],
+    "correctIndex": 0,
+    "explanation": "Resolving the async function's promise with another promise is not immediate: it queues a PromiseResolveThenableJob, which calls .then on the inner promise, which queues one more job that finally fulfills f()'s promise. Only then is the console.log reaction queued. That costs three microtask turns, so 'f' lands after 'b' and before 'c'. Returning the plain value (or `return await`) avoids the extra ticks.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises"
+  },
+  {
+    "id": "js-modules-dynamic-import",
+    "topic": "javascript",
+    "subtopic": "modules",
+    "difficulty": "Easy",
+    "title": "What import() returns",
+    "question": "What does the expression `import(\"./chart.js\")` evaluate to?",
+    "options": [
+      "The module's default export, loaded synchronously",
+      "A Promise that fulfills with the module's default export only",
+      "A URL string the bundler replaces at build time",
+      "A Promise that fulfills with the module namespace object"
+    ],
+    "correctIndex": 3,
+    "explanation": "Dynamic import() loads a module asynchronously and returns a promise for its namespace object, which exposes all named exports plus `default`. Because it is asynchronous and can be used anywhere, bundlers use it as a code-splitting point for lazy loading.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import"
+  },
+  {
+    "id": "js-modules-live-bindings",
+    "topic": "javascript",
+    "subtopic": "modules",
+    "difficulty": "Hard",
+    "title": "ES module live bindings",
+    "question": "Given:\n\n// counter.js\nexport let count = 0;\nexport function inc() { count++; }\n\n// main.js\nimport { count, inc } from \"./counter.js\";\ninc();\nconsole.log(count);\n\nWhat does main.js log?",
+    "options": [
+      "1",
+      "0",
+      "undefined",
+      "It throws a TypeError on inc()"
+    ],
+    "correctIndex": 0,
+    "explanation": "ES module imports are live bindings to the exporting module's variables, not copies of their values. When inc() increments count inside counter.js, main.js observes the new value 1. The importer cannot reassign count itself, though; `count = 5` in main.js would throw a TypeError.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules"
+  },
+  {
+    "id": "js-fetch-http-error-not-rejected",
+    "topic": "javascript",
+    "subtopic": "dom-browser",
+    "difficulty": "Medium",
+    "title": "fetch does not reject on HTTP 404/500",
+    "question": "A function does `try { const res = await fetch(url); return await res.json(); } catch { showError(); }`. The server returns 404 with an HTML body. What happens?",
+    "options": [
+      "fetch rejects with a 404 error and the catch runs immediately",
+      "fetch resolves; res.json() then fails parsing the HTML and the catch runs",
+      "fetch resolves and res.json() returns null for non-2xx responses",
+      "fetch retries the request until it gets a 2xx response"
+    ],
+    "correctIndex": 1,
+    "explanation": "fetch only rejects on network failures or aborts; HTTP error statuses still resolve with a Response whose ok is false. Here the failure only surfaces later because the HTML body is not valid JSON. Check `if (!res.ok) throw new Error(...)` before parsing to handle HTTP errors explicitly.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch"
+  },
+  {
+    "id": "js-fetch-abortcontroller",
+    "topic": "javascript",
+    "subtopic": "dom-browser",
+    "difficulty": "Medium",
+    "title": "Cancelling a fetch with AbortController",
+    "question": "A search box fires a fetch on every keystroke and you abort the previous request with `controller.abort()`. How does the aborted fetch settle?",
+    "options": [
+      "Its promise resolves with a Response whose status is 0",
+      "Its promise stays pending forever and is garbage collected",
+      "Its promise rejects with a DOMException named \"AbortError\"",
+      "Its promise resolves with undefined"
+    ],
+    "correctIndex": 2,
+    "explanation": "Passing `signal: controller.signal` to fetch ties the request to the controller; calling abort() rejects the pending fetch (and any in-progress body read) with an AbortError DOMException. Code should catch it and ignore errors whose name is \"AbortError\" so cancelled searches are not reported as failures.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/AbortController"
+  },
+  {
+    "id": "js-errors-cause",
+    "topic": "javascript",
+    "subtopic": "errors",
+    "difficulty": "Easy",
+    "title": "Wrapping errors with cause",
+    "question": "You catch a low-level database error and want to throw a higher-level error without losing the original. What is the standard way?",
+    "options": [
+      "throw new Error(\"Failed to load user\" + err.stack)",
+      "throw Object.assign(err, { message: \"Failed to load user\" })",
+      "throw new Error(\"Failed to load user\", { cause: err })",
+      "throw new Error(\"Failed to load user\", err)"
+    ],
+    "correctIndex": 2,
+    "explanation": "The Error constructor accepts an options object whose cause property stores the underlying error, preserving its type and stack for logging and debugging. Concatenating stacks loses structure, mutating the original hides context, and a second positional argument is not the cause (it is ignored in standard JavaScript).",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause"
+  },
+  {
+    "id": "js-errors-finally-return-override",
+    "topic": "javascript",
+    "subtopic": "errors",
+    "difficulty": "Medium",
+    "title": "return inside finally",
+    "question": "What does `run()` return?\n\nfunction run() {\n  try {\n    return \"try\";\n  } finally {\n    return \"finally\";\n  }\n}",
+    "options": [
+      "\"try\"",
+      "undefined",
+      "It throws a SyntaxError",
+      "\"finally\""
+    ],
+    "correctIndex": 3,
+    "explanation": "A finally block always executes, and a control-flow statement such as return inside finally overrides the completion of the try block. The pending 'try' return value (or even a thrown exception) is discarded. This is why returning from finally is generally discouraged.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/try...catch"
+  },
+  {
+    "id": "js-memory-weakmap-metadata",
+    "topic": "javascript",
+    "subtopic": "performance-memory",
+    "difficulty": "Medium",
+    "title": "Attaching metadata without leaks",
+    "question": "A library caches computed layout info for DOM nodes in a `Map<Element, Info>`. Removed nodes are never freed. Which change fixes the leak with minimal code?",
+    "options": [
+      "Call map.clear() inside a setInterval every minute",
+      "Use a WeakMap so entries do not keep their key nodes alive",
+      "Store the info as a JSON string instead of an object",
+      "Replace the Map with a plain object keyed by element id"
+    ],
+    "correctIndex": 1,
+    "explanation": "A Map holds strong references to its keys, so detached DOM nodes stay reachable as long as the cache exists. A WeakMap holds keys weakly; once nothing else references a node, it and its entry can be garbage collected. Periodic clearing throws away live data, and serializing values does not release the keys.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap"
+  },
+  {
+    "id": "js-memory-spa-listener-leak",
+    "topic": "javascript",
+    "subtopic": "performance-memory",
+    "difficulty": "Expert",
+    "title": "Growing heap in a single-page app",
+    "question": "In an SPA, heap snapshots show thousands of detached DOM trees after navigating between views. Each view runs `window.addEventListener(\"resize\", () => this.layout())` on mount. What is the most likely cause?",
+    "options": [
+      "The window listeners are never removed, so their closures keep old views and nodes reachable",
+      "Arrow functions are never garbage collected by modern engines",
+      "The resize event fires too often and fills the microtask queue",
+      "Detached DOM trees are expected and are reclaimed only on page reload"
+    ],
+    "correctIndex": 0,
+    "explanation": "window lives for the whole page, so each listener (and the closure capturing `this` and its DOM nodes) stays reachable after the view is torn down. Removing the listener on unmount, for example via removeEventListener or an AbortSignal passed to addEventListener, makes the old view collectable. Arrow functions are collected normally once unreachable.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Memory_management"
+  },
+  {
+    "id": "ts-basic-let-vs-const-literal",
+    "topic": "typescript",
+    "subtopic": "basic-types",
+    "difficulty": "Easy",
+    "title": "Literal inference for let vs const",
+    "question": "What types does TypeScript infer?\n\nlet a = \"hi\";\nconst b = \"hi\";",
+    "options": [
+      "a: \"hi\", b: \"hi\"",
+      "a: string, b: \"hi\"",
+      "a: string, b: string",
+      "a: any, b: \"hi\""
+    ],
+    "correctIndex": 1,
+    "explanation": "A const primitive can never change, so TypeScript keeps its literal type \"hi\". A let variable may be reassigned later, so its literal is widened to string. This literal widening is why `as const` or explicit annotations are sometimes needed.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/everyday-types.html"
+  },
+  {
+    "id": "ts-basic-unknown-vs-any",
+    "topic": "typescript",
+    "subtopic": "basic-types",
+    "difficulty": "Medium",
+    "title": "Using an unknown value",
+    "question": "What does the compiler report?\n\nconst v: unknown = JSON.parse(input);\nv.toUpperCase();",
+    "options": [
+      "No error; unknown behaves like any",
+      "Error: Property 'toUpperCase' does not exist on type 'object'",
+      "No error, but a runtime warning is emitted",
+      "Error: 'v' is of type 'unknown'"
+    ],
+    "correctIndex": 3,
+    "explanation": "unknown is the type-safe counterpart of any: anything can be assigned to it, but you cannot use it until you narrow it (for example with `typeof v === \"string\"`). With any, the call would compile and could crash at runtime. That is why unknown is preferred for untrusted input like parsed JSON.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/functions.html"
+  },
+  {
+    "id": "ts-interface-declaration-merging",
+    "topic": "typescript",
+    "subtopic": "interfaces-types",
+    "difficulty": "Medium",
+    "title": "Declaration merging: interface vs type",
+    "question": "You declare the same name twice in one module, first with `interface Config { a: string }` and then `interface Config { b: number }`. If you used `type Config = ...` twice instead, what would differ?",
+    "options": [
+      "Interfaces merge into one with a and b; duplicate type aliases are a 'Duplicate identifier' error",
+      "Both forms merge, but type aliases make the later members optional",
+      "Interfaces error with 'Duplicate identifier'; type aliases merge",
+      "Both forms error; neither can be declared twice"
+    ],
+    "correctIndex": 0,
+    "explanation": "Interfaces support declaration merging: multiple declarations with the same name combine their members, which is how libraries let you augment types such as Window. Type aliases are single, closed declarations, and declaring the same alias twice is a 'Duplicate identifier' error.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/declaration-merging.html"
+  },
+  {
+    "id": "ts-interface-excess-property-check",
+    "topic": "typescript",
+    "subtopic": "interfaces-types",
+    "difficulty": "Medium",
+    "title": "Excess property checks",
+    "question": "Given `interface Point { x: number; y: number }`, which line fails to compile?\n\nconst raw = { x: 1, y: 2, z: 3 };\nconst p1: Point = raw;                  // (1)\nconst p2: Point = { x: 1, y: 2, z: 3 };  // (2)",
+    "options": [
+      "Only (1), because raw has an extra property z",
+      "Both, because Point does not declare z",
+      "Neither, because structural typing ignores extra properties",
+      "Only (2), because object literals get excess property checks"
+    ],
+    "correctIndex": 3,
+    "explanation": "TypeScript is structural, so a variable with extra properties is still assignable to Point and (1) compiles. Object literals assigned directly to a typed target get an extra 'excess property check', which reports 'Object literal may only specify known properties' because z is likely a typo.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/objects.html"
+  },
+  {
+    "id": "ts-generics-constraint-length",
+    "topic": "typescript",
+    "subtopic": "generics",
+    "difficulty": "Easy",
+    "title": "Accessing properties on a type parameter",
+    "question": "Why does this fail to compile, and what is the idiomatic fix?\n\nfunction len<T>(x: T) { return x.length; }",
+    "options": [
+      "Generic functions cannot read properties; cast x to any",
+      "length is reserved; rename the parameter type to L",
+      "T could be any type; constrain it with T extends { length: number }",
+      "T must be given a default; write <T = string>"
+    ],
+    "correctIndex": 2,
+    "explanation": "An unconstrained T may be number, boolean, or anything else, so TypeScript reports that 'length' does not exist on type 'T'. Adding a constraint (`T extends { length: number }`) limits callers to types that have length while keeping the function generic. Casting to any just removes type safety.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/generics.html"
+  },
+  {
+    "id": "ts-generics-keyof-indexed-access",
+    "topic": "typescript",
+    "subtopic": "generics",
+    "difficulty": "Medium",
+    "title": "keyof constraints and indexed access",
+    "question": "What is the type of `v`?\n\nfunction get<T, K extends keyof T>(o: T, k: K): T[K] { return o[k]; }\nconst v = get({ a: 1, b: \"x\" }, \"b\");",
+    "options": [
+      "string | number",
+      "string",
+      "unknown",
+      "\"b\""
+    ],
+    "correctIndex": 1,
+    "explanation": "K is inferred as the literal \"b\", which the constraint ensures is a key of T. The return type T[K] is an indexed access type, so it resolves to the type of property b, which is string. Passing a key such as \"c\" would be a compile error.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/indexed-access-types.html"
+  },
+  {
+    "id": "ts-generics-const-type-parameter",
+    "topic": "typescript",
+    "subtopic": "generics",
+    "difficulty": "Hard",
+    "title": "const type parameters",
+    "question": "With TypeScript 5.x, what type is inferred for `t`?\n\nfunction tuple<const T extends readonly unknown[]>(x: T): T { return x; }\nconst t = tuple([\"a\", \"b\"]);",
+    "options": [
+      "string[]",
+      "(\"a\" | \"b\")[]",
+      "readonly [\"a\", \"b\"]",
+      "[string, string]"
+    ],
+    "correctIndex": 2,
+    "explanation": "The const modifier on a type parameter (added in TypeScript 5.0) makes inference behave as if the caller had written `as const`. The array literal is therefore inferred as a readonly tuple of literal types instead of being widened to string[]. The readonly constraint is needed so the readonly tuple is assignable to T.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-0.html"
+  },
+  {
+    "id": "ts-generics-noinfer",
+    "topic": "typescript",
+    "subtopic": "generics",
+    "difficulty": "Expert",
+    "title": "Blocking inference with NoInfer",
+    "question": "Which call fails to compile?\n\ndeclare function light<C extends string>(colors: C[], d?: NoInfer<C>): void;\ndeclare function light2<C extends string>(colors: C[], d?: C): void;\nlight([\"red\", \"green\"], \"blue\");   // (1)\nlight2([\"red\", \"green\"], \"blue\");  // (2)",
+    "options": [
+      "Only (2)",
+      "Both",
+      "Neither",
+      "Only (1)"
+    ],
+    "correctIndex": 3,
+    "explanation": "In light2, \"blue\" is a valid inference candidate, so C becomes \"red\" | \"green\" | \"blue\" and the call compiles. NoInfer<C> excludes the second parameter from inference, so in light C is inferred only from colors as \"red\" | \"green\" and \"blue\" is rejected. This is the intended use of NoInfer for defaults that must come from an existing set.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/utility-types.html"
+  },
+  {
+    "id": "ts-narrowing-union-method-error",
+    "topic": "typescript",
+    "subtopic": "unions-narrowing",
+    "difficulty": "Easy",
+    "title": "Calling a method on a union",
+    "question": "What does the compiler say about this function?\n\nfunction shout(x: string | number) {\n  return x.toUpperCase();\n}",
+    "options": [
+      "No error; TypeScript picks the string member automatically",
+      "Error: 'x' is possibly 'undefined'",
+      "Error: Property 'toUpperCase' does not exist on type 'string | number'",
+      "No error, but the return type is inferred as any"
+    ],
+    "correctIndex": 2,
+    "explanation": "On a union you may only use members that exist on every constituent, and number has no toUpperCase. You must narrow first, for example `if (typeof x === \"string\") return x.toUpperCase();`, after which TypeScript knows x is a string in that branch.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/narrowing.html"
+  },
+  {
+    "id": "ts-narrowing-exhaustive-never",
+    "topic": "typescript",
+    "subtopic": "unions-narrowing",
+    "difficulty": "Medium",
+    "title": "Exhaustiveness checking with never",
+    "question": "A discriminated union `Shape` gains a new member `{ kind: \"triangle\"; base: number }`. The switch below handles only \"circle\" and \"square\". What happens?\n\ndefault:\n  const _exhaustive: never = shape;\n  return _exhaustive;",
+    "options": [
+      "It compiles; default silently handles triangles",
+      "Compile error: the triangle type is not assignable to never",
+      "Runtime TypeError when a triangle reaches default",
+      "Compile error on the case \"circle\" line"
+    ],
+    "correctIndex": 1,
+    "explanation": "Each case narrows the discriminant, so in default the remaining type is whatever members are unhandled. Before the change that was never; now it is the triangle type, which cannot be assigned to never, so the compiler points you to every switch that needs updating. Nothing is checked at runtime by the annotation itself.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/narrowing.html"
+  },
+  {
+    "id": "ts-narrowing-typeof-object-null",
+    "topic": "typescript",
+    "subtopic": "unions-narrowing",
+    "difficulty": "Hard",
+    "title": "typeof \"object\" does not exclude null",
+    "question": "Why does this not compile under strict mode?\n\nfunction printAll(strs: string | string[] | null) {\n  if (typeof strs === \"object\") {\n    for (const s of strs) console.log(s);\n  }\n}",
+    "options": [
+      "for...of cannot iterate a union type",
+      "typeof narrowing only works on primitive unions",
+      "typeof null is \"object\", so strs is narrowed to string[] | null",
+      "strs must be declared with let to be narrowed"
+    ],
+    "correctIndex": 2,
+    "explanation": "TypeScript models JavaScript faithfully: `typeof null === \"object\"`, so the narrowed type in that branch is string[] | null and iterating it reports \"'strs' is possibly 'null'\". Adding a truthiness or `strs !== null` check removes null. The other options describe restrictions that do not exist.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/narrowing.html"
+  },
+  {
+    "id": "ts-narrowing-inferred-type-predicate",
+    "topic": "typescript",
+    "subtopic": "unions-narrowing",
+    "difficulty": "Hard",
+    "title": "Inferred type predicates in filter",
+    "question": "On TypeScript 5.5 or later, what is the type of `nums`?\n\nconst nums = [1, null, 2].filter(x => x !== null);",
+    "options": [
+      "number[]",
+      "(number | null)[]",
+      "unknown[]",
+      "readonly number[]"
+    ],
+    "correctIndex": 0,
+    "explanation": "TypeScript 5.5 infers type predicates from function bodies, so `x => x !== null` is treated as `(x) => x is number`, and filter's overload returns number[]. Before 5.5 the callback returned plain boolean and the result stayed (number | null)[], which required a manual type guard.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-5.html"
+  },
+  {
+    "id": "ts-utility-partial-update",
+    "topic": "typescript",
+    "subtopic": "utility-types",
+    "difficulty": "Easy",
+    "title": "Typing a patch object",
+    "question": "An `updateUser(id, changes)` function should accept any subset of `User`'s fields. Which type fits `changes` best?",
+    "options": [
+      "Required<User>",
+      "Readonly<User>",
+      "Partial<User>",
+      "Record<keyof User, unknown>"
+    ],
+    "correctIndex": 2,
+    "explanation": "Partial<User> makes every property optional while keeping each property's type, which is exactly a patch object. Required forces all fields, Readonly only blocks reassignment, and Record<keyof User, unknown> would require every key and lose the property types.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/utility-types.html"
+  },
+  {
+    "id": "ts-utility-awaited-returntype",
+    "topic": "typescript",
+    "subtopic": "utility-types",
+    "difficulty": "Medium",
+    "title": "Type of an async function's result",
+    "question": "Given `async function fetchUser() { return { id: 1, name: \"Ada\" }; }` (no exported type), how do you get the type `{ id: number; name: string }`?",
+    "options": [
+      "ReturnType<fetchUser>",
+      "ReturnType<typeof fetchUser>",
+      "Awaited<ReturnType<typeof fetchUser>>",
+      "InstanceType<typeof fetchUser>"
+    ],
+    "correctIndex": 2,
+    "explanation": "typeof fetchUser gives the function type, and ReturnType of it is Promise<{ id: number; name: string }> because async functions return promises. Awaited unwraps the promise to the resolved type. ReturnType<fetchUser> is an error because fetchUser is a value, and InstanceType applies only to constructors.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/utility-types.html"
+  },
+  {
+    "id": "ts-utility-record-union-keys",
+    "topic": "typescript",
+    "subtopic": "utility-types",
+    "difficulty": "Easy",
+    "title": "Record with a union of keys",
+    "question": "What happens here?\n\ntype Status = \"active\" | \"banned\";\nconst labels: Record<Status, string> = { active: \"Active\" };",
+    "options": [
+      "It compiles; Record keys are optional",
+      "It compiles, and labels.banned is typed string | undefined",
+      "Compile error: property 'banned' is missing",
+      "Compile error: Record keys must be string"
+    ],
+    "correctIndex": 2,
+    "explanation": "Record<K, V> is a mapped type that produces a required property for every member of K. Omitting banned is reported as missing, which is useful for exhaustive lookup tables. Use Partial<Record<Status, string>> if some keys may be absent.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/utility-types.html"
+  },
+  {
+    "id": "ts-enum-reverse-mapping",
+    "topic": "typescript",
+    "subtopic": "enums-modules",
+    "difficulty": "Medium",
+    "title": "Enum reverse mappings",
+    "question": "What do these expressions return?\n\nenum Dir { Up, Down }\nenum Color { Red = \"RED\" }\n\nDir[0]\n(Color as any)[\"RED\"]",
+    "options": [
+      "\"Up\" and \"Red\"",
+      "0 and \"RED\"",
+      "\"Up\" and undefined",
+      "undefined and \"Red\""
+    ],
+    "correctIndex": 2,
+    "explanation": "Numeric enums compile to an object with both name-to-value and value-to-name entries, so Dir[0] is \"Up\". String enum members get no reverse mapping, so looking up the value \"RED\" finds nothing. This asymmetry matters when iterating enum objects with Object.keys.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/enums.html"
+  },
+  {
+    "id": "ts-modules-verbatim-module-syntax",
+    "topic": "typescript",
+    "subtopic": "enums-modules",
+    "difficulty": "Hard",
+    "title": "verbatimModuleSyntax and type-only imports",
+    "question": "With `verbatimModuleSyntax: true`, a file contains `import { User } from \"./types\";` where User is only a type. What happens?",
+    "options": [
+      "Compile error: User must be imported with a type-only import",
+      "The import is silently elided from the emitted JavaScript",
+      "It compiles, and the JS keeps the import, failing at runtime",
+      "TypeScript rewrites it to import type automatically"
+    ],
+    "correctIndex": 0,
+    "explanation": "verbatimModuleSyntax makes TypeScript emit imports exactly as written, dropping only those marked with `type`. Since keeping a value import of a type-only export would break at runtime, the compiler reports error TS1484 and asks for `import type { User }` or `import { type User }`. This makes output predictable for single-file transpilers.",
+    "referenceUrl": "https://www.typescriptlang.org/tsconfig/verbatimModuleSyntax.html"
+  },
+  {
+    "id": "ts-advanced-mapped-minus-optional",
+    "topic": "typescript",
+    "subtopic": "advanced-types",
+    "difficulty": "Medium",
+    "title": "Mapped type modifiers",
+    "question": "What does this mapped type produce?\n\ntype X<T> = { -readonly [K in keyof T]-?: T[K] };",
+    "options": [
+      "A copy of T with every property readonly and optional",
+      "A copy of T with every property mutable and required",
+      "A type containing only T's optional properties",
+      "A type with T's keys mapped to the values -1"
+    ],
+    "correctIndex": 1,
+    "explanation": "In mapped types, `readonly` and `?` modifiers can be added with + (the default) or removed with -. `-readonly` strips readonly and `-?` strips optionality, so X is equivalent to combining the built-in Required with a mutable version of T.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/mapped-types.html"
+  },
+  {
+    "id": "ts-advanced-satisfies",
+    "topic": "typescript",
+    "subtopic": "advanced-types",
+    "difficulty": "Hard",
+    "title": "satisfies vs a type annotation",
+    "question": "Which version lets `palette.green.toUpperCase()` compile?\n\n// A\nconst palette: Record<string, string | number[]> = { red: [255, 0, 0], green: \"#0f0\" };\n// B\nconst palette = { red: [255, 0, 0], green: \"#0f0\" } satisfies Record<string, string | number[]>;",
+    "options": [
+      "Only A",
+      "Both",
+      "Only B",
+      "Neither"
+    ],
+    "correctIndex": 2,
+    "explanation": "An annotation makes the variable's type exactly the declared Record, so palette.green is string | number[] and toUpperCase is not allowed. satisfies checks the value against the type but keeps the more specific inferred type, so green stays string. This is the motivating example for the operator added in TypeScript 4.9.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-9.html"
+  },
+  {
+    "id": "ts-advanced-distributive-conditional",
+    "topic": "typescript",
+    "subtopic": "advanced-types",
+    "difficulty": "Hard",
+    "title": "Distributive conditional types",
+    "question": "What is `R`?\n\ntype ToArray<T> = T extends any ? T[] : never;\ntype R = ToArray<string | number>;",
+    "options": [
+      "string[] | number[]",
+      "Array<string | number>",
+      "never",
+      "any[]"
+    ],
+    "correctIndex": 0,
+    "explanation": "When a conditional type checks a naked type parameter, it distributes over unions: the check is applied to string and number separately and the results are unioned. To get (string | number)[] instead, wrap both sides in brackets: `[T] extends [any] ? T[] : never`.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/conditional-types.html"
+  },
+  {
+    "id": "ts-advanced-isnever-distribution",
+    "topic": "typescript",
+    "subtopic": "advanced-types",
+    "difficulty": "Expert",
+    "title": "Conditional types applied to never",
+    "question": "What is `R`?\n\ntype IsNever<T> = T extends never ? true : false;\ntype R = IsNever<never>;",
+    "options": [
+      "true",
+      "false",
+      "boolean",
+      "never"
+    ],
+    "correctIndex": 3,
+    "explanation": "never behaves like an empty union. Because T is a naked type parameter, the conditional distributes over the union's members, and with zero members the result is never instead of true. The usual fix is to disable distribution with `[T] extends [never] ? true : false`.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/conditional-types.html"
+  },
+  {
+    "id": "react-jsx-adjacent-elements",
+    "topic": "react",
+    "subtopic": "components-jsx",
+    "difficulty": "Easy",
+    "title": "Returning sibling elements",
+    "question": "A component returns `<h1>Title</h1><p>Body</p>` and the build fails. What is the idiomatic fix that adds no extra DOM node?",
+    "options": [
+      "Wrap them in a <div>",
+      "Return them as a comma-separated expression",
+      "Wrap them in a Fragment: <>...</>",
+      "Split them into two separate return statements"
+    ],
+    "correctIndex": 2,
+    "explanation": "JSX compiles to function calls, and a function can only return one value, so adjacent elements must have a single parent. A Fragment groups them without adding an element to the DOM. A div also works but adds markup that can break styling, and multiple returns or comma expressions do not produce both elements.",
+    "referenceUrl": "https://react.dev/learn/writing-markup-with-jsx"
+  },
+  {
+    "id": "react-jsx-zero-and-condition",
+    "topic": "react",
+    "subtopic": "components-jsx",
+    "difficulty": "Medium",
+    "title": "Rendering 0 with &&",
+    "question": "A page shows a stray \"0\" when the cart is empty. The JSX is `{items.length && <CartBadge count={items.length} />}`. Why?",
+    "options": [
+      "React renders false as the string \"0\"",
+      "&& returns 0, and React renders the number 0 as text",
+      "CartBadge renders its count prop when it is falsy",
+      "items.length is a string, so it is always truthy"
+    ],
+    "correctIndex": 1,
+    "explanation": "`a && b` evaluates to a when a is falsy. React skips false, null, and undefined, but 0 is a valid number child and is rendered as text. Make the left side a real boolean, such as `items.length > 0 && ...`, or use a ternary.",
+    "referenceUrl": "https://react.dev/learn/conditional-rendering"
+  },
+  {
+    "id": "react-state-snapshot-log",
+    "topic": "react",
+    "subtopic": "props-state",
+    "difficulty": "Easy",
+    "title": "Reading state right after setting it",
+    "question": "With `count` at 0, a click handler runs `setCount(count + 1); console.log(count);`. What is logged?",
+    "options": [
+      "1",
+      "0",
+      "undefined",
+      "It depends on whether batching is enabled"
+    ],
+    "correctIndex": 1,
+    "explanation": "State behaves like a snapshot: the count variable in this render is fixed at 0. setCount schedules a re-render with the new value, but it does not change the local variable, so the log prints 0. The next render's count will be 1.",
+    "referenceUrl": "https://react.dev/learn/state-as-a-snapshot"
+  },
+  {
+    "id": "react-state-batched-updates",
+    "topic": "react",
+    "subtopic": "props-state",
+    "difficulty": "Medium",
+    "title": "Multiple setState calls in one handler",
+    "question": "With `count` at 0, what is `count` after this click handler runs and React re-renders?\n\nsetCount(count + 1);\nsetCount(count + 1);\nsetCount(count + 1);",
+    "options": [
+      "3",
+      "1",
+      "0",
+      "2"
+    ],
+    "correctIndex": 1,
+    "explanation": "Each call computes `0 + 1` from the same render's snapshot, so all three queue the value 1. React batches them into one re-render with count 1. Use the updater form `setCount(c => c + 1)` three times to get 3, because each updater receives the latest pending state.",
+    "referenceUrl": "https://react.dev/learn/queueing-a-series-of-state-updates"
+  },
+  {
+    "id": "react-state-mutation-no-rerender",
+    "topic": "react",
+    "subtopic": "props-state",
+    "difficulty": "Medium",
+    "title": "Mutating a state object",
+    "question": "Clicking Rename does not update the screen:\n\nconst [user, setUser] = useState({ name: \"Ada\" });\nfunction rename() { user.name = \"Grace\"; setUser(user); }\n\nWhy?",
+    "options": [
+      "Objects in state are frozen, so the assignment is ignored",
+      "setUser must be awaited before the UI updates",
+      "setUser receives the same object reference, so React bails out of re-rendering",
+      "React only re-renders when primitive state changes"
+    ],
+    "correctIndex": 2,
+    "explanation": "React compares the new state with the old using Object.is. Mutating the object and passing the same reference looks like no change, so the update may be skipped. Create a new object instead, for example `setUser({ ...user, name: \"Grace\" })`, so React detects the change.",
+    "referenceUrl": "https://react.dev/learn/updating-objects-in-state"
+  },
+  {
+    "id": "react-hooks-lazy-initial-state",
+    "topic": "react",
+    "subtopic": "hooks",
+    "difficulty": "Easy",
+    "title": "Lazy initial state",
+    "question": "`useState(buildIndex(items))` is slow because buildIndex is expensive. What is the fix?",
+    "options": [
+      "Pass the function itself: useState(() => buildIndex(items))",
+      "Wrap the call in useEffect and set state afterward",
+      "Move buildIndex into a useRef initializer",
+      "Mark the component with memo()"
+    ],
+    "correctIndex": 0,
+    "explanation": "Arguments are evaluated on every render, so buildIndex runs every time even though React only uses the initial value once. Passing an initializer function lets React call it only during the first render. Setting state in an effect would cause an extra render and a flash of empty state.",
+    "referenceUrl": "https://react.dev/reference/react/useState"
+  },
+  {
+    "id": "react-hooks-strictmode-double-effect",
+    "topic": "react",
+    "subtopic": "hooks",
+    "difficulty": "Medium",
+    "title": "Effects in StrictMode development",
+    "question": "In development with <StrictMode>, a component has `useEffect(() => { connect(); return () => disconnect(); }, [])`. What do the logs show on mount?",
+    "options": [
+      "connect only",
+      "connect, connect",
+      "connect, disconnect, connect",
+      "disconnect, connect"
+    ],
+    "correctIndex": 2,
+    "explanation": "In development, StrictMode runs an extra setup-and-cleanup cycle immediately after mount to reveal effects with missing or incorrect cleanup. Production builds run setup once. If the double cycle breaks your feature, the cleanup is incomplete rather than StrictMode being wrong.",
+    "referenceUrl": "https://react.dev/learn/synchronizing-with-effects"
+  },
+  {
+    "id": "react-hooks-stale-closure-interval",
+    "topic": "react",
+    "subtopic": "hooks",
+    "difficulty": "Medium",
+    "title": "Stale state in an interval",
+    "question": "This counter shows 1 and then never changes. Why?\n\nconst [count, setCount] = useState(0);\nuseEffect(() => {\n  const id = setInterval(() => setCount(count + 1), 1000);\n  return () => clearInterval(id);\n}, []);",
+    "options": [
+      "The effect captured count = 0 forever; use setCount(c => c + 1)",
+      "setInterval is blocked by React's scheduler after the first tick",
+      "The cleanup clears the interval after its first run",
+      "useState cannot be updated from timer callbacks"
+    ],
+    "correctIndex": 0,
+    "explanation": "With an empty dependency array the effect runs once, so its interval callback closes over the first render's count (0) and keeps setting 1. The updater form reads the latest state instead of the captured value, and it also removes count from the effect's dependencies.",
+    "referenceUrl": "https://react.dev/learn/removing-effect-dependencies"
+  },
+  {
+    "id": "react-hooks-object-dependency",
+    "topic": "react",
+    "subtopic": "hooks",
+    "difficulty": "Hard",
+    "title": "Object created during render as a dependency",
+    "question": "A chat component reconnects on every keystroke in an unrelated input:\n\nconst options = { serverUrl, roomId };\nuseEffect(() => {\n  const c = createConnection(options);\n  c.connect();\n  return () => c.disconnect();\n}, [options]);\n\nWhat is the best fix?",
+    "options": [
+      "Create options inside the effect and depend on [serverUrl, roomId]",
+      "Remove options from the dependency array",
+      "Wrap createConnection in useCallback",
+      "Store options in state so it is stable"
+    ],
+    "correctIndex": 0,
+    "explanation": "options is a new object on every render, so the dependency compares unequal with Object.is and the effect re-runs on every re-render. Moving the object inside the effect leaves only primitive dependencies, which change only when the room actually changes. Omitting a real dependency causes stale-value bugs and violates the lint rule.",
+    "referenceUrl": "https://react.dev/learn/removing-effect-dependencies"
+  },
+  {
+    "id": "react-hooks-fetch-race-condition",
+    "topic": "react",
+    "subtopic": "hooks",
+    "difficulty": "Hard",
+    "title": "Race condition when fetching in an effect",
+    "question": "A profile page fetches in `useEffect(() => { fetchUser(id).then(setUser); }, [id])`. Switching quickly from user 1 to user 2 sometimes shows user 1. What fixes it?",
+    "options": [
+      "Set an ignore flag in the cleanup and skip setUser when it is true",
+      "Add setUser to the dependency array",
+      "Replace useEffect with useLayoutEffect",
+      "Call fetchUser during render instead of in an effect"
+    ],
+    "correctIndex": 0,
+    "explanation": "Responses can arrive out of order, so user 1's slower response can overwrite user 2's. The cleanup for the previous id runs before the next effect, so setting `ignore = true` there discards stale responses (aborting the request with AbortController also works). useLayoutEffect does not change network timing, and setUser is already stable.",
+    "referenceUrl": "https://react.dev/reference/react/useEffect"
+  },
+  {
+    "id": "react-memo-usememo-purpose",
+    "topic": "react",
+    "subtopic": "memoization",
+    "difficulty": "Easy",
+    "title": "What useMemo does",
+    "question": "What does `const visible = useMemo(() => filterTodos(todos, tab), [todos, tab]);` do?",
+    "options": [
+      "Runs filterTodos in a background thread",
+      "Caches the result permanently across all component instances",
+      "Skips re-rendering the component when todos is unchanged",
+      "Caches the result between re-renders until todos or tab change"
+    ],
+    "correctIndex": 3,
+    "explanation": "useMemo stores the computed value and returns it on later renders as long as the dependencies are equal by Object.is. It is a per-component-instance cache that React may discard, not a global cache, and it does not prevent the component itself from re-rendering.",
+    "referenceUrl": "https://react.dev/reference/react/useMemo"
+  },
+  {
+    "id": "react-memo-inline-callback",
+    "topic": "react",
+    "subtopic": "memoization",
+    "difficulty": "Medium",
+    "title": "memo defeated by an inline callback",
+    "question": "`const List = memo(function List({ items, onSelect }) {...})` still re-renders whenever its parent types into a search box. The parent renders `<List items={items} onSelect={(id) => setSelected(id)} />`. Why?",
+    "options": [
+      "memo only works on class components",
+      "memo compares props deeply and items is a large array",
+      "setSelected changes identity on every render",
+      "The inline arrow is a new function each render, so props differ"
+    ],
+    "correctIndex": 3,
+    "explanation": "memo skips a re-render only if every prop is equal with Object.is. A new arrow function is created on every parent render, so onSelect always differs. Wrapping it in useCallback (or passing setSelected directly, which is stable) lets memo work. memo compares shallowly, not deeply.",
+    "referenceUrl": "https://react.dev/reference/react/memo"
+  },
+  {
+    "id": "react-memo-children-prop",
+    "topic": "react",
+    "subtopic": "memoization",
+    "difficulty": "Expert",
+    "title": "memo with JSX children",
+    "question": "A heavy `Card = memo(CardImpl)` is rendered as `<Card title=\"Stats\"><Chart data={data} /></Card>` in a parent that re-renders every second. data is stable. Why does Card re-render every second?",
+    "options": [
+      "memo ignores components that receive a title prop",
+      "Chart re-renders Card because it is its child",
+      "memo is disabled in development builds",
+      "children is a new JSX element object on every parent render"
+    ],
+    "correctIndex": 3,
+    "explanation": "JSX like `<Chart data={data} />` creates a new element object each time the parent renders, and it is passed to Card as the children prop. memo's shallow comparison sees a different object and re-renders. Memoize the element (for example with useMemo) or restructure so the parent that changes does not own the children.",
+    "referenceUrl": "https://react.dev/reference/react/memo"
+  },
+  {
+    "id": "react-memo-react-compiler",
+    "topic": "react",
+    "subtopic": "memoization",
+    "difficulty": "Hard",
+    "title": "React Compiler and manual memoization",
+    "question": "Your team enables React Compiler in a React 19 codebase. Which statement best describes the effect on manual memoization?",
+    "options": [
+      "It removes the need for dependency arrays in useEffect",
+      "It memoizes components and values automatically, so most new useMemo/useCallback/memo is unnecessary",
+      "It converts all components to Server Components",
+      "It deep-compares props at runtime to skip renders"
+    ],
+    "correctIndex": 1,
+    "explanation": "React Compiler analyzes components at build time and inserts memoization automatically, relying on code following the Rules of React. Existing manual memoization still works and can stay, but new code rarely needs it. It does not change effect dependency semantics, server/client boundaries, or add runtime deep comparisons.",
+    "referenceUrl": "https://react.dev/learn/react-compiler"
+  },
+  {
+    "id": "react-ref-no-rerender",
+    "topic": "react",
+    "subtopic": "refs-context",
+    "difficulty": "Easy",
+    "title": "Changing a ref does not re-render",
+    "question": "A component stores a click counter in `const clicks = useRef(0)` and renders `{clicks.current}`. A handler does `clicks.current++`. What does the user see?",
+    "options": [
+      "The number updates immediately on each click",
+      "The number on screen does not update until something else re-renders",
+      "React throws because refs are read-only during events",
+      "The number updates but the component loses its state"
+    ],
+    "correctIndex": 1,
+    "explanation": "Refs are mutable containers that persist across renders, but changing ref.current does not tell React to re-render. The UI still shows the value from the last render. Use state for values that drive what is shown, and refs for values like timer ids or DOM nodes that do not affect output.",
+    "referenceUrl": "https://react.dev/learn/referencing-values-with-refs"
+  },
+  {
+    "id": "react-ref-as-prop-react19",
+    "topic": "react",
+    "subtopic": "refs-context",
+    "difficulty": "Medium",
+    "title": "Passing refs to function components in React 19",
+    "question": "In React 19, how should a function component `MyInput` let a parent get a ref to its inner <input>?",
+    "options": [
+      "Accept ref as a regular prop and pass it to the <input>",
+      "Wrap it in forwardRef, which is now required in React 19",
+      "Use useImperativeHandle without a ref parameter",
+      "Read the ref from context provided by the parent"
+    ],
+    "correctIndex": 0,
+    "explanation": "Starting in React 19, function components receive ref as a normal prop, so `function MyInput({ ref, ...props }) { return <input ref={ref} {...props} />; }` works. forwardRef is no longer necessary and is planned for deprecation. useImperativeHandle still needs a ref to attach to.",
+    "referenceUrl": "https://react.dev/reference/react/forwardRef"
+  },
+  {
+    "id": "react-context-unstable-value",
+    "topic": "react",
+    "subtopic": "refs-context",
+    "difficulty": "Hard",
+    "title": "Context value recreated every render",
+    "question": "The app root renders `<AuthContext value={{ user, login }}>` and re-renders on every route change. Every component using AuthContext re-renders on navigation even though user never changed. What fixes it?",
+    "options": [
+      "Switch the consumers from useContext to use",
+      "Memoize the value with useMemo and login with useCallback",
+      "Move AuthContext into a separate file",
+      "Wrap every consumer in memo()"
+    ],
+    "correctIndex": 1,
+    "explanation": "The object literal is new on every render, and React re-renders all consumers when the context value is not Object.is-equal to the previous one. Memoizing the object (and the function it contains) keeps the value stable unless user changes. memo on consumers does not help, because context changes bypass memo.",
+    "referenceUrl": "https://react.dev/reference/react/useContext"
+  },
+  {
+    "id": "react-custom-hook-state-not-shared",
+    "topic": "react",
+    "subtopic": "custom-hooks",
+    "difficulty": "Easy",
+    "title": "Do custom hooks share state?",
+    "question": "Two sibling components both call `const isOnline = useOnlineStatus();`, a custom hook that uses useState and useEffect. How is state handled?",
+    "options": [
+      "Both components share one state value",
+      "Each component gets its own independent state",
+      "The second call reuses the first call's effect",
+      "Only the first mounted component receives updates"
+    ],
+    "correctIndex": 1,
+    "explanation": "Custom hooks share stateful logic, not state. Every call runs its own useState and useEffect inside the calling component, so each component has a separate copy. To share one value, lift it up or provide it via context or an external store.",
+    "referenceUrl": "https://react.dev/learn/reusing-logic-with-custom-hooks"
+  },
+  {
+    "id": "react-custom-hook-conditional-call",
+    "topic": "react",
+    "subtopic": "custom-hooks",
+    "difficulty": "Medium",
+    "title": "Calling a hook conditionally",
+    "question": "A component does `if (isAdmin) { const stats = useAdminStats(); }`. When isAdmin flips from false to true, React errors. Why?",
+    "options": [
+      "React matches hooks by call order, which must be the same every render",
+      "Custom hooks may only be called from other custom hooks",
+      "useAdminStats must be declared before the component",
+      "Hooks inside if blocks run only during the first render"
+    ],
+    "correctIndex": 0,
+    "explanation": "React associates each hook's state with its position in the call sequence. A conditional call changes the number and order of hooks between renders, which corrupts that mapping and triggers errors like 'Rendered more hooks than during the previous render'. Call hooks unconditionally at the top level and put the condition inside the hook or the render output.",
+    "referenceUrl": "https://react.dev/reference/rules/rules-of-hooks"
+  },
+  {
+    "id": "react-custom-hook-unstable-return",
+    "topic": "react",
+    "subtopic": "custom-hooks",
+    "difficulty": "Hard",
+    "title": "Unstable function returned from a custom hook",
+    "question": "`useChat()` returns `{ messages, send }` where `send` is defined as a plain function inside the hook. A consumer runs `useEffect(() => { send(\"joined\"); }, [send])` and it sends \"joined\" on every render. What is the best fix?",
+    "options": [
+      "Wrap send in useCallback inside the hook",
+      "Remove send from the consumer's dependency array",
+      "Return send from a useRef inside the consumer",
+      "Rename the hook so it does not start with use"
+    ],
+    "correctIndex": 0,
+    "explanation": "A function declared inside a hook is recreated on every render, so the consumer's effect sees a new dependency each time. Stabilizing it with useCallback in the hook fixes every consumer at once. Omitting the dependency hides the problem and risks stale closures.",
+    "referenceUrl": "https://react.dev/learn/reusing-logic-with-custom-hooks"
+  },
+  {
+    "id": "react-render-parent-rerenders-children",
+    "topic": "react",
+    "subtopic": "rendering",
+    "difficulty": "Easy",
+    "title": "What re-renders when parent state changes",
+    "question": "A parent's state changes. By default, which components re-render?",
+    "options": [
+      "Only the parent component",
+      "The parent and all components it renders, recursively",
+      "Only children whose props changed",
+      "Only components that read that state via context"
+    ],
+    "correctIndex": 1,
+    "explanation": "When a component re-renders, React calls it and then recursively renders every component it returns, regardless of whether their props changed. memo can opt a child out when its props are equal. Re-rendering is not the same as DOM updates, which only happen for actual differences.",
+    "referenceUrl": "https://react.dev/learn/render-and-commit"
+  },
+  {
+    "id": "react-render-index-key-reorder",
+    "topic": "react",
+    "subtopic": "rendering",
+    "difficulty": "Hard",
+    "title": "Index as key with reordering",
+    "question": "A todo list renders `todos.map((t, i) => <TodoRow key={i} todo={t} />)`, and each TodoRow has an uncontrolled text input. After adding a todo to the top of the list, typed drafts appear on the wrong rows. Why?",
+    "options": [
+      "React re-mounts every row on insert and loses drafts",
+      "Uncontrolled inputs cannot be used in lists",
+      "map must be replaced by a for loop for stable rendering",
+      "Keys are positions, so React reuses each row's state for a different todo"
+    ],
+    "correctIndex": 3,
+    "explanation": "Keys tell React which item a component instance belongs to. With index keys, the row at index 0 keeps its state and DOM even though it now receives a different todo, so drafts shift. Use a stable unique id such as todo.id as the key.",
+    "referenceUrl": "https://react.dev/learn/rendering-lists"
+  },
+  {
+    "id": "react-render-key-reset-state",
+    "topic": "react",
+    "subtopic": "rendering",
+    "difficulty": "Medium",
+    "title": "Resetting state with a key",
+    "question": "`<ProfileEditor userId={userId} />` keeps the previous user's unsaved form fields when userId changes. What is the cleanest way to reset its state?",
+    "options": [
+      "Render it as <ProfileEditor key={userId} userId={userId} />",
+      "Reset every field in a useEffect that depends on userId",
+      "Call window.location.reload() when userId changes",
+      "Wrap ProfileEditor in memo()"
+    ],
+    "correctIndex": 0,
+    "explanation": "Changing the key makes React treat it as a different component, so it unmounts the old instance and mounts a fresh one with initial state. Resetting fields in an effect causes an extra render with stale values first and is easy to get wrong. memo does not affect state.",
+    "referenceUrl": "https://react.dev/learn/preserving-and-resetting-state"
+  },
+  {
+    "id": "react-render-nested-component-definition",
+    "topic": "react",
+    "subtopic": "rendering",
+    "difficulty": "Hard",
+    "title": "Component defined inside another component",
+    "question": "An input loses focus after every keystroke:\n\nfunction Form() {\n  const [text, setText] = useState(\"\");\n  function Field() { return <input value={text} onChange={e => setText(e.target.value)} />; }\n  return <Field />;\n}\n\nWhy?",
+    "options": [
+      "Controlled inputs always lose focus when state changes",
+      "setText is asynchronous and drops focus",
+      "Form is missing a key prop",
+      "Field is a new component type each render, so React remounts the input"
+    ],
+    "correctIndex": 3,
+    "explanation": "Field is redefined on every render of Form, so its function identity changes. React sees a different component type at the same position, unmounts the old subtree, and mounts a new input, losing focus and any state. Define components at the top level and pass data via props.",
+    "referenceUrl": "https://react.dev/learn/preserving-and-resetting-state"
+  },
+  {
+    "id": "react-render-same-position-preserves-state",
+    "topic": "react",
+    "subtopic": "rendering",
+    "difficulty": "Hard",
+    "title": "Same component at the same position",
+    "question": "A Counter has local count state. What happens to count when `isFancy` toggles?\n\nreturn isFancy ? <Counter isFancy={true} /> : <Counter isFancy={false} />;",
+    "options": [
+      "It is preserved, because it is the same component type at the same position",
+      "It resets to 0, because the two JSX branches are different elements",
+      "It resets to 0, because the isFancy prop changed",
+      "React throws because conditional branches need keys"
+    ],
+    "correctIndex": 0,
+    "explanation": "React tracks state by a component's position in the UI tree, not by where it appears in your JSX. Both branches render a Counter at the same position, so React treats it as the same instance and only updates its props. Give the branches different keys to force a reset.",
+    "referenceUrl": "https://react.dev/learn/preserving-and-resetting-state"
+  },
+  {
+    "id": "react-query-key-dependencies",
+    "topic": "react",
+    "subtopic": "data-fetching",
+    "difficulty": "Easy",
+    "title": "Query keys must include dependencies",
+    "question": "With TanStack Query, `useQuery({ queryKey: [\"todo\"], queryFn: () => fetchTodo(id) })` keeps showing the first todo when id changes. What is wrong?",
+    "options": [
+      "queryFn must be wrapped in useCallback",
+      "staleTime must be set to Infinity",
+      "The query key must include id, e.g. [\"todo\", id]",
+      "useQuery must be called inside useEffect"
+    ],
+    "correctIndex": 2,
+    "explanation": "TanStack Query caches by query key. Since the key does not change when id does, the cached data for [\"todo\"] keeps being served. Including every variable the query function uses in the key gives each todo its own cache entry and triggers a fetch when id changes.",
+    "referenceUrl": "https://tanstack.com/query/latest/docs/framework/react/guides/query-keys"
+  },
+  {
+    "id": "react-query-refetch-on-focus",
+    "topic": "react",
+    "subtopic": "data-fetching",
+    "difficulty": "Medium",
+    "title": "Unexpected refetches on window focus",
+    "question": "With default TanStack Query settings, a dashboard refetches all queries every time the user switches back to the browser tab. Why?",
+    "options": [
+      "gcTime defaults to 0, so the cache is cleared on blur",
+      "useQuery polls every 5 seconds by default",
+      "Browsers clear fetch caches when a tab is hidden",
+      "Default staleTime is 0, and stale queries refetch on window focus"
+    ],
+    "correctIndex": 3,
+    "explanation": "By default, cached data is considered stale immediately (staleTime 0), and stale queries refetch on mount, window focus, and reconnect. Raising staleTime for data that changes rarely, or disabling refetchOnWindowFocus, prevents these refetches. gcTime controls when unused cache entries are removed, not refetching.",
+    "referenceUrl": "https://tanstack.com/query/latest/docs/framework/react/guides/important-defaults"
+  },
+  {
+    "id": "react-query-invalidate-after-mutation",
+    "topic": "react",
+    "subtopic": "data-fetching",
+    "difficulty": "Medium",
+    "title": "Stale list after a mutation",
+    "question": "After `useMutation({ mutationFn: addTodo })` succeeds, the todo list from `useQuery({ queryKey: [\"todos\"] })` does not show the new item until a refresh. What is the standard fix?",
+    "options": [
+      "Set the mutation's retry option to true",
+      "Give the list query a random key on each render",
+      "Call addTodo inside the queryFn of the list",
+      "Call queryClient.invalidateQueries({ queryKey: [\"todos\"] }) in onSuccess"
+    ],
+    "correctIndex": 3,
+    "explanation": "Mutations do not automatically know which queries they affect. Invalidating the matching keys marks them stale and refetches any that are currently rendered, so the list picks up the new todo. Random keys would defeat caching entirely, and retry only re-runs failed mutations.",
+    "referenceUrl": "https://tanstack.com/query/latest/docs/framework/react/guides/invalidations-from-mutations"
+  },
+  {
+    "id": "react-use-promise-created-in-render",
+    "topic": "react",
+    "subtopic": "data-fetching",
+    "difficulty": "Expert",
+    "title": "use() with a promise created during render",
+    "question": "A Client Component does `const user = use(fetch(`/api/user/${id}`).then(r => r.json()));` inside a Suspense boundary. The fallback flickers forever. What is the root cause?",
+    "options": [
+      "use() only accepts promises from Server Components and throws otherwise",
+      "A new promise is created every render, so React suspends again each time",
+      "Suspense boundaries cannot wrap Client Components",
+      "fetch promises cannot be passed to use() without await"
+    ],
+    "correctIndex": 1,
+    "explanation": "When the promise resolves, React re-renders the component, which creates yet another uncached promise and suspends again. Promises passed to use() must be stable: create them in a Server Component, a framework loader, or a cache, and pass them down. use() does accept promises in Client Components; they just must not be recreated on each render.",
+    "referenceUrl": "https://react.dev/reference/react/use"
+  },
+  {
+    "id": "react-router-useparams-string",
+    "topic": "react",
+    "subtopic": "routing-forms",
+    "difficulty": "Easy",
+    "title": "Reading URL params",
+    "question": "With React Router and a route path `/users/:userId`, what does `useParams()` return when visiting `/users/42`?",
+    "options": [
+      "An object { userId: 42 } with a number value",
+      "An object { userId: \"42\" } with a string value",
+      "An array [\"42\"] of matched segments",
+      "The string \"42\" for the last segment"
+    ],
+    "correctIndex": 1,
+    "explanation": "useParams returns an object of the dynamic segments matched by the current route, keyed by the names in the path. Values are always strings because they come from the URL, so convert them explicitly (for example Number(userId)) when you need a number.",
+    "referenceUrl": "https://reactrouter.com/api/hooks/useParams"
+  },
+  {
+    "id": "react-forms-controlled-without-onchange",
+    "topic": "react",
+    "subtopic": "routing-forms",
+    "difficulty": "Easy",
+    "title": "value without onChange",
+    "question": "What happens with `<input value={name} />` when there is no onChange handler?",
+    "options": [
+      "The input works normally and updates name automatically",
+      "The input is read-only and React warns in development",
+      "React throws an error and unmounts the form",
+      "The value is ignored and the input becomes uncontrolled"
+    ],
+    "correctIndex": 1,
+    "explanation": "Passing value makes the input controlled: React forces it to display that value on every render. Without onChange updating state, typing has no lasting effect, and React warns that you should add onChange, use readOnly, or use defaultValue for an uncontrolled input.",
+    "referenceUrl": "https://react.dev/reference/react-dom/components/input"
+  },
+  {
+    "id": "react-forms-useformstatus-placement",
+    "topic": "react",
+    "subtopic": "routing-forms",
+    "difficulty": "Hard",
+    "title": "useFormStatus always reports pending false",
+    "question": "A React 19 component renders `<form action={save}>` and, in the same component body, calls `const { pending } = useFormStatus();` to disable the submit button. pending is always false. Why?",
+    "options": [
+      "useFormStatus only reads the status of a parent <form>, so it must be called in a child component",
+      "Form actions must be async arrow functions for pending to work",
+      "useFormStatus requires wrapping the form in <Suspense>",
+      "pending only becomes true when the action throws"
+    ],
+    "correctIndex": 0,
+    "explanation": "useFormStatus returns the status of the nearest <form> rendered above the calling component. When called in the component that itself renders the form, there is no parent form, so it never sees a submission. Move the button into a SubmitButton child rendered inside the form, or use the isPending value from useActionState.",
+    "referenceUrl": "https://react.dev/reference/react-dom/hooks/useFormStatus"
+  },
+  {
+    "id": "react-error-boundary-class-only",
+    "topic": "react",
+    "subtopic": "error-boundaries",
+    "difficulty": "Easy",
+    "title": "How to define an error boundary",
+    "question": "How do you implement an error boundary using React 19's built-in APIs alone?",
+    "options": [
+      "A function component that calls useErrorBoundary()",
+      "Wrapping children in <Suspense fallback>",
+      "A function component with try/catch around its return",
+      "A class component with static getDerivedStateFromError and/or componentDidCatch"
+    ],
+    "correctIndex": 3,
+    "explanation": "React's built-in error boundaries can only be class components implementing getDerivedStateFromError (to render fallback UI) and optionally componentDidCatch (to log). There is currently no built-in hook equivalent; libraries like react-error-boundary wrap such a class. try/catch around JSX does not catch errors thrown while rendering children.",
+    "referenceUrl": "https://react.dev/reference/react/Component"
+  },
+  {
+    "id": "react-error-boundary-event-handlers",
+    "topic": "react",
+    "subtopic": "error-boundaries",
+    "difficulty": "Medium",
+    "title": "Errors that boundaries do not catch",
+    "question": "An error boundary wraps a Checkout component, yet an exception thrown in Checkout's onClick handler is not caught by it. Why?",
+    "options": [
+      "Boundaries only catch errors from direct children, not grandchildren",
+      "The boundary must be placed inside Checkout to catch it",
+      "onClick errors are swallowed by React and never surfaced",
+      "Error boundaries only catch errors during rendering, lifecycle, and effects, not in event handlers"
+    ],
+    "correctIndex": 3,
+    "explanation": "Error boundaries catch errors thrown while React renders components, runs lifecycle methods, or runs effects below them. Event handlers run outside rendering, so you handle those errors with try/catch and update state if you want to show error UI. Depth does not matter, and React does not swallow handler errors.",
+    "referenceUrl": "https://react.dev/reference/react/Component"
+  },
+  {
+    "id": "react-testing-getbyrole-priority",
+    "topic": "react",
+    "subtopic": "testing-react",
+    "difficulty": "Easy",
+    "title": "Preferred Testing Library query",
+    "question": "Which React Testing Library query is generally preferred for finding a submit button?",
+    "options": [
+      "screen.getByTestId(\"submit-btn\")",
+      "container.querySelector(\".btn-submit\")",
+      "screen.getByText(\"Submit\", { selector: \"button\" })",
+      "screen.getByRole(\"button\", { name: /submit/i })"
+    ],
+    "correctIndex": 3,
+    "explanation": "Testing Library recommends queries that reflect how users and assistive technology perceive the page, and getByRole with an accessible name is at the top of that priority list. Test ids and CSS selectors couple tests to implementation details and are a last resort.",
+    "referenceUrl": "https://testing-library.com/docs/queries/about"
+  },
+  {
+    "id": "react-testing-findby-async",
+    "topic": "react",
+    "subtopic": "testing-react",
+    "difficulty": "Medium",
+    "title": "Waiting for data to appear",
+    "question": "A component fetches users on mount and then renders them. `expect(screen.getByText(\"Ada\")).toBeInTheDocument()` fails right after render. What should the test use?",
+    "options": [
+      "screen.queryByText(\"Ada\")",
+      "screen.getAllByText(\"Ada\")[0]",
+      "await screen.findByText(\"Ada\")",
+      "setTimeout around the assertion"
+    ],
+    "correctIndex": 2,
+    "explanation": "findBy queries return a promise that retries until the element appears or a timeout expires, which fits content rendered after an async fetch. getBy and queryBy check only once, synchronously. Raw setTimeout adds flakiness and escapes the test's async flow.",
+    "referenceUrl": "https://testing-library.com/docs/dom-testing-library/api-async"
+  },
+  {
+    "id": "react-testing-querybyabsence",
+    "topic": "react",
+    "subtopic": "testing-react",
+    "difficulty": "Easy",
+    "title": "Asserting an element is absent",
+    "question": "You want to assert that an error message is NOT rendered. Which query is designed for that?",
+    "options": [
+      "expect(screen.getByRole(\"alert\")).toBeNull()",
+      "expect(screen.queryByRole(\"alert\")).not.toBeInTheDocument()",
+      "expect(await screen.findByRole(\"alert\")).toBeFalsy()",
+      "expect(screen.getAllByRole(\"alert\")).toHaveLength(0)"
+    ],
+    "correctIndex": 1,
+    "explanation": "queryBy returns null when nothing matches instead of throwing, which makes it the right tool for absence assertions. getBy and getAllBy throw when there is no match, so the assertion never runs, and findBy rejects after its timeout.",
+    "referenceUrl": "https://testing-library.com/docs/queries/about"
+  }
+]

@@ -1,0 +1,41 @@
+export const analytics = {
+  eyebrow: "Analyze",
+  title: "Your learning analytics",
+  subtitle: "Find your strongest and weakest areas, and how fast you're improving.",
+  periodLabel: "Period",
+  periodDays: (n: number) => `${n} days`,
+  stats: {
+    accuracy: (answered: number) => `Accuracy · ${answered} answered`,
+    xpInDays: (days: number) => `XP in ${days} days`,
+    studyTime: "Total study time",
+    streak: (best: number) => `Day streak · best ${best}`,
+  },
+  accuracyByDifficulty: {
+    title: "Accuracy by difficulty",
+    subtitle: "Your accuracy rate across difficulty levels.",
+  },
+  velocity: {
+    title: "Progress velocity",
+    subtitle: "XP in the last 7 days vs the 7 before.",
+    last7: "Last 7 days",
+    previous7: "Previous 7 days",
+    xpPerDay: "XP per day",
+  },
+  chartXp: "XP",
+  questionsPerDay: "Questions per day",
+  chartQuestions: "Questions",
+  strongest: {
+    title: "Strongest topics",
+    empty: "Answer 5+ questions in a topic to see your strengths.",
+  },
+  weakest: {
+    title: "Weakest topics",
+    empty: "No weak spots detected yet.",
+  },
+  answered: (n: number) => `${n} answered`,
+  practice: "Practice",
+  byTopic: "Accuracy by topic",
+  bySubtopic: "Accuracy by subtopic",
+  noAnswers: "No answers yet.",
+  accuracyOf: (name: string) => `${name} accuracy`,
+};

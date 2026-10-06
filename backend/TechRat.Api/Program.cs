@@ -1,0 +1,154 @@
+using System.Globalization;
+using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.SignalR;
+using Scalar.AspNetCore;
+using TechRat.Api.Infrastructure;
+using TechRat.Application;
+using TechRat.Application.Common;
+using TechRat.Application.Identity;
+using TechRat.Infrastructure;
+using TechRat.Infrastructure.Persistence;
+using TechRat.Modules.Common;
+
+var builder = WebApplication.CreateBuilder(args);
+var config = builder.Configuration;
+
+// ---------------------------------------------------------------- logging & telemetry
+builder.Logging.ClearProviders();
+if (builder.Environment.IsDevelopment()) builder.Logging.AddSimpleConsole(o => { o.SingleLine = true; o.IncludeScopes = true; });
+else builder.Logging.AddJsonConsole(o => { o.IncludeScopes = true; o.UseUtcTimestamp = true; });
+builder.AddTechRatTelemetry();
+
+// ---------------------------------------------------------------- modules
+builder.Services.AddApplication(config);
+builder.Services.AddInfrastructure(config);
+builder.Services.AddModules();
+builder.Services.AddSingleton<IRealtimePublisher, SignalRRealtimePublisher>();
+
+// ---------------------------------------------------------------- identity & auth
+builder.Services.AddDataProtection().PersistKeysToDbContext<AppDbContext>().SetApplicationName("TechRat");
+builder.Services
+    .AddIdentityApiEndpoints<ApplicationUser>(o =>
+    {
+        o.User.RequireUniqueEmail = true;
+        o.Password.RequiredLength = 8;
+        o.Password.RequireDigit = true;
+        o.Password.RequireLowercase = true;
+        o.Password.RequireUppercase = true;
+        o.Password.RequireNonAlphanumeric = false;
+        o.Lockout.MaxFailedAccessAttempts = 8;
+        o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+    })
+    .AddRoles<IdentityRole<Guid>>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddErrorDescriber<LocalizedIdentityErrorDescriber>();
+
+// ---------------------------------------------------------------- localization
+// The client sends Accept-Language (en or pt-BR); any Portuguese variant maps to pt-BR texts.
+builder.Services.Configure<RequestLocalizationOptions>(o =>
+{
+    var cultures = new[] { AppLocales.English, AppLocales.PortugueseBrazil, "pt" }.Select(c => new CultureInfo(c)).ToList();
+    o.DefaultRequestCulture = new RequestCulture(AppLocales.Default);
+    o.SupportedCultures = cultures;
+    o.SupportedUICultures = cultures;
+    o.ApplyCurrentCultureToResponseHeaders = true;
+});
+
+builder.Services.Configure<Microsoft.AspNetCore.Authentication.BearerToken.BearerTokenOptions>(IdentityConstants.BearerScheme, o =>
+{
+    o.BearerTokenExpiration = TimeSpan.FromMinutes(30);
+    o.RefreshTokenExpiration = TimeSpan.FromDays(14);
+});
+builder.Services.ConfigureApplicationCookie(o =>
+{
+    o.Cookie.Name = "techrat.auth";
+    o.Cookie.HttpOnly = true;
+    o.Cookie.SameSite = SameSiteMode.Strict;
+    o.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
+    o.ExpireTimeSpan = TimeSpan.FromDays(14);
+    o.SlidingExpiration = true;
+    // APIs answer with status codes instead of redirecting to a login page.
+    o.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; };
+    o.Events.OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; };
+});
+builder.Services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = TimeSpan.FromMinutes(5));
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(Policies.Admin, p => p.RequireAuthenticatedUser().RequireRole(Roles.Admin));
+
+// ---------------------------------------------------------------- http
+builder.Services.ConfigureHttpJsonOptions(o =>
+{
+    o.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    o.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
+    o.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
+});
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<AppExceptionHandler>();
+builder.Services.AddOpenApi("v1", o => o.AddDocumentTransformer<OpenApiInfoTransformer>());
+builder.Services.AddSignalR().AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+var origins = config.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
+    .WithOrigins(origins)
+    .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
+    .WithHeaders("Authorization", "Content-Type", "X-Requested-With", "x-signalr-user-agent")
+    .AllowCredentials()));
+
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.OnRejected = (ctx, _) => ctx.HttpContext.RequestServices.GetRequiredService<IProblemDetailsService>().WriteAsync(new ProblemDetailsContext
+    {
+        HttpContext = ctx.HttpContext,
+        ProblemDetails = { Status = StatusCodes.Status429TooManyRequests, Title = Text.Get(Text.Keys.ProblemTooManyRequests) },
+    });
+    string Partition(HttpContext ctx) => ctx.User.Identity?.IsAuthenticated == true
+        ? ctx.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value
+        : ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+    o.AddPolicy("auth", ctx => RateLimitPartition.GetFixedWindowLimiter(Partition(ctx),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = config.GetValue("RateLimiting:AuthPerMinute", 20), Window = TimeSpan.FromMinutes(1) }));
+    o.AddPolicy("answers", ctx => RateLimitPartition.GetTokenBucketLimiter(Partition(ctx),
+        _ => new TokenBucketRateLimiterOptions { TokenLimit = config.GetValue("RateLimiting:AnswersPerMinute", 30), TokensPerPeriod = config.GetValue("RateLimiting:AnswersPerMinute", 30), ReplenishmentPeriod = TimeSpan.FromMinutes(1), AutoReplenishment = true }));
+});
+
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>("postgres", tags: ["ready"])
+    .AddCheck<RedisHealthCheck>("redis", tags: ["ready"]);
+
+var app = builder.Build();
+
+// ---------------------------------------------------------------- database
+if (config.GetValue("Database:MigrateOnStartup", false))
+    await app.Services.InitializeDatabaseAsync(seed: config.GetValue("Database:SeedOnStartup", true));
+
+// ---------------------------------------------------------------- pipeline
+app.UseRequestLocalization();
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+if (!app.Environment.IsDevelopment()) app.UseHsts();
+app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
+app.UseCors();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseRateLimiter();
+
+app.MapOpenApi("/openapi/{documentName}.json");
+if (app.Environment.IsDevelopment() || config.GetValue("OpenApi:ExposeUi", false))
+    app.MapScalarApiReference("/docs", o => o.WithTitle("TechRat API").WithTheme(ScalarTheme.Moon));
+
+app.MapHealthChecks("/health/live", new() { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new() { Predicate = c => c.Tags.Contains("ready") });
+app.MapModules();
+app.MapHub<NotificationsHub>("/hubs/notifications").RequireAuthorization();
+app.MapGet("/", () => Results.Redirect("/docs")).ExcludeFromDescription();
+
+app.Run();
+
+public partial class Program;

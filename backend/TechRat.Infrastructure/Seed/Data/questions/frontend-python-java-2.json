@@ -1,0 +1,1413 @@
+[
+  {
+    "id": "py-dict-insertion-order",
+    "topic": "python",
+    "subtopic": "syntax-collections",
+    "difficulty": "Easy",
+    "title": "Dictionary iteration order",
+    "question": "Given `d = {'b': 1, 'a': 2}` followed by `d['c'] = 3`, what does `list(d)` return on Python 3.7 or later?",
+    "options": [
+      "['a', 'b', 'c'], because dict keys are kept sorted",
+      "An arbitrary order that may change between runs and versions",
+      "['b', 'a', 'c'], because dicts preserve insertion order",
+      "['c', 'b', 'a'], because the newest key is placed first"
+    ],
+    "correctIndex": 2,
+    "explanation": "Since Python 3.7, preserving insertion order is a language guarantee for dict, so iterating yields keys in the order they were first inserted, with new keys appended at the end. Dicts are not sorted by key, and the order is deterministic rather than arbitrary.",
+    "referenceUrl": "https://docs.python.org/3/library/stdtypes.html#mapping-types-dict"
+  },
+  {
+    "id": "py-dict-delete-during-iteration",
+    "topic": "python",
+    "subtopic": "syntax-collections",
+    "difficulty": "Medium",
+    "title": "Deleting keys while iterating a dict",
+    "question": "A cleanup job runs `for k in sessions: if sessions[k].expired: del sessions[k]` and crashes with `RuntimeError: dictionary changed size during iteration`. Which fix is correct?",
+    "options": [
+      "Wrap the loop in `try/except RuntimeError` and continue with the next key",
+      "Replace `del sessions[k]` with `sessions[k] = None` to keep the size fixed",
+      "Iterate with `sessions.items()` instead, which tolerates deletions",
+      "Iterate over a snapshot such as `list(sessions)` and delete from the original"
+    ],
+    "correctIndex": 3,
+    "explanation": "Adding or deleting entries while iterating a dict (or one of its views) can raise RuntimeError, so iterate over a copy of the keys or rebuild the dict with a comprehension. items() is also a live view and fails the same way, catching the error simply aborts the loop, and assigning None leaves the expired entries in place.",
+    "referenceUrl": "https://docs.python.org/3/library/stdtypes.html#dictionary-view-objects"
+  },
+  {
+    "id": "py-dict-equal-numeric-keys",
+    "topic": "python",
+    "subtopic": "syntax-collections",
+    "difficulty": "Hard",
+    "title": "Equal keys 1, True and 1.0 in one dict",
+    "question": "What does this print?\n\nd = {1: 'int', True: 'bool', 1.0: 'float'}\nprint(d)",
+    "options": [
+      "{1: 'int', True: 'bool', 1.0: 'float'}",
+      "{True: 'float'}",
+      "{1: 'float'}",
+      "{1.0: 'float'}"
+    ],
+    "correctIndex": 2,
+    "explanation": "1, True and 1.0 compare equal and have the same hash, so they address the same dict entry. When an existing key is assigned again, the dict keeps the original key object (1) and only replaces the value, so the last value 'float' wins under the key 1.",
+    "referenceUrl": "https://docs.python.org/3/library/stdtypes.html#mapping-types-dict"
+  },
+  {
+    "id": "py-tuple-list-augmented-assign",
+    "topic": "python",
+    "subtopic": "syntax-collections",
+    "difficulty": "Expert",
+    "title": "Augmented assignment on a list inside a tuple",
+    "question": "What happens here?\n\nt = ([1, 2],)\nt[0] += [3]",
+    "options": [
+      "It raises TypeError and t remains ([1, 2],) unchanged",
+      "It succeeds silently and t becomes ([1, 2, 3],)",
+      "It raises TypeError, yet t is now ([1, 2, 3],)",
+      "It rebinds t to a new tuple containing [1, 2, 3]"
+    ],
+    "correctIndex": 2,
+    "explanation": "`t[0] += [3]` first calls list.__iadd__, which extends the list in place, and then tries `t[0] = result`, which fails because tuples do not support item assignment. The mutation has already happened, so you get a TypeError and the list inside the tuple now holds 3. The Python FAQ discusses exactly this case.",
+    "referenceUrl": "https://docs.python.org/3/faq/programming.html#why-does-a-tuple-i-item-raise-an-exception-when-the-addition-works"
+  },
+  {
+    "id": "py-args-kwargs-packing",
+    "topic": "python",
+    "subtopic": "functions-decorators",
+    "difficulty": "Easy",
+    "title": "Packing with *args and **kwargs",
+    "question": "Given `def log(*args, **kwargs): ...`, what are `args` and `kwargs` inside the function when it is called as `log(1, 2, level='warn')`?",
+    "options": [
+      "args is the list [1, 2] and kwargs is {'level': 'warn'}",
+      "args is (1, 2, 'warn') and kwargs is an empty dict",
+      "args is the tuple (1, 2) and kwargs is {'level': 'warn'}",
+      "args is (1, 2) and kwargs is a list of (name, value) pairs"
+    ],
+    "correctIndex": 2,
+    "explanation": "*args collects extra positional arguments into a tuple and **kwargs collects extra keyword arguments into a dict. They are not lists, and keyword arguments are never merged into args.",
+    "referenceUrl": "https://docs.python.org/3/tutorial/controlflow.html#arbitrary-argument-lists"
+  },
+  {
+    "id": "py-closure-nonlocal-counter",
+    "topic": "python",
+    "subtopic": "functions-decorators",
+    "difficulty": "Medium",
+    "title": "UnboundLocalError in a closure counter",
+    "question": "Calling `inc()` raises `UnboundLocalError`:\n\ndef make_counter():\n    count = 0\n    def inc():\n        count += 1\n        return count\n    return inc\n\nWhat is the cause and fix?",
+    "options": [
+      "The assignment makes `count` local to inc; declare `nonlocal count`",
+      "Closures copy values at creation time; pass count as a default argument",
+      "`count` is garbage-collected after make_counter returns; make it global",
+      "Nested functions cannot read enclosing variables; move count into inc"
+    ],
+    "correctIndex": 0,
+    "explanation": "Any assignment to a name inside a function makes that name local for the whole function body, so `count += 1` reads a local that has not been bound yet. `nonlocal count` makes it refer to the enclosing function's variable. Nested functions can read enclosing variables, closure cells keep them alive, and closures capture variables rather than copying values.",
+    "referenceUrl": "https://docs.python.org/3/faq/programming.html#why-am-i-getting-an-unboundlocalerror-when-the-variable-has-a-value"
+  },
+  {
+    "id": "py-decorator-factory-no-parens",
+    "topic": "python",
+    "subtopic": "functions-decorators",
+    "difficulty": "Hard",
+    "title": "Decorator factory applied without parentheses",
+    "question": "`retry` is a decorator factory:\n\ndef retry(times=3):\n    def deco(fn): ...\n    return deco\n\nA developer writes `@retry` (no parentheses) above `def fetch(url)`. What does calling `fetch('x')` do?",
+    "options": [
+      "It calls fetch once with the default of three retries applied",
+      "It raises TypeError immediately at definition time because `times` must be an int",
+      "It runs fetch normally but silently skips the retry behaviour",
+      "It calls `deco('x')`, so the real fetch never runs and no request is made"
+    ],
+    "correctIndex": 3,
+    "explanation": "Without parentheses Python evaluates `retry(fetch)`: the function is bound to `times` and the returned `deco` replaces the name fetch. Calling fetch('x') therefore calls deco('x'), which treats the string as the function to decorate and returns whatever deco returns, so the original function never runs. Python does not check parameter types at definition time; a factory must be applied as @retry() or @retry(times=3).",
+    "referenceUrl": "https://docs.python.org/3/reference/compound_stmts.html#function-definitions"
+  },
+  {
+    "id": "py-next-stopiteration",
+    "topic": "python",
+    "subtopic": "iterators-generators",
+    "difficulty": "Easy",
+    "title": "Calling next() on an exhausted iterator",
+    "question": "`it = iter([10])`. The first `next(it)` returns 10. What does a second `next(it)` do?",
+    "options": [
+      "Returns None to signal that the iterator is exhausted",
+      "Restarts from the beginning and returns 10 again",
+      "Raises StopIteration because no items remain",
+      "Raises IndexError because the list has only one item"
+    ],
+    "correctIndex": 2,
+    "explanation": "The iterator protocol signals exhaustion by raising StopIteration from __next__; for loops catch it to end iteration, and next(it, default) returns the default instead. Iterators never restart, and IndexError belongs to indexing, not iteration.",
+    "referenceUrl": "https://docs.python.org/3/library/stdtypes.html#iterator-types"
+  },
+  {
+    "id": "py-zip-single-pass",
+    "topic": "python",
+    "subtopic": "iterators-generators",
+    "difficulty": "Medium",
+    "title": "Reusing a zip object",
+    "question": "pairs = zip(names, scores)\nfor n, s in pairs: print(n, s)\nfor n, s in pairs: print(n.upper())\n\nThe second loop never runs its body. Why?",
+    "options": [
+      "zip stops at the shortest input and both inputs are now empty lists",
+      "Tuple unpacking in a for loop consumes the source lists in place",
+      "zip returns a single-pass iterator that the first loop exhausted",
+      "The second loop needs `pairs.reset()` before it can iterate again"
+    ],
+    "correctIndex": 2,
+    "explanation": "In Python 3, zip (like map and filter) returns a lazy iterator, and once it is exhausted it yields nothing more. Materialise it with list(zip(...)) or call zip again to iterate twice. The input lists are untouched, and iterators have no reset method.",
+    "referenceUrl": "https://docs.python.org/3/library/functions.html#zip"
+  },
+  {
+    "id": "py-generator-send-unstarted",
+    "topic": "python",
+    "subtopic": "iterators-generators",
+    "difficulty": "Hard",
+    "title": "Sending into a just-started generator",
+    "question": "`gen = averager()` creates a generator whose loop body does `value = yield avg`. The very next line is `gen.send(10)`, which raises an error. Why?",
+    "options": [
+      "send() only accepts strings; numbers must go through next()",
+      "Generators cannot receive values at all; send() exists only on async coroutines",
+      "The generator is exhausted because it was created outside a loop",
+      "A just-started generator must first be advanced with next(gen) or send(None)"
+    ],
+    "correctIndex": 3,
+    "explanation": "A new generator is paused before its first line, so there is no yield expression to receive a value; sending anything other than None raises TypeError. Priming it with next(gen) or gen.send(None) runs it to the first yield, after which send() delivers values of any type.",
+    "referenceUrl": "https://docs.python.org/3/reference/expressions.html#generator.send"
+  },
+  {
+    "id": "py-classmethod-alt-constructor",
+    "topic": "python",
+    "subtopic": "classes",
+    "difficulty": "Easy",
+    "title": "Alternative constructors with classmethod",
+    "question": "You want `Date.from_iso('2026-01-31')` to build an instance, and calling it on the subclass `BusinessDate` should return a BusinessDate. Which decorator fits?",
+    "options": [
+      "@classmethod, which receives the class as cls",
+      "@staticmethod, since it needs no instance",
+      "@property, so it is computed on access",
+      "@abstractmethod, so subclasses must override it"
+    ],
+    "correctIndex": 0,
+    "explanation": "A classmethod receives the class it was called on as its first argument, so `return cls(...)` builds the right subclass; this is the standard alternative-constructor pattern. A staticmethod has no class reference and would have to hard-code Date, property is for attribute access, and abstractmethod only forces overriding.",
+    "referenceUrl": "https://docs.python.org/3/library/functions.html#classmethod"
+  },
+  {
+    "id": "py-class-attribute-shared-list",
+    "topic": "python",
+    "subtopic": "classes",
+    "difficulty": "Medium",
+    "title": "Mutable class attribute shared by instances",
+    "question": "class Cart:\n    items = []\n    def add(self, x):\n        self.items.append(x)\n\nTwo different users' carts start showing each other's items. Why?",
+    "options": [
+      "append() on self creates a global variable shared by the module",
+      "Lists defined in a class body are copied lazily, but only on first assignment",
+      "Instances share memory until `__init__` is called explicitly",
+      "`items` is a class attribute, so every instance mutates the same list"
+    ],
+    "correctIndex": 3,
+    "explanation": "Names assigned in the class body are class attributes shared by all instances; `self.items` finds that single list through attribute lookup and append mutates it. Per-instance state belongs in __init__ (`self.items = []`). There is no copy-on-write behaviour for class attributes.",
+    "referenceUrl": "https://docs.python.org/3/tutorial/classes.html#class-and-instance-variables"
+  },
+  {
+    "id": "py-slots-memory",
+    "topic": "python",
+    "subtopic": "classes",
+    "difficulty": "Hard",
+    "title": "Reducing per-instance memory with __slots__",
+    "question": "A service keeps 20 million small `Point` objects (attributes x, y, z) in memory, and RAM usage is far above the raw data size. Which class-level change most directly reduces per-instance memory?",
+    "options": [
+      "Make x, y and z properties so their values are computed on access",
+      "Add `__slots__ = ('x', 'y', 'z')` so instances have no per-instance __dict__",
+      "Define `__del__` so instances release their attributes sooner",
+      "Inherit from `object` explicitly so CPython switches to the compact instance layout"
+    ],
+    "correctIndex": 1,
+    "explanation": "__slots__ reserves fixed storage for the declared attributes and suppresses the per-instance __dict__ (and __weakref__), which saves significant memory across millions of objects. Every Python 3 class already inherits from object, properties still need somewhere to store values, and __del__ does nothing for live objects.",
+    "referenceUrl": "https://docs.python.org/3/reference/datamodel.html#slots"
+  },
+  {
+    "id": "py-data-descriptor-precedence",
+    "topic": "python",
+    "subtopic": "classes",
+    "difficulty": "Expert",
+    "title": "Property versus instance dictionary",
+    "question": "class Order:\n    @property\n    def total(self): return 42\n\no = Order()\no.__dict__['total'] = 7\nprint(o.total)\n\nWhat is printed and why?",
+    "options": [
+      "7, because the instance dictionary is always checked first",
+      "42, because property is a data descriptor that outranks __dict__",
+      "7, because writing to __dict__ replaces the property on the class",
+      "AttributeError, because a property cannot coexist with a dict entry"
+    ],
+    "correctIndex": 1,
+    "explanation": "Attribute lookup gives data descriptors on the type (those defining __set__ or __delete__, such as property) priority over the instance __dict__; only non-data descriptors like plain methods can be shadowed by instance entries. Writing into o.__dict__ does not touch the class, so the property still returns 42.",
+    "referenceUrl": "https://docs.python.org/3/howto/descriptor.html"
+  },
+  {
+    "id": "py-try-else-clause",
+    "topic": "python",
+    "subtopic": "exceptions-context",
+    "difficulty": "Easy",
+    "title": "When the else clause of try runs",
+    "question": "In `try: ... except ValueError: ... else: ... finally: ...`, when does the `else` block run?",
+    "options": [
+      "Only when the try block raised an exception that was not caught",
+      "Only when the try block completed without raising an exception",
+      "Always, right before the finally block, regardless of exceptions",
+      "Only when the except block itself raised a new exception"
+    ],
+    "correctIndex": 1,
+    "explanation": "The else clause runs only if the try block finishes without raising, which keeps code that should not be guarded by the except clause out of the try. finally is the clause that always runs; else never runs after an exception.",
+    "referenceUrl": "https://docs.python.org/3/tutorial/errors.html#handling-exceptions"
+  },
+  {
+    "id": "py-bare-except-ctrl-c",
+    "topic": "python",
+    "subtopic": "exceptions-context",
+    "difficulty": "Medium",
+    "title": "Bare except swallowing Ctrl+C",
+    "question": "A worker loop wraps each job in a `try` with a bare `except:` that logs the error and continues. Operators find that Ctrl+C no longer stops the process. What is the cause and fix?",
+    "options": [
+      "Ctrl+C is delivered only to the main thread; move the loop to a thread",
+      "Logging blocks signal delivery; flush the log handler before continuing",
+      "Bare except also catches KeyboardInterrupt; catch `Exception` instead",
+      "Bare except disables signal handlers; call `signal.signal` in the loop"
+    ],
+    "correctIndex": 2,
+    "explanation": "A bare except catches BaseException, which includes KeyboardInterrupt and SystemExit. Those deliberately inherit from BaseException rather than Exception so that `except Exception` lets them propagate and stop the program.",
+    "referenceUrl": "https://docs.python.org/3/library/exceptions.html#KeyboardInterrupt"
+  },
+  {
+    "id": "py-taskgroup-except-star",
+    "topic": "python",
+    "subtopic": "exceptions-context",
+    "difficulty": "Expert",
+    "title": "Catching errors from an asyncio TaskGroup",
+    "question": "Inside `async with asyncio.TaskGroup() as tg:` two tasks fail, one of them with `ValueError`. Code around the block has `except ValueError:`, but the error escapes unhandled. Why, and what catches it?",
+    "options": [
+      "TaskGroup re-raises only the last failure; use `except BaseException:`",
+      "TaskGroup wraps failures in an ExceptionGroup; use `except* ValueError:`",
+      "Task errors are logged, not raised; read them from `tg.exceptions()`",
+      "ValueError is converted to CancelledError; catch `asyncio.CancelledError`"
+    ],
+    "correctIndex": 1,
+    "explanation": "When tasks in a TaskGroup fail, the group cancels the rest and raises an ExceptionGroup containing every failure. A plain `except ValueError` does not match the group type, while `except* ValueError` matches and handles the ValueError members. Cancellation is used internally for sibling tasks but is not what the caller receives.",
+    "referenceUrl": "https://docs.python.org/3/library/asyncio-task.html#task-groups"
+  },
+  {
+    "id": "py-name-main-guard",
+    "topic": "python",
+    "subtopic": "modules-venv",
+    "difficulty": "Easy",
+    "title": "Purpose of the __main__ guard",
+    "question": "Why do scripts often end with `if __name__ == \"__main__\": main()`?",
+    "options": [
+      "It is required so the interpreter can locate the entry point of any program",
+      "It runs main() only when the file is executed directly, not when imported",
+      "It makes main() run in a separate process from imported modules",
+      "It prevents the module from being imported by other packages"
+    ],
+    "correctIndex": 1,
+    "explanation": "When a file is run as a script its __name__ is \"__main__\"; when it is imported, __name__ is the module name. The guard keeps script behaviour from running as a side effect of import. It is optional, does not create processes, and does not block imports.",
+    "referenceUrl": "https://docs.python.org/3/library/__main__.html"
+  },
+  {
+    "id": "py-python-m-pip",
+    "topic": "python",
+    "subtopic": "modules-venv",
+    "difficulty": "Medium",
+    "title": "Installing into the right interpreter",
+    "question": "On a machine with several Python versions, `pip install requests` succeeds, but `python app.py` still fails with `ModuleNotFoundError: No module named 'requests'`. What is the most reliable fix?",
+    "options": [
+      "Run `python -m pip install requests` using that same interpreter",
+      "Run pip with `--force-reinstall` so it overwrites any stale copy",
+      "Add the pip directory to PYTHONPATH before running the script",
+      "Install with `--user` so every interpreter on the system can see it"
+    ],
+    "correctIndex": 0,
+    "explanation": "The `pip` command on PATH may belong to a different interpreter than `python`; `python -m pip` runs pip for exactly the interpreter you invoke. Reinstalling still targets the wrong interpreter, user site-packages are per Python version, and PYTHONPATH tweaks are fragile.",
+    "referenceUrl": "https://docs.python.org/3/installing/index.html"
+  },
+  {
+    "id": "py-stdlib-module-shadowing",
+    "topic": "python",
+    "subtopic": "modules-venv",
+    "difficulty": "Medium",
+    "title": "Script shadowing a standard library module",
+    "question": "A beginner saves a script as `random.py` containing `import random; print(random.randint(1, 6))` and gets `AttributeError: module 'random' has no attribute 'randint'`. Why?",
+    "options": [
+      "The script's own directory comes first on sys.path, so it imports itself",
+      "randint was removed from the random module in recent Python versions",
+      "A module cannot import another module that Python has already loaded at startup",
+      "Standard library modules must be imported with `from random import *`"
+    ],
+    "correctIndex": 0,
+    "explanation": "When a script runs, its directory is placed at the front of sys.path, ahead of the standard library, so `import random` finds the user's random.py instead of the stdlib module. Renaming the file fixes it. randint still exists, and modules already loaded are simply reused from sys.modules.",
+    "referenceUrl": "https://docs.python.org/3/tutorial/modules.html#the-module-search-path"
+  },
+  {
+    "id": "py-externally-managed-environment",
+    "topic": "python",
+    "subtopic": "modules-venv",
+    "difficulty": "Hard",
+    "title": "externally-managed-environment error",
+    "question": "On a recent Debian or Ubuntu server, `pip install fastapi` against the system Python fails with `error: externally-managed-environment`. What is the recommended resolution?",
+    "options": [
+      "Upgrade pip, since older versions cannot write to system site-packages",
+      "Create a virtual environment and install the package inside it",
+      "Rerun the command with sudo so pip can write to /usr/lib/python3",
+      "Delete the EXTERNALLY-MANAGED marker file from the stdlib directory"
+    ],
+    "correctIndex": 1,
+    "explanation": "Per PEP 668, distributions mark their system Python as externally managed so pip does not overwrite packages owned by the OS package manager. The intended path is a virtual environment (or pipx for applications, or distro packages). sudo does not bypass the check, and removing the marker risks breaking OS tools.",
+    "referenceUrl": "https://packaging.python.org/en/latest/specifications/externally-managed-environments/"
+  },
+  {
+    "id": "py-optional-union-none",
+    "topic": "python",
+    "subtopic": "typing",
+    "difficulty": "Easy",
+    "title": "Annotating an optional string",
+    "question": "Which annotation means a parameter accepts either a `str` or `None` in modern Python (3.10+)?",
+    "options": [
+      "str & None, using the intersection operator",
+      "str | None, using the PEP 604 union operator",
+      "Union[str], which implies None is allowed",
+      "str or None, which checkers read as a union"
+    ],
+    "correctIndex": 1,
+    "explanation": "PEP 604 introduced the `X | Y` union syntax, so `str | None` is equivalent to Optional[str] and Union[str, None]. `&` is not a union operator for types, Union[str] collapses to plain str, and `str or None` is evaluated as an expression that yields just str.",
+    "referenceUrl": "https://docs.python.org/3/library/typing.html#typing.Optional"
+  },
+  {
+    "id": "py-generic-function-typevar",
+    "topic": "python",
+    "subtopic": "typing",
+    "difficulty": "Medium",
+    "title": "Return type that follows the argument type",
+    "question": "`def first(items: list) -> object` loses type information: mypy flags `first(['a']).upper()`. How should it be annotated so the return type follows the element type?",
+    "options": [
+      "def first(items: list[Any]) -> Any, which keeps full checking",
+      "def first(items: list[object]) -> object, since object is the top type",
+      "def first[T](items: list[T]) -> T, a generic function (3.12+ syntax)",
+      "def first(items: list) -> type(items[0]), evaluated per call"
+    ],
+    "correctIndex": 2,
+    "explanation": "A type variable binds per call, so a generic function `first[T](items: list[T]) -> T` (or a TypeVar on older versions) returns str for a list[str]. Any switches checking off rather than keeping it, object forces casts at every call site, and type checkers do not evaluate runtime expressions in annotations.",
+    "referenceUrl": "https://docs.python.org/3/library/typing.html#generics"
+  },
+  {
+    "id": "py-type-checking-import-cycle",
+    "topic": "python",
+    "subtopic": "typing",
+    "difficulty": "Hard",
+    "title": "Annotation-only imports and circular imports",
+    "question": "`orders.py` needs `Customer` only for type annotations, but importing `customers` at runtime creates a circular import. What is the idiomatic fix?",
+    "options": [
+      "Import under `if TYPE_CHECKING:` and use a string or deferred annotation",
+      "Import Customer inside each function body that mentions it in an annotation",
+      "Annotate with `Any` and add a comment naming the intended class",
+      "Move both classes into `__init__.py` so they load at the same time"
+    ],
+    "correctIndex": 0,
+    "explanation": "typing.TYPE_CHECKING is False at runtime but treated as True by type checkers, so imports under it are visible only to the checker and the runtime cycle disappears. Annotations must then not be evaluated eagerly: use a string such as 'Customer' or deferred evaluation. A function-body import does not help signature annotations, and Any discards checking.",
+    "referenceUrl": "https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING"
+  },
+  {
+    "id": "py-coroutine-not-awaited",
+    "topic": "python",
+    "subtopic": "asyncio-concurrency",
+    "difficulty": "Easy",
+    "title": "Calling an async function without await",
+    "question": "Inside an async function, a developer writes `save_order(order)` instead of `await save_order(order)`, where save_order is defined with `async def`. What happens?",
+    "options": [
+      "A coroutine object is created but its body never runs",
+      "save_order runs in the background on the event loop automatically",
+      "save_order runs synchronously and blocks until it finishes",
+      "A SyntaxError is raised because async functions require await"
+    ],
+    "correctIndex": 0,
+    "explanation": "Calling an async function only creates a coroutine object; its body runs when it is awaited or wrapped in a task. If the object is discarded, Python emits a RuntimeWarning that the coroutine was never awaited. It is not a syntax error and nothing is scheduled automatically.",
+    "referenceUrl": "https://docs.python.org/3/library/asyncio-dev.html#detect-never-awaited-coroutines"
+  },
+  {
+    "id": "py-cancellederror-swallowed",
+    "topic": "python",
+    "subtopic": "asyncio-concurrency",
+    "difficulty": "Expert",
+    "title": "Task that ignores cancellation",
+    "question": "A worker coroutine wraps each loop iteration in `try: ... except BaseException: log(); continue`. On shutdown, `task.cancel()` followed by `await task` hangs forever. Why?",
+    "options": [
+      "cancel() only takes effect on tasks created by a TaskGroup, not create_task",
+      "await on a cancelled task blocks until the event loop is closed",
+      "The CancelledError injected at an await is caught and the loop goes on",
+      "Logging inside a coroutine is blocking and stalls the event loop"
+    ],
+    "correctIndex": 2,
+    "explanation": "Cancellation works by raising asyncio.CancelledError inside the task at its current await. CancelledError subclasses BaseException, so `except BaseException` swallows it and the loop keeps running, meaning the task never finishes. The asyncio docs say CancelledError should normally be re-raised after cleanup.",
+    "referenceUrl": "https://docs.python.org/3/library/asyncio-task.html#task-cancellation"
+  },
+  {
+    "id": "py-pytest-raises",
+    "topic": "python",
+    "subtopic": "testing-python",
+    "difficulty": "Easy",
+    "title": "Asserting an exception in pytest",
+    "question": "In pytest, what is the idiomatic way to assert that `parse_age('-1')` raises `ValueError`?",
+    "options": [
+      "assert parse_age('-1') == ValueError",
+      "pytest.expect(ValueError, parse_age, '-1')",
+      "@pytest.mark.raises(ValueError) on the test function",
+      "with pytest.raises(ValueError): parse_age('-1')"
+    ],
+    "correctIndex": 3,
+    "explanation": "The pytest.raises context manager passes only if the block raises the given exception and can capture it (`as excinfo`) or match its message. Comparing a return value to the class fails because the exception propagates first, and pytest.expect and a built-in raises marker are not part of pytest.",
+    "referenceUrl": "https://docs.pytest.org/en/stable/how-to/assert.html"
+  },
+  {
+    "id": "py-pytest-parametrize",
+    "topic": "python",
+    "subtopic": "testing-python",
+    "difficulty": "Medium",
+    "title": "Removing copy-pasted test cases",
+    "question": "A test file has five copy-pasted tests that differ only in the input and expected output of `slugify`. Which pytest feature removes the duplication while still reporting each case separately?",
+    "options": [
+      "`@pytest.mark.parametrize` with the input and expected pairs",
+      "A fixture with scope='module' that returns all the cases as a list",
+      "A single test that loops over the cases with a plain for loop",
+      "`pytest.mark.repeat(5)` with the cases read from a global list"
+    ],
+    "correctIndex": 0,
+    "explanation": "parametrize generates one test item per parameter set, each with its own ID and pass or fail result. A loop inside one test stops at the first failure and reports a single test, a fixture returning a list behaves the same way, and repeat comes from a plugin and just reruns an identical test.",
+    "referenceUrl": "https://docs.pytest.org/en/stable/how-to/parametrize.html"
+  },
+  {
+    "id": "py-pytest-session-fixture",
+    "topic": "python",
+    "subtopic": "testing-python",
+    "difficulty": "Medium",
+    "title": "Sharing an expensive fixture",
+    "question": "An integration suite starts a PostgreSQL container in a function-scoped fixture, so 300 tests take 25 minutes. The container is safe to share if each test rolls back its own transaction. What helps most?",
+    "options": [
+      "Mark the container fixture `autouse=True` so pytest starts it before collection",
+      "Move container startup into `setup_method` on each test class",
+      "Give the container fixture `scope=\"session\"` and keep per-test rollback",
+      "Run the suite with `-x` so pytest stops creating new containers"
+    ],
+    "correctIndex": 2,
+    "explanation": "Fixture scope controls how often a fixture is created: session scope builds the container once per run and tears it down at the end, while a separate function-scoped fixture can still roll back per test. autouse only applies a fixture automatically, setup_method still runs per test, and -x merely stops at the first failure.",
+    "referenceUrl": "https://docs.pytest.org/en/stable/how-to/fixtures.html"
+  },
+  {
+    "id": "py-mock-autospec",
+    "topic": "python",
+    "subtopic": "testing-python",
+    "difficulty": "Hard",
+    "title": "Mocks that accept wrong signatures",
+    "question": "A unit test injects `Mock()` in place of `EmailClient`. The code under test calls `client.send(to)`, but the real `send` requires `(to, body)`. Tests pass while production raises TypeError. What makes the test catch this?",
+    "options": [
+      "Use `MagicMock()` instead, which validates arguments of called methods",
+      "Set `mock.send.return_value = None` so unexpected calls raise",
+      "Use `create_autospec(EmailClient)` to enforce real signatures",
+      "Call `mock.reset_mock()` before each test to enforce strict mode"
+    ],
+    "correctIndex": 2,
+    "explanation": "A plain Mock or MagicMock accepts any attribute and any arguments. Autospeccing builds the mock from the real class, so methods carry the real signatures and a wrong-arity call raises TypeError, while missing attributes raise AttributeError. MagicMock only adds magic methods, and return_value or reset_mock do not validate calls.",
+    "referenceUrl": "https://docs.python.org/3/library/unittest.mock.html#autospeccing"
+  },
+  {
+    "id": "py-set-membership-lookup",
+    "topic": "python",
+    "subtopic": "performance-python",
+    "difficulty": "Easy",
+    "title": "Membership tests on a large list",
+    "question": "A handler checks `if user_id in banned_ids` for a million requests, where `banned_ids` is a list of 50,000 IDs. What simple change speeds this up most?",
+    "options": [
+      "Sort the list once so `in` can stop scanning early",
+      "Convert banned_ids to a tuple, which is faster to scan",
+      "Use `banned_ids.index(user_id)` inside a try block",
+      "Convert banned_ids to a set for average O(1) lookups"
+    ],
+    "correctIndex": 3,
+    "explanation": "`in` on a list is a linear scan, while sets use hashing for average constant-time membership tests. Sorting does not change how `in` scans a list, tuples are scanned linearly too, and index() is just another linear search.",
+    "referenceUrl": "https://docs.python.org/3/library/stdtypes.html#set-types-set-frozenset"
+  },
+  {
+    "id": "py-cprofile-hotspots",
+    "topic": "python",
+    "subtopic": "performance-python",
+    "difficulty": "Medium",
+    "title": "Finding where a slow job spends time",
+    "question": "A batch job takes 40 minutes and nobody knows which functions are responsible. Which standard-library tool reports call counts and cumulative time per function?",
+    "options": [
+      "cProfile, sorting the stats by cumulative time",
+      "timeit, by wrapping the whole job in a timeit.timeit call",
+      "tracemalloc, which records where time is spent in each frame",
+      "dis, which shows how long each bytecode instruction takes"
+    ],
+    "correctIndex": 0,
+    "explanation": "cProfile is a deterministic profiler that records ncalls, tottime and cumtime per function, viewable and sortable with pstats. timeit measures small snippets as a whole, tracemalloc tracks memory allocations rather than time, and dis disassembles bytecode without any timings.",
+    "referenceUrl": "https://docs.python.org/3/library/profile.html"
+  },
+  {
+    "id": "py-deque-popleft-queue",
+    "topic": "python",
+    "subtopic": "performance-python",
+    "difficulty": "Medium",
+    "title": "Queue built on list.pop(0)",
+    "question": "A breadth-first search over 2 million nodes uses a list as its queue with `queue.pop(0)`, and runtime grows roughly quadratically. What is the fix?",
+    "options": [
+      "Call `queue.reverse()` once so pop(0) runs in constant time",
+      "Use `collections.deque` and `popleft()`, which is O(1)",
+      "Preallocate the list with `[None] * n` to avoid resizing",
+      "Use `heapq.heappop`, which removes the front in O(1)"
+    ],
+    "correctIndex": 1,
+    "explanation": "list.pop(0) shifts every remaining element, so each dequeue is O(n). collections.deque supports O(1) appends and pops at both ends. Reversing or preallocating does not change the cost of popping from the front, and heappop is O(log n) and orders by priority, not arrival.",
+    "referenceUrl": "https://docs.python.org/3/library/collections.html#collections.deque"
+  },
+  {
+    "id": "py-pool-imap-chunksize",
+    "topic": "python",
+    "subtopic": "performance-python",
+    "difficulty": "Expert",
+    "title": "Multiprocessing slower than a plain loop",
+    "question": "`pool.imap(score, rows)` on a `multiprocessing.Pool(8)` over 5 million tiny rows runs slower than a plain loop. Each `score` call takes microseconds. What most likely helps?",
+    "options": [
+      "Switch to a ThreadPool, which shares memory and avoids the GIL",
+      "Raise the pool size to 64 so more workers drain the queue",
+      "Call pool.close() before imap so tasks are dispatched eagerly",
+      "Pass a large chunksize so items are sent to workers in batches"
+    ],
+    "correctIndex": 3,
+    "explanation": "imap defaults to chunksize=1, so every item is pickled and sent through inter-process queues on its own, and that overhead dwarfs microseconds of work. A large chunksize batches items per message. Threads do not run CPU-bound Python in parallel on the default GIL build, more processes than cores add overhead, and a closed pool rejects new work.",
+    "referenceUrl": "https://docs.python.org/3/library/multiprocessing.html#multiprocessing.pool.Pool.imap"
+  },
+  {
+    "id": "java-jit-warmup",
+    "topic": "java",
+    "subtopic": "jvm",
+    "difficulty": "Medium",
+    "title": "Slow requests right after deployment",
+    "question": "Right after each deployment, a Java service's first few thousand requests are noticeably slower, then latency settles much lower. No application cache is involved. What JVM behaviour best explains this?",
+    "options": [
+      "Bytecode is interpreted first, and hot methods are JIT-compiled over time",
+      "The garbage collector runs a full compaction on every new deployment",
+      "The JVM verifies every class file again on each request until it is trusted",
+      "Heap memory is reserved lazily, one page per incoming request"
+    ],
+    "correctIndex": 0,
+    "explanation": "HotSpot starts by interpreting bytecode and uses tiered compilation: C1 compiles hot methods quickly with profiling, then C2 recompiles the hottest ones with aggressive, profile-guided optimisations. That warm-up explains early slowness. Bytecode verification happens once at class loading, not per request.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/vm/java-hotspot-virtual-machine-performance-enhancements.html"
+  },
+  {
+    "id": "java-container-max-ram-percentage",
+    "topic": "java",
+    "subtopic": "jvm",
+    "difficulty": "Hard",
+    "title": "Small default heap inside a container",
+    "question": "A Spring Boot app in a container with a 4 GiB memory limit runs with no heap flags. The heap never grows past about 1 GiB and it throws OutOfMemoryError while the container still has room. What is going on?",
+    "options": [
+      "By default the max heap is 25% of the container limit; set MaxRAMPercentage",
+      "The JVM ignores container limits and sizes the heap from host memory",
+      "Container runtimes cap every JVM heap at 1 GiB unless run in privileged mode",
+      "Spring Boot reserves three quarters of memory for its embedded server"
+    ],
+    "correctIndex": 0,
+    "explanation": "Modern JDKs are container-aware and derive their default maximum heap from the container's memory limit, and -XX:MaxRAMPercentage defaults to 25 percent, giving about 1 GiB here. Raise MaxRAMPercentage (or set -Xmx) while leaving headroom for metaspace, thread stacks and direct buffers.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/specs/man/java.html"
+  },
+  {
+    "id": "java-metaspace-classloader-leak",
+    "topic": "java",
+    "subtopic": "jvm",
+    "difficulty": "Hard",
+    "title": "Metaspace exhaustion after redeploys",
+    "question": "After repeated hot redeploys of a web app in the same application server, the JVM fails with `java.lang.OutOfMemoryError: Metaspace` while heap usage looks normal. What is the most likely cause?",
+    "options": [
+      "String literals from each deployment are interned into the Metaspace pool",
+      "Old class loaders stay reachable, so their class metadata is never unloaded",
+      "Thread stacks of the old deployment are allocated inside Metaspace",
+      "Metaspace is fixed at 64 MB and cannot be resized by any JVM option"
+    ],
+    "correctIndex": 1,
+    "explanation": "Class metadata lives in Metaspace and is freed only when its defining class loader becomes unreachable. A lingering reference such as a thread, ThreadLocal, static registry or JDBC driver pins the old loader, so each redeploy leaks a full set of classes. Interned strings live on the heap, thread stacks are separate native memory, and Metaspace can be capped with MaxMetaspaceSize.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/troubleshoot/troubleshooting-memory-leaks.html"
+  },
+  {
+    "id": "java-escape-analysis",
+    "topic": "java",
+    "subtopic": "jvm",
+    "difficulty": "Expert",
+    "title": "Allocations that vanish after warm-up",
+    "question": "A hot loop creates a small `Point` object per iteration that is used only within that iteration and never stored or passed elsewhere. After warm-up, GC logs show almost no allocation from this loop. What explains it?",
+    "options": [
+      "The JVM caches Point instances the way it caches boxed Integers from -128 to 127",
+      "Short-lived objects are allocated on the thread stack by the interpreter",
+      "The young generation discards objects without counting them as allocated",
+      "C2 escape analysis proves the object does not escape and scalar-replaces it"
+    ],
+    "correctIndex": 3,
+    "explanation": "HotSpot's C2 compiler performs escape analysis; when an object provably does not escape the compiled code (after inlining), the allocation can be eliminated and its fields kept in registers, known as scalar replacement. This is a JIT optimisation, not interpreter behaviour, and there is no automatic caching of user objects.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/vm/java-hotspot-virtual-machine-performance-enhancements.html"
+  },
+  {
+    "id": "java-overload-static-type",
+    "topic": "java",
+    "subtopic": "oop-java",
+    "difficulty": "Medium",
+    "title": "Overload chosen by static type",
+    "question": "Given\n\nvoid show(Object o) { System.out.println(\"object\"); }\nvoid show(String s) { System.out.println(\"string\"); }\n\nObject x = \"hello\";\nshow(x);\n\nWhat is printed?",
+    "options": [
+      "object, because overloads are chosen by static type",
+      "string, because the runtime type of x is String",
+      "A compile error, because the call is ambiguous",
+      "string, because String is the more specific overload"
+    ],
+    "correctIndex": 0,
+    "explanation": "Overload resolution happens at compile time using the declared types of the arguments; x is declared as Object, so only show(Object) is applicable. Dynamic dispatch on runtime type applies to overriding (the receiver), not to choosing among overloads.",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html"
+  },
+  {
+    "id": "java-constructor-calls-overridable",
+    "topic": "java",
+    "subtopic": "oop-java",
+    "difficulty": "Hard",
+    "title": "Overridable method called from a constructor",
+    "question": "class Base { Base() { init(); } void init() {} }\nclass Child extends Base {\n  private String name = \"svc\";\n  @Override void init() { System.out.println(name.length()); }\n}\n\nWhat happens on `new Child()`?",
+    "options": [
+      "It prints 3, because field initializers run before any constructor",
+      "Base's empty init() runs, because overrides are ignored in constructors",
+      "It throws NullPointerException, since name is not yet initialized",
+      "It fails to compile, because constructors may not call instance methods"
+    ],
+    "correctIndex": 2,
+    "explanation": "The Base constructor runs before Child's field initializers, but the call to init() still dispatches to Child's override, which sees name as null and throws. Unlike C++, Java dispatches virtually even during construction, which is why calling overridable methods from constructors is discouraged.",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-12.html"
+  },
+  {
+    "id": "java-linkedhashset-dedupe-order",
+    "topic": "java",
+    "subtopic": "generics-collections",
+    "difficulty": "Easy",
+    "title": "Deduplicating while keeping order",
+    "question": "You need to remove duplicate email addresses from a list while keeping the order in which each first appeared. Which collection fits best?",
+    "options": [
+      "HashSet",
+      "TreeSet",
+      "LinkedHashSet",
+      "PriorityQueue"
+    ],
+    "correctIndex": 2,
+    "explanation": "LinkedHashSet is a hash set that also keeps a linked list of entries, so iteration follows insertion order. HashSet has no defined order, TreeSet sorts its elements, and PriorityQueue allows duplicates and orders by priority.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/LinkedHashSet.html"
+  },
+  {
+    "id": "java-list-of-unmodifiable",
+    "topic": "java",
+    "subtopic": "generics-collections",
+    "difficulty": "Easy",
+    "title": "Adding to List.of",
+    "question": "What happens when this runs?\n\nList<String> roles = List.of(\"admin\", \"user\");\nroles.add(\"guest\");",
+    "options": [
+      "It adds guest and returns true",
+      "It throws UnsupportedOperationException",
+      "It fails to compile because the list is final",
+      "It returns a new list with three roles"
+    ],
+    "correctIndex": 1,
+    "explanation": "List.of returns an unmodifiable list, so mutator methods throw UnsupportedOperationException at runtime. The code compiles because List declares add. Wrap it as new ArrayList<>(List.of(...)) when you need a mutable copy.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/List.html"
+  },
+  {
+    "id": "java-treeset-comparator-duplicates",
+    "topic": "java",
+    "subtopic": "generics-collections",
+    "difficulty": "Hard",
+    "title": "TreeSet dropping distinct elements",
+    "question": "Products are added to `new TreeSet<>(Comparator.comparing(Product::price))`. Two different products that both cost 9.99 are added, but the set's size is 1. Why?",
+    "options": [
+      "TreeSet treats elements whose comparator returns 0 as duplicates",
+      "TreeSet calls equals() first and Product does not override it",
+      "TreeSet keeps only the newest element per price range bucket",
+      "Comparator.comparing rounds prices to integer values before sorting"
+    ],
+    "correctIndex": 0,
+    "explanation": "Sorted sets decide equality with compare, not equals. A comparator that is not consistent with equals makes distinct products look identical, so the second add is rejected. Add a tie-breaker such as thenComparing(Product::id).",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeSet.html"
+  },
+  {
+    "id": "java-stream-flatmap",
+    "topic": "java",
+    "subtopic": "streams",
+    "difficulty": "Easy",
+    "title": "Flattening nested lists with streams",
+    "question": "You have a `List<Order>` and each order has `List<String> skus()`. Which expression produces a single `Stream<String>` of all SKUs?",
+    "options": [
+      "orders.stream().flatMap(o -> o.skus().stream())",
+      "orders.stream().map(Order::skus)",
+      "orders.stream().map(Order::skus).collect(Collectors.toList())",
+      "orders.stream().peek(o -> o.skus().stream())"
+    ],
+    "correctIndex": 0,
+    "explanation": "flatMap maps each element to a stream and concatenates the results into one stream. map(Order::skus) yields a Stream<List<String>>, collecting that gives a list of lists, and peek is for side effects and does not change the elements.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html"
+  },
+  {
+    "id": "java-stream-single-use",
+    "topic": "java",
+    "subtopic": "streams",
+    "difficulty": "Easy",
+    "title": "Reusing a consumed stream",
+    "question": "A method stores `Stream<User> active = users.stream().filter(User::isActive);`, calls `active.count()`, and then calls `active.toList()`. What happens on the second call?",
+    "options": [
+      "It returns the same users again, because streams cache results",
+      "It returns an empty list, because the stream was already drained",
+      "It re-runs the filter, because streams are lazily re-evaluated",
+      "It throws IllegalStateException, because a stream is single-use"
+    ],
+    "correctIndex": 3,
+    "explanation": "A stream can be consumed by only one terminal operation; reusing it throws IllegalStateException (stream has already been operated upon or closed). Collect into a list first or use a Supplier<Stream<User>> to create a fresh stream each time.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html"
+  },
+  {
+    "id": "java-tomap-duplicate-key",
+    "topic": "java",
+    "subtopic": "streams",
+    "difficulty": "Medium",
+    "title": "Duplicate keys in Collectors.toMap",
+    "question": "`users.stream().collect(Collectors.toMap(User::email, u -> u))` fails with `IllegalStateException: Duplicate key`. Two accounts share an email and the later one in the stream should win. What is the fix?",
+    "options": [
+      "Use Collectors.groupingBy(User::email) and keep the map",
+      "Use Collectors.toMap(User::email, u -> u, (a, b) -> b)",
+      "Call .distinct() before collect to drop duplicate emails",
+      "Use Collectors.toUnmodifiableMap, which overwrites keys"
+    ],
+    "correctIndex": 1,
+    "explanation": "The two-argument toMap throws on duplicate keys; the three-argument form takes a merge function, and (a, b) -> b keeps the later value. distinct() relies on User.equals rather than email, groupingBy produces lists of users, and toUnmodifiableMap also throws on duplicates.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html"
+  },
+  {
+    "id": "java-finally-after-return",
+    "topic": "java",
+    "subtopic": "exceptions-java",
+    "difficulty": "Easy",
+    "title": "finally with a return in try",
+    "question": "A method does `try { return load(); } finally { lock.unlock(); }` and load() completes normally. When does `unlock()` run?",
+    "options": [
+      "Never, because return exits the method immediately",
+      "After load() returns, before control goes back to the caller",
+      "Only if load() throws an exception",
+      "Only after the caller has received and used the return value"
+    ],
+    "correctIndex": 1,
+    "explanation": "A finally block runs whenever the try block exits, whether normally, through return, or through an exception. The return value is computed, finally executes, and only then does the method return, which makes finally the right place to release locks.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/essential/exceptions/finally.html"
+  },
+  {
+    "id": "java-catch-order-unreachable",
+    "topic": "java",
+    "subtopic": "exceptions-java",
+    "difficulty": "Medium",
+    "title": "Catch clause order",
+    "question": "This code does not compile:\n\ntry { readConfig(); }\ncatch (Exception e) { ... }\ncatch (IOException e) { ... }\n\nWhy?",
+    "options": [
+      "IOException is a checked exception, so it must be declared rather than caught",
+      "Only one catch clause is allowed per try in Java 21 and later",
+      "Catch clauses must be listed in alphabetical order of exception type",
+      "Exception already catches IOException, so the second catch is unreachable"
+    ],
+    "correctIndex": 3,
+    "explanation": "A catch clause for a subclass placed after one for its superclass can never run, and the compiler reports it as an error; order handlers from most specific to most general. Checked exceptions can be caught as well as declared, and a try may have many catch clauses.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/essential/exceptions/catch.html"
+  },
+  {
+    "id": "java-exception-chaining-cause",
+    "topic": "java",
+    "subtopic": "exceptions-java",
+    "difficulty": "Medium",
+    "title": "Preserving the original exception",
+    "question": "A DAO catches `SQLException e` and throws `new DataAccessException(\"Order lookup failed\")`. On-call engineers can no longer see which SQL error happened. What is the right change?",
+    "options": [
+      "Log e.getMessage() at ERROR level and then throw the new exception alone",
+      "Rethrow e directly and declare `throws Exception` on every caller method",
+      "Call e.printStackTrace() before creating the new exception",
+      "Pass e as the cause: new DataAccessException(msg, e)"
+    ],
+    "correctIndex": 3,
+    "explanation": "Exception chaining stores the original exception as the cause, so stack traces show a \"Caused by\" section and code can call getCause(). Logging only the message loses the stack trace, printStackTrace writes to stderr disconnected from the rethrown error, and declaring throws Exception leaks low-level details through every layer.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/essential/exceptions/chained.html"
+  },
+  {
+    "id": "java-finally-return-discards",
+    "topic": "java",
+    "subtopic": "exceptions-java",
+    "difficulty": "Hard",
+    "title": "Return inside finally",
+    "question": "What does `compute()` do?\n\nint compute() {\n  try { throw new IllegalStateException(\"boom\"); }\n  finally { return -1; }\n}",
+    "options": [
+      "Returns -1 and silently discards the exception",
+      "Throws IllegalStateException after the finally block runs",
+      "Fails to compile, since finally cannot contain a return",
+      "Throws IllegalStateException with -1 attached as suppressed"
+    ],
+    "correctIndex": 0,
+    "explanation": "When a finally block completes abruptly, for example with return, that outcome replaces the try block's abrupt completion, so the exception is discarded. The code compiles (javac -Xlint can warn), and suppressed exceptions are a try-with-resources mechanism. This is why return in finally is considered a bug.",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-14.html"
+  },
+  {
+    "id": "java-thread-run-vs-start",
+    "topic": "java",
+    "subtopic": "concurrency-java",
+    "difficulty": "Easy",
+    "title": "Thread.run versus Thread.start",
+    "question": "A developer creates `Thread t = new Thread(task);` and calls `t.run()`. Logs show the task executing on the `main` thread. Why?",
+    "options": [
+      "The JVM moves short tasks onto main to avoid paying thread creation cost",
+      "Thread needs setDaemon(true) before it runs on its own thread",
+      "run() executes on the caller's thread; start() spawns a new one",
+      "Logging frameworks always report main for tasks given a Runnable"
+    ],
+    "correctIndex": 2,
+    "explanation": "start() makes the JVM begin a new thread that then calls run(); calling run() directly is an ordinary method call on the current thread. The daemon flag only affects whether the thread keeps the JVM alive.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html"
+  },
+  {
+    "id": "java-chm-compute-if-absent",
+    "topic": "java",
+    "subtopic": "concurrency-java",
+    "difficulty": "Hard",
+    "title": "Check-then-act on ConcurrentHashMap",
+    "question": "A cache uses `ConcurrentHashMap<String, Client>` and does `if (!map.containsKey(k)) map.put(k, createClient(k));`. Under load, two expensive clients are sometimes created for the same key. What is the fix?",
+    "options": [
+      "Switch to Collections.synchronizedMap, which makes the sequence atomic",
+      "Declare the map field volatile so both threads see the first put",
+      "Replace containsKey with get(k) == null, which takes the map's lock",
+      "Use map.computeIfAbsent(k, this::createClient)"
+    ],
+    "correctIndex": 3,
+    "explanation": "Each ConcurrentHashMap call is thread-safe, but a check followed by a put is two operations and can interleave. computeIfAbsent performs the check and insert atomically and invokes the mapping function at most once per absent key. synchronizedMap has the same compound-action race, volatile on the field changes nothing, and get() does not lock.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ConcurrentHashMap.html"
+  },
+  {
+    "id": "java-static-map-leak",
+    "topic": "java",
+    "subtopic": "gc-java",
+    "difficulty": "Medium",
+    "title": "Memory leak through a static map",
+    "question": "A service adds every processed request to `static final Map<String, Request> AUDIT = new HashMap<>()` and never removes entries. Old-generation usage climbs until OutOfMemoryError. Why doesn't the GC reclaim them?",
+    "options": [
+      "Static fields live in Metaspace, which the GC never scans",
+      "The entries stay reachable from a GC root via the static field",
+      "HashMap entries are allocated off-heap and must be freed manually",
+      "The GC only collects objects older than the current request"
+    ],
+    "correctIndex": 1,
+    "explanation": "The garbage collector frees only unreachable objects, and static fields of loaded classes act as roots, so everything referenced by the map is retained. A Java memory leak is usually an unintended reference like this; use a bounded cache, eviction or explicit removal.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/troubleshoot/troubleshooting-memory-leaks.html"
+  },
+  {
+    "id": "java-generational-hypothesis",
+    "topic": "java",
+    "subtopic": "gc-java",
+    "difficulty": "Medium",
+    "title": "Why the heap has generations",
+    "question": "Why do HotSpot collectors such as G1 divide the heap into young and old generations?",
+    "options": [
+      "Old objects are compressed on disk, freeing physical memory for new ones",
+      "Most objects die young, so collecting the young area is cheap and frequent",
+      "Separate generations let each thread own a private heap without locking",
+      "The JVM spec requires generations so that finalizers run in creation order"
+    ],
+    "correctIndex": 1,
+    "explanation": "The weak generational hypothesis says most objects become unreachable soon after allocation. Collecting the young generation copies only the few survivors, so minor collections are fast and frequent, while long-lived objects are promoted and the old generation is collected less often. Generations are an implementation choice, not a JVM specification requirement.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/gctuning/garbage-collector-implementation1.html"
+  },
+  {
+    "id": "java-g1-humongous-objects",
+    "topic": "java",
+    "subtopic": "gc-java",
+    "difficulty": "Expert",
+    "title": "G1 humongous allocations",
+    "question": "A G1-based service frequently allocates 3 MB byte arrays. The heap uses 4 MB regions, and GC logs show many humongous allocations and premature collections. Which tuning addresses the root cause?",
+    "options": [
+      "Lower -XX:MaxGCPauseMillis so G1 collects these arrays more frequently",
+      "Enable -XX:+UseStringDeduplication to merge identical byte arrays",
+      "Increase -XX:SurvivorRatio so the arrays fit in survivor spaces",
+      "Raise -XX:G1HeapRegionSize so these arrays fall below half a region"
+    ],
+    "correctIndex": 3,
+    "explanation": "G1 treats any object of at least half a region as humongous and places it in dedicated contiguous regions, which can trigger collections and fragmentation. With 8 MB regions a 3 MB array becomes an ordinary allocation; the alternative is reducing the array size. String deduplication only applies to String contents, and pause targets or survivor sizing do not change the humongous threshold.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/gctuning/garbage-first-garbage-collector-tuning.html"
+  },
+  {
+    "id": "java-spring-restcontroller",
+    "topic": "java",
+    "subtopic": "spring",
+    "difficulty": "Easy",
+    "title": "@RestController versus @Controller",
+    "question": "In Spring MVC, what does annotating a class with `@RestController` add compared with `@Controller`?",
+    "options": [
+      "It makes every handler stateless by creating a bean per request",
+      "Return values are written to the body, as with @ResponseBody",
+      "It enables HATEOAS links on every response automatically",
+      "It registers the class with a JAX-RS runtime instead of Spring MVC"
+    ],
+    "correctIndex": 1,
+    "explanation": "@RestController is a composed annotation meta-annotated with @Controller and @ResponseBody, so handler return values are serialised by message converters into the response body instead of being resolved as view names. The bean stays a singleton, and it has nothing to do with HATEOAS or JAX-RS.",
+    "referenceUrl": "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann.html"
+  },
+  {
+    "id": "java-spring-pathvariable-requestparam",
+    "topic": "java",
+    "subtopic": "spring",
+    "difficulty": "Easy",
+    "title": "Binding path and query values",
+    "question": "A Spring MVC handler serves `GET /orders/42?expand=items`. How are `42` and `items` typically bound to method parameters?",
+    "options": [
+      "Both with @RequestParam, since both appear in the URL",
+      "42 with @RequestBody, expand with @RequestHeader",
+      "42 with @RequestParam, expand with @PathVariable",
+      "42 with @PathVariable, expand with @RequestParam"
+    ],
+    "correctIndex": 3,
+    "explanation": "@PathVariable binds URI template variables such as {id} in /orders/{id}, and @RequestParam binds query parameters (and form fields). @RequestBody reads the request payload and @RequestHeader reads headers.",
+    "referenceUrl": "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-requestmapping.html"
+  },
+  {
+    "id": "java-spring-singleton-mutable-field",
+    "topic": "java",
+    "subtopic": "spring",
+    "difficulty": "Medium",
+    "title": "Per-request state in a singleton bean",
+    "question": "A `@Service` stores the current user in a private field `currentUser` at the start of each request-handling method. Under concurrent load, some responses contain another user's data. Why?",
+    "options": [
+      "Spring creates a new service per request but reuses its fields",
+      "Beans are singletons by default, so all request threads share the field",
+      "Private fields in Spring beans are cached by a shared request-scoped proxy",
+      "@Service beans are prototype-scoped and rebuilt only on startup"
+    ],
+    "correctIndex": 1,
+    "explanation": "The default bean scope is singleton: one instance per container, called concurrently by every request thread, so per-request data in a field races. Keep services stateless by passing the user as a parameter, or use request-scoped beans or the security context.",
+    "referenceUrl": "https://docs.spring.io/spring-framework/reference/core/beans/factory-scopes.html"
+  },
+  {
+    "id": "fe-heading-level-skipping",
+    "topic": "frontend",
+    "subtopic": "html-semantics",
+    "difficulty": "Medium",
+    "title": "Choosing heading levels for styling",
+    "question": "A designer wants smaller text for a section title directly under the page's `<h1>`, so a developer uses `<h4>` instead of `<h2>`. What is the problem?",
+    "options": [
+      "Skipped levels distort the outline screen reader users navigate by",
+      "Search engines refuse to index any heading below the h3 level",
+      "Browsers render h4 elements inline by default, which breaks the page layout",
+      "h4 is deprecated in HTML and only kept for compatibility"
+    ],
+    "correctIndex": 0,
+    "explanation": "Heading levels should describe the document structure, and many screen reader users navigate by headings, so skipping levels makes the structure confusing. Use h2 and change its size with CSS. h4 is a normal block-level element and is not deprecated.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements"
+  },
+  {
+    "id": "fe-link-vs-button-navigation",
+    "topic": "frontend",
+    "subtopic": "html-semantics",
+    "difficulty": "Medium",
+    "title": "Buttons used for navigation",
+    "question": "A product list uses `<button onclick=\"location.href='/product/42'\">View</button>` for navigation. Users complain they cannot open products in a new tab. Which element should be used?",
+    "options": [
+      "<button type=\"submit\">, since a submit button performs real navigation",
+      "<div role=\"link\">, since ARIA roles enable the browser's link context menu",
+      "<a href=\"/product/42\">, since links natively support new tabs",
+      "<span tabindex=\"0\">, since focusable spans behave like native anchors"
+    ],
+    "correctIndex": 2,
+    "explanation": "Navigation belongs to an anchor with href: browsers then provide open in new tab, middle-click, copy link and the link role. Buttons are for actions. An ARIA role changes only semantics, not browser behaviour, and a focusable span has none of a link's features.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a"
+  },
+  {
+    "id": "fe-dialog-showmodal",
+    "topic": "frontend",
+    "subtopic": "html-semantics",
+    "difficulty": "Hard",
+    "title": "Native modal dialog behaviour",
+    "question": "A team replaces a hand-built modal with the native `<dialog>` element. Which approach gives them an inert background, Escape-to-close and top-layer rendering out of the box?",
+    "options": [
+      "Calling dialog.show(), because it renders the dialog in the top layer",
+      "Setting the open attribute, which is equivalent to opening modally",
+      "Calling dialog.showModal(), which makes content outside it inert",
+      "Calling dialog.focus(), which traps focus and blocks the page behind"
+    ],
+    "correctIndex": 2,
+    "explanation": "showModal() places the dialog in the top layer with a ::backdrop, makes the rest of the page inert, and closes it on Escape. show() and the open attribute create a non-modal dialog, and focus() only moves focus.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog"
+  },
+  {
+    "id": "fe-decorative-image-empty-alt",
+    "topic": "frontend",
+    "subtopic": "accessibility",
+    "difficulty": "Easy",
+    "title": "Alt text for decorative images",
+    "question": "A purely decorative divider image adds no information. How should it be marked up for screen reader users?",
+    "options": [
+      "Omit the alt attribute so screen readers skip the image",
+      "Use alt=\"\" so assistive technology ignores the image",
+      "Use alt=\"image\" so users know an image is present",
+      "Use alt=\"decorative divider line\" to describe it fully"
+    ],
+    "correctIndex": 1,
+    "explanation": "An empty alt attribute marks the image as decorative, so screen readers skip it. Omitting alt entirely often makes screen readers announce the file name, and generic or descriptive text just adds noise for something that carries no information.",
+    "referenceUrl": "https://www.w3.org/WAI/tutorials/images/decorative/"
+  },
+  {
+    "id": "fe-label-in-name",
+    "topic": "frontend",
+    "subtopic": "accessibility",
+    "difficulty": "Hard",
+    "title": "Visible label versus accessible name",
+    "question": "A button visibly reads \"Search\" but has `aria-label=\"Submit query\"`. Voice control users saying \"click Search\" cannot activate it. Which WCAG 2.2 success criterion is failed?",
+    "options": [
+      "1.4.3 Contrast (Minimum): the label must contrast with its background",
+      "2.4.7 Focus Visible: the button must show focus when it is targeted",
+      "4.1.2 Name, Role, Value: aria-label is not allowed on native buttons",
+      "2.5.3 Label in Name: the accessible name must include the visible text"
+    ],
+    "correctIndex": 3,
+    "explanation": "Label in Name (Level A) requires that a component with a visible text label has an accessible name containing that text, ideally at the start, so speech users can say what they see. aria-label replaces the visible text as the accessible name here. aria-label is allowed on buttons, and 4.1.2 is met because a name exists.",
+    "referenceUrl": "https://www.w3.org/WAI/WCAG22/Understanding/label-in-name.html"
+  },
+  {
+    "id": "fe-box-sizing-border-box",
+    "topic": "frontend",
+    "subtopic": "css-layout",
+    "difficulty": "Easy",
+    "title": "Width with padding and border",
+    "question": "An element has `width: 300px; padding: 20px; border: 5px solid` with the default `box-sizing`. How wide is its border box, and what keeps it at 300px?",
+    "options": [
+      "300px already; box-sizing: content-box is not needed here",
+      "340px; adding box-sizing: padding-box keeps it at 300px",
+      "350px; adding box-sizing: border-box keeps it at 300px",
+      "320px; adding margin: 0 removes the extra width added"
+    ],
+    "correctIndex": 2,
+    "explanation": "With the default content-box, width applies to the content only, so padding and border are added: 300 + 2x20 + 2x5 = 350px. border-box makes width include padding and border. padding-box is not a supported value, and margins sit outside the border box.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/CSS/box-sizing"
+  },
+  {
+    "id": "fe-margin-collapsing",
+    "topic": "frontend",
+    "subtopic": "css-layout",
+    "difficulty": "Medium",
+    "title": "Vertical margins between blocks",
+    "question": "Two stacked block paragraphs in normal flow (no flex or grid): the first has `margin-bottom: 30px`, the second `margin-top: 20px`. What is the vertical gap between them?",
+    "options": [
+      "50px, because adjacent vertical margins always add up",
+      "30px, because vertical margins collapse to the larger",
+      "20px, because the later element's top margin takes priority",
+      "25px, because collapsed margins are averaged"
+    ],
+    "correctIndex": 1,
+    "explanation": "Adjacent vertical margins of blocks in normal flow collapse into a single margin equal to the larger one. Margins do not collapse between flex or grid items, nor horizontally.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_box_model/Mastering_margin_collapsing"
+  },
+  {
+    "id": "fe-stacking-context-transform",
+    "topic": "frontend",
+    "subtopic": "css-layout",
+    "difficulty": "Hard",
+    "title": "z-index trapped inside a stacking context",
+    "question": "A dropdown with `position: absolute; z-index: 9999` still renders under a sticky header with `z-index: 10`. The dropdown's parent card has `transform: translateZ(0)` and no z-index. Why?",
+    "options": [
+      "z-index values above 1000 are clamped by browsers, so 9999 has no effect",
+      "The transform makes the card a stacking context, confining the dropdown",
+      "Sticky elements are always painted above absolutely positioned descendants",
+      "z-index only applies to elements with position: fixed or sticky"
+    ],
+    "correctIndex": 1,
+    "explanation": "A transform (like opacity below 1, filter, or a positioned element with a z-index) creates a new stacking context, and descendants' z-index values only compete inside it. The card as a whole is painted at level 0 relative to the header's 10. Remove the transform, raise the card's stacking level, or render the dropdown outside the card.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_positioned_layout/Understanding_z-index/Stacking_context"
+  },
+  {
+    "id": "fe-mobile-first-min-width",
+    "topic": "frontend",
+    "subtopic": "responsive-design",
+    "difficulty": "Easy",
+    "title": "Media queries in mobile-first CSS",
+    "question": "In a mobile-first stylesheet, base styles target small screens. Which media query is typically used to add a two-column layout on wider screens?",
+    "options": [
+      "@media (min-width: 768px) { ... }",
+      "@media (max-width: 768px) { ... }",
+      "@media (orientation: portrait) { ... }",
+      "@media (max-resolution: 768dpi) { ... }"
+    ],
+    "correctIndex": 0,
+    "explanation": "Mobile-first CSS starts with small-screen styles and layers enhancements with min-width queries as the viewport grows. max-width queries are the desktop-first approach, and orientation or resolution do not track available width.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_media_queries/Using_media_queries"
+  },
+  {
+    "id": "fe-dynamic-viewport-units",
+    "topic": "frontend",
+    "subtopic": "responsive-design",
+    "difficulty": "Medium",
+    "title": "Full-height hero hidden by mobile toolbars",
+    "question": "A full-screen hero uses `height: 100vh`. On mobile browsers its bottom button is hidden behind the browser toolbar when the page first loads. Which CSS change addresses this?",
+    "options": [
+      "Use height: 100dvh, which tracks the currently visible viewport",
+      "Use height: 100% on the hero, which always equals the screen height",
+      "Use min-height: 100vw, which ignores dynamic browser toolbars",
+      "Use height: calc(100vh + env(safe-area-inset-top)) for the toolbar"
+    ],
+    "correctIndex": 0,
+    "explanation": "On mobile, vh is based on the large viewport (toolbars retracted), so content can sit under the expanded browser UI. dvh follows the dynamic viewport as toolbars show and hide, and svh uses the small viewport for a stable value. 100% depends on the parent's height, vw measures width, and safe-area insets address notches.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/CSS/length"
+  },
+  {
+    "id": "fe-domcontentloaded-vs-load",
+    "topic": "frontend",
+    "subtopic": "browser-fundamentals",
+    "difficulty": "Easy",
+    "title": "DOMContentLoaded versus load",
+    "question": "Which event fires once the HTML is fully parsed and deferred scripts have run, without waiting for images to finish loading?",
+    "options": [
+      "DOMContentLoaded on document",
+      "load on window",
+      "readystatechange with complete state",
+      "pageshow on window"
+    ],
+    "correctIndex": 0,
+    "explanation": "DOMContentLoaded fires after parsing completes and deferred and module scripts have executed, without waiting for images, subframes or async scripts. load waits for all subresources, readyState 'complete' corresponds to that later point, and pageshow relates to navigation including back-forward cache restores.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/Document/DOMContentLoaded_event"
+  },
+  {
+    "id": "fe-animate-transform-not-left",
+    "topic": "frontend",
+    "subtopic": "browser-fundamentals",
+    "difficulty": "Medium",
+    "title": "Smooth slide-in animations",
+    "question": "A slide-in panel animates `left` from -300px to 0 and stutters on low-end phones. Which change usually makes the animation smooth?",
+    "options": [
+      "Animate width instead, since it skips the layout stage of rendering",
+      "Animate margin-left, which the browser hardware-accelerates by default",
+      "Drive it with setInterval every 16 ms, which is more precise than CSS transitions",
+      "Animate transform: translateX(), which can be handled by the compositor"
+    ],
+    "correctIndex": 3,
+    "explanation": "Animating left, width or margin forces layout and paint on every frame, whereas transform and opacity can be animated by the compositor without re-layout. A setInterval timer is not synchronised with frame rendering and still animates a layout property.",
+    "referenceUrl": "https://web.dev/articles/animations-guide"
+  },
+  {
+    "id": "fe-microtask-starvation",
+    "topic": "frontend",
+    "subtopic": "browser-fundamentals",
+    "difficulty": "Expert",
+    "title": "Promise loop that blocks rendering",
+    "question": "A progress loop runs `function step() { work(); Promise.resolve().then(step); }`. The page freezes and never repaints until all items finish. Switching to `setTimeout(step, 0)` lets the UI update. Why?",
+    "options": [
+      "The microtask queue is drained fully before rendering or the next task",
+      "Promise callbacks run on a worker thread that holds the DOM lock",
+      "Promise.resolve() blocks synchronously until the callback has completed",
+      "setTimeout runs callbacks at a higher priority than rendering updates"
+    ],
+    "correctIndex": 0,
+    "explanation": "After each task, the event loop runs every queued microtask, including ones queued during that process, before it gets a chance to render or take the next task. A self-requeuing promise chain therefore starves rendering and input. setTimeout queues a new task, so the browser can render between steps. Promise callbacks run on the main thread, just asynchronously.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide"
+  },
+  {
+    "id": "fe-lcp-metric-threshold",
+    "topic": "frontend",
+    "subtopic": "web-performance",
+    "difficulty": "Easy",
+    "title": "Loading metric among Core Web Vitals",
+    "question": "Which Core Web Vital measures how quickly the largest image or text block in the viewport is rendered, and what is its 'good' threshold?",
+    "options": [
+      "Largest Contentful Paint, good at 2.5 seconds or less",
+      "First Contentful Paint, good at 1.8 seconds or less",
+      "Interaction to Next Paint, good at 200 milliseconds or less",
+      "Time to First Byte, good at 800 ms or less"
+    ],
+    "correctIndex": 0,
+    "explanation": "LCP reports when the largest image or text block becomes visible, and 2.5 seconds or less at the 75th percentile is considered good. FCP and TTFB are useful diagnostics but not Core Web Vitals, and INP measures responsiveness to input.",
+    "referenceUrl": "https://web.dev/articles/lcp"
+  },
+  {
+    "id": "fe-lcp-css-background-preload",
+    "topic": "frontend",
+    "subtopic": "web-performance",
+    "difficulty": "Hard",
+    "title": "LCP image discovered late from CSS",
+    "question": "The LCP element is a hero whose image is set via `background-image` in an external stylesheet. The waterfall shows the image request starting only after the CSS downloads and parses. What most directly fixes the late discovery?",
+    "options": [
+      "Add loading=\"eager\" to the stylesheet link so it loads first",
+      "Inline the image as a base64 data URI inside the main JavaScript bundle",
+      "Add <link rel=\"preload\" as=\"image\" fetchpriority=\"high\"> in the head",
+      "Move the stylesheet link to the bottom of the body element"
+    ],
+    "correctIndex": 2,
+    "explanation": "Images referenced only from CSS are invisible to the preload scanner, so the fetch cannot start until the stylesheet is parsed. A preload in the HTML (with high fetch priority), or an <img> element, lets the request start immediately. loading is not a link attribute, a data URI in JavaScript waits for the bundle, and moving the stylesheet delays things further.",
+    "referenceUrl": "https://web.dev/articles/optimize-lcp"
+  },
+  {
+    "id": "fe-lifting-state-up",
+    "topic": "frontend",
+    "subtopic": "frontend-architecture",
+    "difficulty": "Easy",
+    "title": "Sharing state between sibling components",
+    "question": "In React, a `<SearchBox>` and a sibling `<ResultsList>` both need the current query. What does the React documentation recommend?",
+    "options": [
+      "Keep the query in SearchBox and read it from ResultsList with a ref",
+      "Duplicate the query state in both and sync them with an effect",
+      "Store the query in a module-level variable both components import",
+      "Lift the state to their closest common parent and pass it as props"
+    ],
+    "correctIndex": 3,
+    "explanation": "Lifting state up moves it to the closest common parent, which passes the value and an updater down as props, giving a single source of truth. Duplicated state synced by effects drifts, module variables do not trigger re-renders, and reading another component's state through refs bypasses React's data flow.",
+    "referenceUrl": "https://react.dev/learn/sharing-state-between-components"
+  },
+  {
+    "id": "fe-list-key-index-reorder",
+    "topic": "frontend",
+    "subtopic": "frontend-architecture",
+    "difficulty": "Medium",
+    "title": "Index keys in a reorderable list",
+    "question": "A sortable todo list renders `items.map((item, i) => <Todo key={i} {...item} />)`, and each Todo has a local text input. After sorting, typed text appears on the wrong items. What is the fix?",
+    "options": [
+      "Use key={Math.random()} so React re-creates every row on sort",
+      "Remove the key prop; React then tracks items by their content",
+      "Use a stable unique ID from the data, such as key={item.id}",
+      "Wrap Todo in React.memo so its state is preserved during sort"
+    ],
+    "correctIndex": 2,
+    "explanation": "Keys tell React which item is which between renders. With index keys, component state stays attached to positions, so after reordering it belongs to the wrong item. Stable IDs keep state with its data; random keys remount every row on each render, omitting keys falls back to indexes, and memo does not change identity.",
+    "referenceUrl": "https://react.dev/learn/rendering-lists"
+  },
+  {
+    "id": "fe-context-value-identity",
+    "topic": "frontend",
+    "subtopic": "frontend-architecture",
+    "difficulty": "Hard",
+    "title": "Context consumers re-rendering too often",
+    "question": "An app-wide `<SessionContext.Provider value={{ user, logout }}>` sits in a parent that re-renders on every keystroke in a search box. All context consumers re-render each time even though user did not change. Why?",
+    "options": [
+      "Context consumers always re-render whenever any of their ancestors render",
+      "Providers deep-clone their value, so equality checks always fail",
+      "A new value object is created each render, so consumers see a change",
+      "logout is an arrow function, which React forbids in context values"
+    ],
+    "correctIndex": 2,
+    "explanation": "React compares context values with Object.is, and an inline object literal is a new reference on every render, so every consumer re-renders. Memoising the value with useMemo and the function with useCallback (or letting the React Compiler do it) keeps the reference stable. React does not clone values, and functions are fine in context.",
+    "referenceUrl": "https://react.dev/reference/react/useContext"
+  },
+  {
+    "id": "fe-effect-fetch-race",
+    "topic": "frontend",
+    "subtopic": "frontend-architecture",
+    "difficulty": "Hard",
+    "title": "Stale responses in a fetching effect",
+    "question": "A search page fetches results in a `useEffect` that depends on `query`. When users type quickly, the list sometimes shows results for an older query. What fixes this?",
+    "options": [
+      "Add the results array to the effect's dependency list as well",
+      "Move the fetch into useLayoutEffect so it runs before painting",
+      "Use a cleanup that ignores or aborts the stale request on change",
+      "Call setState twice so React batches the most recent response"
+    ],
+    "correctIndex": 2,
+    "explanation": "Responses can arrive out of order, so a slow response for an old query can overwrite a newer one. The React docs set an ignore flag in the effect cleanup (an AbortController works too) so only the latest effect applies its result. Adding results to the dependencies causes refetch loops, and useLayoutEffect does not change network ordering.",
+    "referenceUrl": "https://react.dev/learn/synchronizing-with-effects"
+  },
+  {
+    "id": "fe-input-type-email",
+    "topic": "frontend",
+    "subtopic": "forms-validation",
+    "difficulty": "Easy",
+    "title": "Built-in email validation",
+    "question": "Which input gives built-in email format validation and an email-optimised on-screen keyboard on mobile devices?",
+    "options": [
+      "<input type=\"email\">",
+      "<input type=\"text\" pattern=\"email\">",
+      "<input type=\"text\" inputmode=\"text\">",
+      "<input type=\"text\" autocomplete=\"email\">"
+    ],
+    "correctIndex": 0,
+    "explanation": "type=\"email\" validates the address syntax through constraint validation and lets mobile browsers show an email keyboard. pattern expects a regular expression (\"email\" would only match that literal word), inputmode=\"text\" is the default keyboard, and autocomplete helps autofill without validating.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/email"
+  },
+  {
+    "id": "fe-button-default-submit",
+    "topic": "frontend",
+    "subtopic": "forms-validation",
+    "difficulty": "Medium",
+    "title": "Cancel button that submits the form",
+    "question": "A form has a Cancel button written as `<button onclick=\"closeForm()\">Cancel</button>`. Clicking it closes the form but also submits it. What is the fix?",
+    "options": [
+      "Move the onclick handler to the form's submit event instead",
+      "Add the formnovalidate attribute to skip the form submission",
+      "Use type=\"reset\", which closes the form without submitting it",
+      "Add type=\"button\" so it no longer acts as a submit button"
+    ],
+    "correctIndex": 3,
+    "explanation": "A button inside a form defaults to type=\"submit\", so clicking it submits the form; type=\"button\" has no default action. formnovalidate only skips validation and still submits, and type=\"reset\" restores field values rather than closing anything.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button"
+  },
+  {
+    "id": "fe-server-side-validation",
+    "topic": "frontend",
+    "subtopic": "forms-validation",
+    "difficulty": "Medium",
+    "title": "Relying only on HTML validation",
+    "question": "A signup form uses `required`, `maxlength` and `pattern` on every field, so the team proposes dropping the duplicate validation in the API. Why is that unsafe?",
+    "options": [
+      "Constraint validation runs only in Chromium-based browsers",
+      "HTML validation attributes are ignored when JavaScript is off",
+      "The pattern attribute is case-insensitive and too permissive",
+      "Attackers can bypass the browser and send requests directly"
+    ],
+    "correctIndex": 3,
+    "explanation": "Client-side validation is a usability aid: anyone can edit the page, disable validation, or call the API directly with a script. The server must validate every request. Built-in constraint validation works across modern browsers without JavaScript, and pattern matching is case-sensitive.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Forms/Form_validation"
+  },
+  {
+    "id": "fe-user-invalid-pseudo-class",
+    "topic": "frontend",
+    "subtopic": "forms-validation",
+    "difficulty": "Hard",
+    "title": "Showing errors only after interaction",
+    "question": "Required fields styled with `input:invalid { border-color: red; }` are already red when the empty form first loads, before the user touches anything. Which selector shows errors only after the user has interacted with a field?",
+    "options": [
+      "input:invalid:focus",
+      "input:user-invalid",
+      "input:out-of-range",
+      "input:placeholder-shown"
+    ],
+    "correctIndex": 1,
+    "explanation": ":invalid matches immediately, and an empty required field is invalid from the start. :user-invalid matches only after the user has interacted with the field (for example, changed it and moved focus away) or tried to submit. :invalid:focus shows errors only while focused, :out-of-range is for min and max limits, and :placeholder-shown concerns placeholder text.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/CSS/:user-invalid"
+  },
+  {
+    "id": "fe-subresource-integrity",
+    "topic": "frontend",
+    "subtopic": "web-security",
+    "difficulty": "Easy",
+    "title": "Protecting against a tampered CDN script",
+    "question": "A page loads a library from a public CDN. How can the page make the browser refuse the script if the CDN ever serves a modified file?",
+    "options": [
+      "Add crossorigin=\"use-credentials\" so the CDN must authenticate",
+      "Add an integrity attribute containing the file's expected hash",
+      "Load it with async so the browser checks the file before running",
+      "Serve the page over HTTP/2, which verifies third-party scripts"
+    ],
+    "correctIndex": 1,
+    "explanation": "Subresource Integrity makes the browser hash the fetched file and refuse to execute it if the hash does not match the integrity attribute (cross-origin files also need CORS, typically crossorigin=\"anonymous\"). Credentials do not verify content, async only changes timing, and HTTP/2 does not validate what a server sends.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity"
+  },
+  {
+    "id": "fe-clickjacking-frame-ancestors",
+    "topic": "frontend",
+    "subtopic": "web-security",
+    "difficulty": "Medium",
+    "title": "Defending against clickjacking",
+    "question": "An attacker's site loads your account settings page in an invisible iframe and tricks users into clicking a 'Delete account' button. Which response header defends against this?",
+    "options": [
+      "Access-Control-Allow-Origin: https://yourapp.com",
+      "Content-Security-Policy: frame-src 'none'",
+      "Cross-Origin-Resource-Policy: same-site",
+      "Content-Security-Policy: frame-ancestors 'self'"
+    ],
+    "correctIndex": 3,
+    "explanation": "frame-ancestors controls which origins may embed your page in a frame, so other sites cannot frame it; it supersedes X-Frame-Options. frame-src restricts what your own page may embed, Access-Control-Allow-Origin governs scripts reading cross-origin responses, and CORP is not the anti-framing control.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors"
+  }
+]

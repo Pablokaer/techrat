@@ -1,0 +1,1345 @@
+[
+  {
+    "id": "fe-div-onclick-vs-button",
+    "topic": "frontend",
+    "subtopic": "html-semantics",
+    "difficulty": "Easy",
+    "title": "Clickable div versus native button",
+    "question": "A developer renders `<div onclick=\"save()\">Save</div>` instead of a `<button>`. What does the native button provide that the div does not?",
+    "options": [
+      "Faster click handling because button events skip the bubbling phase",
+      "Automatic protection against double submission of the same click",
+      "Keyboard focus, Enter/Space activation and a button role for assistive tech",
+      "Guaranteed prevention of form submission when placed inside a form"
+    ],
+    "correctIndex": 2,
+    "explanation": "A native <button> is focusable by default, fires click on Enter and Space, and exposes the button role to screen readers; a div needs tabindex, key handlers and a role to imitate that. Button events bubble like any other, there is no built-in double-click protection, and inside a form a button actually defaults to type=\"submit\".",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button"
+  },
+  {
+    "id": "fe-main-landmark-count",
+    "topic": "frontend",
+    "subtopic": "html-semantics",
+    "difficulty": "Easy",
+    "title": "How many main elements",
+    "question": "How many `<main>` elements may a document contain according to the HTML specification as described on MDN?",
+    "options": [
+      "Exactly one per <section> that contains primary content",
+      "At most one that does not have the hidden attribute",
+      "One per <article>, so each article has its own landmark",
+      "Any number, since screen readers merge them into one"
+    ],
+    "correctIndex": 1,
+    "explanation": "A document must not have more than one visible <main> (one without the hidden attribute); it marks the dominant content and maps to the main landmark. Sections and articles do not get their own <main>, and multiple visible mains are invalid rather than merged by assistive technology.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/main"
+  },
+  {
+    "id": "fe-article-for-cards",
+    "topic": "frontend",
+    "subtopic": "html-semantics",
+    "difficulty": "Medium",
+    "title": "Choosing article for teaser cards",
+    "question": "A blog index shows post teaser cards, each self-contained and suitable for syndication in an RSS feed. Which element best wraps each card?",
+    "options": [
+      "<section>",
+      "<aside>",
+      "<div role=\"region\">",
+      "<article>"
+    ],
+    "correctIndex": 3,
+    "explanation": "<article> represents a self-contained composition that is independently distributable or reusable, such as a blog post or a card in a feed. <section> is a thematic grouping that usually needs a heading and is not standalone, <aside> is for tangential content, and a generic region div adds a landmark without the right semantics.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/article"
+  },
+  {
+    "id": "fe-aria-hidden-focusable",
+    "topic": "frontend",
+    "subtopic": "accessibility",
+    "difficulty": "Hard",
+    "title": "aria-hidden on focusable content",
+    "question": "While a custom modal is open, the page behind it gets `aria-hidden=\"true\"`, yet links behind the modal are still reachable with Tab. What is the problem and the robust fix?",
+    "options": [
+      "Focus lands on elements hidden from assistive tech; make the background inert or use <dialog> with showModal()",
+      "aria-hidden must be \"hidden\" instead of \"true\"; changing the value also removes elements from the tab order",
+      "The modal needs role=\"alert\" so screen readers ignore the background content automatically",
+      "Background links need aria-disabled=\"true\", which removes them from the sequential focus order"
+    ],
+    "correctIndex": 0,
+    "explanation": "aria-hidden only removes content from the accessibility tree; it does not stop keyboard focus, so users can tab onto elements a screen reader cannot announce, which MDN explicitly warns against. The inert attribute (or a native <dialog> opened with showModal(), which makes the rest of the page inert) blocks both focus and interaction. aria-disabled does not remove elements from the tab order, and role=\"alert\" is for urgent announcements.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-hidden"
+  },
+  {
+    "id": "fe-contrast-minimum-aa",
+    "topic": "frontend",
+    "subtopic": "accessibility",
+    "difficulty": "Easy",
+    "title": "WCAG AA contrast for body text",
+    "question": "Under WCAG 2.2 success criterion 1.4.3 (Level AA), what minimum contrast ratio is required for normal-size body text against its background?",
+    "options": [
+      "3:1",
+      "7:1",
+      "2.5:1",
+      "4.5:1"
+    ],
+    "correctIndex": 3,
+    "explanation": "SC 1.4.3 Contrast (Minimum) requires 4.5:1 for normal text at Level AA. 3:1 applies to large text (roughly 18pt, or 14pt bold), 7:1 is the enhanced AAA requirement, and 2.5:1 does not appear in WCAG.",
+    "referenceUrl": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
+  },
+  {
+    "id": "fe-aria-live-polite",
+    "topic": "frontend",
+    "subtopic": "accessibility",
+    "difficulty": "Medium",
+    "title": "Announcing async cart updates",
+    "question": "A cart total updates via fetch, but screen reader users never hear the new value. Which approach makes the change announced reliably without interrupting the user?",
+    "options": [
+      "Insert a brand new aria-live=\"assertive\" element at the moment the total changes",
+      "Set aria-hidden=\"false\" on the total so it is re-read after each update",
+      "Render the total in an aria-live=\"polite\" element that exists before its text changes",
+      "Give the total tabindex=\"0\" so screen readers revisit it when content changes"
+    ],
+    "correctIndex": 2,
+    "explanation": "Assistive tech watches live regions that are already in the DOM; changes to their content are announced, and polite waits until the user is idle. A live region injected at the same moment as its content is often missed, and assertive interrupts the user. aria-hidden=\"false\" and tabindex do not trigger announcements.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-live"
+  },
+  {
+    "id": "fe-focus-visible-reset",
+    "topic": "frontend",
+    "subtopic": "accessibility",
+    "difficulty": "Medium",
+    "title": "Removed focus outlines",
+    "question": "A CSS reset includes `*:focus { outline: none; }` with no replacement style. Keyboard users report they cannot tell where they are. Which WCAG success criterion is failed and what is a good fix?",
+    "options": [
+      "2.4.7 Focus Visible; provide a clear indicator, e.g. styled with :focus-visible",
+      "1.4.3 Contrast (Minimum); raise text contrast to at least 4.5:1 everywhere",
+      "2.1.1 Keyboard; add keydown handlers to every interactive element",
+      "4.1.2 Name, Role, Value; add aria-label to each focusable element"
+    ],
+    "correctIndex": 0,
+    "explanation": "SC 2.4.7 Focus Visible requires a visible keyboard focus indicator, which the reset removes. Using :focus-visible lets you show a strong indicator for keyboard users while avoiding rings on mouse clicks. The elements are still keyboard operable (2.1.1) and still have names (4.1.2); text contrast is unrelated.",
+    "referenceUrl": "https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html"
+  },
+  {
+    "id": "fe-flex-min-width-auto",
+    "topic": "frontend",
+    "subtopic": "css-layout",
+    "difficulty": "Hard",
+    "title": "Flex item refuses to shrink",
+    "question": "A flex item with `flex: 1` contains a long unbroken URL and overflows its container instead of shrinking. What causes this and what is the usual fix?",
+    "options": [
+      "flex: 1 sets flex-shrink to 0; change it to flex: 1 1 auto",
+      "Flex items default to min-width: auto (min-content); set min-width: 0 on the item",
+      "The container needs flex-wrap: wrap, otherwise items can never shrink",
+      "Long text forces display: block on the item; set display: flex on it"
+    ],
+    "correctIndex": 1,
+    "explanation": "The automatic minimum size of a flex item is its min-content size, so a long unbreakable word prevents shrinking below it; min-width: 0 (or overflow other than visible) removes that floor so wrapping or ellipsis can work. flex: 1 is 1 1 0 and already allows shrinking, wrapping moves items to new lines rather than shrinking them, and display is not changed by content.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/CSS/min-width"
+  },
+  {
+    "id": "fe-grid-auto-fit-vs-fill",
+    "topic": "frontend",
+    "subtopic": "css-layout",
+    "difficulty": "Hard",
+    "title": "auto-fit versus auto-fill",
+    "question": "A grid uses `grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))` in a 1200px container but has only two items, which stay 200px-ish wide leaving empty space. What does switching to `auto-fit` change?",
+    "options": [
+      "Columns become fixed at 200px and the grid centres the two items",
+      "Empty repeated tracks collapse to 0, so the two items stretch to fill the row",
+      "The grid stops creating implicit rows, so extra items overflow",
+      "Both keywords behave identically; only minmax() order affects this"
+    ],
+    "correctIndex": 1,
+    "explanation": "Both keywords create as many tracks as fit, but auto-fit collapses tracks that hold no items, letting the 1fr maximum distribute the free space to the occupied tracks; auto-fill keeps the empty tracks. The keyword does not fix column widths, centre items or change implicit row creation.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/CSS/repeat"
+  },
+  {
+    "id": "fe-specificity-id-vs-classes",
+    "topic": "frontend",
+    "subtopic": "css-layout",
+    "difficulty": "Easy",
+    "title": "ID versus several classes",
+    "question": "Two rules set the colour of the same link: `#nav a { color: red }` and `.menu .link.active { color: blue }`. Both are author styles without !important. Which colour applies?",
+    "options": [
+      "Blue, because three classes outweigh one ID and one type selector",
+      "Blue, because the rule with more selectors always wins",
+      "Whichever rule appears last in the stylesheet, as specificity ties",
+      "Red, because one ID selector outranks any number of class selectors"
+    ],
+    "correctIndex": 3,
+    "explanation": "Specificity compares IDs first, then classes/attributes/pseudo-classes, then types: #nav a is (1,0,1) and .menu .link.active is (0,3,0), so the ID column decides. Classes never carry over into the ID column, and source order only matters when specificity is equal.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity"
+  },
+  {
+    "id": "fe-srcset-sizes-selection",
+    "topic": "frontend",
+    "subtopic": "responsive-design",
+    "difficulty": "Medium",
+    "title": "srcset with sizes",
+    "question": "Given `<img srcset=\"a-480.jpg 480w, a-960.jpg 960w\" sizes=\"(max-width: 600px) 100vw, 50vw\">` on a 1200px-wide viewport at device pixel ratio 1, which file will the browser most likely download?",
+    "options": [
+      "a-480.jpg, because 50vw always maps to the smaller candidate",
+      "Both files, so it can swap if the viewport is resized",
+      "a-960.jpg, because the slot is 600px and 480w is too small",
+      "a-480.jpg, because w descriptors are ignored at DPR 1"
+    ],
+    "correctIndex": 2,
+    "explanation": "The media condition fails at 1200px, so sizes resolves to 50vw = 600 CSS px; at DPR 1 the browser needs about 600 image pixels and picks the smallest sufficient candidate, 960w. sizes describes slot width, not which candidate to pick, the browser downloads only one candidate, and w descriptors apply at every DPR.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Responsive_images"
+  },
+  {
+    "id": "fe-missing-viewport-meta",
+    "topic": "frontend",
+    "subtopic": "responsive-design",
+    "difficulty": "Easy",
+    "title": "Missing viewport meta tag",
+    "question": "A responsive site with correct media queries still looks tiny and zoomed-out on phones. The `<meta name=\"viewport\">` tag is missing. Why does that matter?",
+    "options": [
+      "Mobile browsers then lay out at a wide virtual viewport and scale the page down",
+      "Without it, media queries are disabled entirely on mobile browsers",
+      "The browser falls back to the print stylesheet on small screens",
+      "Images are served at desktop resolution, inflating page dimensions"
+    ],
+    "correctIndex": 0,
+    "explanation": "Without width=device-width, mobile browsers render the page into a virtual viewport (typically around 980px) and shrink it to fit, so width-based media queries see a desktop-like width. Media queries are not disabled, print styles are unaffected, and image selection is a separate concern.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag"
+  },
+  {
+    "id": "fe-picture-art-direction",
+    "topic": "frontend",
+    "subtopic": "responsive-design",
+    "difficulty": "Medium",
+    "title": "Art direction with picture",
+    "question": "Design wants a tightly cropped portrait photo on phones and a wide landscape crop of the same scene on desktop. Which markup fits this requirement?",
+    "options": [
+      "A single <img> with srcset width descriptors for each crop",
+      "<picture> with <source media=...> entries and an <img> fallback",
+      "An <img> using sizes so the browser crops it per breakpoint",
+      "Two <img> elements toggled with display: none in media queries"
+    ],
+    "correctIndex": 1,
+    "explanation": "Serving different crops per condition is art direction, which <picture> handles: the browser must use the first <source> whose media matches. srcset/sizes is resolution switching and lets the browser choose any candidate, assuming they are the same image; sizes never crops. Toggling two images with CSS can still download both.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/picture"
+  },
+  {
+    "id": "fe-container-queries-card",
+    "topic": "frontend",
+    "subtopic": "responsive-design",
+    "difficulty": "Hard",
+    "title": "Component-level responsiveness",
+    "question": "A product card is used both in a narrow sidebar and in a wide main column on the same page. Its layout must adapt to the space it actually has, not to the viewport. What is the modern CSS solution?",
+    "options": [
+      "Use @media queries with min-width breakpoints tuned for each placement",
+      "Use vw units for card widths so they scale with the available space",
+      "Declare container-type: inline-size on the parent and use @container queries",
+      "Set the card to display: contents so it inherits the parent layout"
+    ],
+    "correctIndex": 2,
+    "explanation": "Container queries let a component respond to the size of its nearest query container, so the same card adapts differently in the sidebar and main column. Media queries and vw units only see the viewport, which is identical for both placements, and display: contents removes the card's box rather than adapting it.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries"
+  },
+  {
+    "id": "fe-css-render-blocking",
+    "topic": "frontend",
+    "subtopic": "browser-fundamentals",
+    "difficulty": "Medium",
+    "title": "Why CSS blocks rendering",
+    "question": "Why do browsers treat a stylesheet linked in the `<head>` as render-blocking by default?",
+    "options": [
+      "The render tree needs the CSSOM, so painting waits to avoid unstyled content",
+      "CSS files must be executed before the HTML parser can continue",
+      "Stylesheets are fetched over a separate connection that blocks the DOM",
+      "The browser needs CSS to decide which scripts it is allowed to download"
+    ],
+    "correctIndex": 0,
+    "explanation": "The render tree combines the DOM and CSSOM; rendering before the CSSOM is ready would show unstyled content and then re-layout, so the browser waits. CSS is not executed and does not block HTML parsing itself, it shares normal connections, and script download decisions do not depend on it (though scripts may wait for pending CSS before executing).",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/Performance/Critical_rendering_path"
+  },
+  {
+    "id": "fe-defer-vs-async",
+    "topic": "frontend",
+    "subtopic": "browser-fundamentals",
+    "difficulty": "Medium",
+    "title": "defer versus async scripts",
+    "question": "Three classic scripts in the head depend on each other in order and need the parsed DOM. Which loading strategy keeps parsing unblocked while preserving order?",
+    "options": [
+      "Add async: they run in order as soon as each one has downloaded",
+      "Add async and defer together to force strictly sequential loading",
+      "Move them into a single inline script so the parser can skip them",
+      "Add defer: they run in order after parsing, before DOMContentLoaded"
+    ],
+    "correctIndex": 3,
+    "explanation": "Deferred classic scripts download in parallel and execute in document order once parsing is complete, just before DOMContentLoaded. async scripts execute as soon as they arrive, in no guaranteed order; when both attributes are present, async takes precedence in modern browsers. Inline scripts block the parser while they run.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script"
+  },
+  {
+    "id": "fe-layout-thrashing",
+    "topic": "frontend",
+    "subtopic": "browser-fundamentals",
+    "difficulty": "Hard",
+    "title": "Forced synchronous layout loop",
+    "question": "A loop does `for (const el of items) { el.style.height = (el.offsetHeight + 10) + 'px'; }` over 500 elements and the page freezes. What is happening?",
+    "options": [
+      "Setting style.height triggers a network request to recompute styles",
+      "Each offsetHeight read after a style write forces a fresh synchronous layout",
+      "offsetHeight is asynchronous, so the loop waits for 500 animation frames",
+      "The browser repaints the whole page to the GPU after every iteration"
+    ],
+    "correctIndex": 1,
+    "explanation": "Writing a style invalidates layout, and reading offsetHeight in the next iteration forces the browser to run layout immediately to return an accurate value; doing this per element is layout thrashing. Batch all reads first, then all writes (or schedule writes in requestAnimationFrame). No network is involved, offsetHeight is synchronous, and painting happens later, not per iteration.",
+    "referenceUrl": "https://web.dev/articles/avoid-large-complex-layouts-and-layout-thrashing"
+  },
+  {
+    "id": "fe-cls-image-dimensions",
+    "topic": "frontend",
+    "subtopic": "web-performance",
+    "difficulty": "Easy",
+    "title": "Images shifting content",
+    "question": "Article text jumps down as images load, hurting Cumulative Layout Shift. What is the simplest fix?",
+    "options": [
+      "Add loading=\"lazy\" to every image on the page",
+      "Convert images to WebP so they download faster",
+      "Set width and height attributes (or CSS aspect-ratio) on the images",
+      "Preload all images with <link rel=\"preload\">"
+    ],
+    "correctIndex": 2,
+    "explanation": "With width and height (or aspect-ratio) the browser reserves the correct box before the image arrives, so nothing moves. Lazy loading, smaller formats and preloading change when bytes arrive but the space is still unknown until decode, so shifts still happen.",
+    "referenceUrl": "https://web.dev/articles/cls"
+  },
+  {
+    "id": "fe-lcp-lazy-hero",
+    "topic": "frontend",
+    "subtopic": "web-performance",
+    "difficulty": "Medium",
+    "title": "Lazy-loaded hero image",
+    "question": "After a team added `loading=\"lazy\"` to all images, LCP regressed on the landing page, whose LCP element is the hero image above the fold. What should change?",
+    "options": [
+      "Keep lazy loading but add decoding=\"async\" to the hero",
+      "Move the hero into CSS background-image so it loads earlier",
+      "Increase the image's cache lifetime so repeat views are fast",
+      "Load the hero eagerly, optionally with fetchpriority=\"high\""
+    ],
+    "correctIndex": 3,
+    "explanation": "Lazy-loaded images wait until layout confirms they are near the viewport, delaying the request for in-viewport content; above-the-fold images, especially the LCP image, should not be lazy and can be prioritised with fetchpriority=\"high\". decoding hints do not change discovery, CSS backgrounds are discovered even later, and caching does not help first visits.",
+    "referenceUrl": "https://web.dev/articles/browser-level-image-lazy-loading"
+  },
+  {
+    "id": "fe-code-splitting-dynamic-import",
+    "topic": "frontend",
+    "subtopic": "web-performance",
+    "difficulty": "Medium",
+    "title": "Heavy admin-only dependency",
+    "question": "A 400 KB charting library used only on an admin reports page is bundled into the main JavaScript file loaded by every visitor. What is the standard remedy?",
+    "options": [
+      "Load it with dynamic import() when the reports page is opened",
+      "Mark the main bundle script as async in the document head",
+      "Minify the library again with a stricter compressor setting",
+      "Inline the library into the HTML to save one HTTP request"
+    ],
+    "correctIndex": 0,
+    "explanation": "Dynamic import() lets bundlers split the library into a separate chunk fetched on demand, so ordinary visitors never download or parse it. async only changes when the same large bundle executes, re-minifying yields marginal savings, and inlining still ships all the bytes to everyone.",
+    "referenceUrl": "https://web.dev/articles/reduce-javascript-payloads-with-code-splitting"
+  },
+  {
+    "id": "fe-inp-long-handler",
+    "topic": "frontend",
+    "subtopic": "web-performance",
+    "difficulty": "Expert",
+    "title": "Poor INP from a click handler",
+    "question": "Field data shows poor INP on a filter button. Its click handler synchronously recalculates and re-renders a large list, taking about 350 ms on mid-range phones. Which change most directly improves INP?",
+    "options": [
+      "Register the click listener with { passive: true } to skip the default action",
+      "Update minimal UI first, then yield and split the remaining work into smaller tasks",
+      "Preload the handler's script with <link rel=\"preload\"> to speed up execution",
+      "Move the button higher in the DOM so its event dispatch completes sooner"
+    ],
+    "correctIndex": 1,
+    "explanation": "INP measures the time from an interaction to the next paint, so a long synchronous task in the handler delays that frame; yielding to the main thread lets the browser paint feedback quickly and process the rest later. passive only affects touch/wheel scroll defaults, preloading does not reduce run time of already-loaded code, and DOM position does not meaningfully change dispatch cost.",
+    "referenceUrl": "https://web.dev/articles/inp"
+  },
+  {
+    "id": "fe-derived-state",
+    "topic": "frontend",
+    "subtopic": "frontend-architecture",
+    "difficulty": "Medium",
+    "title": "Redundant derived state",
+    "question": "A React component keeps `items` and `filteredItems` in two separate state variables and they occasionally get out of sync after edits. What does the React documentation recommend?",
+    "options": [
+      "Add a useEffect that copies items into filteredItems after every change",
+      "Move both arrays into a global store so they update atomically",
+      "Store filteredItems in a ref so it never triggers re-renders",
+      "Store only items and the filter, and compute the filtered list during render"
+    ],
+    "correctIndex": 3,
+    "explanation": "Values that can be computed from existing props or state should not be stored as separate state; deriving them during render removes the possibility of them diverging (memoise only if it is expensive). A syncing effect adds an extra render and still leaves a stale window, a global store does not remove the duplication, and a ref would not update the UI.",
+    "referenceUrl": "https://react.dev/learn/choosing-the-state-structure"
+  },
+  {
+    "id": "fe-ssr-hydration-gap",
+    "topic": "frontend",
+    "subtopic": "frontend-architecture",
+    "difficulty": "Hard",
+    "title": "SSR page that ignores taps",
+    "question": "A server-rendered product page shows content quickly on mobile, but taps on 'Add to cart' do nothing for about three seconds after it appears. What is the most likely cause?",
+    "options": [
+      "Server rendering disables event listeners until the next full page navigation",
+      "The browser blocks clicks until every image on the page has fully decoded",
+      "The client JavaScript has not finished loading and hydrating, so handlers are not attached",
+      "The CDN caches the HTML, which strips out inline event handler attributes"
+    ],
+    "correctIndex": 2,
+    "explanation": "With SSR the HTML is interactive-looking before the JavaScript bundle downloads, executes and hydrates the markup to attach event handlers, creating a window where taps are ignored. Reducing or splitting JS, progressive or partial hydration help. SSR does not disable listeners, image decoding does not block input, and CDNs do not rewrite markup this way.",
+    "referenceUrl": "https://web.dev/articles/rendering-on-the-web"
+  },
+  {
+    "id": "fe-label-association",
+    "topic": "frontend",
+    "subtopic": "forms-validation",
+    "difficulty": "Easy",
+    "title": "Associating labels with inputs",
+    "question": "What is the correct way to programmatically associate a visible label with a text input?",
+    "options": [
+      "<label for=\"email\"> pointing at the input's id, or wrap the input in the label",
+      "Place the label text in the input's placeholder attribute instead",
+      "Put a <span> directly before the input with the same class name",
+      "Give the label a name attribute matching the input's name attribute"
+    ],
+    "correctIndex": 0,
+    "explanation": "A <label> associated via for/id or by nesting gives the input an accessible name and makes the label clickable to focus the control. Placeholders disappear on input and are not a reliable label, adjacency or shared classes create no association, and name is used for form submission, not labelling.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/label"
+  },
+  {
+    "id": "fe-setcustomvalidity-clear",
+    "topic": "frontend",
+    "subtopic": "forms-validation",
+    "difficulty": "Medium",
+    "title": "Form stuck invalid",
+    "question": "On mismatch, a confirm-password field calls `confirm.setCustomValidity('Passwords must match')`. After the user corrects it, the form still refuses to submit. What is missing?",
+    "options": [
+      "Calling reportValidity() again to recompute the built-in constraints",
+      "Adding the novalidate attribute so the custom message is ignored",
+      "Calling setCustomValidity('') once the values match to clear the error",
+      "Setting the input's pattern attribute to the first password value"
+    ],
+    "correctIndex": 2,
+    "explanation": "A non-empty custom validity message keeps the element in a customError state until it is reset with an empty string, so the code must clear it when the values match. reportValidity() only reports the current state, novalidate disables all browser validation, and pattern with a dynamic password is fragile and unnecessary.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/setCustomValidity"
+  },
+  {
+    "id": "fe-innerhtml-user-content",
+    "topic": "frontend",
+    "subtopic": "web-security",
+    "difficulty": "Easy",
+    "title": "Rendering user comments",
+    "question": "A page displays user comments with `div.innerHTML = comment.text`. A reviewer flags it. What is the risk and simplest safe alternative?",
+    "options": [
+      "No risk, because browsers never execute scripts inserted through innerHTML",
+      "Injected markup such as <img onerror> runs script; use textContent for plain text",
+      "It only risks broken layout; wrapping the text in <pre> tags is enough",
+      "Use outerHTML instead, which escapes special characters automatically"
+    ],
+    "correctIndex": 1,
+    "explanation": "innerHTML parses the string as HTML; although inserted <script> elements do not run, event handler attributes like <img src=x onerror=...> do, making this a classic DOM XSS. textContent treats the value as text. <pre> does not escape anything, and outerHTML parses HTML the same way.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML"
+  },
+  {
+    "id": "fe-csp-unsafe-inline",
+    "topic": "frontend",
+    "subtopic": "web-security",
+    "difficulty": "Hard",
+    "title": "CSP and inline scripts",
+    "question": "After deploying `Content-Security-Policy: script-src 'self'`, an inline analytics snippet stops working. A teammate proposes adding `'unsafe-inline'`. What is the better approach?",
+    "options": [
+      "Allow that snippet with a per-response nonce or a hash in script-src",
+      "Add 'unsafe-inline' since the snippet is first-party and trusted",
+      "Move the policy into a <meta> tag, which does not block inline code",
+      "Switch to default-src * so the snippet is covered by a wildcard"
+    ],
+    "correctIndex": 0,
+    "explanation": "'unsafe-inline' allows every inline script, including attacker-injected ones, which removes most of CSP's XSS protection. A nonce generated per response or a hash of the exact snippet allows only that script. A <meta> CSP enforces script-src the same way, and wildcard sources still do not permit inline script while weakening the policy.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP"
+  },
+  {
+    "id": "fe-httponly-token-storage",
+    "topic": "frontend",
+    "subtopic": "web-security",
+    "difficulty": "Hard",
+    "title": "localStorage versus HttpOnly cookie",
+    "question": "A security review says an access token in localStorage can be stolen by any XSS. The team moves it to an HttpOnly, Secure, SameSite cookie. What does this change achieve?",
+    "options": [
+      "XSS becomes impossible, because injected scripts cannot run on that origin",
+      "The token is now encrypted at rest in the browser so it cannot be copied",
+      "CSRF is fully prevented, so no other server-side checks are needed anymore",
+      "Script can no longer read the token, though XSS can still send requests as the user"
+    ],
+    "correctIndex": 3,
+    "explanation": "HttpOnly hides the cookie from document.cookie and other script APIs, so injected code cannot exfiltrate it, but code running in the page can still make same-origin requests that carry the cookie. It does nothing to prevent XSS itself, does not encrypt the cookie, and SameSite reduces but does not replace all CSRF defences.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie"
+  },
+  {
+    "id": "fe-trusted-types",
+    "topic": "frontend",
+    "subtopic": "web-security",
+    "difficulty": "Expert",
+    "title": "Locking down DOM XSS sinks",
+    "question": "A large SPA keeps reintroducing DOM XSS through new `innerHTML` usages. Security wants the browser itself to reject raw strings passed to such sinks. What should they deploy?",
+    "options": [
+      "A Subresource Integrity hash on every script loaded by the application",
+      "CSP require-trusted-types-for 'script' with vetted Trusted Types policies",
+      "The X-Content-Type-Options: nosniff header on all HTML responses",
+      "A frame-ancestors 'none' directive in the Content-Security-Policy"
+    ],
+    "correctIndex": 1,
+    "explanation": "With require-trusted-types-for 'script', injection sinks such as innerHTML throw when given plain strings and only accept TrustedHTML created by named policies, concentrating sanitisation in a few reviewed places. SRI protects against tampered files, nosniff stops MIME sniffing, and frame-ancestors prevents framing; none constrain DOM sinks.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/Trusted_Types_API"
+  },
+  {
+    "id": "py-list-multiply-aliasing",
+    "topic": "python",
+    "subtopic": "syntax-collections",
+    "difficulty": "Medium",
+    "title": "Nested list created by multiplication",
+    "question": "What does this print?\n\ngrid = [[0] * 3] * 3\ngrid[0][0] = 1\nprint(grid)",
+    "options": [
+      "[[1, 0, 0], [0, 0, 0], [0, 0, 0]]",
+      "[[1, 1, 1], [0, 0, 0], [0, 0, 0]]",
+      "TypeError: list item assignment on a copy",
+      "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]"
+    ],
+    "correctIndex": 3,
+    "explanation": "Multiplying the outer list repeats the reference to the same inner list three times, so mutating one row shows up in every row. Build independent rows with a comprehension such as [[0] * 3 for _ in range(3)]. The inner [0] * 3 is fine because ints are immutable.",
+    "referenceUrl": "https://docs.python.org/3/faq/programming.html"
+  },
+  {
+    "id": "py-is-vs-equals",
+    "topic": "python",
+    "subtopic": "syntax-collections",
+    "difficulty": "Easy",
+    "title": "is versus ==",
+    "question": "Given `a = [1, 2]` and `b = [1, 2]`, what are `a == b` and `a is b`?",
+    "options": [
+      "True and False",
+      "True and True",
+      "False and False",
+      "False and True"
+    ],
+    "correctIndex": 0,
+    "explanation": "== compares values via __eq__, and the two lists have equal contents; is compares object identity, and each list literal creates a distinct object. Use is for identity checks such as `x is None`, not for value comparison.",
+    "referenceUrl": "https://docs.python.org/3/reference/expressions.html#is-not"
+  },
+  {
+    "id": "py-mutable-default-arg",
+    "topic": "python",
+    "subtopic": "functions-decorators",
+    "difficulty": "Easy",
+    "title": "Mutable default argument",
+    "question": "What is printed?\n\ndef add(x, acc=[]):\n    acc.append(x)\n    return acc\n\nprint(add(1))\nprint(add(2))",
+    "options": [
+      "[1] then [2]",
+      "[1, 2] then [1, 2]",
+      "[1] then [1, 2]",
+      "[] then [1]"
+    ],
+    "correctIndex": 2,
+    "explanation": "Default values are evaluated once, when the def statement runs, so every call without acc shares the same list and it accumulates. The idiomatic fix is acc=None and creating a new list inside the function.",
+    "referenceUrl": "https://docs.python.org/3/tutorial/controlflow.html#default-argument-values"
+  },
+  {
+    "id": "py-functools-wraps",
+    "topic": "python",
+    "subtopic": "functions-decorators",
+    "difficulty": "Medium",
+    "title": "Decorator loses metadata",
+    "question": "After decorating `fetch_user` with a home-made timing decorator, logs and API docs show the function name as `wrapper` and its docstring is gone. What fixes this?",
+    "options": [
+      "Apply @functools.wraps(func) to the inner wrapper function",
+      "Return func instead of wrapper from the decorator",
+      "Declare the wrapper with *args and **kwargs only",
+      "Use @staticmethod on the wrapper inside the decorator"
+    ],
+    "correctIndex": 0,
+    "explanation": "functools.wraps copies __name__, __doc__, __qualname__, __module__ and more from the wrapped function and sets __wrapped__, so introspection still sees the original. Returning func skips the timing logic entirely, the signature style does not affect metadata, and staticmethod is unrelated.",
+    "referenceUrl": "https://docs.python.org/3/library/functools.html#functools.wraps"
+  },
+  {
+    "id": "py-late-binding-closures",
+    "topic": "python",
+    "subtopic": "functions-decorators",
+    "difficulty": "Hard",
+    "title": "Lambdas created in a loop",
+    "question": "What does this evaluate to?\n\nfs = [lambda: i for i in range(3)]\n[f() for f in fs]",
+    "options": [
+      "[0, 1, 2]",
+      "[0, 0, 0]",
+      "[2, 2, 2]",
+      "NameError: i is not defined"
+    ],
+    "correctIndex": 2,
+    "explanation": "Closures look up i when called, not when created, and all three lambdas share the comprehension's i, which ends at 2. Bind the current value with a default argument (lambda i=i: i). It is not a NameError because the comprehension scope is kept alive by the closures.",
+    "referenceUrl": "https://docs.python.org/3/faq/programming.html"
+  },
+  {
+    "id": "py-generator-exhausted",
+    "topic": "python",
+    "subtopic": "iterators-generators",
+    "difficulty": "Easy",
+    "title": "Reusing a generator",
+    "question": "What is printed?\n\ngen = (x * x for x in range(3))\nprint(sum(gen))\nprint(sum(gen))",
+    "options": [
+      "5 then 5",
+      "5 then 0",
+      "5 then TypeError",
+      "0 then 5"
+    ],
+    "correctIndex": 1,
+    "explanation": "A generator is a one-shot iterator: the first sum consumes 0 + 1 + 4 = 5, and the second sees an already exhausted iterator and returns 0. To iterate twice, recreate the generator or materialise it into a list.",
+    "referenceUrl": "https://docs.python.org/3/howto/functional.html"
+  },
+  {
+    "id": "py-generator-large-file",
+    "topic": "python",
+    "subtopic": "iterators-generators",
+    "difficulty": "Medium",
+    "title": "Processing a 20 GB log file",
+    "question": "A script processes a 20 GB log file with `lines = f.readlines()` and gets killed by the OOM killer. Which rewrite keeps memory roughly constant?",
+    "options": [
+      "Call f.read() once and split the string on newline characters",
+      "Wrap readlines() in list() to force eager evaluation earlier",
+      "Use sorted(f.readlines()) so lines are processed in order",
+      "Iterate the file object lazily, e.g. a generator over `for line in f`"
+    ],
+    "correctIndex": 3,
+    "explanation": "File objects are iterators that yield one line at a time, so a generator pipeline over them only holds the current line in memory. read() and readlines() load the whole file, and list() or sorted() also materialise everything.",
+    "referenceUrl": "https://docs.python.org/3/howto/functional.html"
+  },
+  {
+    "id": "py-yield-from-return",
+    "topic": "python",
+    "subtopic": "iterators-generators",
+    "difficulty": "Hard",
+    "title": "Value of yield from",
+    "question": "In a generator, `result = yield from sub()` where `sub` yields 1 and 2 and then executes `return 'done'`. What is bound to `result`?",
+    "options": [
+      "2, the last value yielded by sub",
+      "None, since yield from has no value",
+      "'done', the subgenerator's return value",
+      "A list [1, 2] of the yielded items"
+    ],
+    "correctIndex": 2,
+    "explanation": "yield from delegates iteration (including send() and throw()) to the subgenerator, and the expression evaluates to the value carried by its StopIteration, i.e. what sub returns. Yielded values go to the outer caller, not into result.",
+    "referenceUrl": "https://docs.python.org/3/reference/expressions.html#yield-expressions"
+  },
+  {
+    "id": "py-dataclass-mutable-default",
+    "topic": "python",
+    "subtopic": "classes",
+    "difficulty": "Medium",
+    "title": "Dataclass list field",
+    "question": "Defining `@dataclass class Order: tags: list = []` fails at class creation. What is the correct way to give each instance its own empty list?",
+    "options": [
+      "tags: list = list() evaluated at definition",
+      "tags: list = [].copy() in the class body",
+      "tags: list = None with frozen=True on the class",
+      "tags: list = field(default_factory=list)"
+    ],
+    "correctIndex": 3,
+    "explanation": "dataclasses rejects mutable defaults like a list (raising ValueError) because one object would be shared by all instances; default_factory calls list() for each new instance. list() or [].copy() in the class body are still a single shared object, and frozen=True with None does not create a list.",
+    "referenceUrl": "https://docs.python.org/3/library/dataclasses.html"
+  },
+  {
+    "id": "py-mro-diamond",
+    "topic": "python",
+    "subtopic": "classes",
+    "difficulty": "Hard",
+    "title": "Diamond method resolution order",
+    "question": "Given:\n\nclass A: pass\nclass B(A): pass\nclass C(A): pass\nclass D(B, C): pass\n\nWhat is `D.__mro__` (names only)?",
+    "options": [
+      "D, B, C, A, object",
+      "D, B, A, C, object",
+      "D, C, B, A, object",
+      "D, A, B, C, object"
+    ],
+    "correctIndex": 0,
+    "explanation": "Python uses C3 linearisation, which keeps local precedence (B before C, as listed) and puts a shared base after all its subclasses, so A comes after both B and C. Depth-first order (D, B, A, C) would visit A too early, which is why classic-style resolution was replaced.",
+    "referenceUrl": "https://docs.python.org/3/howto/mro.html"
+  },
+  {
+    "id": "py-exit-returns-true",
+    "topic": "python",
+    "subtopic": "exceptions-context",
+    "difficulty": "Hard",
+    "title": "Swallowed exceptions",
+    "question": "Errors inside `with db_session():` blocks silently disappear in production. The custom context manager's `__exit__` ends with `return True`. Why?",
+    "options": [
+      "__exit__ is called before the block, so the exception never occurs",
+      "A truthy return from __exit__ tells Python to suppress the exception",
+      "Returning True re-raises the exception asynchronously in a thread",
+      "The with statement always suppresses exceptions from custom managers"
+    ],
+    "correctIndex": 1,
+    "explanation": "If __exit__ returns a true value, the exception raised in the with body is suppressed and execution continues after the statement. It should return False/None unless it deliberately handles the exception. __exit__ runs after the block, nothing is re-raised elsewhere, and suppression is never automatic.",
+    "referenceUrl": "https://docs.python.org/3/reference/compound_stmts.html#the-with-statement"
+  },
+  {
+    "id": "py-contextmanager-finally",
+    "topic": "python",
+    "subtopic": "exceptions-context",
+    "difficulty": "Medium",
+    "title": "Cleanup after yield skipped",
+    "question": "A `@contextmanager` function does `conn = open_conn(); yield conn; conn.close()`. When the with-block raises, the connection leaks. Why?",
+    "options": [
+      "contextmanager only calls the code after yield when the block returns a value",
+      "The generator is garbage collected before the with-block starts running",
+      "The exception is raised at the yield, so code after it is skipped without try/finally",
+      "close() is never allowed inside a generator decorated with contextmanager"
+    ],
+    "correctIndex": 2,
+    "explanation": "contextlib.contextmanager re-raises the block's exception inside the generator at the yield point; without try/finally (or a with statement) around the yield, the cleanup line never runs. Return values are irrelevant, the generator lives for the whole block, and calling close() is fine.",
+    "referenceUrl": "https://docs.python.org/3/library/contextlib.html"
+  },
+  {
+    "id": "py-raise-from-cause",
+    "topic": "python",
+    "subtopic": "exceptions-context",
+    "difficulty": "Medium",
+    "title": "Exception chaining with from",
+    "question": "A repository catches `KeyError` and raises `NotFound`. Which statement records the KeyError as the explicit direct cause in the traceback?",
+    "options": [
+      "raise NotFound('user', exc)",
+      "raise NotFound('user') from exc",
+      "raise NotFound('user') from None",
+      "raise exc from NotFound('user')"
+    ],
+    "correctIndex": 1,
+    "explanation": "raise ... from exc sets __cause__, and the traceback says the original exception was the direct cause. Passing exc as an argument just stores it in args, from None suppresses the context, and the last form raises the wrong exception type.",
+    "referenceUrl": "https://docs.python.org/3/tutorial/errors.html"
+  },
+  {
+    "id": "py-venv-isolation",
+    "topic": "python",
+    "subtopic": "modules-venv",
+    "difficulty": "Easy",
+    "title": "Two projects, two Django versions",
+    "question": "Two projects on the same machine need different Django versions. What is the standard-library way to keep their dependencies isolated?",
+    "options": [
+      "Install both versions globally with pip and pick one via import name",
+      "Set PYTHONPATH to the site-packages of whichever project is open",
+      "Use a single requirements.txt listing both Django versions",
+      "Create a separate venv per project and install packages into each"
+    ],
+    "correctIndex": 3,
+    "explanation": "python -m venv creates an environment with its own site-packages, so each project can pin its own dependency versions. pip cannot install two versions of the same distribution side by side, juggling PYTHONPATH is fragile, and a requirements file cannot resolve two conflicting versions.",
+    "referenceUrl": "https://docs.python.org/3/library/venv.html"
+  },
+  {
+    "id": "py-circular-import",
+    "topic": "python",
+    "subtopic": "modules-venv",
+    "difficulty": "Hard",
+    "title": "Partially initialized module",
+    "question": "`models.py` does `from services import notify` at the top, and `services.py` does `from models import User` at the top. Importing `models` fails with \"cannot import name 'User' from partially initialized module\". Why?",
+    "options": [
+      "models is in sys.modules but still executing, so User is not defined yet",
+      "Python forbids two modules from importing each other under any circumstances",
+      "from-imports are resolved lazily, so User is looked up after models is deleted",
+      "The import system caches a failed lookup of User from an earlier run"
+    ],
+    "correctIndex": 0,
+    "explanation": "Importing models registers it in sys.modules and starts executing it; its import of services then runs services, whose from models import User finds the half-executed module where User has not been defined yet. Mutual imports can work (e.g. import the module, not names, or move the import), so they are not forbidden; from-imports are eager and nothing is cached across runs.",
+    "referenceUrl": "https://docs.python.org/3/reference/import.html"
+  },
+  {
+    "id": "py-type-hints-runtime",
+    "topic": "python",
+    "subtopic": "typing",
+    "difficulty": "Easy",
+    "title": "Are type hints enforced?",
+    "question": "Given `def area(r: float) -> float: return 3.14 * r * r`, what happens when calling `area(\"2\")` at runtime?",
+    "options": [
+      "Python raises TypeError before the call because the argument is not a float",
+      "The interpreter converts \"2\" to 2.0 automatically from the annotation",
+      "A warning is printed and the call returns None instead of a result",
+      "The annotation is not enforced; the call runs and fails inside on str * float"
+    ],
+    "correctIndex": 3,
+    "explanation": "The Python runtime does not enforce annotations; they are metadata for type checkers, IDEs and libraries. The call proceeds and the multiplication raises TypeError inside the function. No conversion or warning happens automatically.",
+    "referenceUrl": "https://docs.python.org/3/library/typing.html"
+  },
+  {
+    "id": "py-protocol-structural",
+    "topic": "python",
+    "subtopic": "typing",
+    "difficulty": "Medium",
+    "title": "Typing duck-typed parameters",
+    "question": "A function accepts any object with a `read(n: int) -> bytes` method, including third-party classes you cannot modify. How do you type it so mypy checks callers?",
+    "options": [
+      "Annotate the parameter as Any and document the method in the docstring",
+      "Create an abstract base class and require callers to inherit from it",
+      "Define a typing.Protocol with that read method and annotate the parameter",
+      "Use typing.Union of every concrete reader class known today"
+    ],
+    "correctIndex": 2,
+    "explanation": "Protocols enable structural subtyping: any class with a compatible read method satisfies the protocol without inheriting from it. Any disables checking, an ABC requires nominal inheritance that third-party classes lack, and a Union is closed to new types.",
+    "referenceUrl": "https://docs.python.org/3/library/typing.html#typing.Protocol"
+  },
+  {
+    "id": "py-list-invariance",
+    "topic": "python",
+    "subtopic": "typing",
+    "difficulty": "Expert",
+    "title": "list[Dog] passed as list[Animal]",
+    "question": "`Dog` subclasses `Animal`. A type checker rejects passing a `list[Dog]` to `def feed(animals: list[Animal]) -> None`, which only iterates. What is the best fix?",
+    "options": [
+      "Cast the argument with cast(list[Animal], dogs) at every call site",
+      "Annotate the parameter as Sequence[Animal], which is covariant",
+      "Annotate the parameter as list[Any] to accept any element type",
+      "Declare Dog with Generic[Animal] so lists of it are compatible"
+    ],
+    "correctIndex": 1,
+    "explanation": "list is invariant because a function taking list[Animal] could append a Cat into a list of dogs; read-only abstractions such as Sequence or Iterable are covariant, so Sequence[Animal] accepts list[Dog] safely. cast and Any silence the checker without expressing intent, and Generic does not change list variance.",
+    "referenceUrl": "https://docs.python.org/3/library/typing.html"
+  },
+  {
+    "id": "py-gil-cpu-threads",
+    "topic": "python",
+    "subtopic": "asyncio-concurrency",
+    "difficulty": "Medium",
+    "title": "Threads for CPU-bound work",
+    "question": "On the default (GIL-enabled) CPython build, a team runs a CPU-bound image resize across 8 threads and sees no speed-up over one thread. Which change will use multiple cores?",
+    "options": [
+      "Run the work in a ProcessPoolExecutor so each worker has its own interpreter",
+      "Convert the function to async def and await it with asyncio.gather",
+      "Increase the ThreadPoolExecutor max_workers to 32 threads",
+      "Call time.sleep(0) inside the loop to release the GIL more often"
+    ],
+    "correctIndex": 0,
+    "explanation": "The GIL lets only one thread execute Python bytecode at a time, so pure-Python CPU work does not scale across threads; separate processes each have their own interpreter and GIL. asyncio is single-threaded, more threads add contention, and yielding the GIL does not create parallelism. (Free-threaded builds exist but are not the default.)",
+    "referenceUrl": "https://docs.python.org/3/glossary.html#term-global-interpreter-lock"
+  },
+  {
+    "id": "py-asyncio-blocking-call",
+    "topic": "python",
+    "subtopic": "asyncio-concurrency",
+    "difficulty": "Hard",
+    "title": "Event loop stalls",
+    "question": "In an asyncio web service, one handler calls `requests.get(url)` (a blocking library). Under load, all other requests stall while it runs. What is the fix?",
+    "options": [
+      "Wrap the call in asyncio.wait_for so the loop schedules it in parallel",
+      "Mark the handler with @asyncio.coroutine to make the call non-blocking",
+      "Increase the event loop's task limit so more handlers run concurrently",
+      "Use an async HTTP client or move the call off-loop with asyncio.to_thread"
+    ],
+    "correctIndex": 3,
+    "explanation": "A blocking call inside a coroutine stops the single event loop thread, so no other task progresses until it returns; use a native async client or run the call in a worker thread via asyncio.to_thread or run_in_executor. wait_for only adds a timeout around awaitables, the old decorator is removed and never made code non-blocking, and there is no task limit causing this.",
+    "referenceUrl": "https://docs.python.org/3/library/asyncio-dev.html"
+  },
+  {
+    "id": "py-asyncio-gather",
+    "topic": "python",
+    "subtopic": "asyncio-concurrency",
+    "difficulty": "Medium",
+    "title": "Sequential awaits",
+    "question": "A coroutine does `a = await fetch(1); b = await fetch(2); c = await fetch(3)`; each fetch waits about 1 s on the network and they are independent. How do you bring the total near 1 s?",
+    "options": [
+      "Replace await with yield so the calls are buffered",
+      "Run them concurrently with asyncio.gather or a TaskGroup",
+      "Call asyncio.run separately for each fetch coroutine",
+      "Use time.sleep(0) between awaits to let the loop switch"
+    ],
+    "correctIndex": 1,
+    "explanation": "Each await suspends until that coroutine finishes, so the calls are sequential; gather or TaskGroup schedule them as tasks that wait on the network simultaneously. yield is invalid here, asyncio.run creates a new loop each time and still runs them one after another, and time.sleep blocks the loop.",
+    "referenceUrl": "https://docs.python.org/3/library/asyncio-task.html"
+  },
+  {
+    "id": "py-create-task-reference",
+    "topic": "python",
+    "subtopic": "asyncio-concurrency",
+    "difficulty": "Expert",
+    "title": "Fire-and-forget task vanishes",
+    "question": "A service calls `asyncio.create_task(send_audit_log(event))` without storing the result. Occasionally audit logs are never written, with no error. What does the documentation identify as the cause?",
+    "options": [
+      "The loop keeps only weak references to tasks, so an unreferenced task can be garbage collected",
+      "create_task only schedules the coroutine if the caller awaits it within the same tick",
+      "Tasks created without a name are cancelled when the creating coroutine returns",
+      "create_task runs the coroutine in a thread pool that drops work under load"
+    ],
+    "correctIndex": 0,
+    "explanation": "The asyncio docs warn to save a reference to the result of create_task because the event loop only keeps weak references; keep tasks in a set and discard them in a done callback (or use a TaskGroup). Tasks run without being awaited, naming is irrelevant, and create_task does not use threads.",
+    "referenceUrl": "https://docs.python.org/3/library/asyncio-task.html"
+  },
+  {
+    "id": "py-mock-where-to-patch",
+    "topic": "python",
+    "subtopic": "testing-python",
+    "difficulty": "Hard",
+    "title": "Patch that has no effect",
+    "question": "`billing.py` contains `from payments import charge`. A test uses `@patch('payments.charge')`, yet `billing.checkout()` still calls the real `charge`. What is wrong?",
+    "options": [
+      "patch only works on classes, so charge must be wrapped in a class first",
+      "The decorator must be @patch.object('payments', 'charge') with strings",
+      "billing has its own reference; patch 'billing.charge', where it is looked up",
+      "patch replaces the function only after the test function has returned"
+    ],
+    "correctIndex": 2,
+    "explanation": "patch replaces a name in a namespace; from-import binds charge into billing's namespace at import time, so patching payments.charge leaves billing.charge pointing at the original. Patch where the object is looked up. patch works on any attribute, patch.object takes an object not a string, and the patch is active during the test.",
+    "referenceUrl": "https://docs.python.org/3/library/unittest.mock.html#where-to-patch"
+  },
+  {
+    "id": "py-pytest-yield-fixture",
+    "topic": "python",
+    "subtopic": "testing-python",
+    "difficulty": "Easy",
+    "title": "Fixture teardown",
+    "question": "In a pytest fixture that creates a temporary database, where should cleanup code go so it runs after each test that uses the fixture?",
+    "options": [
+      "Before the return statement, so it runs ahead of the test",
+      "In a separate test function named test_teardown at file end",
+      "After a yield statement that hands the database to the test",
+      "Inside conftest.py at module level, outside any function"
+    ],
+    "correctIndex": 2,
+    "explanation": "pytest runs fixture code up to yield as setup, passes the yielded value to the test, and runs the code after yield as teardown, even if the test fails. Code before return runs before the test, tests do not run in a guaranteed teardown order, and module-level code runs once at import.",
+    "referenceUrl": "https://docs.pytest.org/en/stable/how-to/fixtures.html"
+  },
+  {
+    "id": "py-str-join-loop",
+    "topic": "python",
+    "subtopic": "performance-python",
+    "difficulty": "Medium",
+    "title": "Building a large string",
+    "question": "A report builder does `out += line` for 500,000 lines and is slow. What does the Python documentation recommend?",
+    "options": [
+      "Use out = out + line instead, which avoids an extra copy",
+      "Use f-strings for each line so concatenation is constant time",
+      "Convert out to a tuple and append lines to the tuple",
+      "Collect the pieces in a list and call ''.join(pieces) once"
+    ],
+    "correctIndex": 3,
+    "explanation": "Strings are immutable, so repeated concatenation can create new objects each time and the docs warn this has quadratic cost in general; str.join computes the final size once. out = out + line is the same operation, f-strings format a single string but do not change accumulation, and tuples are immutable too.",
+    "referenceUrl": "https://docs.python.org/3/library/stdtypes.html#str.join"
+  },
+  {
+    "id": "py-lru-cache-method-leak",
+    "topic": "python",
+    "subtopic": "performance-python",
+    "difficulty": "Expert",
+    "title": "lru_cache on methods leaks memory",
+    "question": "A request handler creates a new `PriceService` per request, and `PriceService.quote(self, sku)` is decorated with `@functools.lru_cache(maxsize=None)`. Memory grows without bound. Why?",
+    "options": [
+      "lru_cache stores a full copy of each instance's __dict__ alongside the result",
+      "The cache is shared by the class and holds strong references to every self it saw",
+      "maxsize=None makes the cache per-instance, so it is duplicated every request",
+      "lru_cache disables reference counting for all arguments of cached calls"
+    ],
+    "correctIndex": 1,
+    "explanation": "The cached function lives on the class, and self is part of each cache key, so every instance stays reachable from the cache; with maxsize=None entries are never evicted. The FAQ discusses this and suggests alternatives such as cached_property or a per-instance cache. No __dict__ copies are made, the cache is not per-instance, and refcounting is unchanged.",
+    "referenceUrl": "https://docs.python.org/3/faq/programming.html"
+  },
+  {
+    "id": "java-heap-vs-stack",
+    "topic": "java",
+    "subtopic": "jvm",
+    "difficulty": "Easy",
+    "title": "Where objects live",
+    "question": "In `void handle() { Order o = new Order(); }`, where does the JVM conceptually store the Order object and the local variable `o`?",
+    "options": [
+      "The object on the heap; the reference o in the thread's stack frame",
+      "Both the object and o in the method area with class metadata",
+      "The object in the thread's stack frame; o on the shared heap",
+      "Both in a per-thread heap that is cleared when the method ends"
+    ],
+    "correctIndex": 0,
+    "explanation": "The JVM specification allocates class instances on the heap shared by all threads, while each thread's JVM stack holds frames with local variables, including references. The method area holds per-class data, and the heap is not per-thread. (JIT escape analysis may optimise allocations, but the model is unchanged.)",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-2.html"
+  },
+  {
+    "id": "java-stackoverflow-recursion",
+    "topic": "java",
+    "subtopic": "jvm",
+    "difficulty": "Easy",
+    "title": "Deep recursion error",
+    "question": "A recursive tree walk over a degenerate 1,000,000-level deep tree crashes with `java.lang.StackOverflowError`. What is the root cause?",
+    "options": [
+      "Each call adds a frame to a fixed-size thread stack, which runs out",
+      "The heap is full of tree nodes and the GC cannot reclaim them",
+      "Metaspace is exhausted by repeatedly loading the recursive method",
+      "The JIT compiler refuses to compile methods that call themselves"
+    ],
+    "correctIndex": 0,
+    "explanation": "Every method invocation pushes a frame on the thread's JVM stack, and when the required depth exceeds the stack size the JVM throws StackOverflowError. Use an iterative algorithm with an explicit stack (or raise -Xss as a stopgap). Heap or Metaspace exhaustion produce OutOfMemoryError, and recursion does not stop JIT compilation.",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-2.html"
+  },
+  {
+    "id": "java-equals-without-hashcode",
+    "topic": "java",
+    "subtopic": "oop-java",
+    "difficulty": "Easy",
+    "title": "equals without hashCode",
+    "question": "A `Money` class overrides `equals` to compare amount and currency but not `hashCode`. Two equal Money objects are added to a `HashSet`. What happens?",
+    "options": [
+      "The second add throws IllegalStateException for a broken contract",
+      "The set will very likely contain both, because their hash codes differ",
+      "The set deduplicates them, because HashSet only calls equals",
+      "Compilation fails until hashCode is overridden alongside equals"
+    ],
+    "correctIndex": 1,
+    "explanation": "The Object contract requires equal objects to have equal hash codes; HashSet first uses hashCode to find a bucket, so with identity-based hash codes the equal objects usually land in different buckets and equals is never consulted. Nothing is thrown, and the compiler does not enforce the contract.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Object.html"
+  },
+  {
+    "id": "java-record-accessors",
+    "topic": "java",
+    "subtopic": "oop-java",
+    "difficulty": "Easy",
+    "title": "Reading a record component",
+    "question": "Given `record Point(int x, int y) {}` and `Point p = new Point(1, 2);`, how do you read x?",
+    "options": [
+      "p.getX()",
+      "p.x as a public field",
+      "p.component(\"x\")",
+      "p.x()"
+    ],
+    "correctIndex": 3,
+    "explanation": "Records automatically get a private final field and a public accessor method named exactly after each component, plus a canonical constructor, equals, hashCode and toString. There is no getX() bean-style getter, the field is private, and records have no reflective get by name.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/language/records.html"
+  },
+  {
+    "id": "java-sealed-exhaustive-switch",
+    "topic": "java",
+    "subtopic": "oop-java",
+    "difficulty": "Medium",
+    "title": "Sealed hierarchy and switch",
+    "question": "With `sealed interface Shape permits Circle, Square {}` and a pattern-matching `switch (shape)` that handles `Circle` and `Square` without `default`, what happens when a new `Triangle` is added to the permits list?",
+    "options": [
+      "The switch silently skips Triangle values at runtime",
+      "The switch throws NullPointerException for Triangle",
+      "The switch stops compiling until Triangle is handled",
+      "Nothing, since sealed types only restrict reflection"
+    ],
+    "correctIndex": 2,
+    "explanation": "Because the compiler knows every permitted subtype, a switch covering them all is exhaustive without default; adding a new permitted subtype makes it non-exhaustive, which is a compile error, so all switches must be updated. Values are not silently skipped, null handling is separate, and sealing restricts which classes may extend the type.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/language/sealed-classes-and-interfaces.html"
+  },
+  {
+    "id": "java-default-method-conflict",
+    "topic": "java",
+    "subtopic": "oop-java",
+    "difficulty": "Medium",
+    "title": "Two defaults with same signature",
+    "question": "Class `Robot implements Walker, Talker`, and both interfaces declare `default String describe()`. How must Robot compile?",
+    "options": [
+      "It compiles; the interface listed first in implements wins",
+      "It compiles; the JVM picks one at runtime by load order",
+      "Mark Robot abstract, which resolves the conflict automatically",
+      "Override describe(), optionally delegating via Walker.super.describe()"
+    ],
+    "correctIndex": 3,
+    "explanation": "When a class inherits two unrelated default methods with the same signature, the compiler reports an error until the class overrides the method; inside, it can choose an implementation with InterfaceName.super.method(). Declaration order does not matter, nothing is resolved at runtime, and abstract classes face the same conflict.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/java/IandI/defaultmethods.html"
+  },
+  {
+    "id": "java-type-erasure-new-t",
+    "topic": "java",
+    "subtopic": "generics-collections",
+    "difficulty": "Medium",
+    "title": "Why new T() fails",
+    "question": "Inside `class Repository<T>`, the line `T entity = new T();` does not compile. Why?",
+    "options": [
+      "Type parameters are erased, so the runtime does not know which class to instantiate",
+      "Generic classes may only create instances through static factory methods",
+      "T must first be declared with extends Object to allow construction",
+      "Constructors cannot be called on interfaces, and T is always an interface"
+    ],
+    "correctIndex": 0,
+    "explanation": "Generics are implemented by erasure: T becomes its bound (Object) in bytecode, so there is no class to call a constructor on. The usual workaround passes a Supplier<T> or Class<T>. There is no static-factory rule, bounding by Object changes nothing, and T can be any reference type.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/java/generics/erasure.html"
+  },
+  {
+    "id": "java-pecs-super-wildcard",
+    "topic": "java",
+    "subtopic": "generics-collections",
+    "difficulty": "Hard",
+    "title": "Choosing the wildcard",
+    "question": "A method adds Integers to a caller-supplied list. Callers may pass a `List<Integer>`, `List<Number>` or `List<Object>`. Which parameter type fits?",
+    "options": [
+      "List<? extends Integer>",
+      "List<? extends Number>",
+      "List<? super Integer>",
+      "List<Integer>"
+    ],
+    "correctIndex": 2,
+    "explanation": "The list is a consumer of Integers, so it needs a lower-bounded wildcard: any list whose element type is Integer or a supertype can accept them. extends wildcards are for producers and do not allow add, and List<Integer> rejects List<Number> because generics are invariant.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/java/generics/wildcardGuidelines.html"
+  },
+  {
+    "id": "java-cme-foreach-remove",
+    "topic": "java",
+    "subtopic": "generics-collections",
+    "difficulty": "Medium",
+    "title": "Removing inside for-each",
+    "question": "Code iterates `for (Order o : orders) if (o.isCancelled()) orders.remove(o);` over an `ArrayList`. What typically happens, and what is the idiomatic fix?",
+    "options": [
+      "It works, since ArrayList is designed for structural changes during iteration",
+      "ConcurrentModificationException; use orders.removeIf(Order::isCancelled)",
+      "It loops forever; wrap the body in synchronized (orders) to fix it",
+      "UnsupportedOperationException; copy into a LinkedList before removing"
+    ],
+    "correctIndex": 1,
+    "explanation": "ArrayList iterators are fail-fast: a structural change not made through the iterator is detected on the next call and throws ConcurrentModificationException (on a best-effort basis). removeIf or Iterator.remove modify the list safely. Synchronisation is irrelevant in a single thread, and ArrayList supports remove.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ConcurrentModificationException.html"
+  },
+  {
+    "id": "java-stream-no-terminal",
+    "topic": "java",
+    "subtopic": "streams",
+    "difficulty": "Medium",
+    "title": "Stream that prints nothing",
+    "question": "What does this code print?\n\nList.of(1, 2, 3).stream()\n    .filter(x -> { System.out.println(x); return x > 1; });",
+    "options": [
+      "1, 2 and 3 on separate lines",
+      "Nothing, because no terminal operation runs",
+      "2 and 3, the elements that pass the filter",
+      "Only 1, then the stream short-circuits"
+    ],
+    "correctIndex": 1,
+    "explanation": "Intermediate operations such as filter are lazy: they only build the pipeline, and elements are pulled through when a terminal operation like toList(), forEach or count runs. Without one, the lambda never executes.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/package-summary.html"
+  },
+  {
+    "id": "java-stream-infinite-sorted",
+    "topic": "java",
+    "subtopic": "streams",
+    "difficulty": "Hard",
+    "title": "Infinite stream that hangs",
+    "question": "Starting from `Stream.iterate(1, i -> i + 1)`, which pipeline never terminates?",
+    "options": [
+      ".filter(i -> i % 7 == 0).findFirst()",
+      ".anyMatch(i -> i > 100)",
+      ".limit(5).sorted().toList()",
+      ".sorted().findFirst()"
+    ],
+    "correctIndex": 3,
+    "explanation": "sorted() is a stateful operation that must see every element before emitting any, which is impossible on an infinite stream. findFirst and anyMatch are short-circuiting and stop at the first match, and limit(5) makes the stream finite before sorting.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/package-summary.html"
+  },
+  {
+    "id": "java-parallel-stream-side-effects",
+    "topic": "java",
+    "subtopic": "streams",
+    "difficulty": "Expert",
+    "title": "Parallel forEach into ArrayList",
+    "question": "`List<Id> out = new ArrayList<>(); ids.parallelStream().map(this::lookup).forEach(out::add);` sometimes returns fewer elements than expected or throws. What is the correct rewrite?",
+    "options": [
+      "Replace forEach with forEachOrdered, which makes ArrayList thread-safe",
+      "Declare out as volatile so every thread sees the latest list contents",
+      "Let the stream build the result: ids.parallelStream().map(this::lookup).toList()",
+      "Call .sequential() after forEach so additions are merged at the end"
+    ],
+    "correctIndex": 2,
+    "explanation": "forEach on a parallel stream runs the action concurrently from several threads, and ArrayList.add is not thread-safe, so updates are lost or an index exception occurs; the stream docs recommend avoiding side effects and using reduction/collection operations. forEachOrdered orders actions but is the wrong tool here, volatile on the reference does not protect the list's internals, and nothing can follow a terminal operation.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/package-summary.html"
+  },
+  {
+    "id": "java-checked-exceptions",
+    "topic": "java",
+    "subtopic": "exceptions-java",
+    "difficulty": "Easy",
+    "title": "Checked exceptions",
+    "question": "Which of these exceptions must be either caught or declared in a method's `throws` clause?",
+    "options": [
+      "java.io.IOException",
+      "java.lang.IllegalArgumentException",
+      "java.lang.NullPointerException",
+      "java.lang.ArithmeticException"
+    ],
+    "correctIndex": 0,
+    "explanation": "IOException is a checked exception, so the compiler enforces the catch-or-specify requirement. The other three extend RuntimeException; unchecked exceptions signal programming errors and need not be declared.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/essential/exceptions/runtime.html"
+  },
+  {
+    "id": "java-try-with-resources-suppressed",
+    "topic": "java",
+    "subtopic": "exceptions-java",
+    "difficulty": "Hard",
+    "title": "Exceptions from body and close",
+    "question": "In a try-with-resources block, the body throws `SQLException(\"query\")` and then the resource's `close()` throws `SQLException(\"close\")`. What does the caller receive?",
+    "options": [
+      "The close exception, because it was thrown last",
+      "The query exception, with the close exception in getSuppressed()",
+      "The close exception, with the query one available as getCause()",
+      "Both, wrapped together in a new AggregateException instance"
+    ],
+    "correctIndex": 1,
+    "explanation": "try-with-resources propagates the exception from the try block and attaches exceptions thrown while closing as suppressed exceptions, retrievable via Throwable.getSuppressed(). This avoids masking the original failure as old finally-based code did. Java has no AggregateException, and the close failure is not set as the cause.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/essential/exceptions/tryResourceClose.html"
+  },
+  {
+    "id": "java-volatile-stop-flag",
+    "topic": "java",
+    "subtopic": "concurrency-java",
+    "difficulty": "Medium",
+    "title": "Worker never stops",
+    "question": "A worker thread loops `while (running) { ... }` and another thread sets `running = false`, but the worker sometimes never exits. `running` is a plain `boolean` field. What is the minimal fix?",
+    "options": [
+      "Call Thread.yield() inside the loop so the field gets reloaded",
+      "Make the field static so all threads share a single copy of it",
+      "Declare the field final so the compiler cannot cache its value",
+      "Declare the field volatile so writes become visible to the reader"
+    ],
+    "correctIndex": 3,
+    "explanation": "Without a happens-before relationship, the JIT may hoist the read out of the loop and the worker may never observe the write; the Java Memory Model guarantees that a write to a volatile field is visible to subsequent reads. yield has no memory semantics, static changes sharing but not visibility, and a final field could not be changed at all.",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html"
+  },
+  {
+    "id": "java-volatile-not-atomic",
+    "topic": "java",
+    "subtopic": "concurrency-java",
+    "difficulty": "Medium",
+    "title": "Lost increments",
+    "question": "A metrics counter `volatile int hits;` is incremented with `hits++` from many request threads and ends up lower than the true count. Why, and what is the fix?",
+    "options": [
+      "++ is a read-modify-write; use AtomicInteger.incrementAndGet()",
+      "volatile caches the value per thread; remove volatile to fix it",
+      "int overflows under load; change the field to volatile long",
+      "The JIT reorders increments; add a Thread.sleep(0) after them"
+    ],
+    "correctIndex": 0,
+    "explanation": "volatile guarantees visibility, but hits++ reads, adds and writes in separate steps, so two threads can read the same value and one update is lost. AtomicInteger performs the increment atomically using compare-and-set (LongAdder also suits high contention). Removing volatile makes things worse, overflow is not the issue, and sleep provides no atomicity.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/atomic/AtomicInteger.html"
+  },
+  {
+    "id": "java-executor-shutdown",
+    "topic": "java",
+    "subtopic": "concurrency-java",
+    "difficulty": "Medium",
+    "title": "JVM does not exit",
+    "question": "A CLI tool submits work to `Executors.newFixedThreadPool(4)`, prints results, and returns from `main`, but the process never exits. What is missing?",
+    "options": [
+      "Calling System.gc() so the idle worker threads are reclaimed",
+      "Declaring main as synchronized so it waits for all the tasks",
+      "Shutting the executor down, e.g. shutdown() or try-with-resources close()",
+      "Using submit() instead of execute() so tasks complete faster"
+    ],
+    "correctIndex": 2,
+    "explanation": "Fixed thread pools use non-daemon threads that wait for new tasks, keeping the JVM alive; shutdown() lets them finish queued work and terminate, and since JDK 19 ExecutorService is AutoCloseable so try-with-resources waits and shuts down. GC does not stop live threads, synchronized main does nothing here, and submit vs execute is irrelevant.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/ExecutorService.html"
+  },
+  {
+    "id": "java-virtual-thread-pinning",
+    "topic": "java",
+    "subtopic": "concurrency-java",
+    "difficulty": "Expert",
+    "title": "Virtual threads not scaling on JDK 21",
+    "question": "On JDK 21, a service moved to virtual threads, but throughput is capped near the number of CPU cores. Profiling shows threads blocking on socket I/O inside `synchronized` blocks. What is happening?",
+    "options": [
+      "Virtual threads always run on one carrier, so any I/O serialises the application",
+      "synchronized makes virtual threads daemon threads, which the JVM deprioritises",
+      "Socket I/O is unsupported on virtual threads and silently falls back to polling",
+      "Blocking inside synchronized pins virtual threads to carriers; use ReentrantLock or JDK 24+"
+    ],
+    "correctIndex": 3,
+    "explanation": "On JDK 21 a virtual thread that blocks while holding a monitor is pinned and cannot unmount, so it occupies its carrier thread; with few carriers (about one per core) throughput collapses. The JDK 21 guidance suggests ReentrantLock around long blocking operations; JDK 24 (JEP 491) removed this pinning for synchronized. Virtual threads use many carriers, are always daemon, and do support blocking socket I/O.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/core/virtual-threads.html"
+  },
+  {
+    "id": "java-gc-reachability",
+    "topic": "java",
+    "subtopic": "gc-java",
+    "difficulty": "Easy",
+    "title": "When an object can be collected",
+    "question": "Two objects reference each other, but nothing else in the application references either of them. Can the JVM's garbage collector reclaim them?",
+    "options": [
+      "No, because each still has a reference count of one",
+      "Only if one of the fields is explicitly set to null",
+      "Yes, because neither is reachable from any GC root",
+      "Only after System.gc() is called by the application"
+    ],
+    "correctIndex": 2,
+    "explanation": "HotSpot collectors trace reachability from roots such as thread stacks and static fields; anything unreachable, including cycles, is garbage. Reference counting is not how the JVM decides liveness, nulling fields is unnecessary, and System.gc() is only a hint.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/gctuning/"
+  },
+  {
+    "id": "java-default-gc-g1",
+    "topic": "java",
+    "subtopic": "gc-java",
+    "difficulty": "Easy",
+    "title": "Default collector",
+    "question": "On a typical multi-core server with a few gigabytes of RAM and no GC flags, which garbage collector does JDK 21 select?",
+    "options": [
+      "Parallel collector",
+      "G1 (Garbage-First)",
+      "Serial collector",
+      "ZGC"
+    ],
+    "correctIndex": 1,
+    "explanation": "G1 has been the default since JDK 9 and is chosen on most hardware; the Serial collector is chosen ergonomically only on small machines (single CPU or limited memory). Parallel and ZGC must be enabled explicitly with -XX:+UseParallelGC or -XX:+UseZGC.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/gctuning/garbage-first-g1-garbage-collector1.html"
+  },
+  {
+    "id": "java-zgc-low-latency",
+    "topic": "java",
+    "subtopic": "gc-java",
+    "difficulty": "Hard",
+    "title": "Sub-millisecond pause requirement",
+    "question": "A trading service with a 64 GB heap sees G1 pauses of 50 to 150 ms and needs pauses consistently around a millisecond or less. Which collector is designed for this?",
+    "options": [
+      "ZGC, which does heavy work concurrently with application threads",
+      "Parallel GC, which uses all cores to shorten each pause",
+      "Serial GC, which avoids coordination overhead between threads",
+      "G1 with MaxGCPauseMillis=1 to force tiny collections"
+    ],
+    "correctIndex": 0,
+    "explanation": "ZGC is a scalable low-latency collector that performs marking, relocation and reference processing concurrently, keeping pauses typically under a millisecond regardless of heap size. Parallel GC optimises throughput with stop-the-world pauses, Serial is single-threaded and stop-the-world, and MaxGCPauseMillis is a soft goal G1 cannot meet at 1 ms.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/gctuning/z-garbage-collector.html"
+  },
+  {
+    "id": "java-spring-constructor-injection",
+    "topic": "java",
+    "subtopic": "spring",
+    "difficulty": "Medium",
+    "title": "Constructor versus field injection",
+    "question": "Why does the Spring team generally advocate constructor injection over `@Autowired` fields for required dependencies?",
+    "options": [
+      "Dependencies can be final, are guaranteed non-null and are easy to supply in tests",
+      "Field injection is removed in Spring 6 and fails to start the context",
+      "Constructor injection creates beans lazily, reducing startup time",
+      "Constructor injection lets Spring resolve circular dependencies"
+    ],
+    "correctIndex": 0,
+    "explanation": "Constructor injection makes components immutable and fully initialised, and plain unit tests can pass collaborators without a container. Field injection still works, laziness is unrelated, and constructor injection actually makes circular dependencies fail fast rather than resolving them.",
+    "referenceUrl": "https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-collaborators.html"
+  },
+  {
+    "id": "java-spring-transactional-self-invocation",
+    "topic": "java",
+    "subtopic": "spring",
+    "difficulty": "Hard",
+    "title": "@Transactional not applied",
+    "question": "In `OrderService`, a public non-transactional method `placeAll()` calls `this.place(order)`, which is annotated `@Transactional`. Failures in place() are not rolled back. Why?",
+    "options": [
+      "@Transactional only works on private methods called internally",
+      "The call bypasses the Spring proxy, so no transactional advice runs",
+      "Spring applies transactions only to methods in @Controller classes",
+      "place() must also be static for the annotation to be detected"
+    ],
+    "correctIndex": 1,
+    "explanation": "With Spring's default proxy-based AOP, advice is applied when calls go through the proxy; self-invocation via this calls the target directly, so the transaction interceptor never runs. Move the method to another bean or call through the proxy. Private and static methods are not advised by proxies, and transactions are not limited to controllers.",
+    "referenceUrl": "https://docs.spring.io/spring-framework/reference/core/aop/proxying.html"
+  },
+  {
+    "id": "java-spring-transactional-checked",
+    "topic": "java",
+    "subtopic": "spring",
+    "difficulty": "Hard",
+    "title": "Checked exception does not roll back",
+    "question": "A `@Transactional` service method saves an entity and then throws a checked `PaymentDeclinedException`. The entity remains in the database. Why?",
+    "options": [
+      "Checked exceptions are swallowed by the proxy before reaching the caller",
+      "Rollback only occurs when the method's return type is void or Optional",
+      "By default, rollback happens for RuntimeException and Error, not checked exceptions",
+      "The save was flushed, and flushed changes can never be rolled back"
+    ],
+    "correctIndex": 2,
+    "explanation": "Spring's default rollback rules roll back on unchecked exceptions (RuntimeException and Error) and commit on checked ones; use rollbackFor = PaymentDeclinedException.class or throw an unchecked exception. The exception is propagated, return types are irrelevant, and flushed changes are still part of the uncommitted transaction.",
+    "referenceUrl": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html"
+  }
+]

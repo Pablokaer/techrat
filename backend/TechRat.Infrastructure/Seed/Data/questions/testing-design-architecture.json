@@ -1,0 +1,1753 @@
+[
+  {
+    "id": "test-unit-multiple-acts",
+    "topic": "testing",
+    "subtopic": "unit-testing",
+    "difficulty": "Medium",
+    "title": "One test, many acts",
+    "question": "A single test creates a Cart, adds an item and asserts Count == 1, removes it and asserts Count == 0, then applies an expired coupon and asserts an exception. What does Microsoft's unit testing guidance recommend?",
+    "options": [
+      "Keep it, because fewer tests run faster and share setup cost",
+      "Wrap each step in try/catch so later asserts still execute",
+      "Split it into separate tests, each with one Act and a focused assertion",
+      "Move the Arrange code into a constructor and keep the steps"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each test should exercise one behaviour: with multiple Acts, the first failing assert hides the others and the test name can't describe what broke. Speed is not a real gain here, and try/catch or moving setup leaves the test checking several behaviours at once.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-best-practices"
+  },
+  {
+    "id": "test-unit-logic-in-tests",
+    "topic": "testing",
+    "subtopic": "unit-testing",
+    "difficulty": "Easy",
+    "title": "Loops and ifs inside a test",
+    "question": "A test loops over 6 input values and uses an if/else to choose the expected result for each. What is the better approach in xUnit?",
+    "options": [
+      "Keep the loop but add a comment explaining each branch",
+      "Use a [Theory] with [InlineData] rows, each giving an input and its expected output",
+      "Move the if/else into a helper method shared by tests",
+      "Assert only the first value, since the others repeat the logic"
+    ],
+    "correctIndex": 1,
+    "explanation": "Logic in tests can contain bugs of its own and hides which case failed. Parameterized tests ([Theory] with [InlineData]) make each case explicit and report failures per row. Comments or helpers keep the logic, and testing only one value drops coverage.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-best-practices"
+  },
+  {
+    "id": "test-unit-xunit-class-fixture",
+    "topic": "testing",
+    "subtopic": "unit-testing",
+    "difficulty": "Medium",
+    "title": "Expensive setup in xUnit",
+    "question": "An xUnit test class seeds a large reference dataset in its constructor, and its 40 tests take minutes. The tests only read that data. What is the idiomatic fix?",
+    "options": [
+      "Make the seeded data a static field initialised in each constructor",
+      "Mark the test class with [Collection] to run its tests in parallel",
+      "Use a [Fact] that seeds data first and rely on test ordering",
+      "Move the setup into an IClassFixture<T> so it runs once for the whole class"
+    ],
+    "correctIndex": 3,
+    "explanation": "xUnit creates a new test class instance per test, so constructor setup runs 40 times. A class fixture is created once and injected into every test in the class (ICollectionFixture shares it across classes). Collections actually stop parallel runs between classes, and xUnit does not run tests in a guaranteed order.",
+    "referenceUrl": "https://xunit.net/docs/shared-context"
+  },
+  {
+    "id": "test-unit-datetime-seam",
+    "topic": "testing",
+    "subtopic": "unit-testing",
+    "difficulty": "Medium",
+    "title": "Flaky test around midnight",
+    "question": "A test for IsHappyHour() passes most of the time but fails when CI runs near 18:00, because the method calls DateTime.Now internally. What is the best fix?",
+    "options": [
+      "Inject a TimeProvider (or clock abstraction) and control the time in the test",
+      "Retry the test up to three times when it fails on CI",
+      "Schedule the CI pipeline so it never runs near 18:00",
+      "Compare against DateTime.Now inside the test as well"
+    ],
+    "correctIndex": 0,
+    "explanation": "Static calls like DateTime.Now are hidden inputs that make tests non-deterministic. Adding a seam (TimeProvider in .NET 8+, or an IClock interface) lets the test set an exact time. Retries and schedule tweaks hide the problem, and reading the clock twice can still race.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/datetime/timeprovider-overview"
+  },
+  {
+    "id": "test-doubles-stub",
+    "topic": "testing",
+    "subtopic": "test-doubles",
+    "difficulty": "Easy",
+    "title": "Canned answers",
+    "question": "A test configures IExchangeRates to return 1.10 for EUR/USD and then asserts on the converted amount. It never checks how IExchangeRates was called. What kind of double is this?",
+    "options": [
+      "A mock, because it was created with a mocking library",
+      "A spy, because it records the currency pair it received",
+      "A dummy, because it is passed in but never really used",
+      "A stub, giving canned answers so the test can check the result"
+    ],
+    "correctIndex": 3,
+    "explanation": "A stub supplies fixed answers to calls made during the test, and the test then checks the result (state). A mock carries expectations about calls that the test verifies, and the library you use doesn't change the role. A dummy is never actually used, and nothing here records calls the way a spy does.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDouble.html"
+  },
+  {
+    "id": "test-doubles-fake",
+    "topic": "testing",
+    "subtopic": "test-doubles",
+    "difficulty": "Easy",
+    "title": "Working but simplified",
+    "question": "InMemoryOrderRepository stores orders in a Dictionary and really implements Add, GetById and List, so tests can add and query orders. What kind of test double is it?",
+    "options": [
+      "A stub, since it only returns preconfigured values",
+      "A mock, since it verifies the calls made against it",
+      "A fake, a working implementation that takes a shortcut",
+      "A dummy, since it fills a parameter that is never used"
+    ],
+    "correctIndex": 2,
+    "explanation": "Fakes have working logic but use a shortcut that makes them unsuitable for production, such as an in-memory store. Stubs only return canned answers to specific calls, mocks verify expected interactions, and dummies are never used at all.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDouble.html"
+  },
+  {
+    "id": "test-doubles-overspecified",
+    "topic": "testing",
+    "subtopic": "test-doubles",
+    "difficulty": "Hard",
+    "title": "Tests break on harmless refactor",
+    "question": "Tests for GetProductPrice(id) check `repo.Received(1).GetById(id)` and `logger.Received().LogInformation(...)`. Adding a cache in front of the repository breaks 30 tests even though every returned price is still right. What is the root problem?",
+    "options": [
+      "The tests verify interactions with queries instead of the observable result",
+      "The cache adds a race condition that the tests correctly caught",
+      "Mocking libraries cannot handle more than one dependency per test",
+      "The tests should use strict mocks so extra calls are allowed"
+    ],
+    "correctIndex": 0,
+    "explanation": "Checking how a query was called couples tests to the implementation, so refactoring breaks them while behaviour stays the same. For queries, prefer state verification (assert the returned price) and keep mock verification for real side effects such as sending an email. Strict mocks would make the coupling worse.",
+    "referenceUrl": "https://martinfowler.com/articles/mocksArentStubs.html"
+  },
+  {
+    "id": "test-doubles-mock-side-effect",
+    "topic": "testing",
+    "subtopic": "test-doubles",
+    "difficulty": "Medium",
+    "title": "When a mock is the right tool",
+    "question": "PlaceOrder() should send exactly one confirmation through IEmailSender and return nothing useful. Which test-double approach best checks this behaviour?",
+    "options": [
+      "Stub IEmailSender to return true and assert on the method's return value",
+      "Use a mock or spy of IEmailSender and verify one send with the right address",
+      "Use a real SMTP server and check the inbox in the unit test",
+      "Skip the test, since void methods cannot be unit tested"
+    ],
+    "correctIndex": 1,
+    "explanation": "When the behaviour you care about is an outgoing side effect with no state to read, behaviour verification with a mock or spy is the right tool. Stubbing the return value checks nothing about the send, and a real SMTP server turns a unit test into a slow integration test.",
+    "referenceUrl": "https://martinfowler.com/articles/mocksArentStubs.html"
+  },
+  {
+    "id": "test-doubles-ef-inmemory",
+    "topic": "testing",
+    "subtopic": "test-doubles",
+    "difficulty": "Hard",
+    "title": "EF Core InMemory false confidence",
+    "question": "Repository tests use EF Core's UseInMemoryDatabase and all pass. In production on SQL Server, a query using FromSql and a transaction rollback behave differently. Why?",
+    "options": [
+      "The InMemory provider is fine, so the production connection string must be wrong",
+      "The InMemory provider is not relational, so it can't reproduce SQL or transaction behaviour",
+      "EF Core caches compiled queries differently when it runs under a test runner",
+      "SQL Server needs AsNoTracking() for queries that InMemory tracks by default"
+    ],
+    "correctIndex": 1,
+    "explanation": "Microsoft discourages the InMemory provider as a database fake: it isn't relational, doesn't run raw SQL and has no real transactions. To check database behaviour, test against the real database engine (for example in a container). If you need a double, stub at the repository level instead of faking the provider.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/ef/core/testing/choosing-a-testing-strategy"
+  },
+  {
+    "id": "test-int-testcontainers",
+    "topic": "testing",
+    "subtopic": "integration-e2e",
+    "difficulty": "Easy",
+    "title": "Real database per test run",
+    "question": "You want integration tests to run against the same PostgreSQL version as production, started in Docker for the run and removed afterwards, with no shared database server. Which tool fits?",
+    "options": [
+      "Moq",
+      "Playwright",
+      "Stryker.NET",
+      "Testcontainers"
+    ],
+    "correctIndex": 3,
+    "explanation": "Testcontainers starts throwaway Docker containers (such as databases or brokers) from test code and cleans them up afterwards. Moq is a mocking library, Playwright drives browsers, and Stryker.NET does mutation testing.",
+    "referenceUrl": "https://dotnet.testcontainers.org/"
+  },
+  {
+    "id": "test-int-pipeline-bug",
+    "topic": "testing",
+    "subtopic": "integration-e2e",
+    "difficulty": "Medium",
+    "title": "Bug only the real host shows",
+    "question": "OrdersController unit tests build the controller with a mocked IOrderService and all pass. After deploy, every request returns 500 because nobody registered IOrderService in Program.cs. Which test would have caught this?",
+    "options": [
+      "A unit test that mocks IOrderService with stricter expectations",
+      "A property-based test that generates random order IDs",
+      "An integration test that sends HTTP requests through WebApplicationFactory",
+      "A mutation test run against the controller's action methods"
+    ],
+    "correctIndex": 2,
+    "explanation": "Unit tests create the controller by hand, so they never use the app's real DI container, middleware or routing. WebApplicationFactory starts the real host in memory and sends requests through the full pipeline, so missing registrations or a wrong middleware order show up right away. The other options still test the controller in isolation.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/test/integration-tests"
+  },
+  {
+    "id": "test-e2e-playwright-waits",
+    "topic": "testing",
+    "subtopic": "integration-e2e",
+    "difficulty": "Medium",
+    "title": "Sleeping in E2E tests",
+    "question": "A Playwright test does `await page.waitForTimeout(3000); await page.click('#pay');` and still fails now and then on CI. What does Playwright recommend?",
+    "options": [
+      "Remove the sleep and rely on auto-waiting locators and web-first assertions",
+      "Raise the timeout to 10 seconds so slow CI agents can keep up",
+      "Use page.evaluate to click the element directly through the DOM",
+      "Retry the whole test file until it passes once on CI"
+    ],
+    "correctIndex": 0,
+    "explanation": "Playwright locator actions wait until the element is visible, stable, enabled and able to receive events. Assertions such as `await expect(locator).toBeVisible()` retry until a timeout. Fixed sleeps are both slow and flaky, and clicking through the DOM skips the checks a real user would hit.",
+    "referenceUrl": "https://playwright.dev/docs/actionability"
+  },
+  {
+    "id": "test-tdd-red-green",
+    "topic": "testing",
+    "subtopic": "tdd-pyramid",
+    "difficulty": "Easy",
+    "title": "After the failing test",
+    "question": "In test-driven development, you have just written a test that fails. What is the next step?",
+    "options": [
+      "Refactor the existing code before touching the new test",
+      "Write just enough code to make that test pass",
+      "Write the rest of the tests for the feature first",
+      "Commit the failing test so CI can track the work"
+    ],
+    "correctIndex": 1,
+    "explanation": "TDD repeats red, green, refactor: write a failing test, make it pass with the simplest code that works, then clean up while keeping tests green. Refactoring with a red test, writing many tests up front, or committing broken builds all break the short feedback loop.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "test-tdd-skipped-refactor",
+    "topic": "testing",
+    "subtopic": "tdd-pyramid",
+    "difficulty": "Easy",
+    "title": "TDD code is still messy",
+    "question": "A team says it does TDD. Every test is written first and passes, yet the code is full of duplication and long methods. Which part of the cycle are they most likely skipping?",
+    "options": [
+      "Writing the test before the production code",
+      "Running the whole suite before every commit",
+      "The refactor step after each test turns green",
+      "Measuring code coverage after each sprint"
+    ],
+    "correctIndex": 2,
+    "explanation": "Fowler notes that the most common way to get TDD wrong is to skip the third step, refactoring. Green tests prove behaviour but don't clean up design, so duplication builds up. Writing tests first is already happening, and suite runs or coverage numbers don't improve structure.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "test-pyramid-ice-cream",
+    "topic": "testing",
+    "subtopic": "tdd-pyramid",
+    "difficulty": "Medium",
+    "title": "Inverted pyramid",
+    "question": "A suite has 60 unit tests, 120 service tests and 900 browser UI tests that take 3 hours and often fail for no clear reason. What is the best way to improve it?",
+    "options": [
+      "Move most checks down into fast unit and service-level tests and keep few UI tests",
+      "Add more UI tests so that every path is covered end-to-end",
+      "Run the UI tests in parallel and keep the current balance of tests",
+      "Delete the unit tests, since the UI tests already cover them"
+    ],
+    "correctIndex": 0,
+    "explanation": "This is the 'ice-cream cone' anti-pattern. The test pyramid suggests many fast, isolated tests at the bottom and only a few slow, brittle end-to-end tests at the top. Running UI tests in parallel helps speed but not flakiness or cost, and removing unit tests makes it worse.",
+    "referenceUrl": "https://martinfowler.com/articles/practical-test-pyramid.html"
+  },
+  {
+    "id": "test-pyramid-push-down",
+    "topic": "testing",
+    "subtopic": "tdd-pyramid",
+    "difficulty": "Hard",
+    "title": "A high-level test caught a bug",
+    "question": "An end-to-end test finds a discount bug, but no unit or integration test fails. Following the practical test pyramid, what should you do besides fixing the bug?",
+    "options": [
+      "Add a second end-to-end test so the bug is checked twice",
+      "Delete the end-to-end test now that its job is done",
+      "Raise the coverage threshold until a unit test would fail",
+      "Write a lower-level test that reproduces the bug, then fix it"
+    ],
+    "correctIndex": 3,
+    "explanation": "When a higher-level test catches something lower levels miss, there is a gap in the fast tests. Push the check as far down the pyramid as you can, so the bug is caught quickly and close to its cause. A coverage threshold doesn't create the missing assertion.",
+    "referenceUrl": "https://martinfowler.com/articles/practical-test-pyramid.html"
+  },
+  {
+    "id": "test-design-boundary",
+    "topic": "testing",
+    "subtopic": "test-design",
+    "difficulty": "Easy",
+    "title": "Boundary values for an age range",
+    "question": "IsEligible(age) returns true for ages 18 through 65 inclusive. Which inputs best cover the boundaries?",
+    "options": [
+      "18, 30, 45 and 65",
+      "17, 18, 65 and 66",
+      "0, 50, 100 and 150",
+      "-1, 17, 66 and 200"
+    ],
+    "correctIndex": 1,
+    "explanation": "Boundary value analysis tests each edge and its nearest neighbour outside the range, because off-by-one mistakes (> vs >=) happen there. Values in the middle or far away exercise the same equivalence classes and miss those errors.",
+    "referenceUrl": "https://martinfowler.com/articles/practical-test-pyramid.html"
+  },
+  {
+    "id": "test-design-negative",
+    "topic": "testing",
+    "subtopic": "test-design",
+    "difficulty": "Medium",
+    "title": "Testing the unhappy path",
+    "question": "POST /transfers has tests only for valid transfers. Which set of extra tests adds the most valuable negative coverage?",
+    "options": [
+      "More valid amounts with different currencies, expecting 201 responses",
+      "The same valid request repeated 1,000 times, expecting it to stay fast",
+      "Zero, negative, malformed and over-balance amounts, expecting 4xx and no balance change",
+      "Valid transfers between new accounts created in random order"
+    ],
+    "correctIndex": 2,
+    "explanation": "Negative tests check that invalid input is rejected cleanly and has no side effects. That is where validation and security bugs hide. Extra valid cases, load runs or random ordering still only follow the happy path.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/test/integration-tests"
+  },
+  {
+    "id": "test-design-regression-first",
+    "topic": "testing",
+    "subtopic": "test-design",
+    "difficulty": "Medium",
+    "title": "Fixing a production bug",
+    "question": "Production shows invoice totals off by 0.01 for some 3-decimal prices. What is the most reliable way to fix this so it doesn't come back?",
+    "options": [
+      "Fix the rounding code, deploy, and check production by hand",
+      "Add logging around rounding and wait for the bug to reappear",
+      "Add a code comment warning future developers about rounding",
+      "Write a failing test that reproduces the bug, then make it pass"
+    ],
+    "correctIndex": 3,
+    "explanation": "A test written from the bug report first proves you reproduced the real issue, then shows the fix works, and stays as a regression test. Manual checks and logging don't stop the bug from coming back, and comments aren't run.",
+    "referenceUrl": "https://martinfowler.com/bliki/SelfTestingCode.html"
+  },
+  {
+    "id": "test-design-quarantine-flaky",
+    "topic": "testing",
+    "subtopic": "test-design",
+    "difficulty": "Hard",
+    "title": "Non-deterministic tests",
+    "question": "Several integration tests fail about 5% of the time on CI, and developers have started re-running pipelines until they go green. What does Fowler recommend?",
+    "options": [
+      "Quarantine the flaky tests out of the main pipeline right away and fix them soon",
+      "Keep re-running, because a later green run proves the code is fine",
+      "Delete the flaky tests, since tests that can't be trusted have no value",
+      "Mark the pipeline as passing when at least 95% of tests pass"
+    ],
+    "correctIndex": 0,
+    "explanation": "Non-deterministic tests teach the team to ignore red builds, which ruins the whole suite. Fowler suggests moving them to a quarantine area so the main build is trusted again, then fixing the causes (shared state, timing, external services) with a limit on how long they stay there. Deleting them loses coverage, and a pass-rate rule hides real failures.",
+    "referenceUrl": "https://martinfowler.com/articles/nonDeterminism.html"
+  },
+  {
+    "id": "test-adv-property-shrinking",
+    "topic": "testing",
+    "subtopic": "advanced-testing",
+    "difficulty": "Medium",
+    "title": "Property-based testing",
+    "question": "A property-based test checks that `Decode(Encode(s)) == s` for generated strings and fails on a 300-character input. The framework then reports a 2-character counterexample. What happened?",
+    "options": [
+      "The framework retried with random inputs until a short one passed",
+      "The framework shrank the failing input to a smaller case that still fails",
+      "The 300-character failure was a false positive and was thrown away",
+      "The framework cut the input to fit its default size limit"
+    ],
+    "correctIndex": 1,
+    "explanation": "Property-based tools such as Hypothesis or FsCheck generate many inputs to test an invariant. When one fails, they shrink it and report the smallest input that still breaks the property, which makes debugging easier. The original failure is real and is not discarded.",
+    "referenceUrl": "https://hypothesis.readthedocs.io/en/latest/"
+  },
+  {
+    "id": "test-adv-mutation",
+    "topic": "testing",
+    "subtopic": "advanced-testing",
+    "difficulty": "Hard",
+    "title": "High coverage, surviving mutants",
+    "question": "A module has 95% line coverage, but Stryker.NET reports that most mutants survive (for example, changing `>` to `>=` doesn't fail any test). What does this mean?",
+    "options": [
+      "The tests are very good, because surviving mutants mean the code is robust",
+      "Line coverage is wrong and the real coverage is close to zero",
+      "Mutation testing doesn't work with code that has high coverage",
+      "The tests run the code but their assertions don't catch changes in behaviour"
+    ],
+    "correctIndex": 3,
+    "explanation": "Mutation testing makes small changes to the code and checks whether any test fails. A surviving mutant means no test noticed the change, which usually points to weak or missing assertions. Coverage only shows that code ran, not that its results were checked.",
+    "referenceUrl": "https://stryker-mutator.io/docs/"
+  },
+  {
+    "id": "test-adv-contract-pact",
+    "topic": "testing",
+    "subtopic": "advanced-testing",
+    "difficulty": "Hard",
+    "title": "Renamed field breaks a consumer",
+    "question": "The Orders service renames `customerId` to `clientId` in its JSON. Its own tests pass, but the Billing service breaks after deploy. Which practice would catch this before the Orders release?",
+    "options": [
+      "Unit tests in Orders that check the new property name is serialised",
+      "Load tests on Orders to make sure response times stay steady",
+      "Consumer-driven contract tests, with Orders verifying Billing's pact in its build",
+      "Mutation tests on Billing's JSON parsing code"
+    ],
+    "correctIndex": 2,
+    "explanation": "With consumer-driven contracts, each consumer records the requests and response fields it relies on. The provider replays those expectations in its own pipeline, so removing a field a consumer uses fails the provider's build. Orders' own unit tests know nothing about what Billing expects.",
+    "referenceUrl": "https://docs.pact.io/"
+  },
+  {
+    "id": "test-adv-can-i-deploy",
+    "topic": "testing",
+    "subtopic": "advanced-testing",
+    "difficulty": "Expert",
+    "title": "Independent deploys without E2E",
+    "question": "Twelve microservices share one staging environment for end-to-end tests. It has become a bottleneck that blocks independent releases. Which approach best lets each team deploy alone while still checking compatibility?",
+    "options": [
+      "Publish contracts to a Pact Broker and gate each deploy with can-i-deploy",
+      "Freeze all services and release them together in one weekly train",
+      "Give each team its own copy of all twelve services for E2E runs",
+      "Rely on schema-less JSON so field changes never break consumers"
+    ],
+    "correctIndex": 0,
+    "explanation": "A Pact Broker stores pacts and verification results per version. can-i-deploy checks whether the version you want to deploy is compatible with the versions already running in the target environment, with no need for a shared integrated environment. Release trains bring back coupling, full copies cost a lot and drift, and schema-less JSON doesn't prevent breaking changes.",
+    "referenceUrl": "https://docs.pact.io/pact_broker/can_i_deploy"
+  },
+  {
+    "id": "test-perf-soak",
+    "topic": "testing",
+    "subtopic": "performance-testing",
+    "difficulty": "Easy",
+    "title": "Slow memory growth",
+    "question": "A service works fine in a 15-minute load test, but in production its memory grows steadily and it crashes after about 8 hours. Which test type is designed to find this?",
+    "options": [
+      "A smoke test with a very small number of users",
+      "A spike test with a sudden, short burst of traffic",
+      "A soak test that holds average load for many hours",
+      "A breakpoint test that raises load until failure"
+    ],
+    "correctIndex": 2,
+    "explanation": "Soak (endurance) tests keep a realistic load running for a long time to expose leaks, resource exhaustion and slow degradation. Smoke, spike and breakpoint tests are short, so a leak that takes hours to grow never shows up.",
+    "referenceUrl": "https://grafana.com/docs/k6/latest/testing-guides/test-types/soak-testing/"
+  },
+  {
+    "id": "test-perf-k6-thresholds",
+    "topic": "testing",
+    "subtopic": "performance-testing",
+    "difficulty": "Medium",
+    "title": "Failing CI on latency",
+    "question": "You want a k6 run in CI to fail automatically when the 95th percentile of HTTP request duration goes above 500 ms. What do you configure?",
+    "options": [
+      "checks: { http_req_duration: ['p(95)<500'] }",
+      "thresholds: { http_req_duration: ['p(95)<500'] }",
+      "stages: [{ duration: '500ms', target: 95 }]",
+      "options: { maxDuration: '500ms', vus: 95 }"
+    ],
+    "correctIndex": 1,
+    "explanation": "k6 thresholds are pass/fail criteria for metrics. If one fails, k6 exits with a non-zero code, so the CI job fails. Checks are per-request assertions that don't fail the run on their own, and stages and VU options shape the load rather than judge it.",
+    "referenceUrl": "https://grafana.com/docs/k6/latest/using-k6/thresholds/"
+  },
+  {
+    "id": "test-perf-open-model",
+    "topic": "testing",
+    "subtopic": "performance-testing",
+    "difficulty": "Expert",
+    "title": "Load test hides a slowdown",
+    "question": "A k6 test uses 200 constant VUs. When the API slows from 100 ms to 2 s, the test sends far fewer requests per second and the reported throughput looks gentle. What change gives a more realistic model of public traffic?",
+    "options": [
+      "Use an arrival-rate executor so new iterations start at a fixed rate, whatever the latency",
+      "Raise the VU count to 2,000 while keeping the closed model",
+      "Add sleep() to each iteration so VUs pace themselves better",
+      "Lower the HTTP timeout so slow requests are cut off quickly"
+    ],
+    "correctIndex": 0,
+    "explanation": "With constant VUs (a closed model), each VU waits for its response before sending the next one, so a slow system automatically gets less load. This is called coordinated omission. Arrival-rate executors (an open model) keep the incoming rate fixed, like real users who don't wait for each other. More VUs or sleep still tie load to response time.",
+    "referenceUrl": "https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/open-vs-closed/"
+  },
+  {
+    "id": "cc-flag-argument",
+    "topic": "clean-code",
+    "subtopic": "clean-code",
+    "difficulty": "Easy",
+    "title": "Boolean parameter",
+    "question": "A method is declared as `void Book(Customer c, bool premium)` and called as `Book(c, true)` across the codebase. What is the usual clean-code advice?",
+    "options": [
+      "Rename the parameter to isPremiumFlag so callers see its purpose",
+      "Change the bool to an int so more booking types can be added",
+      "Keep it and add an XML doc comment explaining what true means",
+      "Replace it with explicit methods such as BookPremium(c) and BookRegular(c)"
+    ],
+    "correctIndex": 3,
+    "explanation": "A flag argument hides intent at the call site: `Book(c, true)` doesn't say what true means. Fowler recommends separate, clearly named methods. A better parameter name or a doc comment doesn't help readers of the call, and an int makes it even harder to read.",
+    "referenceUrl": "https://martinfowler.com/bliki/FlagArgument.html"
+  },
+  {
+    "id": "cc-explain-with-function",
+    "topic": "clean-code",
+    "subtopic": "clean-code",
+    "difficulty": "Easy",
+    "title": "Comment explaining a condition",
+    "question": "Code reads: `// eligible for full benefits\nif ((e.Flags & HOURLY) != 0 && e.Age > 65) { ... }`. What is the cleanest improvement?",
+    "options": [
+      "Make the comment longer so it describes every flag value",
+      "Extract the condition into a method named IsEligibleForFullBenefits()",
+      "Inline the HOURLY constant as a literal so the check is visible",
+      "Move the comment to the end of the if line to save space"
+    ],
+    "correctIndex": 1,
+    "explanation": "When a comment explains what a block of code does, a well-named function (Extract Function) can usually say the same thing in code and keep it from going stale. Longer comments and literal values make the code harder to read, and moving the comment changes nothing.",
+    "referenceUrl": "https://refactoring.com/catalog/extractFunction.html"
+  },
+  {
+    "id": "cc-command-query-separation",
+    "topic": "clean-code",
+    "subtopic": "clean-code",
+    "difficulty": "Medium",
+    "title": "A getter with side effects",
+    "question": "Calling `invoiceService.GetNextNumber()` returns a number and also increments a counter in the database. A developer calls it twice in a log statement and creates a gap in invoice numbers. Which principle is broken?",
+    "options": [
+      "Liskov substitution: subclasses must be usable in place of their base class",
+      "Interface segregation: clients shouldn't depend on methods they don't use",
+      "Law of Demeter: only talk to your immediate collaborators",
+      "Command-query separation: a method should either change state or return data"
+    ],
+    "correctIndex": 3,
+    "explanation": "CQS says queries should have no visible side effects, so they can be called freely. A 'Get' that mutates state surprises callers. The fix is to separate ReserveNextNumber() (a command) from reads. The other principles are about inheritance, interface size and navigating object chains.",
+    "referenceUrl": "https://martinfowler.com/bliki/CommandQuerySeparation.html"
+  },
+  {
+    "id": "cc-solid-srp",
+    "topic": "clean-code",
+    "subtopic": "solid",
+    "difficulty": "Easy",
+    "title": "Class changed by three teams",
+    "question": "InvoiceService calculates tax, renders the PDF layout and sends emails through SMTP. Finance, design and ops each ask for changes to it every month. Which SOLID principle does it break?",
+    "options": [
+      "Single Responsibility Principle",
+      "Open/Closed Principle",
+      "Liskov Substitution Principle",
+      "Dependency Inversion Principle"
+    ],
+    "correctIndex": 0,
+    "explanation": "SRP says a class should have one reason to change, meaning one group of stakeholders that drives its changes. Three teams changing the same class is a clear sign it should be split into tax, rendering and notification parts. The other principles are about extension, substitutability and the direction of dependencies.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles"
+  },
+  {
+    "id": "cc-solid-ocp",
+    "topic": "clean-code",
+    "subtopic": "solid",
+    "difficulty": "Medium",
+    "title": "Switch statements on an enum",
+    "question": "`switch (payment.Method)` appears in 6 classes (fees, validation, receipts, and so on). Each new payment method means editing all six. Which refactoring best follows the Open/Closed Principle?",
+    "options": [
+      "Move all six switches into one static helper class",
+      "Replace the enum with string constants for flexibility",
+      "Polymorphic payment-method types, so a new method is a new class",
+      "Add a default case that throws for unknown methods"
+    ],
+    "correctIndex": 2,
+    "explanation": "OCP means you add behaviour by extending, not by changing existing code. Replacing repeated type switches with polymorphism (Replace Conditional with Polymorphism, or a strategy per method) keeps each method's logic in one place. One helper class still needs editing, and strings or default cases don't remove the switches.",
+    "referenceUrl": "https://refactoring.com/catalog/replaceConditionalWithPolymorphism.html"
+  },
+  {
+    "id": "cc-solid-lsp",
+    "topic": "clean-code",
+    "subtopic": "solid",
+    "difficulty": "Medium",
+    "title": "Overrides that throw",
+    "question": "`class ArchivedRepository : OrderRepository { public override void Save(Order o) => throw new NotSupportedException(); }`. Code that takes an OrderRepository starts failing when it gets an ArchivedRepository. Which principle is broken?",
+    "options": [
+      "Liskov Substitution Principle",
+      "Single Responsibility Principle",
+      "Interface Segregation Principle",
+      "Open/Closed Principle"
+    ],
+    "correctIndex": 0,
+    "explanation": "LSP requires a subtype to keep the contract of its base type so callers can use it without knowing the difference. Throwing from an inherited operation breaks that. Usually the hierarchy is wrong, for example a read-only interface split from a writable one should be used. ISP is about interface size, not broken substitution.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles"
+  },
+  {
+    "id": "cc-solid-isp",
+    "topic": "clean-code",
+    "subtopic": "solid",
+    "difficulty": "Medium",
+    "title": "Fat interface",
+    "question": "IDevice declares Print(), Scan(), Fax() and Staple(). ReportService only calls Print(), yet it must be rebuilt and its test doubles updated whenever Fax() changes. What does the Interface Segregation Principle suggest?",
+    "options": [
+      "Add default implementations so Fax() never needs to change",
+      "Make ReportService inherit from the class that implements IDevice",
+      "Split it into role interfaces such as IPrinter and IScanner that clients use separately",
+      "Merge all device methods into one Execute(string command) method"
+    ],
+    "correctIndex": 2,
+    "explanation": "ISP says clients shouldn't be forced to depend on methods they don't use. Small role interfaces keep changes to Fax() away from print-only clients. Default methods hide the symptom, inheritance adds more coupling, and a string-command method throws away type safety.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/types/interfaces"
+  },
+  {
+    "id": "cc-solid-dip-ownership",
+    "topic": "clean-code",
+    "subtopic": "solid",
+    "difficulty": "Hard",
+    "title": "Who owns the abstraction?",
+    "question": "OrderService (in Application) depends on IOrderRepository, but that interface lives in the Infrastructure project next to SqlOrderRepository. So Application references Infrastructure. What is wrong under the Dependency Inversion Principle?",
+    "options": [
+      "Nothing, since depending on any interface already satisfies DIP",
+      "The abstraction should be owned by the high-level layer so Infrastructure depends on it",
+      "OrderService should create SqlOrderRepository itself with new",
+      "Interfaces should live in a shared Utils project for all layers"
+    ],
+    "correctIndex": 1,
+    "explanation": "DIP inverts the direction of compile-time dependencies: high-level policy defines the abstraction it needs, and low-level details implement it. With the interface in Infrastructure, the application still depends on the infrastructure package. Calling new on the concrete class makes the coupling worse, and a shared Utils project blurs who owns what.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles"
+  },
+  {
+    "id": "cc-solid-dip-explicit",
+    "topic": "clean-code",
+    "subtopic": "solid",
+    "difficulty": "Hard",
+    "title": "Hidden dependencies",
+    "question": "A class calls `ServiceLocator.Get<IEmailSender>()` inside its methods. Its constructor takes no parameters, and tests fail with null references unless a global container is set up. Which principle does constructor injection address here?",
+    "options": [
+      "Don't repeat yourself: centralise all lookups in one locator",
+      "YAGNI: avoid adding constructor parameters until required",
+      "Encapsulation: hide every collaborator behind static access",
+      "Explicit dependencies: a class should declare what it needs in its constructor"
+    ],
+    "correctIndex": 3,
+    "explanation": "The explicit dependencies principle says classes should ask for their collaborators, usually through the constructor, so their needs are visible and easy to supply in tests. A service locator hides those dependencies and depends on global state. The other options misuse DRY, YAGNI and encapsulation.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles"
+  },
+  {
+    "id": "cc-yagni",
+    "topic": "clean-code",
+    "subtopic": "principles",
+    "difficulty": "Easy",
+    "title": "Building for the future",
+    "question": "The only requirement is CSV export. A developer adds a plugin system with an IExporterFactory, reflection-based discovery and config for PDF and XML exporters 'because we might need them'. Which principle does this break?",
+    "options": [
+      "DRY (Don't Repeat Yourself)",
+      "Liskov Substitution",
+      "YAGNI (You Aren't Gonna Need It)",
+      "Tell, Don't Ask"
+    ],
+    "correctIndex": 2,
+    "explanation": "YAGNI warns against building features for guesses about the future. That work has a cost to build, a cost of delay, and a cost to carry the extra complexity, and it is often wrong. If PDF is needed later, refactoring then is cheaper. DRY, LSP and Tell-Don't-Ask don't cover speculative features.",
+    "referenceUrl": "https://martinfowler.com/bliki/Yagni.html"
+  },
+  {
+    "id": "cc-dry-knowledge",
+    "topic": "clean-code",
+    "subtopic": "principles",
+    "difficulty": "Hard",
+    "title": "Same code, different reasons",
+    "question": "ValidateShippingAddress and ValidateBillingAddress have the same 15 lines today. Shipping rules come from logistics and billing rules from the payment provider, and the two are expected to diverge. What is the best decision?",
+    "options": [
+      "Merge them right away, because any repeated code breaks DRY",
+      "Merge them and add an isBilling flag for future differences",
+      "Copy both into a shared base class to remove duplication",
+      "Keep them separate, because DRY is about duplicated knowledge, not matching text"
+    ],
+    "correctIndex": 3,
+    "explanation": "DRY targets one piece of knowledge written in several places. Code that looks the same by coincidence but changes for different reasons isn't real duplication. Merging it couples unrelated rules and later leads to flags and special cases. Here the rules belong to different stakeholders and will change independently.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles"
+  },
+  {
+    "id": "cc-kiss-simple-design",
+    "topic": "clean-code",
+    "subtopic": "principles",
+    "difficulty": "Medium",
+    "title": "Kent Beck's simple design",
+    "question": "In Kent Beck's rules of simple design, code is simple when it passes the tests, reveals intention, has no duplication and has the fewest elements. Which rule comes first when they conflict?",
+    "options": [
+      "Passes the tests",
+      "Has the fewest elements",
+      "Has no duplication",
+      "Reveals intention"
+    ],
+    "correctIndex": 0,
+    "explanation": "Beck lists the rules in priority order, and working code that passes its tests comes first. Fowler notes that intention and duplication come next (their order is debated), and 'fewest elements' is last. It means removing anything that doesn't serve the first three, which is close to KISS.",
+    "referenceUrl": "https://martinfowler.com/bliki/BeckDesignRules.html"
+  },
+  {
+    "id": "cc-cohesion-utils",
+    "topic": "clean-code",
+    "subtopic": "coupling-cohesion",
+    "difficulty": "Easy",
+    "title": "The Utils class",
+    "question": "A class named Helpers contains FormatDate, IsValidEmail, CalculateVat, ResizeImage and RetryHttp. How would you describe its design?",
+    "options": [
+      "High cohesion, because all members are small static methods",
+      "Low cohesion, because its members share no purpose or data",
+      "Tight coupling, because the methods call each other heavily",
+      "Good encapsulation, because all helpers sit in one place"
+    ],
+    "correctIndex": 1,
+    "explanation": "Cohesion measures how closely a module's parts belong together. Unrelated functions grouped only by convenience have low (coincidental) cohesion, and every caller depends on a grab-bag. Moving each function next to the concept it serves (dates, email, tax) raises cohesion. Being static or in one place doesn't make it cohesive.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles"
+  },
+  {
+    "id": "cc-tell-dont-ask",
+    "topic": "clean-code",
+    "subtopic": "coupling-cohesion",
+    "difficulty": "Medium",
+    "title": "Logic outside the object",
+    "question": "Several services contain: `if (account.Balance >= amount) { account.Balance -= amount; } else throw ...`. What refactoring follows Tell, Don't Ask?",
+    "options": [
+      "Add a static AccountHelper.CanWithdraw(account, amount) for reuse",
+      "Expose a public Balance setter that validates the new value",
+      "Move the logic into account.Withdraw(amount), which enforces the rule itself",
+      "Pass the account to a validator service before every update"
+    ],
+    "correctIndex": 2,
+    "explanation": "Tell, Don't Ask means telling an object what to do rather than asking for its data and deciding outside it. Putting behaviour next to its data improves cohesion and keeps the invariant in one place. A helper or validator still leaves the rule outside, and a validating setter can't tell whether the change was a withdrawal.",
+    "referenceUrl": "https://martinfowler.com/bliki/TellDontAsk.html"
+  },
+  {
+    "id": "cc-composition-over-inheritance",
+    "topic": "clean-code",
+    "subtopic": "coupling-cohesion",
+    "difficulty": "Hard",
+    "title": "Fragile base class",
+    "question": "`class CountingSet<T> : HashSet<T>` hides Add() with `new` to count insertions. Code that holds it as a HashSet<T>, or calls UnionWith(items), still calls the base methods, so the count is wrong. What is the most robust design?",
+    "options": [
+      "Override UnionWith too, and hope no other base method adds items",
+      "Wrap a HashSet<T> through composition and implement ISet<T> by delegating calls",
+      "Make CountingSet sealed so that no one can inherit from it further",
+      "Use reflection to call the base Add method from every override"
+    ],
+    "correctIndex": 1,
+    "explanation": "Inheriting from a concrete class ties you to its internals: inherited bulk methods and base-typed references skip your extra logic, which is the fragile base class problem. Composition (a decorator that delegates) controls every entry point and depends only on the public contract. Overriding more methods is fragile, and sealing doesn't fix it.",
+    "referenceUrl": "https://refactoring.com/catalog/replaceSuperclassWithDelegate.html"
+  },
+  {
+    "id": "cc-smell-feature-envy",
+    "topic": "clean-code",
+    "subtopic": "refactoring",
+    "difficulty": "Easy",
+    "title": "Method that loves another class",
+    "question": "In ShippingLabelPrinter: `string Format(Customer c) => c.Address.Street + \", \" + c.Address.City + \" \" + c.Address.Zip + \", \" + c.Address.Country;`. It uses no fields of its own class. Which smell is this?",
+    "options": [
+      "Shotgun surgery, which you fix by merging the printer classes",
+      "Primitive obsession, which you fix with a string wrapper type",
+      "Speculative generality, which you fix by deleting the method",
+      "Feature envy, which you fix by moving the method onto Address"
+    ],
+    "correctIndex": 3,
+    "explanation": "Feature envy is a method more interested in another class's data than in its own. Moving it (Move Method) onto Address puts formatting next to the data it uses. Shotgun surgery is about one change spread over many classes, and primitive obsession is about raw primitives standing in for domain concepts.",
+    "referenceUrl": "https://refactoring.guru/smells/feature-envy"
+  },
+  {
+    "id": "cc-smell-shotgun-surgery",
+    "topic": "clean-code",
+    "subtopic": "refactoring",
+    "difficulty": "Easy",
+    "title": "One change, many files",
+    "question": "Adding support for a new currency means editing 9 classes across 4 projects: formatting, rounding, validation, reports and more. Which smell does this describe?",
+    "options": [
+      "Shotgun surgery",
+      "Divergent change",
+      "Feature envy",
+      "Refused bequest"
+    ],
+    "correctIndex": 0,
+    "explanation": "Shotgun surgery is when one kind of change forces many small edits in many places, which shows the responsibility is spread out. The fix is to gather it in one place (Move Method or Move Field, often into a Currency type). Divergent change is the opposite: one class that changes for many unrelated reasons.",
+    "referenceUrl": "https://refactoring.guru/smells/shotgun-surgery"
+  },
+  {
+    "id": "cc-smell-primitive-obsession",
+    "topic": "clean-code",
+    "subtopic": "refactoring",
+    "difficulty": "Medium",
+    "title": "Strings and decimals everywhere",
+    "question": "Method signatures look like `Charge(string email, decimal amount, string currency, string countryCode)`, and the same email and currency checks are copied in 20 places. What smell is this, and what is the usual fix?",
+    "options": [
+      "Long method, fixed by splitting Charge into several methods",
+      "Data clumps, fixed by adding one more optional parameter",
+      "Lazy class, fixed by inlining the validation into callers",
+      "Primitive obsession, fixed with small types like Email and Money"
+    ],
+    "correctIndex": 3,
+    "explanation": "Primitive obsession uses raw strings and numbers for domain concepts, so validation is copied around and mistakes (like swapping two strings) compile without errors. Small value types validate once and give the concepts names. Splitting methods or adding parameters leaves the primitives in place.",
+    "referenceUrl": "https://refactoring.guru/smells/primitive-obsession"
+  },
+  {
+    "id": "cc-refactoring-definition",
+    "topic": "clean-code",
+    "subtopic": "refactoring",
+    "difficulty": "Medium",
+    "title": "Is it really refactoring?",
+    "question": "A pull request titled 'refactor order module' renames classes, extracts methods and also changes the discount calculation to fix a rounding bug. What is the problem by Fowler's definition?",
+    "options": [
+      "Nothing, because refactoring means any improvement to the code",
+      "Renaming classes is not refactoring, only method extraction is",
+      "Refactoring must keep behaviour the same, so the bug fix belongs in its own change",
+      "Refactoring is only allowed once there is 100% code coverage"
+    ],
+    "correctIndex": 2,
+    "explanation": "Fowler defines refactoring as changing internal structure without changing observable behaviour. Mixing a behaviour change into it makes review and bisecting harder, and you lose the guarantee that tests staying green means nothing broke. Renames count as refactorings, and 100% coverage isn't required.",
+    "referenceUrl": "https://martinfowler.com/bliki/DefinitionOfRefactoring.html"
+  },
+  {
+    "id": "cc-parallel-change",
+    "topic": "clean-code",
+    "subtopic": "refactoring",
+    "difficulty": "Expert",
+    "title": "Renaming a widely used API",
+    "question": "A method in a shared library used by 40 services must change its signature. You can't update every caller in one deploy. Which technique lets you change it safely?",
+    "options": [
+      "Change the signature in place and ask all teams to fix builds right away",
+      "Parallel change: add the new form, migrate callers, then remove the old one",
+      "Fork the library so new callers use a copy and old callers keep theirs",
+      "Make every parameter optional so both old and new call styles compile"
+    ],
+    "correctIndex": 1,
+    "explanation": "Parallel change (expand, migrate, contract) adds the new interface next to the old one. Callers then move over gradually, and the old form is removed once nobody uses it, so nothing breaks along the way. A breaking change in place forces a coordinated release, a fork splits the codebase, and optional parameters blur the API.",
+    "referenceUrl": "https://martinfowler.com/bliki/ParallelChange.html"
+  },
+  {
+    "id": "cc-anemic-model",
+    "topic": "clean-code",
+    "subtopic": "domain-modeling",
+    "difficulty": "Medium",
+    "title": "Entities with only getters and setters",
+    "question": "Order, Customer and Invoice have only public getters and setters. All rules (discounts, state changes, validation) live in OrderManager and InvoiceHelper services. What is this called?",
+    "options": [
+      "An anemic domain model",
+      "A rich domain model",
+      "A bounded context",
+      "Persistence ignorance"
+    ],
+    "correctIndex": 0,
+    "explanation": "Fowler calls this an anemic domain model: objects that look like a domain model but hold no behaviour, so it becomes procedural code with extra mapping cost. In a rich model, entities enforce their own rules. Bounded contexts and persistence ignorance are separate ideas.",
+    "referenceUrl": "https://martinfowler.com/bliki/AnemicDomainModel.html"
+  },
+  {
+    "id": "cc-value-object-equality",
+    "topic": "clean-code",
+    "subtopic": "domain-modeling",
+    "difficulty": "Easy",
+    "title": "Money equality",
+    "question": "Money is modelled as a value object. Given `var a = new Money(10, \"EUR\"); var b = new Money(10, \"EUR\");`, what should `a.Equals(b)` return, and why?",
+    "options": [
+      "false, because they are two different object references",
+      "true, but only if both were taken from the same cache",
+      "false, unless Money also has an Id property to compare",
+      "true, because value objects are compared by their values"
+    ],
+    "correctIndex": 3,
+    "explanation": "Value objects have no identity. Two instances with the same attributes are equal and can replace each other, and they should be immutable. Entities are the ones compared by identity, and C# records give value equality by default.",
+    "referenceUrl": "https://martinfowler.com/bliki/ValueObject.html"
+  },
+  {
+    "id": "cc-entity-vs-value",
+    "topic": "clean-code",
+    "subtopic": "domain-modeling",
+    "difficulty": "Medium",
+    "title": "Entity or value object?",
+    "question": "In a delivery system, a customer's shipping Address is replaced as a whole when it changes and is never tracked on its own. Two orders shipped to the same street and city are treated as the same destination. How should Address be modelled?",
+    "options": [
+      "As an entity with its own Id and a repository",
+      "As an immutable value object owned by Customer and Order",
+      "As an aggregate root with its own lifecycle",
+      "As a domain service that formats addresses"
+    ],
+    "correctIndex": 1,
+    "explanation": "Something defined only by its attributes, replaced rather than changed, and with no identity that matters over time is a value object. Giving it an Id and a repository adds identity and lifecycle the domain doesn't need. A domain service models operations, not data.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/implement-value-objects"
+  },
+  {
+    "id": "dp-builder",
+    "topic": "design-patterns",
+    "subtopic": "creational",
+    "difficulty": "Easy",
+    "title": "Telescoping constructor",
+    "question": "HttpRequestSpec has a constructor with 11 parameters, 8 of them optional, and call sites like `new HttpRequestSpec(url, null, null, 30, true, null, ...)`. Which pattern helps most?",
+    "options": [
+      "Builder",
+      "Singleton",
+      "Adapter",
+      "Observer"
+    ],
+    "correctIndex": 0,
+    "explanation": "Builder builds a complex object step by step through named methods (such as WithTimeout(30)) and can check the result in Build(). It replaces unreadable telescoping constructors. Singleton controls how many instances exist, Adapter converts interfaces, and Observer is about notifications.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/builder"
+  },
+  {
+    "id": "dp-abstract-factory",
+    "topic": "design-patterns",
+    "subtopic": "creational",
+    "difficulty": "Medium",
+    "title": "Consistent product families",
+    "question": "A UI library must create Button, Checkbox and Dialog widgets that all match one theme (Windows or macOS), chosen at startup. Mixing themes must be impossible. Which pattern fits?",
+    "options": [
+      "Factory Method",
+      "Prototype",
+      "Abstract Factory",
+      "Builder"
+    ],
+    "correctIndex": 2,
+    "explanation": "Abstract Factory provides an interface for creating families of related objects. Each concrete factory (WinFactory, MacFactory) creates a matching set, so themes can't be mixed. Factory Method creates one product through subclassing, Prototype clones existing objects, and Builder assembles one complex object.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/abstract-factory"
+  },
+  {
+    "id": "dp-singleton-di",
+    "topic": "design-patterns",
+    "subtopic": "creational",
+    "difficulty": "Medium",
+    "title": "Static singleton in tests",
+    "question": "AppCache uses a classic static Instance property. Tests share its state and fail depending on run order, and it can't be replaced with a fake. What is the preferred approach in ASP.NET Core?",
+    "options": [
+      "Add a static Reset() method that every test calls first",
+      "Make Instance thread-local so each test thread gets a copy",
+      "Register it with AddSingleton and inject it, so the container controls its lifetime",
+      "Use a lock inside Instance so access is serialised"
+    ],
+    "correctIndex": 2,
+    "explanation": "Letting the DI container own the lifetime keeps a single instance in the app, while consumers depend on an abstraction that tests can replace or create fresh. Reset methods and thread-local tricks are fragile workarounds, and locking only addresses thread safety, not hidden global state.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection"
+  },
+  {
+    "id": "dp-captive-dependency",
+    "topic": "design-patterns",
+    "subtopic": "creational",
+    "difficulty": "Expert",
+    "title": "Singleton holding a scoped DbContext",
+    "question": "A service registered with AddSingleton takes AppDbContext (registered as scoped) in its constructor. What happens, and why is it dangerous?",
+    "options": [
+      "The container makes a new DbContext for each call to the singleton",
+      "Nothing happens, because the DbContext is pooled and thread-safe by default",
+      "The singleton is quietly downgraded to scoped to match its dependency",
+      "Scope validation throws in Development; otherwise one DbContext gets shared across requests"
+    ],
+    "correctIndex": 3,
+    "explanation": "A singleton that captures a scoped dependency keeps it alive for the whole app (a captive dependency). DbContext isn't thread-safe and is meant to live for one unit of work, so sharing it causes concurrency errors and stale tracked data. ASP.NET Core's scope validation catches this in Development. The fix is a scoped consumer, or IServiceScopeFactory to create a scope per operation.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection#scope-validation"
+  },
+  {
+    "id": "dp-adapter",
+    "topic": "design-patterns",
+    "subtopic": "structural",
+    "difficulty": "Easy",
+    "title": "Wrapping a third-party SDK",
+    "question": "Your domain needs IPaymentGateway.Charge(Money, CardToken). The vendor SDK offers `StripeLikeClient.CreateCharge(long cents, string cur, string src)`. Which pattern lets the domain keep its own interface?",
+    "options": [
+      "Decorator",
+      "Adapter",
+      "Composite",
+      "Flyweight"
+    ],
+    "correctIndex": 1,
+    "explanation": "An Adapter implements the interface the client expects and translates calls to an incompatible one, here converting Money to cents and currency code. Decorator keeps the same interface and adds behaviour, Composite builds tree structures, and Flyweight shares state to save memory.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/adapter"
+  },
+  {
+    "id": "dp-decorator",
+    "topic": "design-patterns",
+    "subtopic": "structural",
+    "difficulty": "Medium",
+    "title": "Stacking cross-cutting behaviour",
+    "question": "IProductRepository must get caching, logging and retry. Each should be toggled separately and SqlProductRepository must not change. Which pattern fits best?",
+    "options": [
+      "Decorator: wrappers that implement IProductRepository and delegate to an inner one",
+      "Template Method: a base repository with hooks for each concern",
+      "Facade: one simplified interface over several repositories",
+      "Adapter: convert the repository to a caching interface"
+    ],
+    "correctIndex": 0,
+    "explanation": "Decorators implement the same interface, wrap an inner instance and add behaviour before or after delegating. They can be stacked and configured independently without touching the core class. Template Method needs inheritance and edits to the base, Facade simplifies a subsystem, and Adapter changes the interface.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/decorator"
+  },
+  {
+    "id": "dp-proxy-lazy-loading",
+    "topic": "design-patterns",
+    "subtopic": "structural",
+    "difficulty": "Hard",
+    "title": "EF Core lazy-loading proxies",
+    "question": "With UseLazyLoadingProxies(), EF Core returns a generated subclass of Blog. The first time a virtual Posts property is read, it queries the database. Which pattern is this, and what hidden risk comes with it?",
+    "options": [
+      "A virtual proxy, which risks N+1 queries when navigations are read in loops",
+      "A decorator, which risks double caching of tracked entities",
+      "An adapter, which risks type mismatches between Blog and its subclass",
+      "A facade, which risks hiding DbContext from the calling code"
+    ],
+    "correctIndex": 0,
+    "explanation": "A proxy has the same interface as the real object and controls access to it. A virtual proxy delays expensive work until it is needed. EF's lazy-loading proxies do this for navigation properties, so a loop over blogs that touches Posts runs one query per blog. That is why lazy loading needs care and eager loading (Include) is often better.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/ef/core/querying/related-data/lazy"
+  },
+  {
+    "id": "dp-facade",
+    "topic": "design-patterns",
+    "subtopic": "structural",
+    "difficulty": "Easy",
+    "title": "Simplifying a subsystem",
+    "question": "Converting a video needs about 8 calls across codec, bitrate, audio-mixer and container classes, in a strict order. Most callers just want `Convert(file, \"mp4\")`. Which pattern fits?",
+    "options": [
+      "Proxy",
+      "Facade",
+      "Bridge",
+      "Chain of Responsibility"
+    ],
+    "correctIndex": 1,
+    "explanation": "A Facade offers one simple entry point to a complex subsystem and hides its moving parts from most clients, while advanced clients can still use the subsystem directly. Proxy controls access to one object, Bridge separates an abstraction from its implementation, and Chain passes a request through handlers.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/facade"
+  },
+  {
+    "id": "dp-strategy",
+    "topic": "design-patterns",
+    "subtopic": "behavioral",
+    "difficulty": "Easy",
+    "title": "Pluggable algorithm",
+    "question": "Shipping cost depends on the carrier (DHL, UPS, local courier), chosen at checkout at runtime. New carriers are added often. Which pattern fits?",
+    "options": [
+      "Singleton",
+      "Memento",
+      "Visitor",
+      "Strategy"
+    ],
+    "correctIndex": 3,
+    "explanation": "Strategy wraps each algorithm behind a common interface (IShippingCostCalculator) and lets the context swap them at runtime, so adding a carrier means adding a class. Singleton is about instance count, Memento saves and restores state, and Visitor adds operations across a fixed set of element types.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/strategy"
+  },
+  {
+    "id": "dp-command-undo",
+    "topic": "design-patterns",
+    "subtopic": "behavioral",
+    "difficulty": "Medium",
+    "title": "Undo and redo",
+    "question": "A diagram editor needs undo/redo for actions like move, resize and delete. Actions must also be queued and replayed for collaboration. Which pattern is the natural fit?",
+    "options": [
+      "Observer, with each shape notifying listeners when it changes",
+      "Strategy, with each action as a different editing algorithm",
+      "Command, with each action as an object that has Execute and Undo",
+      "Iterator, with the history walked backwards to restore state"
+    ],
+    "correctIndex": 2,
+    "explanation": "Command turns a request into an object. That lets you store, queue, log and replay it, and an Undo method plus a history stack gives undo/redo. Observer spreads change notifications, Strategy swaps algorithms, and Iterator only walks a collection.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/command"
+  },
+  {
+    "id": "dp-chain-middleware",
+    "topic": "design-patterns",
+    "subtopic": "behavioral",
+    "difficulty": "Medium",
+    "title": "ASP.NET Core middleware",
+    "question": "In ASP.NET Core, each middleware gets the HttpContext and a `next` delegate. It can do work and call next, or short-circuit and return a response itself. Which pattern does this pipeline follow?",
+    "options": [
+      "Mediator",
+      "Composite",
+      "Memento",
+      "Chain of Responsibility"
+    ],
+    "correctIndex": 3,
+    "explanation": "Chain of Responsibility passes a request along a chain of handlers, and each one decides whether to handle it, pass it on, or both. ASP.NET Core middleware works the same way, for example when authentication or static files short-circuit. Mediator centralises communication between peers, and Composite builds part-whole trees.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/"
+  },
+  {
+    "id": "dp-state",
+    "topic": "design-patterns",
+    "subtopic": "behavioral",
+    "difficulty": "Medium",
+    "title": "Status switches everywhere",
+    "question": "Order has Pay(), Ship() and Cancel(). Each method starts with a large `switch (Status)` covering Draft, Paid, Shipped and Cancelled, and invalid transitions are easy to miss. Which pattern organises this best?",
+    "options": [
+      "State, with one class per status that handles the allowed operations",
+      "Strategy, with one shipping algorithm per carrier",
+      "Builder, with the Order built step by step per status",
+      "Prototype, with one cloned Order template per status"
+    ],
+    "correctIndex": 0,
+    "explanation": "The State pattern moves behaviour that depends on state into separate state objects. Each one handles the operations that are valid in that state and switches to the next state, which removes repeated switches. Strategy looks similar in structure, but its strategies don't usually know about each other or trigger transitions.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/state"
+  },
+  {
+    "id": "dp-observer-leak",
+    "topic": "design-patterns",
+    "subtopic": "behavioral",
+    "difficulty": "Hard",
+    "title": "Event subscriber memory leak",
+    "question": "Short-lived ViewModels subscribe with `PriceFeed.PriceChanged += OnPrice;` to a long-lived PriceFeed singleton and never unsubscribe. Memory grows all day. What is the cause?",
+    "options": [
+      "Events in .NET run on the finalizer thread, which blocks garbage collection",
+      "The ViewModels are leaking because they don't implement ICloneable",
+      "The publisher's event keeps strong references to every subscriber, so none can be collected",
+      "PriceChanged copies each subscriber's state onto the large object heap"
+    ],
+    "correctIndex": 2,
+    "explanation": "In the observer pattern the subject holds references to its observers. In .NET an event's delegate list strongly references each handler's target, so a long-lived publisher keeps every subscriber alive (the lapsed listener problem). Unsubscribe on dispose, or with IObservable<T> dispose the IDisposable that Subscribe returned. Weak-event patterns are another option.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/events/observer-design-pattern"
+  },
+  {
+    "id": "dp-mediator",
+    "topic": "design-patterns",
+    "subtopic": "mediator-template",
+    "difficulty": "Medium",
+    "title": "Components that all know each other",
+    "question": "In a booking form, 10 controls refer to each other directly (the date picker enables the room list, which updates the price label, which toggles the pay button). Changing one control breaks others. Which pattern reduces this coupling?",
+    "options": [
+      "Observer: each control subscribes directly to every other control",
+      "Mediator: controls tell a central object, which coordinates the others",
+      "Singleton: all controls share one global form state object",
+      "Composite: the controls are nested inside a container tree"
+    ],
+    "correctIndex": 1,
+    "explanation": "A Mediator wraps how a set of objects interact, so peers talk only to the mediator and not to each other. That turns many-to-many dependencies into one-to-many. Direct observer links between all controls keep the web of dependencies, a global singleton hides it, and Composite is about structure.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/mediator"
+  },
+  {
+    "id": "dp-template-method",
+    "topic": "design-patterns",
+    "subtopic": "mediator-template",
+    "difficulty": "Easy",
+    "title": "Fixed algorithm, varying steps",
+    "question": "ReportExporter.Export() always runs LoadData(), then Format(), then Write(). The base class fixes this order, and CsvExporter and PdfExporter override only Format() and Write(). Which pattern is this?",
+    "options": [
+      "Strategy",
+      "Template Method",
+      "Abstract Factory",
+      "Decorator"
+    ],
+    "correctIndex": 1,
+    "explanation": "Template Method defines the skeleton of an algorithm in a base class method and lets subclasses override certain steps without changing the order. Strategy would hand the whole algorithm to a separate object through composition. Abstract Factory creates families of objects, and Decorator wraps objects to add behaviour.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/template-method"
+  },
+  {
+    "id": "dp-template-vs-strategy",
+    "topic": "design-patterns",
+    "subtopic": "mediator-template",
+    "difficulty": "Hard",
+    "title": "Template Method or Strategy?",
+    "question": "A pricing pipeline's steps must be swapped per tenant at runtime from configuration, and some tenants mix steps from different variants. Why is Strategy a better fit than Template Method here?",
+    "options": [
+      "Template Method can't call abstract methods from a base class constructor",
+      "Strategy requires fewer classes because it doesn't use interfaces",
+      "Template Method is deprecated in modern C# in favour of records",
+      "Template Method binds variation through inheritance at compile time; Strategy composes it at runtime"
+    ],
+    "correctIndex": 3,
+    "explanation": "Template Method picks the variation by which subclass you create, so mixing steps from different variants means many subclasses. Strategy injects each varying step as an object, so steps can be combined freely and chosen at runtime from config. Both patterns are still valid, and the choice is about inheritance versus composition.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/template-method"
+  },
+  {
+    "id": "dp-repository-purpose",
+    "topic": "design-patterns",
+    "subtopic": "data-access",
+    "difficulty": "Easy",
+    "title": "What a repository is for",
+    "question": "In Fowler's Patterns of Enterprise Application Architecture, what is the main role of a Repository?",
+    "options": [
+      "It manages database connection pooling and command timeouts",
+      "It converts domain objects to JSON for HTTP responses",
+      "It mediates between the domain and data mapping through a collection-like interface",
+      "It groups writes into one database transaction at commit time"
+    ],
+    "correctIndex": 2,
+    "explanation": "A Repository makes persisted aggregates look like an in-memory collection (Add, GetById, queries), so domain code doesn't deal with SQL or mapping. Connection pooling belongs to the driver, serialisation to the API layer, and grouping writes into one transaction is the Unit of Work pattern.",
+    "referenceUrl": "https://martinfowler.com/eaaCatalog/repository.html"
+  },
+  {
+    "id": "dp-unit-of-work",
+    "topic": "design-patterns",
+    "subtopic": "data-access",
+    "difficulty": "Hard",
+    "title": "Partial commits across repositories",
+    "question": "OrderRepository.Add() and InventoryRepository.Reserve() each call SaveChanges() internally. If the second one fails, the order is saved without stock reserved. Which pattern solves this?",
+    "options": [
+      "Unit of Work: track changes across repositories and commit them in one transaction",
+      "Repository: give each repository its own private DbContext",
+      "Singleton: share one global DbContext across all requests",
+      "Retry: run the failed SaveChanges again until it succeeds"
+    ],
+    "correctIndex": 0,
+    "explanation": "A Unit of Work keeps a list of objects changed in a business transaction and writes them all at once. In EF Core the DbContext already plays this role, so repositories should share one scoped context and the application service calls SaveChanges once. Separate contexts make it worse, a global context isn't safe, and retries don't give atomicity.",
+    "referenceUrl": "https://martinfowler.com/eaaCatalog/unitOfWork.html"
+  },
+  {
+    "id": "dp-repository-per-aggregate",
+    "topic": "design-patterns",
+    "subtopic": "data-access",
+    "difficulty": "Hard",
+    "title": "How many repositories?",
+    "question": "A DDD-style service has Order (aggregate root) with OrderLines. A developer adds OrderLineRepository so the UI can update lines directly. What does Microsoft's DDD guidance say?",
+    "options": [
+      "Have one repository per table, so OrderLineRepository is correct",
+      "Have one repository per aggregate root, and change lines only through Order",
+      "Have one generic repository for every entity type in the system",
+      "Skip repositories and let controllers use DbSet<OrderLine> directly"
+    ],
+    "correctIndex": 1,
+    "explanation": "Repositories should exist only for aggregate roots, because the root enforces the aggregate's invariants (such as the order total or line limits). Saving lines directly skips those rules and breaks the consistency boundary. Repositories per table or per entity bring back the same bypass.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/infrastructure-persistence-layer-design"
+  },
+  {
+    "id": "arch-layered-bypass",
+    "topic": "software-architecture",
+    "subtopic": "layered",
+    "difficulty": "Easy",
+    "title": "Skipping the business layer",
+    "question": "In a closed three-layer app (Presentation, Business, Data), a controller starts calling the Data layer directly to save time. What is the main downside?",
+    "options": [
+      "The database will reject queries that don't come from the business layer",
+      "Performance always gets worse, because layers add caching",
+      "Nothing, because layers are only a folder convention",
+      "Business rules are bypassed and presentation becomes coupled to data access"
+    ],
+    "correctIndex": 3,
+    "explanation": "In a closed (strict) layered design each layer calls only the one directly below it. Skipping a layer means validation and rules in the business layer can be bypassed, and the UI now depends on persistence details. The database can't enforce layering, and the change isn't about performance.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/n-tier"
+  },
+  {
+    "id": "arch-layers-vs-tiers",
+    "topic": "software-architecture",
+    "subtopic": "layered",
+    "difficulty": "Easy",
+    "title": "Layers versus tiers",
+    "question": "What is the difference between a layer and a tier in an N-tier architecture?",
+    "options": [
+      "Layers separate responsibilities logically; tiers are physical deployment units",
+      "Layers run on separate servers; tiers are folders in one project",
+      "Layers are for web apps only; tiers are for desktop apps only",
+      "They are the same thing, and the terms can always be swapped"
+    ],
+    "correctIndex": 0,
+    "explanation": "Layers split code by responsibility (presentation, business, data). Tiers are separate processes or machines that run them. Several layers can share one tier, or each can get its own tier for scaling or security. The words are often mixed up, but the difference matters for deployment and latency.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/guide/architecture-styles/n-tier"
+  },
+  {
+    "id": "arch-layered-top-level-domain",
+    "topic": "software-architecture",
+    "subtopic": "layered",
+    "difficulty": "Medium",
+    "title": "Layers as the top-level structure",
+    "question": "A large app is split at the top level into /Controllers, /Services and /Repositories, each with hundreds of files. Every feature change touches all three folders. What does Fowler suggest?",
+    "options": [
+      "Add a fourth top-level layer to hold shared feature logic",
+      "Merge all layers into one folder to cut down on navigation",
+      "Make the top level domain modules, each with its own internal layers",
+      "Split each layer into its own microservice to reduce size"
+    ],
+    "correctIndex": 2,
+    "explanation": "Fowler notes that presentation-domain-data layering works best at a small scale. As systems grow, the top-level split should follow the domain (Billing, Shipping), with layering inside each module, so a feature change stays local. More layers or merged folders don't fix the cross-cutting changes, and microservices per layer make it worse.",
+    "referenceUrl": "https://martinfowler.com/bliki/PresentationDomainDataLayering.html"
+  },
+  {
+    "id": "arch-clean-dependency-rule",
+    "topic": "software-architecture",
+    "subtopic": "clean-hexagonal",
+    "difficulty": "Easy",
+    "title": "Direction of project references",
+    "question": "In Clean Architecture with .NET projects named Core (domain and interfaces), Infrastructure (EF Core, email) and Web, which reference direction is correct?",
+    "options": [
+      "Core references Infrastructure so it can use EF Core directly",
+      "Web references only Infrastructure, which references Core",
+      "All three reference each other through a shared common project",
+      "Infrastructure and Web reference Core; Core references neither"
+    ],
+    "correctIndex": 3,
+    "explanation": "The dependency rule says source dependencies point inward. Core defines entities and interfaces (such as IOrderRepository) and has no dependencies on infrastructure. Infrastructure implements those interfaces and Web wires everything together. If Core referenced Infrastructure, the domain would be tied to frameworks.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures"
+  },
+  {
+    "id": "arch-hexagonal-adapters",
+    "topic": "software-architecture",
+    "subtopic": "clean-hexagonal",
+    "difficulty": "Medium",
+    "title": "Driving and driven adapters",
+    "question": "In Hexagonal (Ports and Adapters) architecture, how are a REST controller that calls the application and a PostgreSQL repository that the application calls classified?",
+    "options": [
+      "Both are ports, because they sit on the edge of the hexagon",
+      "The controller is a driven adapter; the repository is a driving adapter",
+      "The controller is a driving (primary) adapter; the repository is a driven (secondary) adapter",
+      "Both belong inside the hexagon as part of the domain model"
+    ],
+    "correctIndex": 2,
+    "explanation": "Driving adapters (UI, REST, tests) start interactions by calling the application's inbound ports. Driven adapters (databases, message brokers) implement outbound ports that the application defines and calls. Ports are the interfaces, adapters are the technology-specific code, and both kinds of adapter sit outside the core.",
+    "referenceUrl": "https://alistair.cockburn.us/hexagonal-architecture/"
+  },
+  {
+    "id": "arch-persistence-ignorance",
+    "topic": "software-architecture",
+    "subtopic": "clean-hexagonal",
+    "difficulty": "Hard",
+    "title": "ORM attributes in the domain",
+    "question": "Domain entities in Core are full of [Table], [Column] and [ForeignKey] attributes and have public setters only so EF Core can map them. How can you keep the domain persistence-ignorant?",
+    "options": [
+      "Copy each entity into a separate DTO and map by hand on every query",
+      "Move mapping to IEntityTypeConfiguration (Fluent API) in Infrastructure",
+      "Move the entities into the Infrastructure project next to the DbContext",
+      "Use Dapper so that no mapping configuration is needed at all"
+    ],
+    "correctIndex": 1,
+    "explanation": "Persistence ignorance means domain types shouldn't depend on how they are stored. EF Core's Fluent API configuration can live in Infrastructure and can map private fields and constructors, so entities keep their encapsulation. Moving entities into Infrastructure flips the dependency rule, and swapping the ORM doesn't fix the design.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles"
+  },
+  {
+    "id": "arch-modmono-data-ownership",
+    "topic": "software-architecture",
+    "subtopic": "modular-monolith",
+    "difficulty": "Hard",
+    "title": "Reaching into another module's tables",
+    "question": "In a modular monolith, the Orders module queries the Billing module's Invoices table through a shared DbContext to show payment status. What is the main problem?",
+    "options": [
+      "It breaks Billing's encapsulation; Orders should use Billing's public API or events",
+      "It is slower than an HTTP call between the two modules",
+      "It needs a distributed transaction between the two modules",
+      "There is no problem, since both modules share one database"
+    ],
+    "correctIndex": 0,
+    "explanation": "A modular monolith only stays modular if each module owns its data and exposes a narrow public contract. Reading another module's tables couples you to its internal schema, so Billing can't refactor or be extracted later. Sharing one database server is fine, but ownership of the schema still has to be respected.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/architect-microservice-container-applications/data-sovereignty-per-microservice"
+  },
+  {
+    "id": "arch-modmono-enforce",
+    "topic": "software-architecture",
+    "subtopic": "modular-monolith",
+    "difficulty": "Hard",
+    "title": "Keeping module boundaries over time",
+    "question": "After a year, developers keep referencing types from other modules' internal namespaces 'just this once'. How can you enforce the boundaries in a .NET modular monolith?",
+    "options": [
+      "Make internals `internal` and add architecture tests that fail the build on illegal references",
+      "Write the rules on the wiki and review them in quarterly meetings",
+      "Put all modules in one project so references are always allowed",
+      "Split every module into a microservice so the network enforces it"
+    ],
+    "correctIndex": 0,
+    "explanation": "Boundaries need automatic enforcement: C# `internal` visibility (with separate assemblies per module) hides implementation, and architecture tests (for example ArchUnitNET or NetArchTest) check dependency rules in CI. Documentation alone drifts, and jumping to microservices adds a lot of operational cost just to enforce discipline.",
+    "referenceUrl": "https://archunitnet.readthedocs.io/en/latest/"
+  },
+  {
+    "id": "arch-modmono-when",
+    "topic": "software-architecture",
+    "subtopic": "modular-monolith",
+    "difficulty": "Medium",
+    "title": "Choosing a starting architecture",
+    "question": "A new product has 6 developers, unclear domain boundaries and needs to ship in 4 months. Which approach do Fowler's MonolithFirst and MicroservicePremium articles favour?",
+    "options": [
+      "Microservices from day one, so boundaries never have to change",
+      "A well-modularised monolith, extracting services later when boundaries stabilise",
+      "A big ball of mud, refactored once the product finds its market",
+      "Serverless functions per endpoint to skip boundary decisions"
+    ],
+    "correctIndex": 1,
+    "explanation": "Microservices come with a premium (distributed operations, data consistency, tooling) that pays off only for complex systems, and wrong boundaries are very costly to fix across services. Starting with a monolith that has clear internal modules lets the team learn the domain and extract services later. Unstructured code or one function per endpoint just moves the boundary problem elsewhere.",
+    "referenceUrl": "https://martinfowler.com/bliki/MonolithFirst.html"
+  },
+  {
+    "id": "arch-modmono-cross-module-tx",
+    "topic": "software-architecture",
+    "subtopic": "modular-monolith",
+    "difficulty": "Expert",
+    "title": "Transactions across modules",
+    "question": "In a modular monolith, PlaceOrder writes to the Orders and Inventory schemas in one database transaction. The team plans to extract Inventory as a service next year. What design best prepares for that?",
+    "options": [
+      "Keep the shared transaction and add a distributed transaction coordinator later",
+      "Move the Inventory tables into the Orders schema to keep the transaction local",
+      "Have Orders publish an integration event via an outbox that Inventory handles in its own transaction",
+      "Have Orders call Inventory's repository directly inside its unit of work"
+    ],
+    "correctIndex": 2,
+    "explanation": "A transaction across modules is easy in-process, but it hides a strong coupling that can't survive extraction. Making the interaction asynchronous and eventually consistent now (integration events, written reliably through an outbox) means extraction mostly changes the transport. Distributed transactions are fragile and often unavailable, and merging schemas or calling repositories directly deepens the coupling.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/transactional-outbox-cosmos"
+  },
+  {
+    "id": "arch-micro-shared-db",
+    "topic": "software-architecture",
+    "subtopic": "microservices",
+    "difficulty": "Easy",
+    "title": "Two services, one schema",
+    "question": "The Catalog and Ordering microservices read and write the same Products table. What core microservices principle does this break?",
+    "options": [
+      "Each service should use a different programming language",
+      "Each service should be deployed to its own Kubernetes cluster",
+      "Each service should store all its data in a single document",
+      "Each service should own its data and expose it only through its API or events"
+    ],
+    "correctIndex": 3,
+    "explanation": "Owning its data is what lets a microservice change its schema and deploy on its own. A shared table couples both services at the database level, so a schema change needs a coordinated release. Using different languages, clusters or storage formats isn't required.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/architect-microservice-container-applications/data-sovereignty-per-microservice"
+  },
+  {
+    "id": "arch-micro-saga",
+    "topic": "software-architecture",
+    "subtopic": "microservices",
+    "difficulty": "Hard",
+    "title": "Consistency across services",
+    "question": "PlaceOrder must charge payment (Payments service), reserve stock (Inventory) and book a courier (Shipping). If booking fails, the charge and the reservation must be undone. Which pattern fits?",
+    "options": [
+      "A saga, with local transactions and compensating actions on failure",
+      "A two-phase commit across all three service databases",
+      "A shared database so one ACID transaction covers everything",
+      "A circuit breaker that retries the courier booking forever"
+    ],
+    "correctIndex": 0,
+    "explanation": "A saga is a sequence of local transactions, either choreographed through events or run by an orchestrator. When a step fails, it runs compensating transactions (refund, release stock). Two-phase commit is usually unavailable or too fragile across services, a shared database breaks service autonomy, and a circuit breaker is for fault isolation, not consistency.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/saga"
+  },
+  {
+    "id": "arch-micro-circuit-breaker",
+    "topic": "software-architecture",
+    "subtopic": "microservices",
+    "difficulty": "Medium",
+    "title": "Cascading failure",
+    "question": "The Recommendations service starts taking 30 s per response. The Product page service keeps calling it, its threads and connections fill up, and the whole site goes down. Which pattern would have contained this?",
+    "options": [
+      "Retries with no limit, so every call eventually gets a response",
+      "A larger thread pool so more calls can wait at the same time",
+      "A circuit breaker that fails fast after repeated errors and retries later",
+      "Strangler fig to replace the Recommendations service gradually"
+    ],
+    "correctIndex": 2,
+    "explanation": "A circuit breaker watches for failures and, past a threshold, opens so calls fail right away (often with a fallback) instead of tying up resources. After a timeout it lets a test call through. Unlimited retries and bigger pools make the cascade worse, and strangler fig is a migration pattern.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker"
+  },
+  {
+    "id": "arch-micro-dual-write",
+    "topic": "software-architecture",
+    "subtopic": "microservices",
+    "difficulty": "Expert",
+    "title": "Saved but never published",
+    "question": "Ordering commits a new order to its database and then publishes OrderPlaced to the broker. Sometimes the process crashes between the two steps, and downstream services never hear about the order. What is the standard fix?",
+    "options": [
+      "Publish the event first, then save the order if publishing worked",
+      "Wrap both steps in a try/catch and log failures for manual replay",
+      "Increase the broker's retention so lost messages can be recovered",
+      "The transactional outbox: write the event in the same DB transaction, then relay it"
+    ],
+    "correctIndex": 3,
+    "explanation": "This is the dual-write problem: two systems can't be updated atomically without distributed transactions. The outbox pattern saves the event in an outbox table in the same local transaction as the business data. A relay then publishes it at least once, so consumers must be idempotent. Reversing the order just flips the failure, and broker retention can't recover a message that was never sent.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/transactional-outbox-cosmos"
+  },
+  {
+    "id": "arch-micro-distributed-monolith",
+    "topic": "software-architecture",
+    "subtopic": "microservices",
+    "difficulty": "Expert",
+    "title": "Lockstep deployments",
+    "question": "A system has 9 'microservices', but nearly every feature needs changes to 5 of them deployed together in a set order. They also call each other synchronously in long chains. What is the most likely diagnosis?",
+    "options": [
+      "Normal microservices behaviour that better CI/CD tools can absorb",
+      "A distributed monolith with boundaries that don't follow business capabilities",
+      "Too few services, which more fine-grained splitting would fix",
+      "A database problem that adding read replicas would fix"
+    ],
+    "correctIndex": 1,
+    "explanation": "Independent deployability is the defining trait of microservices. Lockstep releases and chatty synchronous chains show the services are split along technical lines, not business capabilities, so you pay the cost of distribution with none of the autonomy. Splitting further usually adds more coupling, and the issue isn't database capacity.",
+    "referenceUrl": "https://martinfowler.com/articles/microservices.html"
+  },
+  {
+    "id": "arch-micro-strangler",
+    "topic": "software-architecture",
+    "subtopic": "microservices",
+    "difficulty": "Easy",
+    "title": "Migrating a legacy monolith",
+    "question": "You must move a 15-year-old monolith to new services without a big-bang rewrite. Users must keep working throughout. Which approach fits?",
+    "options": [
+      "Strangler fig: route features one by one to new services behind a facade",
+      "Freeze the monolith and rewrite everything in one large release",
+      "Copy the monolith's database into each new service right away",
+      "Run the old and new systems with no routing and let users pick"
+    ],
+    "correctIndex": 0,
+    "explanation": "The strangler fig pattern puts a routing facade in front of the legacy system and moves features to new implementations step by step, until the old system can be retired. It lowers risk and delivers value early. Big-bang rewrites are risky, and copying databases or making users choose leads to inconsistency.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/strangler-fig"
+  },
+  {
+    "id": "arch-eda-pubsub",
+    "topic": "software-architecture",
+    "subtopic": "event-driven-architecture",
+    "difficulty": "Easy",
+    "title": "Many independent consumers",
+    "question": "When an OrderPlaced event happens, Email, Analytics and Loyalty must each get their own copy and process it independently. Which messaging model fits?",
+    "options": [
+      "A single queue shared by all three consumers as competing consumers",
+      "Synchronous HTTP calls from Ordering to each of the three services",
+      "A shared database table that each consumer polls and deletes from",
+      "Publish-subscribe with a topic and one subscription per consumer"
+    ],
+    "correctIndex": 3,
+    "explanation": "Publish-subscribe delivers a copy of each event to every subscriber, so consumers are decoupled from the publisher and from each other. With competing consumers on one queue, each message goes to only one consumer. Synchronous calls couple Ordering to every consumer, and a shared polled table needs coordination to work.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/publisher-subscriber"
+  },
+  {
+    "id": "arch-eda-idempotent",
+    "topic": "software-architecture",
+    "subtopic": "event-driven-architecture",
+    "difficulty": "Hard",
+    "title": "Duplicate messages",
+    "question": "A payment-captured consumer on a broker with at-least-once delivery sometimes credits loyalty points twice after a consumer restart. What is the right fix?",
+    "options": [
+      "Switch the broker to exactly-once mode for all topics",
+      "Acknowledge each message before processing it to avoid redelivery",
+      "Make the handler idempotent, for example by recording processed message IDs",
+      "Run only one consumer instance so duplicates can't happen"
+    ],
+    "correctIndex": 2,
+    "explanation": "At-least-once delivery means redelivery is expected, for example after a crash before the ack. Consumers must tolerate duplicates by deduplicating on a message or business key, or by using naturally idempotent operations. Acking first risks losing messages, and one instance still sees redeliveries. End-to-end exactly-once is rarely available across systems.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/competing-consumers"
+  },
+  {
+    "id": "arch-eda-state-transfer",
+    "topic": "software-architecture",
+    "subtopic": "event-driven-architecture",
+    "difficulty": "Expert",
+    "title": "Callbacks after every event",
+    "question": "CustomerUpdated events contain only the customer ID. Five subscribers each call the Customer API back for details. At peak times the Customer API becomes a bottleneck, and its outages stall all five. Which event style addresses this?",
+    "options": [
+      "Event sourcing: store every customer change as the source of truth",
+      "Event-carried state transfer: put the needed data in the event itself",
+      "Command messages: send each subscriber a command to update itself",
+      "Polling: have subscribers query the Customer API on a timer"
+    ],
+    "correctIndex": 1,
+    "explanation": "Fowler separates event notification (small events that need callbacks) from event-carried state transfer (events with the data consumers need). Including the data lets subscribers keep local copies without calling back, which reduces load and temporal coupling, at the cost of some data duplication and eventual consistency. Event sourcing is about persistence, not integration.",
+    "referenceUrl": "https://martinfowler.com/articles/201701-event-driven.html"
+  },
+  {
+    "id": "arch-serverless-cold-start",
+    "topic": "software-architecture",
+    "subtopic": "serverless",
+    "difficulty": "Medium",
+    "title": "Latency after idle periods",
+    "question": "An HTTP-triggered Azure Function on the Consumption plan answers in 80 ms when busy but takes several seconds for the first request after a quiet period. What explains this, and what is a plan-level fix?",
+    "options": [
+      "Too few database connections; raise the pool size in host.json",
+      "Cold starts after scale-to-zero; Premium or Flex Consumption keep warm instances",
+      "HTTP/2 negotiation overhead; force HTTP/1.1 on the function app",
+      "Garbage collection pauses; switch the app to server GC mode"
+    ],
+    "correctIndex": 1,
+    "explanation": "Consumption plans scale to zero when idle, so the next request waits for a host to start and load the app (a cold start). Plans with always-ready or pre-warmed instances (Premium, or Flex Consumption with always-ready instances) avoid this at extra cost. Connection pools, the HTTP version and GC mode don't explain idle-only delays.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/azure-functions/functions-scale"
+  },
+  {
+    "id": "arch-serverless-durable-determinism",
+    "topic": "software-architecture",
+    "subtopic": "serverless",
+    "difficulty": "Expert",
+    "title": "Non-deterministic orchestrator",
+    "question": "A Durable Functions orchestrator calls `DateTime.UtcNow` and `Guid.NewGuid()` to make deadlines and IDs. Some instances behave strangely after restarts, for example by taking different branches. Why?",
+    "options": [
+      "Durable Functions can't run for longer than the Consumption plan timeout",
+      "The orchestrator needs a lock because replays run in parallel threads",
+      "DateTime.UtcNow returns local time inside the Durable Functions runtime",
+      "Orchestrators replay from history, so their code must be deterministic; use the context's time and GUID APIs"
+    ],
+    "correctIndex": 3,
+    "explanation": "Durable orchestrators rebuild their state by replaying the code against an event history. A value that changes between replays makes the code take different paths. The rule is to use context.CurrentUtcDateTime and context.NewGuid(), and to do I/O only inside activities. Orchestrations aren't limited by function timeouts in the same way and don't replay in parallel.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-code-constraints"
+  },
+  {
+    "id": "arch-serverless-concurrency",
+    "topic": "software-architecture",
+    "subtopic": "serverless",
+    "difficulty": "Hard",
+    "title": "Functions overwhelming the database",
+    "question": "During a traffic spike an AWS Lambda function scales to 900 concurrent instances, each opening a database connection, and the PostgreSQL server runs out of connections. Which Lambda-level control limits this?",
+    "options": [
+      "Raise the function's memory so each instance handles more requests",
+      "Turn on provisioned concurrency to pre-warm 900 instances",
+      "Set reserved concurrency on the function to cap its concurrent executions",
+      "Increase the function timeout so connections are reused longer"
+    ],
+    "correctIndex": 2,
+    "explanation": "Reserved concurrency caps how many instances a function can run at once (and reserves that capacity), which protects downstream resources. A connection proxy such as RDS Proxy is often used as well. Provisioned concurrency pre-warms instances but doesn't cap them, and memory or timeout changes don't limit how many connections are opened.",
+    "referenceUrl": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html"
+  },
+  {
+    "id": "arch-ddd-bounded-context",
+    "topic": "software-architecture",
+    "subtopic": "ddd",
+    "difficulty": "Easy",
+    "title": "Same word, different meanings",
+    "question": "In Sales, 'Customer' means a lead with a pipeline stage. In Support, it means an account holder with tickets and an SLA. One shared Customer class is growing out of control. What does DDD suggest?",
+    "options": [
+      "Separate bounded contexts, each with its own Customer model",
+      "One canonical Customer model with every field marked optional",
+      "A Customer base class with SalesCustomer and SupportCustomer subclasses",
+      "Rename both to Party and store the differences in a JSON column"
+    ],
+    "correctIndex": 0,
+    "explanation": "A bounded context is the boundary where one model and its language are consistent. Large domains naturally have several models where the same term means different things, and trying to unify them creates bloated, coupled classes. Contexts are linked through explicit mappings or integration, not a shared class.",
+    "referenceUrl": "https://martinfowler.com/bliki/BoundedContext.html"
+  },
+  {
+    "id": "arch-ddd-ubiquitous-language",
+    "topic": "software-architecture",
+    "subtopic": "ddd",
+    "difficulty": "Easy",
+    "title": "Shared vocabulary",
+    "question": "Domain experts talk about 'policies being underwritten', but the code has `ContractRecord.ProcessStatus2()`. Which DDD practice deals with this gap?",
+    "options": [
+      "Anti-corruption layer: translate expert terms at the system boundary",
+      "Event storming: replace class names with event names everywhere",
+      "Ubiquitous language: use the same terms in conversation and in code",
+      "Context mapping: give each team its own private naming scheme"
+    ],
+    "correctIndex": 2,
+    "explanation": "The ubiquitous language is a shared vocabulary built by developers and domain experts and used everywhere, including class and method names (Policy.Underwrite()). It reduces translation mistakes. An anti-corruption layer translates between systems, not between people and code.",
+    "referenceUrl": "https://martinfowler.com/bliki/UbiquitousLanguage.html"
+  },
+  {
+    "id": "arch-ddd-aggregate",
+    "topic": "software-architecture",
+    "subtopic": "ddd",
+    "difficulty": "Medium",
+    "title": "Protecting invariants",
+    "question": "A rule says an Order's total must not exceed the customer's credit limit. Some code changes OrderLine quantities directly through `dbContext.OrderLines`, so the rule is sometimes broken. What is the DDD fix?",
+    "options": [
+      "Add a nightly job that finds and cancels orders over the limit",
+      "Add a database trigger that rejects any update to OrderLines",
+      "Give OrderLine its own repository so it can check the total",
+      "Make Order the aggregate root and allow line changes only through its methods"
+    ],
+    "correctIndex": 3,
+    "explanation": "An aggregate is a consistency boundary. All changes go through the root, which enforces the invariants inside it, and the aggregate is loaded and saved as one unit. Nightly cleanup catches violations too late, a trigger moves domain logic into the database, and a separate repository is exactly what lets callers bypass the root.",
+    "referenceUrl": "https://martinfowler.com/bliki/DDD_Aggregate.html"
+  },
+  {
+    "id": "arch-ddd-acl",
+    "topic": "software-architecture",
+    "subtopic": "ddd",
+    "difficulty": "Medium",
+    "title": "Integrating with a legacy ERP",
+    "question": "Your new fulfilment context must read data from a 20-year-old ERP whose model uses cryptic codes and mixes up concepts. You don't want that model to leak into your domain. Which pattern fits?",
+    "options": [
+      "An anti-corruption layer that translates between the ERP and your model",
+      "A shared kernel holding the ERP's tables and your entities",
+      "A conformist approach that adopts the ERP model as your own",
+      "A published language made from the ERP's internal codes"
+    ],
+    "correctIndex": 0,
+    "explanation": "An anti-corruption layer is a translation layer, often adapters and facades, that keeps a clean model safe from a legacy or external model. A shared kernel or conformist relationship would import the ERP's concepts into your domain, which is what you want to avoid.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/anti-corruption-layer"
+  },
+  {
+    "id": "arch-ddd-domain-vs-integration-events",
+    "topic": "software-architecture",
+    "subtopic": "ddd",
+    "difficulty": "Expert",
+    "title": "Domain events vs integration events",
+    "question": "OrderPaid must update the customer's loyalty tier in the same service, and must also notify the external Shipping service. How should these two needs be handled?",
+    "options": [
+      "One integration event sent to the broker before the transaction commits",
+      "A domain event handled in-process, then an integration event published after commit",
+      "A domain event serialised and sent straight to Shipping's database",
+      "Two synchronous HTTP calls made from inside the Order entity"
+    ],
+    "correctIndex": 1,
+    "explanation": "Domain events signal something that happened inside one domain and are usually handled in-process, often within the same transaction. Integration events cross service boundaries asynchronously and should only be published after the local commit succeeds (ideally through an outbox), so other services never react to changes that were rolled back.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/domain-events-design-implementation"
+  },
+  {
+    "id": "arch-gateway-offloading",
+    "topic": "software-architecture",
+    "subtopic": "api-gateway-bff",
+    "difficulty": "Easy",
+    "title": "Shared edge concerns",
+    "question": "Twelve services each implement TLS termination, JWT validation and rate limiting slightly differently. Which pattern centralises these concerns?",
+    "options": [
+      "Saga: coordinate them as compensating steps across services",
+      "Sidecar per database: run them next to every data store",
+      "Gateway offloading: handle them once in an API gateway",
+      "CQRS: split them into separate read and write models"
+    ],
+    "correctIndex": 2,
+    "explanation": "Gateway offloading moves shared cross-cutting concerns such as TLS, authentication and rate limiting into the gateway, so services stay simpler and consistent. Sagas handle distributed transactions, CQRS splits reads from writes, and putting these concerns next to databases puts them in the wrong place.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/gateway-offloading"
+  },
+  {
+    "id": "arch-gateway-aggregation",
+    "topic": "software-architecture",
+    "subtopic": "api-gateway-bff",
+    "difficulty": "Medium",
+    "title": "Chatty mobile client",
+    "question": "To render one screen, the mobile app calls 6 microservices over a slow cellular network, and the screen takes 3 s to load. Which pattern helps most?",
+    "options": [
+      "Gateway aggregation: one client call fanned out to the services at the gateway",
+      "Client-side retries on each of the six service calls",
+      "Moving all six services onto one larger virtual machine",
+      "Strangler fig to slowly replace the mobile application"
+    ],
+    "correctIndex": 0,
+    "explanation": "Gateway aggregation gathers several backend calls behind one request. The gateway calls the services over the fast internal network, often in parallel, and returns one combined response, which removes many round trips on the slow link. Retries add latency, and colocating services doesn't reduce client round trips.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/gateway-aggregation"
+  },
+  {
+    "id": "arch-bff",
+    "topic": "software-architecture",
+    "subtopic": "api-gateway-bff",
+    "difficulty": "Medium",
+    "title": "Different clients, different needs",
+    "question": "The web app needs rich, paged data. The mobile app needs small payloads and push-friendly flows. One general-purpose API keeps growing conflicting options and its team is a bottleneck. Which pattern fits?",
+    "options": [
+      "A single GraphQL schema owned by the database team",
+      "Backends for Frontends: a separate backend for each client experience",
+      "API versioning, with v1 for mobile and v2 for web",
+      "Moving all aggregation logic into the client apps"
+    ],
+    "correctIndex": 1,
+    "explanation": "Backends for Frontends gives each client type its own backend, often owned by the frontend team, so the API fits that experience and can change on its own schedule. Versioning is about compatibility over time, not client-specific shapes, and pushing aggregation to clients brings back chatty calls.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/backends-for-frontends"
+  },
+  {
+    "id": "arch-gateway-too-smart",
+    "topic": "software-architecture",
+    "subtopic": "api-gateway-bff",
+    "difficulty": "Hard",
+    "title": "Business logic in the gateway",
+    "question": "Over time the shared API gateway has gained pricing rules, order validation and data joins for every client. Every team must change and redeploy it, and it fails often. What is the core issue?",
+    "options": [
+      "The gateway needs more replicas behind a load balancer to cope",
+      "The services should call the gateway too, so all traffic is uniform",
+      "The gateway should own the database so the joins run faster",
+      "The gateway became a monolithic bottleneck; keep it thin and move logic to services or BFFs"
+    ],
+    "correctIndex": 3,
+    "explanation": "A single gateway carrying business logic for every client becomes a coupling point and a single point of failure, like a new monolith. Gateways should handle routing and cross-cutting concerns, with domain logic in services and client-specific shaping in BFFs. Scaling out doesn't remove the shared ownership problem.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/microservices/architect-microservice-container-applications/direct-client-to-microservice-communication-versus-the-api-gateway-pattern"
+  },
+  {
+    "id": "arch-cqrs-stale-read",
+    "topic": "software-architecture",
+    "subtopic": "cqrs-event-sourcing",
+    "difficulty": "Hard",
+    "title": "Just-created item is missing",
+    "question": "With CQRS, writes go to a normalised store and a projector updates a separate read store asynchronously. Users create a ticket and sometimes don't see it in their list right away. What is going on?",
+    "options": [
+      "The write failed silently and the user should retry",
+      "The read model is eventually consistent and hasn't caught up with the write",
+      "CQRS needs both models in the same table to work correctly",
+      "The read store cache must be turned off for CQRS to work"
+    ],
+    "correctIndex": 1,
+    "explanation": "Asynchronous projections mean the read side lags behind the write side. That is the trade-off for scaling and optimising reads independently. Common fixes include showing the created item from the command result, using read-your-writes techniques, or telling users that updates may take a moment. The write succeeded, and the separation is intentional.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs"
+  },
+  {
+    "id": "arch-es-snapshots",
+    "topic": "software-architecture",
+    "subtopic": "cqrs-event-sourcing",
+    "difficulty": "Hard",
+    "title": "Long event streams",
+    "question": "In an event-sourced system, some Account aggregates have 200,000 events, and loading one by replaying all of them takes seconds. What is the standard mitigation?",
+    "options": [
+      "Delete old events once they are more than a year old",
+      "Merge old events into one big event that overwrites history",
+      "Switch the aggregate to update-in-place CRUD storage",
+      "Store periodic snapshots and replay only the events after the latest one"
+    ],
+    "correctIndex": 3,
+    "explanation": "Snapshots save the aggregate's state at a version. Loading reads the latest snapshot plus the newer events, while the full event log stays as the source of truth. Deleting or merging events destroys the audit history that event sourcing exists to keep, and switching to CRUD gives up the approach entirely.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing"
+  },
+  {
+    "id": "arch-es-versioning",
+    "topic": "software-architecture",
+    "subtopic": "cqrs-event-sourcing",
+    "difficulty": "Expert",
+    "title": "Changing an event's shape",
+    "question": "A year into event sourcing, AddressChanged v1 had a single `address` string. v2 needs structured street, city and zip fields. Millions of v1 events are stored. What is the recommended approach?",
+    "options": [
+      "Keep stored events unchanged and add versioned types with upcasting to v2 on read",
+      "Run a migration that rewrites every v1 event in place to v2",
+      "Delete the v1 events and rebuild state from the current read model",
+      "Change the v1 class definition so old events deserialise as v2"
+    ],
+    "correctIndex": 0,
+    "explanation": "Events are an immutable record of what happened, so they shouldn't be edited in place. The usual way to evolve them is to add a version to each event and have handlers or an upcaster turn old versions into the current shape when reading. Rewriting history loses auditability, and changing the v1 type breaks deserialisation of existing data.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing"
+  }
+]

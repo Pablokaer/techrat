@@ -1,0 +1,1022 @@
+[
+  {
+    "id": "os-pt-execve-replace-image",
+    "topic": "operating-systems",
+    "subtopic": "processes-threads",
+    "difficulty": "Easy",
+    "title": "Replacing the program image",
+    "question": "A shell has forked a child to run ls. Which system call does the child use to replace its own program image with the ls binary while keeping the same PID?",
+    "options": [
+      "fork(), which duplicates the caller into a new process",
+      "execve(), which loads a new program into the calling process",
+      "clone(), which creates a thread sharing the caller's memory",
+      "waitpid(), which hands control to the program being waited on"
+    ],
+    "correctIndex": 1,
+    "explanation": "execve() replaces the text, data, heap and stack of the calling process with the new program; the PID stays the same and, on success, the call never returns. fork() creates a new process, clone() creates threads or processes with selective sharing, and waitpid() only waits for a child's state change.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/execve.2.html"
+  },
+  {
+    "id": "os-pt-container-pid1-reaping",
+    "topic": "operating-systems",
+    "subtopic": "processes-threads",
+    "difficulty": "Hard",
+    "title": "Zombies under a container's PID 1",
+    "question": "A Node.js app runs as PID 1 in a container and spawns shell scripts that start background helpers and then exit. Over days, ps inside the container shows a growing number of <defunct> helpers. What is the cause and the usual fix?",
+    "options": [
+      "The runtime caps the PID count; raise the pids limit in the container config",
+      "The helpers are stuck in uninterruptible sleep; raise the container's I/O priority",
+      "Orphans go to the host's systemd, which cannot see container PIDs; mount /proc",
+      "Orphans are reparented to PID 1, which never reaps them; run an init via --init"
+    ],
+    "correctIndex": 3,
+    "explanation": "When a parent exits, its children are reparented to the init process of their PID namespace, which inside a container is the app itself. The app never calls wait() for children it did not spawn, so they stay zombies. docker run --init (tini) runs a tiny init as PID 1 that reaps zombies and forwards signals. A PID limit causes fork failures rather than zombies, uninterruptible sleep is state D, and orphans are not handed to the host's init.",
+    "referenceUrl": "https://docs.docker.com/reference/cli/docker/container/run/"
+  },
+  {
+    "id": "os-mem-same-virtual-address",
+    "topic": "operating-systems",
+    "subtopic": "memory-management",
+    "difficulty": "Easy",
+    "title": "Same address, different values",
+    "question": "With ASLR disabled, two running instances of the same program print the address of a global variable and both get 0x555555558010, yet each instance stores a different number there. How is that possible?",
+    "options": [
+      "The variable lives in a shared library, so the CPU caches a copy per instance",
+      "The kernel swaps the variable's contents whenever it switches between the two",
+      "Each process has its own virtual address space mapped to different frames",
+      "The addresses are printed relative to the program binary, not to real memory"
+    ],
+    "correctIndex": 2,
+    "explanation": "Addresses seen by user programs are virtual. Each process has its own page tables, so the same virtual address translates to different physical frames. The kernel does not copy variable values on a context switch (it switches page tables), CPU caches do not create per-process copies, and pointers are real virtual addresses rather than offsets into the binary.",
+    "referenceUrl": "https://docs.kernel.org/admin-guide/mm/concepts.html"
+  },
+  {
+    "id": "alg-sorting-heapsort-guarantee",
+    "topic": "algorithms",
+    "subtopic": "sorting",
+    "difficulty": "Easy",
+    "title": "Worst-case O(n log n) in O(1) space",
+    "question": "You need a comparison sort for an array that is guaranteed O(n log n) even in the worst case and uses only O(1) extra memory. Stability is not required. Which algorithm fits?",
+    "options": [
+      "Heapsort",
+      "Merge sort",
+      "Quicksort",
+      "Insertion sort"
+    ],
+    "correctIndex": 0,
+    "explanation": "Heapsort builds a max-heap inside the array and repeatedly moves the maximum to the end, giving O(n log n) in the worst case with O(1) extra space, though it is not stable. Merge sort is O(n log n) but needs an O(n) buffer for arrays, quicksort degrades to O(n^2) with bad pivots, and insertion sort is O(n^2).",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-sorting-external-merge-runs",
+    "topic": "algorithms",
+    "subtopic": "sorting",
+    "difficulty": "Medium",
+    "title": "Sorting data larger than RAM",
+    "question": "A batch job must sort a 2 TB file of fixed-size records on a machine with 32 GB of RAM. Which approach is standard?",
+    "options": [
+      "Memory-map the whole file and run an in-place quicksort over the mapping",
+      "Load records in 32 GB chunks and insert each chunk into a single hash table",
+      "Sort RAM-sized chunks into sorted runs on disk, then k-way merge the runs",
+      "Run insertion sort directly on the file so that it never needs extra memory"
+    ],
+    "correctIndex": 2,
+    "explanation": "External merge sort sorts chunks that fit in memory, writes them as sorted runs, then merges the runs with a min-heap while reading each run sequentially, keeping I/O mostly sequential. Quicksort over a 2 TB mapping causes random page faults and thrashing, a hash table does not produce an order, and insertion sort on disk needs O(n^2) work and I/O.",
+    "referenceUrl": "https://docs.python.org/3/library/heapq.html"
+  },
+  {
+    "id": "alg-bs-comparisons-million",
+    "topic": "algorithms",
+    "subtopic": "binary-search",
+    "difficulty": "Easy",
+    "title": "Binary search step count",
+    "question": "A sorted array holds 1,000,000 distinct keys. Roughly how many comparisons does binary search need in the worst case to find a key or conclude it is absent?",
+    "options": [
+      "About 1,000",
+      "About 500,000",
+      "About 100",
+      "About 20"
+    ],
+    "correctIndex": 3,
+    "explanation": "Each step halves the remaining range, and 2^20 is about 1,048,576, so about 20 iterations suffice. About 1,000 is sqrt(n), the cost of jump search; 500,000 is the average for a linear scan; 100 has no basis in the halving argument.",
+    "referenceUrl": "https://docs.python.org/3/library/bisect.html"
+  },
+  {
+    "id": "alg-bs-rotated-duplicates",
+    "topic": "algorithms",
+    "subtopic": "binary-search",
+    "difficulty": "Hard",
+    "title": "Rotated array with duplicates",
+    "question": "Searching a rotated sorted array of distinct values (e.g. [4,5,6,1,2,3]) with a modified binary search takes O(log n). Once duplicates are allowed, as in [1,1,1,1,0,1,1], what happens to the worst case?",
+    "options": [
+      "It stays O(log n), since the rotation point is still found by halving",
+      "It becomes O(n): when lo, mid and hi hold equal values you can only shrink by one",
+      "It becomes O(log^2 n), because each duplicate run needs its own binary search",
+      "It becomes O(n log n), because the array must be re-sorted before searching"
+    ],
+    "correctIndex": 1,
+    "explanation": "When nums[lo] == nums[mid] == nums[hi], you cannot tell which half is sorted ([1,1,1,1,0,1,1] versus [1,0,1,1,1,1,1]), so the standard fix is lo++ / hi--, which degrades to O(n) when nearly all values are equal. No algorithm can do better in the worst case, because the single different element could be anywhere. Neither a log^2 bound nor re-sorting applies.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-tp-two-sum-sorted-move",
+    "topic": "algorithms",
+    "subtopic": "two-pointers",
+    "difficulty": "Easy",
+    "title": "Two-sum on a sorted array",
+    "question": "In a sorted array you look for two values summing to target, with left at index 0 and right at the last index. If arr[left] + arr[right] is smaller than target, what should you do?",
+    "options": [
+      "Move left one step to the right",
+      "Move right one step to the left",
+      "Move both pointers toward the center",
+      "Restart with left at the next index and right at the end"
+    ],
+    "correctIndex": 0,
+    "explanation": "Because the array is sorted, arr[right] is already the largest partner available for arr[left]; if even that sum is too small, arr[left] cannot be in any solution and is discarded by moving left forward, which increases the sum. Moving right decreases the sum, moving both can skip a solution, and restarting turns the scan into O(n^2).",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-tp-three-sum-complexity",
+    "topic": "algorithms",
+    "subtopic": "two-pointers",
+    "difficulty": "Medium",
+    "title": "Cost of sort plus two pointers for 3Sum",
+    "question": "To find all unique triplets that sum to zero in an array of n integers, a solution sorts the array, then for each index i runs a left/right two-pointer scan over the elements after i. What is its time complexity?",
+    "options": [
+      "O(n log n), dominated by the initial sort",
+      "O(n^3), since three indices are chosen",
+      "O(n^2), one linear scan per fixed index",
+      "O(n^2 log n), with a binary search per pair"
+    ],
+    "correctIndex": 2,
+    "explanation": "Sorting costs O(n log n), then each of the n fixed indices triggers an O(n) two-pointer scan, so the total is O(n^2). The sort does not dominate, the triple loop that gives O(n^3) is avoided, and O(n^2 log n) describes a different variant that binary searches the third value for every pair.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-tp-merge-from-back",
+    "topic": "algorithms",
+    "subtopic": "two-pointers",
+    "difficulty": "Medium",
+    "title": "Merging sorted arrays in place",
+    "question": "nums1 has length m + n: its first m slots hold sorted values and the last n slots are empty; nums2 holds n sorted values. To merge in place into nums1, why do typical solutions fill nums1 from the last index backwards?",
+    "options": [
+      "Writing from the back keeps the merge stable for equal keys",
+      "Reading from the back lets the loop skip comparisons for equal values",
+      "Going backwards is needed so the result ends up in descending order",
+      "The free slots are at the end, so no unread nums1 value is overwritten"
+    ],
+    "correctIndex": 3,
+    "explanation": "Placing the largest remaining value at the highest free position means the write index never falls below the next unread index in nums1, so the merge needs O(m + n) time and O(1) extra space. Filling from the front would overwrite unread values or require shifting. Stability and comparison counts are not the reason, and the result is still ascending.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-tp-container-shorter-line",
+    "topic": "algorithms",
+    "subtopic": "two-pointers",
+    "difficulty": "Hard",
+    "title": "Why move the shorter line",
+    "question": "In 'container with most water', left and right pointers start at both ends and area = min(h[l], h[r]) * (r - l). Why is it safe to always move the pointer at the shorter line inward?",
+    "options": [
+      "The shorter line has already been compared with every other line before",
+      "Any container using the shorter line with a closer partner is no larger",
+      "Moving the taller line inward would make the width reach zero more quickly",
+      "Shorter lines appear later in the array, so they are scanned at the end"
+    ],
+    "correctIndex": 1,
+    "explanation": "Every remaining container that uses the shorter line has a smaller width and a height capped by that same short line, so none can beat the current area; the shorter line can be discarded without losing the optimum, giving O(n). It has not been compared with every line, widths shrink by one either way, and line position is unrelated to height.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-sw-fixed-window-sales",
+    "topic": "algorithms",
+    "subtopic": "sliding-window",
+    "difficulty": "Easy",
+    "title": "Best 7-day sales total",
+    "question": "You need the maximum sum of any 7 consecutive daily sales values in an array of n days. What is the efficient approach?",
+    "options": [
+      "Sort the array and add up the 7 largest values",
+      "Recompute the sum of each 7-day block from scratch",
+      "Keep a running sum, adding the new day and dropping the oldest",
+      "Binary search for the start day of the best 7-day window"
+    ],
+    "correctIndex": 2,
+    "explanation": "A fixed-size sliding window updates the sum in O(1) per step, so the whole scan is O(n). Recomputing each block costs O(n*k), sorting destroys the consecutive-days requirement, and window sums are not monotonic, so binary search does not apply.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-sw-find-anagrams",
+    "topic": "algorithms",
+    "subtopic": "sliding-window",
+    "difficulty": "Medium",
+    "title": "Finding all anagram windows",
+    "question": "Find every start index in string s (length n) where a substring is an anagram of p (length m, lowercase letters only). Which approach runs in O(n)?",
+    "options": [
+      "Slide a window of size m, updating 26 letter counts as it moves",
+      "Sort each length-m substring of s and compare it with sorted p",
+      "Generate every permutation of p and search for each of them in s",
+      "Expand the window until it repeats a letter, then reset it"
+    ],
+    "correctIndex": 0,
+    "explanation": "A fixed window of size m with a 26-entry count array changes only two counts per step, and comparing (or tracking how many counts match) is O(26), so the total is O(n). Sorting each window costs O(n * m log m), generating permutations is O(m!), and expand-and-reset is the longest-unique-substring technique, which does not test anagrams.",
+    "referenceUrl": "https://docs.python.org/3/library/collections.html"
+  },
+  {
+    "id": "alg-sw-window-max-deque",
+    "topic": "algorithms",
+    "subtopic": "sliding-window",
+    "difficulty": "Hard",
+    "title": "Maximum of every window",
+    "question": "For a stream of n prices you must output the maximum of every window of size k. Which technique gives O(n) total time?",
+    "options": [
+      "A max-heap of the window, popping the oldest value as the window moves",
+      "A running maximum that is reset whenever the old maximum leaves the window",
+      "A balanced BST of the window values queried for its largest element",
+      "A deque of indices whose values decrease, evicting stale front indices"
+    ],
+    "correctIndex": 3,
+    "explanation": "The monotonic deque drops smaller values from the back before appending (they can never be a future maximum) and removes the front index once it leaves the window; each index is pushed and popped at most once, so the total is O(n). A heap or BST gives O(n log k), and recomputing the maximum after it expires costs O(k) each time, O(nk) in the worst case.",
+    "referenceUrl": "https://docs.python.org/3/library/collections.html"
+  },
+  {
+    "id": "alg-sw-exactly-k-distinct",
+    "topic": "algorithms",
+    "subtopic": "sliding-window",
+    "difficulty": "Hard",
+    "title": "Subarrays with exactly K distinct values",
+    "question": "You must count subarrays that contain exactly K distinct values. A single shrinking window does not work directly. What is the standard O(n) trick?",
+    "options": [
+      "Count windows with at least K distinct values and halve the result",
+      "Compute atMost(K) - atMost(K - 1) using two sliding-window passes",
+      "Run the window twice, once from the left and once from the right",
+      "Sort the array so equal values are adjacent and count runs of K"
+    ],
+    "correctIndex": 1,
+    "explanation": "For each right end, the valid left ends for 'at most K distinct' form a contiguous range, so a sliding window counts them in O(n); subtracting the count for K - 1 leaves exactly K. Halving has no mathematical basis, scanning in both directions does not isolate the exact case, and sorting destroys contiguity.",
+    "referenceUrl": "https://docs.python.org/3/library/collections.html"
+  },
+  {
+    "id": "alg-ps-range-sum-trace",
+    "topic": "algorithms",
+    "subtopic": "prefix-sum",
+    "difficulty": "Easy",
+    "title": "Range sum from a prefix array",
+    "question": "arr = [3, 1, 4, 1, 5] and its prefix array is P = [0, 3, 4, 8, 9, 14], where P[i] is the sum of the first i elements. Using P, what is the sum of arr[1..3] (inclusive)?",
+    "options": [
+      "9",
+      "5",
+      "6",
+      "11"
+    ],
+    "correctIndex": 2,
+    "explanation": "sum(l..r) = P[r + 1] - P[l] = P[4] - P[1] = 9 - 3 = 6, which matches 1 + 4 + 1. 9 is P[4] alone, 5 comes from shifting the left index by one (P[4] - P[2]), and 11 comes from shifting the right index by one (P[5] - P[1]).",
+    "referenceUrl": "https://docs.python.org/3/library/itertools.html"
+  },
+  {
+    "id": "alg-ps-2d-rectangle-query",
+    "topic": "algorithms",
+    "subtopic": "prefix-sum",
+    "difficulty": "Medium",
+    "title": "Rectangle sums with a 2D prefix table",
+    "question": "A 2000 x 2000 heatmap that never changes receives millions of queries for the sum inside rows r1..r2 and columns c1..c2. With a 2D prefix table S that has an extra leading row and column of zeros, which expression answers a query in O(1)?",
+    "options": [
+      "S[r2+1][c2+1] - S[r1][c2+1] - S[r2+1][c1] + S[r1][c1]",
+      "S[r2+1][c2+1] - S[r1][c1]",
+      "S[r2][c2] - S[r1][c2] - S[r2][c1] - S[r1][c1]",
+      "S[r2+1][c2+1] - S[r1][c2+1] - S[r2+1][c1]"
+    ],
+    "correctIndex": 0,
+    "explanation": "Inclusion-exclusion: take the full prefix rectangle, subtract the strip above and the strip to the left, then add back the top-left block that was subtracted twice. Subtracting only the corner ignores the strips, omitting the add-back double-subtracts the corner, and the version without +1 offsets uses the wrong boundaries and sign.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-ps-product-except-self",
+    "topic": "algorithms",
+    "subtopic": "prefix-sum",
+    "difficulty": "Medium",
+    "title": "Product of all other elements",
+    "question": "Return an array where out[i] is the product of all elements except nums[i], in O(n) time and without division (nums may contain zeros). Which approach works?",
+    "options": [
+      "Multiply everything once, then divide the total by each nums[i]",
+      "For each i, multiply all of the other elements in a nested loop",
+      "Sort nums, then multiply the neighbours on both sides of each position",
+      "Combine left prefix products with right suffix products"
+    ],
+    "correctIndex": 3,
+    "explanation": "out[i] equals the product of nums[0..i-1] times the product of nums[i+1..n-1]; one left-to-right pass and one right-to-left pass compute these in O(n). Division is forbidden and fails with zeros, the nested loop is O(n^2), and sorting loses each element's original position.",
+    "referenceUrl": "https://docs.python.org/3/library/itertools.html"
+  },
+  {
+    "id": "alg-ps-java-negative-remainder",
+    "topic": "algorithms",
+    "subtopic": "prefix-sum",
+    "difficulty": "Hard",
+    "title": "Divisible subarrays and negative remainders",
+    "question": "A Java solution counts subarrays whose sum is divisible by k by counting equal values of prefix % k in a HashMap. It is correct for non-negative input but undercounts when the array contains negative numbers. Why?",
+    "options": [
+      "HashMap compares Integer keys above 127 by reference, not by value",
+      "Java's % keeps the dividend's sign, splitting one residue into two keys",
+      "Negative prefix sums overflow int before the modulo is applied",
+      "Prefix-sum counting is only valid for divisibility when every value is positive"
+    ],
+    "correctIndex": 1,
+    "explanation": "In Java the remainder takes the sign of the dividend, so -1 % 5 is -1 while 4 % 5 is 4, even though both prefixes are congruent mod 5 and should match. Normalise with ((p % k) + k) % k or Math.floorMod. HashMap uses equals(), not reference identity, overflow is not the issue at normal sizes, and prefix counting works with negatives once residues are normalised.",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html"
+  },
+  {
+    "id": "alg-bt-subsets-count",
+    "topic": "algorithms",
+    "subtopic": "backtracking",
+    "difficulty": "Easy",
+    "title": "Include/exclude recursion leaves",
+    "question": "A recursive function decides, for each of n = 4 distinct elements, whether to include it or not, and records the current choice at each leaf of the recursion. How many subsets does it record?",
+    "options": [
+      "16",
+      "24",
+      "8",
+      "15"
+    ],
+    "correctIndex": 0,
+    "explanation": "Each element has two choices, so there are 2^4 = 16 leaves, including the empty subset. 24 is 4!, the number of permutations, 15 leaves out the empty subset, and 8 is 2^3.",
+    "referenceUrl": "https://docs.python.org/3/library/itertools.html"
+  },
+  {
+    "id": "alg-bt-combination-sum-start-index",
+    "topic": "algorithms",
+    "subtopic": "backtracking",
+    "difficulty": "Medium",
+    "title": "Duplicate combinations in combination sum",
+    "question": "A combination-sum solver (candidates [2, 3, 6, 7], target 7, reuse allowed) loops over all candidates from index 0 at every recursion level. It returns [2,2,3], [2,3,2], [3,2,2] and [7]. What is the fix?",
+    "options": [
+      "Sort the candidates in descending order before the search starts",
+      "Store each result in a set of lists to drop the duplicates found",
+      "Pass a start index and loop only from it, recursing with the same i",
+      "Recurse with i + 1 so that no candidate is ever used twice in a row"
+    ],
+    "correctIndex": 2,
+    "explanation": "Looping from a start index forces candidates to be chosen in non-decreasing index order, so each multiset is generated once; recursing with i rather than i + 1 still allows reuse. Sorting alone does not stop reorderings, deduplicating afterwards wastes exponential work (and lists are not hashable), and i + 1 forbids reuse, losing [2,2,3].",
+    "referenceUrl": "https://docs.python.org/3/library/itertools.html"
+  },
+  {
+    "id": "alg-bt-word-search-unmark",
+    "topic": "algorithms",
+    "subtopic": "backtracking",
+    "difficulty": "Medium",
+    "title": "Forgetting to undo the visited mark",
+    "question": "A grid word-search DFS marks a cell as visited before exploring its neighbours but never unmarks it when the call returns. What symptom appears?",
+    "options": [
+      "It loops forever because the same cells keep being revisited on each path",
+      "It finds words that reuse the same cell more than once",
+      "It raises a recursion error on every grid larger than 3x3",
+      "It misses valid words that need a cell a failed branch touched"
+    ],
+    "correctIndex": 3,
+    "explanation": "Backtracking must undo its state on return; otherwise cells used by a failed branch stay blocked for every later branch, producing false negatives. The mark itself prevents infinite loops and cell reuse, and recursion depth is bounded by the word length, not the grid size.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-bt-unique-permutations-skip",
+    "topic": "algorithms",
+    "subtopic": "backtracking",
+    "difficulty": "Hard",
+    "title": "Unique permutations with duplicates",
+    "question": "To generate the unique permutations of [1, 1, 2], a solver sorts the input and tracks a used[] array. Which skip rule inside the loop avoids duplicate permutations without losing valid ones?",
+    "options": [
+      "Skip i if nums[i] == nums[i-1], regardless of used[i-1]",
+      "Skip i if nums[i] == nums[i-1] and used[i-1] is false",
+      "Skip i if used[i-1] is true, regardless of the values",
+      "Skip i if nums[i] already appears anywhere in the path"
+    ],
+    "correctIndex": 1,
+    "explanation": "Skipping a value when its equal left neighbour is unused forces equal values to be placed in left-to-right order, so each distinct arrangement is produced exactly once. Ignoring used[i-1] means the second 1 can never be placed, losing [1,1,2]; refusing any value already in the path forbids repeated values entirely; and skipping on used[i-1] alone ignores the values.",
+    "referenceUrl": "https://docs.python.org/3/library/itertools.html"
+  },
+  {
+    "id": "alg-dc-fast-exponentiation",
+    "topic": "algorithms",
+    "subtopic": "divide-and-conquer",
+    "difficulty": "Easy",
+    "title": "Exponentiation by squaring",
+    "question": "pow(x, n) is computed by squaring the result of pow(x, n // 2) and multiplying by x once more when n is odd. How many multiplications does this take?",
+    "options": [
+      "O(n)",
+      "O(sqrt n)",
+      "O(log n)",
+      "O(n log n)"
+    ],
+    "correctIndex": 2,
+    "explanation": "The exponent halves at each level, so there are about log2(n) levels with at most two multiplications each: O(log n). Multiplying x by itself n times is the naive O(n) method; the other bounds do not match the recurrence T(n) = T(n/2) + O(1).",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-dc-count-inversions",
+    "topic": "algorithms",
+    "subtopic": "divide-and-conquer",
+    "difficulty": "Medium",
+    "title": "Counting inversions fast",
+    "question": "A ranking service must count inversions (pairs i < j with a[i] > a[j]) in an array of 5 million scores. Which approach gives O(n log n)?",
+    "options": [
+      "Merge sort that adds the remaining left-half count on each right pick",
+      "Quickselect the median, then count elements on the wrong side of it",
+      "Binary search each element in the original unsorted array",
+      "Bubble sort that counts each swap as it orders the array"
+    ],
+    "correctIndex": 0,
+    "explanation": "During the merge step, when an element from the right half is placed before the remaining left-half elements, it forms an inversion with each of them, so adding that count gives the total in O(n log n). Bubble sort's swap count equals the inversion count but takes O(n^2), quickselect only compares against one pivot, and binary search needs sorted input.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-dc-strassen-recurrence",
+    "topic": "algorithms",
+    "subtopic": "divide-and-conquer",
+    "difficulty": "Hard",
+    "title": "Solving Strassen's recurrence",
+    "question": "Strassen's matrix multiplication splits each n x n matrix into quadrants and uses 7 recursive multiplications plus O(n^2) additions: T(n) = 7T(n/2) + O(n^2). What does this solve to?",
+    "options": [
+      "O(n^2 log n), dominated by the additions",
+      "O(n^3), the same as the schoolbook method",
+      "O(n^2.5), from the 7/8 saving per level",
+      "O(n^log2(7)), about O(n^2.81)"
+    ],
+    "correctIndex": 3,
+    "explanation": "By the master theorem with a = 7 and b = 2, n^(log2 7), about n^2.807, grows faster than the O(n^2) combine work, so the leaves dominate. Using 8 recursive products would give O(n^3); O(n^2 log n) would require a = 4, and 2.5 does not follow from the recurrence.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-dc-closest-pair-strip",
+    "topic": "algorithms",
+    "subtopic": "divide-and-conquer",
+    "difficulty": "Expert",
+    "title": "Closest pair strip argument",
+    "question": "In the O(n log n) closest-pair-of-points algorithm, after recursing on each half with best distance d, points within d of the dividing line are sorted by y. Why is it enough to compare each strip point with only a constant number of following points?",
+    "options": [
+      "The strip can never contain more than a constant number of points",
+      "Points in each half are at least d apart, so few fit in a d x 2d box",
+      "Points are hashed into d-sized buckets, so each bucket holds one point",
+      "The halves are balanced, so the strip contains at most log n points"
+    ],
+    "correctIndex": 1,
+    "explanation": "Any strip point within d vertically of p lies in a d x 2d rectangle, and because points on the same side are pairwise at least d apart, only a constant number (at most 8) fit there; checking the next few points in y order makes the combine step O(n). The strip itself can contain O(n) points, bucketing is a different randomized technique, and balanced halves say nothing about strip size.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-tt-inorder-bst-sorted",
+    "topic": "algorithms",
+    "subtopic": "tree-traversal",
+    "difficulty": "Easy",
+    "title": "Sorted output from a BST",
+    "question": "Which traversal of a binary search tree with distinct keys visits the keys in ascending order?",
+    "options": [
+      "Inorder",
+      "Preorder",
+      "Postorder",
+      "Level order"
+    ],
+    "correctIndex": 0,
+    "explanation": "Inorder visits the left subtree (smaller keys), then the node, then the right subtree (larger keys), which yields ascending order for a BST. Preorder and postorder visit a node before or after both subtrees, and level order goes by depth, so none of them is sorted in general.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-tt-level-order-groups",
+    "topic": "algorithms",
+    "subtopic": "tree-traversal",
+    "difficulty": "Medium",
+    "title": "Grouping BFS output by depth",
+    "question": "You must return a binary tree's values grouped by depth, e.g. [[1], [2, 3], [4, 5]]. Using an iterative BFS with a queue, how do you know where one level ends?",
+    "options": [
+      "Push a sentinel only after the root and check depth at each pop",
+      "Compare each node's value with the previous one and split on a drop",
+      "Record the queue length at the start of a level and pop that many",
+      "Use a stack instead of a queue so each level is popped together"
+    ],
+    "correctIndex": 2,
+    "explanation": "At the start of each level the queue holds exactly that level's nodes, so popping len(queue) nodes processes the level while their children form the next one. A sentinel works only if one is pushed after every level, values carry no depth information, and a stack produces depth-first order.",
+    "referenceUrl": "https://docs.python.org/3/library/collections.html"
+  },
+  {
+    "id": "alg-tt-rebuild-from-traversals",
+    "topic": "algorithms",
+    "subtopic": "tree-traversal",
+    "difficulty": "Hard",
+    "title": "Traversal pairs that identify a tree",
+    "question": "You are given two traversal sequences of a binary tree with distinct values and must rebuild the exact tree. Which pair is NOT always enough?",
+    "options": [
+      "Preorder and inorder",
+      "Postorder and inorder",
+      "Level order and inorder",
+      "Preorder and postorder"
+    ],
+    "correctIndex": 3,
+    "explanation": "Inorder splits the remaining values into left and right subtrees once the root is known, and preorder (first), postorder (last) or level order (first) identify the root. Preorder plus postorder cannot tell whether a lone child is left or right: root 1 with only a left child 2 and root 1 with only a right child 2 both give preorder [1,2] and postorder [2,1].",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-tt-morris-constant-space",
+    "topic": "algorithms",
+    "subtopic": "tree-traversal",
+    "difficulty": "Expert",
+    "title": "Inorder traversal in O(1) space",
+    "question": "An embedded system must perform an inorder traversal of a large binary tree with O(1) auxiliary memory: no recursion, no explicit stack and no parent pointers. Which technique makes this possible?",
+    "options": [
+      "An iterative traversal that keeps only the last visited node in a variable",
+      "Morris traversal, which temporarily links predecessors back to the node",
+      "Level-order traversal, since its queue never holds more than one level",
+      "Tail-call optimisation, which turns the recursive traversal into a constant-space loop"
+    ],
+    "correctIndex": 1,
+    "explanation": "Morris traversal sets the right pointer of each node's inorder predecessor to the node, follows that thread back up after the left subtree, then removes it; the tree is restored and the traversal is O(n) time with O(1) space. The last visited node alone cannot find the way back up, a level-order queue can hold about n/2 leaves, and inorder recursion is not a tail call because work follows the left call.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-greedy-huffman-merge",
+    "topic": "algorithms",
+    "subtopic": "greedy",
+    "difficulty": "Easy",
+    "title": "Huffman's greedy step",
+    "question": "When building a Huffman code for compression, which greedy step does the algorithm repeat until one tree remains?",
+    "options": [
+      "Split the symbols into two halves of nearly equal total frequency",
+      "Assign the shortest unused code to the next most frequent symbol",
+      "Merge the two most frequent symbols into a single parent node",
+      "Merge the two least frequent nodes into a new parent node"
+    ],
+    "correctIndex": 3,
+    "explanation": "Huffman's algorithm keeps nodes in a min-priority queue and repeatedly merges the two lowest-frequency nodes into a parent whose frequency is their sum, which provably yields an optimal prefix code. Splitting into equal halves is the top-down Shannon-Fano method, which is not always optimal; merging the most frequent symbols would give them the longest codes.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-greedy-fractional-knapsack",
+    "topic": "algorithms",
+    "subtopic": "greedy",
+    "difficulty": "Medium",
+    "title": "Loading divisible goods",
+    "question": "A truck can carry 50 kg. Bulk spices can be loaded in any fraction, and each has a total available weight and value. Which strategy maximizes the value of the load?",
+    "options": [
+      "Load by value per kg, highest first, splitting the last spice to fill up",
+      "Load the most valuable spice first, then the next, until the truck is full",
+      "Load the lightest spices first so that as many kinds as possible fit",
+      "Use a 0/1 knapsack DP table over capacity, since greedy is never optimal"
+    ],
+    "correctIndex": 0,
+    "explanation": "In the fractional knapsack, taking items by value density and splitting the last one is optimal by an exchange argument: swapping any kilo of lower density for higher density never lowers the value. Highest total value ignores weight, lightest-first ignores value, and the 0/1 DP is needed only when items are indivisible.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-greedy-min-jumps-ranges",
+    "topic": "algorithms",
+    "subtopic": "greedy",
+    "difficulty": "Medium",
+    "title": "Minimum jumps to the end",
+    "question": "nums[i] is the maximum jump length from index i, and the last index is reachable. A greedy solution tracks the farthest reachable index and the end of the current jump's range. When does it count a new jump?",
+    "options": [
+      "Whenever it finds an index whose jump is larger than any seen so far",
+      "Whenever nums[i] is zero, since the path must jump over that index",
+      "When i reaches the current range's end, which then becomes farthest",
+      "When farthest passes the last index, after which it stops counting"
+    ],
+    "correctIndex": 2,
+    "explanation": "Indices reachable with j jumps form a contiguous range, like a BFS level; when the scan reaches the end of that range, another jump is required and the new range ends at the farthest index found so far, giving O(n). Counting at every larger jump overcounts, zeros are not special, and reaching the last index is a stopping condition rather than a counting rule.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-greedy-earliest-deadline",
+    "topic": "algorithms",
+    "subtopic": "greedy",
+    "difficulty": "Hard",
+    "title": "Minimising maximum lateness",
+    "question": "Jobs with known durations and deadlines run one at a time on a single machine, and all are available now. You want to minimise the maximum lateness (finish time minus deadline). Which order is optimal?",
+    "options": [
+      "Shortest duration first, so jobs complete as early as possible",
+      "Earliest deadline first, regardless of the jobs' durations",
+      "Smallest slack (deadline minus duration) first",
+      "Longest duration first, so big jobs never end up being late"
+    ],
+    "correctIndex": 1,
+    "explanation": "Earliest-deadline-first is optimal by an exchange argument: swapping two adjacent jobs whose deadlines are out of order never increases the maximum lateness. Shortest-first minimises average completion time, not maximum lateness. Smallest slack fails on jobs (t=1, d=2) and (t=10, d=10): slack order gives lateness 9, EDF gives 1.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-dp-held-karp-bitmask",
+    "topic": "algorithms",
+    "subtopic": "dynamic-programming",
+    "difficulty": "Expert",
+    "title": "Exact tour over 18 points",
+    "question": "A drone must visit 18 inspection points exactly once and return to base, minimising total distance, and an exact answer is required. Trying all 17! orders is infeasible. Which exact approach is practical?",
+    "options": [
+      "Greedy nearest-neighbour tour, which is optimal for metric distances",
+      "Dijkstra from the base, visiting points in increasing distance order",
+      "Memoised DFS over (current point, number of points visited so far)",
+      "Bitmask DP over (visited set, last point), O(n^2 * 2^n) time"
+    ],
+    "correctIndex": 3,
+    "explanation": "Held-Karp stores dp[mask][j], the cheapest path that visits exactly the points in mask and ends at j; with 18 points that is about 2^18 * 18 states and 18 transitions each, tens of millions of operations. Nearest neighbour is only a heuristic even for metric distances, Dijkstra solves shortest paths rather than tours, and a state with only a count of visited points forgets which ones were visited, so it is incorrect.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-gt-multi-source-bfs",
+    "topic": "algorithms",
+    "subtopic": "graph-traversal",
+    "difficulty": "Medium",
+    "title": "Distance to the nearest exit",
+    "question": "For every open cell in a grid maze you need the distance to the nearest of 500 exits. Running a BFS from every open cell is too slow. What is the efficient approach?",
+    "options": [
+      "Enqueue all exits at distance 0 and run one BFS outward from them",
+      "Run one BFS per exit and keep the minimum distance for each cell",
+      "Run a DFS from each cell and stop as soon as any exit is reached",
+      "Sort the exits by row and binary search the nearest for each cell"
+    ],
+    "correctIndex": 0,
+    "explanation": "Multi-source BFS behaves like a BFS from a virtual node connected to every exit, so each cell is reached first from its nearest exit and the whole grid is processed once in O(rows * cols). One BFS per exit does 500 times the work, DFS does not find shortest distances, and sorting exits ignores walls in the maze.",
+    "referenceUrl": "https://docs.python.org/3/library/collections.html"
+  },
+  {
+    "id": "alg-gt-scc-mutual-dependencies",
+    "topic": "algorithms",
+    "subtopic": "graph-traversal",
+    "difficulty": "Hard",
+    "title": "Groups of mutually dependent services",
+    "question": "A service dependency graph is directed. You must find groups of services in which every service can reach every other one through dependencies, so each group can be deployed as a unit. Which algorithm fits?",
+    "options": [
+      "Union-find over all edges, treating each dependency as undirected",
+      "Kahn's topological sort, grouping services with equal in-degree",
+      "Tarjan's or Kosaraju's strongly connected components, in O(V + E)",
+      "BFS from every node, grouping nodes that have identical BFS depths"
+    ],
+    "correctIndex": 2,
+    "explanation": "Strongly connected components are exactly the maximal mutually reachable groups; Tarjan finds them with one DFS using low-link values and Kosaraju with two DFS passes, the second on the reversed graph. Union-find ignores direction, so a one-way dependency would wrongly merge services, Kahn's algorithm stalls on cycles, and BFS depth does not capture mutual reachability.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-topo-cycle-no-order",
+    "topic": "algorithms",
+    "subtopic": "topological-sort",
+    "difficulty": "Easy",
+    "title": "Topological order with a cycle",
+    "question": "Tasks A, B and C have the dependencies A before B, B before C and C before A. What does a topological sort produce for them?",
+    "options": [
+      "The order A, B, C, since A was declared first",
+      "No valid order, because the dependencies form a cycle",
+      "Any of the three rotations, all equally valid",
+      "The order C, B, A, which reverses the declaration order"
+    ],
+    "correctIndex": 1,
+    "explanation": "A topological order exists only for a directed acyclic graph; with a cycle, every ordering violates at least one constraint. Python's graphlib.TopologicalSorter, for example, raises CycleError. Declaration order and reversals are irrelevant, and no rotation satisfies all three constraints.",
+    "referenceUrl": "https://docs.python.org/3/library/graphlib.html"
+  },
+  {
+    "id": "alg-topo-dfs-reverse-postorder",
+    "topic": "algorithms",
+    "subtopic": "topological-sort",
+    "difficulty": "Medium",
+    "title": "Topological order from DFS",
+    "question": "A DFS-based topological sort appends each node to a list when its DFS call finishes (after all its descendants). Edges point from prerequisite to dependent. How do you get a valid order?",
+    "options": [
+      "Use the list as is, since prerequisites always finish first",
+      "Sort the list by the time each node was first discovered",
+      "Use the list as is, but only when DFS starts at a source node",
+      "Reverse the list, so nodes finishing last come first"
+    ],
+    "correctIndex": 3,
+    "explanation": "For every edge u -> v in a DAG, v finishes before u, so finishing order lists dependents before their prerequisites; reversing it yields a valid topological order. Discovery order can place a node before an unvisited prerequisite, and starting from a source does not change the orientation of the finishing order.",
+    "referenceUrl": "https://docs.python.org/3/library/graphlib.html"
+  },
+  {
+    "id": "alg-topo-lexicographic-heap",
+    "topic": "algorithms",
+    "subtopic": "topological-sort",
+    "difficulty": "Hard",
+    "title": "Lexicographically smallest install order",
+    "question": "A package manager must output, among all valid install orders of a dependency DAG, the lexicographically smallest one by package name. How do you adapt Kahn's algorithm?",
+    "options": [
+      "Keep ready packages in a min-heap and always pop the smallest name",
+      "Run normal Kahn's algorithm and then sort the final output by name",
+      "Sort the adjacency lists by name before running DFS reverse postorder",
+      "Process the ready queue in FIFO order after sorting the initial nodes"
+    ],
+    "correctIndex": 0,
+    "explanation": "At each step the smallest package with no remaining prerequisites must come next in the lexicographically smallest order, and a min-heap of ready nodes provides it in O((V + E) log V). Sorting the output breaks dependencies, sorted adjacency lists in DFS do not guarantee the smallest order, and a FIFO queue ignores names of nodes that become ready later.",
+    "referenceUrl": "https://docs.python.org/3/library/heapq.html"
+  },
+  {
+    "id": "alg-sp-dijkstra-binary-heap-cost",
+    "topic": "algorithms",
+    "subtopic": "shortest-paths",
+    "difficulty": "Easy",
+    "title": "Dijkstra with a binary heap",
+    "question": "What is the running time of Dijkstra's algorithm on a graph with V vertices and E edges when it uses a binary heap as the priority queue?",
+    "options": [
+      "O(V + E)",
+      "O(V^2)",
+      "O((V + E) log V)",
+      "O(E * V * log V)"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each vertex is extracted once and each edge relaxation may push or decrease a key, and every heap operation costs O(log V), giving O((V + E) log V). O(V + E) is BFS on unweighted graphs, O(V^2) is Dijkstra with a plain array instead of a heap, and O(E * V * log V) overcounts by assuming every vertex rescans every edge.",
+    "referenceUrl": "https://docs.python.org/3/library/heapq.html"
+  },
+  {
+    "id": "alg-sp-dag-negative-weights",
+    "topic": "algorithms",
+    "subtopic": "shortest-paths",
+    "difficulty": "Medium",
+    "title": "Shortest paths in a weighted DAG",
+    "question": "A project-scheduling DAG has edge weights that may be negative (some steps save time). You need single-source shortest paths. What is the most efficient correct approach?",
+    "options": [
+      "Dijkstra, since a DAG cannot contain a negative-weight cycle",
+      "Relax each node's outgoing edges in topological order, in O(V + E)",
+      "Bellman-Ford, since it is the only option with negative weights",
+      "Floyd-Warshall, since negative edges need the all-pairs distance table"
+    ],
+    "correctIndex": 1,
+    "explanation": "In topological order, every predecessor of a node is final before the node is processed, so a single relaxation pass is correct even with negative weights and runs in O(V + E). Dijkstra can fail with negative edges even without cycles, Bellman-Ford works but costs O(V * E), and Floyd-Warshall is O(V^3).",
+    "referenceUrl": "https://docs.python.org/3/library/graphlib.html"
+  },
+  {
+    "id": "alg-uf-same-set-check",
+    "topic": "algorithms",
+    "subtopic": "union-find",
+    "difficulty": "Easy",
+    "title": "Same-set test",
+    "question": "In a union-find structure, how do you check whether elements x and y are already in the same set?",
+    "options": [
+      "Check whether parent[x] equals parent[y]",
+      "Check whether x and y have the same rank",
+      "Search the list of members stored with x",
+      "Check whether find(x) equals find(y)"
+    ],
+    "correctIndex": 3,
+    "explanation": "find follows parent pointers to the set's root representative, and two elements share a set exactly when they have the same root. Direct parents can differ when one element sits deeper in the tree, rank is only an upper bound on tree height, and union-find does not store member lists.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-uf-redundant-cable",
+    "topic": "algorithms",
+    "subtopic": "union-find",
+    "difficulty": "Medium",
+    "title": "Finding the extra edge",
+    "question": "A network of n machines was a tree, then one extra cable was added, creating a cycle. Edges are given in order. How does union-find identify a cable that can be removed to restore a tree?",
+    "options": [
+      "Return the first edge whose two endpoints already share a root",
+      "Return the edge whose endpoints have the highest combined rank",
+      "Return the last edge that merged two previously separate sets",
+      "Return the edge touching the machine with the most connections"
+    ],
+    "correctIndex": 0,
+    "explanation": "Processing edges in order, an edge whose endpoints are already connected closes a cycle, and removing it leaves a spanning tree. Rank and degree say nothing about which edge is on the cycle, and an edge that merged two separate sets is part of the tree.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-uf-weighted-ratios",
+    "topic": "algorithms",
+    "subtopic": "union-find",
+    "difficulty": "Hard",
+    "title": "Evaluating division equations",
+    "question": "Given equations like a / b = 2.0 and b / c = 3.0, a service must answer queries such as a / c or c / a, returning -1 when variables are unrelated. Which union-find extension answers each query in near-constant amortised time?",
+    "options": [
+      "Plain union-find, then multiply the values along a BFS path per query",
+      "Union-find with rank, storing the product of all equations at the root",
+      "Weighted union-find where each node keeps its ratio to its parent",
+      "Union-find over equations, merging any two that share a numerator"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each node stores value(node) / value(parent); find compresses the path while multiplying the weights, so every node knows its ratio to the root, and x / y = w(x) / w(y) when both share a root (otherwise -1). Union sets the new root weight so the equation holds. A BFS per query is not near-constant, a single product at the root loses per-node ratios, and grouping by numerator is meaningless.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-uf-offline-reverse-deletions",
+    "topic": "algorithms",
+    "subtopic": "union-find",
+    "difficulty": "Expert",
+    "title": "Handling deletions offline",
+    "question": "A monitoring tool receives a sequence of link failures and, after each one, must report the number of connected components. All failures are known in advance, and union-find cannot delete edges. What is the standard technique?",
+    "options": [
+      "Rebuild the union-find from scratch after every failure in the list",
+      "Process failures in reverse, adding links back with unions instead",
+      "Undo the last union with path compression by restoring parent links",
+      "Store a deleted flag on each edge and skip it during find operations"
+    ],
+    "correctIndex": 1,
+    "explanation": "Start from the final graph with every failed link removed, union its remaining edges, then walk the failures backwards, re-adding each link with a union and recording the component count; reversing those counts answers the original sequence. Rebuilding costs O(E) per failure, rollback union-find works only without path compression and only undoes the most recent union, and edge flags cannot split sets already merged.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-int-overlap-condition",
+    "topic": "algorithms",
+    "subtopic": "intervals",
+    "difficulty": "Easy",
+    "title": "When two intervals overlap",
+    "question": "Closed intervals [a, b] and [c, d] are given, with a <= b and c <= d. Which condition is true exactly when they overlap?",
+    "options": [
+      "a <= c and b >= d",
+      "a < c and c < b",
+      "a <= d and c <= b",
+      "b - a == d - c"
+    ],
+    "correctIndex": 2,
+    "explanation": "Two intervals are disjoint only when one ends before the other starts (b < c or d < a); negating that gives a <= d and c <= b. The first option tests containment, the second misses cases where the second interval starts first or the intervals only touch, and equal lengths are irrelevant.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-int-insert-and-merge",
+    "topic": "algorithms",
+    "subtopic": "intervals",
+    "difficulty": "Medium",
+    "title": "Inserting into sorted busy slots",
+    "question": "A calendar keeps a sorted list of non-overlapping busy intervals. A new interval must be inserted and merged with any it overlaps. What is the cleanest O(n) approach?",
+    "options": [
+      "Append it to the list, sort everything again, then run the standard merge",
+      "Copy intervals ending before it, absorb overlapping ones, copy the rest",
+      "Binary search for its position and insert it without merging",
+      "Merge it only with the interval immediately before its start"
+    ],
+    "correctIndex": 1,
+    "explanation": "One pass in three phases works: copy intervals that end before the new one starts, absorb every overlapping interval by widening the new one, then copy the remainder. Re-sorting costs O(n log n), inserting without merging leaves overlaps, and the new interval may span several existing ones, not just its predecessor.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-int-list-intersections",
+    "topic": "algorithms",
+    "subtopic": "intervals",
+    "difficulty": "Medium",
+    "title": "Intersecting two free-time lists",
+    "question": "Alice's and Bob's free times are each a sorted list of disjoint intervals. A two-pointer scan outputs [max(start1, start2), min(end1, end2)] whenever that range is non-empty. Which pointer should advance after each comparison?",
+    "options": [
+      "The one whose interval starts first",
+      "Both pointers, after every comparison",
+      "The one whose interval is shorter",
+      "The one whose interval ends first"
+    ],
+    "correctIndex": 3,
+    "explanation": "The interval that ends first cannot intersect anything further along the other list, while the other interval may still overlap the next one, so advancing the earlier-ending pointer keeps the scan O(m + n) without missing results. Advancing by start time or length can skip intersections, and advancing both misses cases where one long interval overlaps several short ones.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-int-sweep-tie-order",
+    "topic": "algorithms",
+    "subtopic": "intervals",
+    "difficulty": "Hard",
+    "title": "Tie-breaking in a sweep line",
+    "question": "To compute peak concurrent sessions, each half-open session [start, end) becomes events (start, +1) and (end, -1), sorted by time. One session ends at exactly 10:00 when another starts. How must ties at the same time be ordered?",
+    "options": [
+      "Process -1 end events before +1 start events at equal times",
+      "Process +1 start events before -1 end events at equal times",
+      "Order equal-time events by session id to keep them stable",
+      "Ignore end events that share a timestamp with a start event"
+    ],
+    "correctIndex": 0,
+    "explanation": "With half-open intervals, a session ending at 10:00 does not overlap one starting at 10:00, so ends must be applied first; otherwise the running count briefly over-reports the peak by one. Ordering by session id is arbitrary, and ignoring end events leaves the count permanently too high.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-str-join-vs-concat",
+    "topic": "algorithms",
+    "subtopic": "string-algorithms",
+    "difficulty": "Easy",
+    "title": "Building a large string in Python",
+    "question": "A Python function builds a 10 MB report by doing s += line for hundreds of thousands of lines. Which change is recommended to avoid potentially quadratic copying?",
+    "options": [
+      "Convert s to bytes first, since bytes concatenation is in place",
+      "Collect the lines in a list and call ''.join(lines) at the end",
+      "Use s = s + line instead, which the interpreter optimizes better",
+      "Wrap the loop in str() so the result is built in a single step"
+    ],
+    "correctIndex": 1,
+    "explanation": "Strings are immutable, so repeated concatenation can create a new object and copy all previous data each time, giving quadratic total cost; the Python docs recommend building a list and calling str.join (or using io.StringIO). bytes are immutable too, s = s + line is the same operation, and wrapping in str() changes nothing.",
+    "referenceUrl": "https://docs.python.org/3/library/stdtypes.html"
+  },
+  {
+    "id": "alg-str-palindrome-expand-center",
+    "topic": "algorithms",
+    "subtopic": "string-algorithms",
+    "difficulty": "Medium",
+    "title": "Longest palindromic substring",
+    "question": "You need the longest palindromic substring of a string of length n = 5,000, using O(1) extra memory and a simple implementation. Which approach fits?",
+    "options": [
+      "Reverse the string and take the longest common substring with it",
+      "Check every substring with a two-ended scan, which is O(n^2) in total",
+      "Expand around each of the 2n - 1 possible centers, O(n^2) time",
+      "Sort the characters and pair equal ones from both ends of the result"
+    ],
+    "correctIndex": 2,
+    "explanation": "Every palindrome mirrors around a center that is either a character or a gap between two, so expanding from each of the 2n - 1 centers finds all of them in O(n^2) time and O(1) space (Manacher's algorithm reaches O(n) but is more complex). Checking every substring is O(n^3), reverse-and-LCS needs a DP table and can return non-palindromes, and sorting destroys order.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "os-sched-sjf-average-wait",
+    "topic": "operating-systems",
+    "subtopic": "scheduling",
+    "difficulty": "Medium",
+    "title": "Average waiting time under SJF",
+    "question": "Three CPU-bound jobs arrive at time 0 with burst times of 24, 3 and 3 ms. Under non-preemptive Shortest Job First, what is the average waiting time?",
+    "options": [
+      "17 ms",
+      "10 ms",
+      "9 ms",
+      "3 ms"
+    ],
+    "correctIndex": 3,
+    "explanation": "SJF runs the jobs as 3, 3, 24, so they wait 0, 3 and 6 ms, an average of 3 ms. 9 ms is the total rather than the average, and 17 ms is the FCFS average when the 24 ms job runs first (0, 24, 27), the convoy effect that SJF avoids.",
+    "referenceUrl": "https://pages.cs.wisc.edu/~remzi/OSTEP/cpu-sched.pdf"
+  },
+  {
+    "id": "os-sched-cfs-bandwidth-throttling",
+    "topic": "operating-systems",
+    "subtopic": "scheduling",
+    "difficulty": "Expert",
+    "title": "Latency spikes from CPU limits",
+    "question": "A latency-sensitive, many-threaded service in a Kubernetes pod with a CPU limit of 2 cores averages 40% of that limit, yet shows periodic 80 ms p99 spikes, and the cgroup's cpu.stat shows nr_throttled increasing. What is happening?",
+    "options": [
+      "Its threads burn the cgroup's quota early in each period and are throttled",
+      "The kernel deprioritises the pod's threads because it went above its CPU request",
+      "EEVDF lag accounting penalises the pod's threads after brief bursts",
+      "The pod is evicted and restarted whenever usage briefly passes 2 cores"
+    ],
+    "correctIndex": 0,
+    "explanation": "CPU limits are enforced by CFS bandwidth control (cpu.max quota per period, 100 ms by default). Many threads running in parallel can consume the whole quota in a fraction of the period, after which every thread is throttled until the next period, causing latency spikes despite low average usage; nr_throttled and throttled_usec reveal it. Requests map to weights that matter only under contention, CPU overuse does not cause eviction, and EEVDF lag does not increment throttling counters.",
+    "referenceUrl": "https://docs.kernel.org/scheduler/sched-bwc.html"
+  },
+  {
+    "id": "os-io-write-not-durable",
+    "topic": "operating-systems",
+    "subtopic": "system-calls-io",
+    "difficulty": "Easy",
+    "title": "Successful write, lost data",
+    "question": "A program's write() to a regular file returned successfully, and then the machine lost power. On restart the data is missing. Why is that possible?",
+    "options": [
+      "write() only queues the request; the kernel has not yet read the buffer",
+      "write() usually lands in the page cache; fsync() forces it to disk",
+      "write() succeeds only for files opened with O_APPEND or O_CREAT",
+      "write() returns before checking permissions, which happens on close()"
+    ],
+    "correctIndex": 1,
+    "explanation": "A successful write() copies the data into the kernel's page cache and makes no guarantee that it has reached the disk; the kernel writes it back later unless fsync() or fdatasync() forces it. By the time write() returns the user buffer has already been copied and can be reused, flags like O_APPEND do not affect durability, and permissions are checked at open().",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/write.2.html"
+  },
+  {
+    "id": "os-io-uring-batched-submission",
+    "topic": "operating-systems",
+    "subtopic": "system-calls-io",
+    "difficulty": "Expert",
+    "title": "Cutting per-I/O syscall overhead",
+    "question": "A storage engine on Linux issues millions of small random reads per second from NVMe. Profiling shows much CPU time spent entering and leaving the kernel for each pread(). Which interface is designed to cut this per-operation overhead?",
+    "options": [
+      "epoll, registering each file descriptor for readiness on regular files",
+      "mmap with MAP_POPULATE, so that every read becomes a cache lookup",
+      "io_uring, which batches requests via shared submission/completion rings",
+      "O_NONBLOCK on the file, so that pread() returns immediately with data"
+    ],
+    "correctIndex": 2,
+    "explanation": "io_uring shares submission and completion ring buffers between user space and the kernel, so many requests can be submitted with one io_uring_enter() call (or none with SQPOLL) and completions are reaped from memory without a syscall each. epoll refuses regular files (EPERM), MAP_POPULATE prefaults the mapping but does not help when the data set exceeds RAM, and O_NONBLOCK has no effect on regular files.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man7/io_uring.7.html"
+  },
+  {
+    "id": "os-fs-hard-vs-symbolic-link",
+    "topic": "operating-systems",
+    "subtopic": "file-systems",
+    "difficulty": "Easy",
+    "title": "Deleting the original of a link",
+    "question": "data.txt has a hard link named hard.txt and a symbolic link named soft.txt pointing to it. After rm data.txt, what happens?",
+    "options": [
+      "hard.txt still opens the data; soft.txt is now a dangling link",
+      "Both links still work, because both point to the same inode",
+      "Both links are broken, because the original name was removed",
+      "soft.txt still opens the data; hard.txt is now a dangling link"
+    ],
+    "correctIndex": 0,
+    "explanation": "A hard link is another directory entry for the same inode, and the data is freed only when the link count reaches zero (and no process has it open). A symbolic link stores a path name, so once data.txt is gone it points nowhere. The original name has no special status among hard links.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/link.2.html"
+  },
+  {
+    "id": "os-fs-sparse-file-sizes",
+    "topic": "operating-systems",
+    "subtopic": "file-systems",
+    "difficulty": "Medium",
+    "title": "ls and du disagree",
+    "question": "On ext4, a VM disk image shows 100G in ls -l, but du reports only 3.1G for the same file. Nothing is corrupted. What explains the difference?",
+    "options": [
+      "du counts only data written since the last reboot of the host",
+      "The hypervisor holds the remaining 97G in RAM until shutdown",
+      "ls -l includes metadata blocks that du deliberately leaves out",
+      "It is a sparse file whose never-written ranges have no blocks"
+    ],
+    "correctIndex": 3,
+    "explanation": "Seeking past the end of a file and writing leaves holes that read back as zeros but have no allocated blocks. ls -l shows the apparent size (st_size) while du shows allocated space, and du --apparent-size would also report 100G. du has no notion of reboots, the hypervisor does not hold file contents in RAM this way, and metadata does not account for 97G.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man1/du.1.html"
+  },
+  {
+    "id": "os-fs-inode-exhaustion",
+    "topic": "operating-systems",
+    "subtopic": "file-systems",
+    "difficulty": "Hard",
+    "title": "ENOSPC with free space",
+    "question": "A cache directory on ext4 holds tens of millions of 200-byte files. Creating new files now fails with ENOSPC ('No space left on device'), while df -h shows 40% free. What should you check first?",
+    "options": [
+      "Whether the disk has bad sectors that are hidden from df's output",
+      "Whether the directory exceeded ext4's maximum allowed path length",
+      "Whether inodes are exhausted, using df -i on the same file system",
+      "Whether the files are still open, using lsof on the cache process"
+    ],
+    "correctIndex": 2,
+    "explanation": "ext4 creates a fixed number of inodes at mkfs time, and every file consumes one regardless of size, so millions of tiny files can exhaust them while blocks remain free; df -i shows IUse% at 100%. Fixes include deleting files, packing small objects together, or recreating the file system with more inodes. Bad sectors cause EIO, overlong paths cause ENAMETOOLONG, and deleted-but-open files make df show less free space, not more.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man1/df.1.html"
+  }
+]

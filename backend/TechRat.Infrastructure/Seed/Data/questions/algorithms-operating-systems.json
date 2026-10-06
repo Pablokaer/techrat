@@ -1,0 +1,1226 @@
+[
+  {
+    "id": "alg-sorting-quicksort-sorted-input",
+    "topic": "algorithms",
+    "subtopic": "sorting",
+    "difficulty": "Easy",
+    "title": "Naive quicksort on sorted input",
+    "question": "A quicksort implementation always picks the first element as the pivot. What is its running time when the input array is already sorted?",
+    "options": [
+      "O(n log n)",
+      "O(n)",
+      "O(n^2)",
+      "O(n log^2 n)"
+    ],
+    "correctIndex": 2,
+    "explanation": "With the first element as pivot on sorted input, every partition puts all remaining elements on one side, so the recursion depth is n and the total work is n + (n-1) + ... + 1 = O(n^2). O(n log n) is only the expected cost with balanced splits (e.g. random pivots), and quicksort never runs in O(n) on general input.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-sorting-stable-multikey",
+    "topic": "algorithms",
+    "subtopic": "sorting",
+    "difficulty": "Medium",
+    "title": "Multi-key sorting with a stable sort",
+    "question": "You need employees ordered by department, and by salary within each department, using only a stable single-key sort. Which sequence of passes produces the right result?",
+    "options": [
+      "Sort by salary first, then stably sort by department",
+      "Sort by department first, then stably sort by salary",
+      "Either order works because both passes are stable",
+      "It cannot be done; stable sorts cannot be chained"
+    ],
+    "correctIndex": 0,
+    "explanation": "Stability preserves the existing relative order of equal keys, so the last pass determines the primary key. Sorting by salary first and then by department keeps salary order inside each department. Doing department first would let the salary pass scramble departments, which is why order matters.",
+    "referenceUrl": "https://docs.python.org/3/howto/sorting.html"
+  },
+  {
+    "id": "alg-sorting-counting-sort-scores",
+    "topic": "algorithms",
+    "subtopic": "sorting",
+    "difficulty": "Medium",
+    "title": "Sorting many small-range integers",
+    "question": "You must sort 50 million exam scores, each an integer between 0 and 100. Which approach is asymptotically best?",
+    "options": [
+      "Merge sort, because it guarantees O(n log n)",
+      "Counting sort, running in O(n + k) with k = 101",
+      "Heap sort, because it sorts in place",
+      "Insertion sort, because the values are small"
+    ],
+    "correctIndex": 1,
+    "explanation": "When keys come from a small known range, counting sort tallies occurrences and rewrites the array in O(n + k) time, beating the Omega(n log n) lower bound that applies only to comparison sorts. Merge and heap sort are comparison sorts stuck at n log n, and insertion sort is O(n^2) regardless of how small the values are.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-sorting-timsort-runs",
+    "topic": "algorithms",
+    "subtopic": "sorting",
+    "difficulty": "Hard",
+    "title": "Why Python sorts nearly-sorted data fast",
+    "question": "Calling sorted() on a 10-million-element list that is already sorted except for a few hundred items appended at the end runs far faster than sorting random data. What explains this?",
+    "options": [
+      "Python checks if the list is sorted and then switches to radix sort",
+      "CPython caches the result of the previous sort of the same list",
+      "The interpreter parallelises the sort across all available cores",
+      "The adaptive merge sort detects existing ordered runs and merges them"
+    ],
+    "correctIndex": 3,
+    "explanation": "CPython's list sort is Timsort-derived: an adaptive, stable merge sort that identifies already-ordered runs and merges them, so pre-existing order makes it close to linear. It does not switch to radix sort, does not cache previous results, and the built-in sort is single-threaded.",
+    "referenceUrl": "https://docs.python.org/3/howto/sorting.html"
+  },
+  {
+    "id": "alg-bs-bisect-left-trace",
+    "topic": "algorithms",
+    "subtopic": "binary-search",
+    "difficulty": "Easy",
+    "title": "bisect_left with duplicates",
+    "question": "What does this print?\n\nimport bisect\nprint(bisect.bisect_left([1, 2, 4, 4, 4, 7], 4))",
+    "options": [
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "correctIndex": 0,
+    "explanation": "bisect_left returns the leftmost insertion point that keeps the list sorted, which is the index of the first element equal to 4, namely 2. bisect_right (or bisect) would return 5, just past the last 4. 3 and 4 are positions in the middle of the run of duplicates, which neither function returns.",
+    "referenceUrl": "https://docs.python.org/3/library/bisect.html"
+  },
+  {
+    "id": "alg-bs-search-on-answer",
+    "topic": "algorithms",
+    "subtopic": "binary-search",
+    "difficulty": "Medium",
+    "title": "Pattern: minimum ship capacity",
+    "question": "Packages with given weights must be shipped in order within D days; each day the ship carries a contiguous batch up to its capacity. You want the smallest capacity that works. Which technique fits best?",
+    "options": [
+      "Dynamic programming over every possible capacity value",
+      "Binary search over capacity with a greedy feasibility check",
+      "Sort the packages descending and assign them greedily",
+      "Breadth-first search over all possible daily partitions"
+    ],
+    "correctIndex": 1,
+    "explanation": "Feasibility is monotonic: if capacity C works, every larger capacity also works. That lets you binary search the answer between max(weight) and sum(weights), checking each candidate with an O(n) greedy pass, for O(n log S) total. Sorting would break the required order, and DP or BFS over partitions is far more expensive.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-bs-midpoint-overflow",
+    "topic": "algorithms",
+    "subtopic": "binary-search",
+    "difficulty": "Medium",
+    "title": "Midpoint overflow bug",
+    "question": "In Java, a binary search computes int mid = (lo + hi) / 2 on an array with over 1.5 billion elements. What can go wrong?",
+    "options": [
+      "Integer division rounds up, so the search skips the last element",
+      "mid can equal hi, causing the loop to terminate one step early",
+      "lo + hi can overflow int, making mid negative and throwing an exception",
+      "Nothing; the JVM automatically promotes the sum to long"
+    ],
+    "correctIndex": 2,
+    "explanation": "When lo + hi exceeds Integer.MAX_VALUE the sum wraps to a negative number, so mid becomes negative and the array access throws ArrayIndexOutOfBoundsException. The standard fix is lo + (hi - lo) / 2 or (lo + hi) >>> 1. Java integer division truncates toward zero and int arithmetic is never auto-promoted to long.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html"
+  },
+  {
+    "id": "alg-bs-infinite-loop-upper-mid",
+    "topic": "algorithms",
+    "subtopic": "binary-search",
+    "difficulty": "Hard",
+    "title": "Binary search that never terminates",
+    "question": "This search for the last index where pred is true hangs on some inputs:\n\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    if pred(mid): lo = mid\n    else: hi = mid - 1\n\nWhat is the correct fix?",
+    "options": [
+      "Change the loop condition to while lo <= hi",
+      "Replace lo = mid with lo = mid - 1",
+      "Use mid = lo + (hi - lo) // 2 to avoid overflow",
+      "Use mid = (lo + hi + 1) // 2 so mid rounds up"
+    ],
+    "correctIndex": 3,
+    "explanation": "When hi = lo + 1, floor division gives mid = lo; if pred(mid) is true, lo = mid leaves the range unchanged forever. Rounding mid up guarantees mid > lo, so the lo = mid branch always shrinks the range. Using lo <= hi makes it worse, lo = mid - 1 can discard the answer, and the overflow-safe form still rounds down.",
+    "referenceUrl": "https://docs.python.org/3/library/bisect.html"
+  },
+  {
+    "id": "alg-tp-dedupe-trace",
+    "topic": "algorithms",
+    "subtopic": "two-pointers",
+    "difficulty": "Medium",
+    "title": "Trace an in-place dedupe",
+    "question": "What does this function return for arr = [1, 1, 2, 2, 2, 3]?\n\ndef dedupe(arr):\n    w = 1\n    for r in range(1, len(arr)):\n        if arr[r] != arr[w - 1]:\n            arr[w] = arr[r]\n            w += 1\n    return w",
+    "options": [
+      "2",
+      "3",
+      "4",
+      "6"
+    ],
+    "correctIndex": 1,
+    "explanation": "The write pointer w only advances when the read pointer finds a value different from the last kept one. It keeps 1, then writes 2 at index 1 and 3 at index 2, returning 3, the count of unique values. 6 would be the original length and 2 or 4 miscount the distinct runs.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-tp-floyd-cycle",
+    "topic": "algorithms",
+    "subtopic": "two-pointers",
+    "difficulty": "Easy",
+    "title": "Cycle detection in O(1) space",
+    "question": "You must detect whether a singly linked list contains a cycle using O(1) extra memory. Which technique fits best?",
+    "options": [
+      "Advance a slow pointer by one and a fast pointer by two until they meet",
+      "Store every visited node in a hash set and check for repeats",
+      "Reverse the list and compare the new head with the old head",
+      "Sort the nodes by address and look for adjacent duplicates"
+    ],
+    "correctIndex": 0,
+    "explanation": "Floyd's tortoise-and-hare uses two pointers moving at different speeds; if there is a cycle the fast pointer eventually laps the slow one, otherwise it reaches null. A hash set works but needs O(n) memory, list reversal mutates the structure and is fragile, and sorting nodes needs extra memory and O(n log n) time.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-sw-longest-unique-substring",
+    "topic": "algorithms",
+    "subtopic": "sliding-window",
+    "difficulty": "Medium",
+    "title": "Pattern: longest substring without repeats",
+    "question": "Given a string of length n, find the length of the longest substring with no repeated characters. Which approach is optimal?",
+    "options": [
+      "Check every substring with a set, which is O(n^3) overall",
+      "Sort the characters and count the longest run of distinct ones",
+      "A variable-size window that tracks each character's last index",
+      "Binary search on the length using a fixed-size window check"
+    ],
+    "correctIndex": 2,
+    "explanation": "A sliding window expands the right edge and, when a repeat appears, jumps the left edge past the character's previous index stored in a map, giving O(n) time. Brute force is cubic, sorting destroys the substring order the problem depends on, and binary search adds an unnecessary log factor.",
+    "referenceUrl": "https://docs.python.org/3/library/collections.html"
+  },
+  {
+    "id": "alg-sw-negative-numbers",
+    "topic": "algorithms",
+    "subtopic": "sliding-window",
+    "difficulty": "Expert",
+    "title": "When sliding window breaks",
+    "question": "You need the shortest subarray with sum >= K, and the array may contain negative numbers. Why does the classic shrink-while-sum>=K sliding window fail, and what works instead?",
+    "options": [
+      "Negatives cause overflow; use 64-bit sums with the same window",
+      "The window must start at index 0; use a single pass from the left",
+      "Sliding window works fine as long as the input is sorted first",
+      "Negatives break monotonicity; use prefix sums with a monotonic deque"
+    ],
+    "correctIndex": 3,
+    "explanation": "Sliding window relies on the sum growing when the window grows and shrinking when it shrinks; negatives break that, so discarding the left edge can lose a valid answer. Keeping increasing prefix sums in a monotonic deque yields an O(n) solution. Overflow is unrelated, and sorting changes which elements are contiguous.",
+    "referenceUrl": "https://docs.python.org/3/library/collections.html"
+  },
+  {
+    "id": "alg-ps-subarray-sum-equals-k",
+    "topic": "algorithms",
+    "subtopic": "prefix-sum",
+    "difficulty": "Medium",
+    "title": "Pattern: count subarrays summing to K",
+    "question": "Count the subarrays whose sum equals K in an array that may contain negative numbers. Which approach gives O(n) time?",
+    "options": [
+      "Running prefix sum plus a hash map counting earlier prefix sums",
+      "A sliding window that shrinks when the sum exceeds K",
+      "Sorting the array and using two pointers from both ends",
+      "A segment tree queried for every pair of endpoints"
+    ],
+    "correctIndex": 0,
+    "explanation": "A subarray (i, j] sums to K exactly when prefix[j] - prefix[i] = K, so at each index you add the count of earlier prefixes equal to prefix[j] - K. Sliding window fails with negatives, sorting destroys contiguity, and querying all pairs is O(n^2 log n) even with a segment tree.",
+    "referenceUrl": "https://docs.python.org/3/library/collections.html"
+  },
+  {
+    "id": "alg-ps-difference-array",
+    "topic": "algorithms",
+    "subtopic": "prefix-sum",
+    "difficulty": "Hard",
+    "title": "Many range increments, one final read",
+    "question": "You receive 200,000 operations of the form 'add v to every element in [l, r]' on an array of 1,000,000 zeros, and only need the final array afterwards. What is the most efficient approach?",
+    "options": [
+      "Apply each update directly with a loop from l to r",
+      "Difference array: d[l] += v, d[r+1] -= v, then one prefix-sum pass",
+      "Build a segment tree with lazy propagation and query every index",
+      "Sort the operations by l and merge overlapping ranges first"
+    ],
+    "correctIndex": 1,
+    "explanation": "A difference array records each range update in O(1); a single prefix-sum pass then reconstructs every value, giving O(n + q). Direct loops cost O(n * q) in the worst case. A lazy segment tree works but adds a log factor and complexity when no interleaved queries are needed, and merging ranges loses distinct increments.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-bt-shared-path-bug",
+    "topic": "algorithms",
+    "subtopic": "backtracking",
+    "difficulty": "Medium",
+    "title": "Backtracking with a shared list",
+    "question": "What does this print?\n\nres, path = [], []\ndef dfs(i):\n    if i == 2:\n        res.append(path)\n        return\n    for c in 'ab':\n        path.append(c); dfs(i + 1); path.pop()\ndfs(0)\nprint(res)",
+    "options": [
+      "[['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']]",
+      "[['b', 'b'], ['b', 'b'], ['b', 'b'], ['b', 'b']]",
+      "[[], [], [], []]",
+      "RecursionError: maximum recursion depth exceeded"
+    ],
+    "correctIndex": 2,
+    "explanation": "res.append(path) stores a reference to the same list four times, not a snapshot. Backtracking pops every element afterwards, so all four entries point to the now-empty list. The fix is res.append(path[:]) or list(path); recursion depth here is only 3.",
+    "referenceUrl": "https://docs.python.org/3/library/stdtypes.html"
+  },
+  {
+    "id": "alg-bt-n-queens-pruning",
+    "topic": "algorithms",
+    "subtopic": "backtracking",
+    "difficulty": "Medium",
+    "title": "What makes N-Queens backtracking fast",
+    "question": "A backtracking N-Queens solver places one queen per row. What is the main reason it is much faster than enumerating every arrangement of N queens on the board?",
+    "options": [
+      "It memoises every board state so no state is ever explored twice",
+      "It places queens greedily and never needs to undo a placement",
+      "It sorts candidate columns so the first full placement is optimal",
+      "It abandons a partial placement as soon as a column or diagonal conflicts"
+    ],
+    "correctIndex": 3,
+    "explanation": "Backtracking prunes: once a partial placement has a conflict, no extension can be valid, so the whole subtree is skipped. Placing one queen per row with O(1) column/diagonal checks avoids exploring the vast majority of states. Memoising full boards is not the technique used, greedy placement fails without undo, and there is no notion of an optimal solution to sort toward.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-dc-merge-sort-recurrence",
+    "topic": "algorithms",
+    "subtopic": "divide-and-conquer",
+    "difficulty": "Easy",
+    "title": "Merge sort recurrence",
+    "question": "Merge sort splits the array in half, sorts each half recursively and merges in linear time, so T(n) = 2T(n/2) + O(n). What does this solve to?",
+    "options": [
+      "O(n)",
+      "O(n log n)",
+      "O(n^2)",
+      "O(log n)"
+    ],
+    "correctIndex": 1,
+    "explanation": "The recursion tree has log n levels and each level does O(n) total merging work, so the total is O(n log n), case 2 of the master theorem. O(n) would require shrinking work per level, and O(n^2) arises from unbalanced splits, as in worst-case quicksort.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-dc-quickselect",
+    "topic": "algorithms",
+    "subtopic": "divide-and-conquer",
+    "difficulty": "Medium",
+    "title": "Pattern: k-th smallest element",
+    "question": "You need the k-th smallest value in an unsorted array of 10 million numbers, once. Which technique gives the best expected time?",
+    "options": [
+      "Quickselect: partition around a random pivot and recurse into one side",
+      "Sort the whole array and index position k",
+      "Binary search directly on the unsorted array",
+      "Merge sort only the first k elements and return the last"
+    ],
+    "correctIndex": 0,
+    "explanation": "Quickselect partitions like quicksort but recurses into only the side containing k, giving expected O(n). Full sorting costs O(n log n), binary search requires sorted input, and sorting just the first k elements ignores values elsewhere in the array.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-greedy-activity-selection",
+    "topic": "algorithms",
+    "subtopic": "greedy",
+    "difficulty": "Medium",
+    "title": "Max non-overlapping meetings",
+    "question": "Given many meeting requests with start and end times, you want to schedule the maximum number of non-overlapping meetings in one room. Which greedy rule is optimal?",
+    "options": [
+      "Repeatedly pick the meeting that starts earliest",
+      "Repeatedly pick the shortest remaining meeting",
+      "Repeatedly pick the meeting that ends earliest among compatible ones",
+      "Repeatedly pick the meeting with the fewest conflicts"
+    ],
+    "correctIndex": 2,
+    "explanation": "Choosing the earliest finish time leaves the most room for later meetings, and an exchange argument proves it optimal. Earliest start fails when an early meeting is very long, and shortest-first fails when a short meeting overlaps two otherwise compatible ones. Fewest-conflicts also has known counterexamples.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-greedy-coin-change-fails",
+    "topic": "algorithms",
+    "subtopic": "greedy",
+    "difficulty": "Easy",
+    "title": "When greedy coin change fails",
+    "question": "Coins are {1, 3, 4} and the target is 6. A greedy algorithm always takes the largest coin that fits. What happens?",
+    "options": [
+      "Greedy uses 2 coins (3+3), which is optimal",
+      "Greedy fails to reach exactly 6 and returns no solution",
+      "Greedy uses 2 coins (4+2) since 2 is formed from 1+1",
+      "Greedy uses 3 coins (4+1+1) while the optimum is 2 (3+3)"
+    ],
+    "correctIndex": 3,
+    "explanation": "Greedy takes 4, then 1 and 1, using three coins, but 3+3 uses only two. Greedy coin change is only optimal for canonical systems such as typical currency denominations; arbitrary sets need dynamic programming. There is no 2-coin, and greedy always reaches the target here since 1 is available.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-dp-lru-cache-fib",
+    "topic": "algorithms",
+    "subtopic": "dynamic-programming",
+    "difficulty": "Easy",
+    "title": "Memoising naive Fibonacci",
+    "question": "A naive recursive fib(n) calls fib(n-1) and fib(n-2). What happens to its running time after decorating it with @functools.lru_cache(maxsize=None)?",
+    "options": [
+      "It drops from exponential to O(n) because each value is computed once",
+      "It stays exponential because the cache only stores the final result",
+      "It becomes O(log n) because results are looked up by binary search",
+      "It becomes O(1) because Python precomputes all Fibonacci numbers"
+    ],
+    "correctIndex": 0,
+    "explanation": "Naive recursion recomputes the same subproblems exponentially many times. With memoisation each fib(k) is computed once and then served from the cache, so there are only O(n) distinct calls. The cache stores every argument, not just the final call, and lookups are hash-based rather than binary search.",
+    "referenceUrl": "https://docs.python.org/3/library/functools.html"
+  },
+  {
+    "id": "alg-dp-climb-stairs-trace",
+    "topic": "algorithms",
+    "subtopic": "dynamic-programming",
+    "difficulty": "Easy",
+    "title": "Trace a bottom-up DP",
+    "question": "What does this print?\n\ndp = [1, 1]\nfor i in range(2, 6):\n    dp.append(dp[i - 1] + dp[i - 2])\nprint(dp[5])",
+    "options": [
+      "5",
+      "8",
+      "13",
+      "6"
+    ],
+    "correctIndex": 1,
+    "explanation": "The table grows 1, 1, 2, 3, 5, 8, so dp[5] is 8; it counts the ways to climb 5 stairs taking 1 or 2 steps at a time. 5 is dp[4], 13 would be dp[6], and 6 is just the loop bound.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-dp-edit-distance",
+    "topic": "algorithms",
+    "subtopic": "dynamic-programming",
+    "difficulty": "Medium",
+    "title": "Pattern: spell-check suggestions",
+    "question": "A spell checker must compute the minimum number of insertions, deletions and substitutions to turn a typed word of length m into a dictionary word of length n. Which approach is standard?",
+    "options": [
+      "A greedy left-to-right scan that fixes the first mismatch",
+      "Sorting both words and counting differing letters",
+      "A DP table where cell (i, j) holds the distance between prefixes",
+      "A rolling hash comparison of all substrings of both words"
+    ],
+    "correctIndex": 2,
+    "explanation": "Edit distance has optimal substructure: the cost for prefixes (i, j) depends only on (i-1, j), (i, j-1) and (i-1, j-1), giving an O(m*n) table. Greedy scanning cannot decide which edit to make, sorting ignores order, and hashing detects equality, not edit cost.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-dp-knapsack-iteration-order",
+    "topic": "algorithms",
+    "subtopic": "dynamic-programming",
+    "difficulty": "Hard",
+    "title": "0/1 knapsack with a 1D array",
+    "question": "A 0/1 knapsack uses a single array dp[c] and, for each item (w, v), loops c from w up to C setting dp[c] = max(dp[c], dp[c-w] + v). Results are too high. What is the bug?",
+    "options": [
+      "dp must be initialised to negative infinity instead of zero",
+      "Items must be sorted by value-to-weight ratio before the loop",
+      "The max should compare dp[c-1] instead of dp[c] for each item",
+      "Ascending c lets the same item be reused; iterate c from C down to w"
+    ],
+    "correctIndex": 3,
+    "explanation": "Iterating capacity upward means dp[c-w] may already include the current item, so it can be counted multiple times, which is the unbounded knapsack. Iterating downward guarantees dp[c-w] still reflects only previous items. Initialisation with zeros is correct for 'capacity at most C', and sorting by ratio is a greedy idea that does not apply to 0/1 knapsack.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-dp-lis-n-log-n",
+    "topic": "algorithms",
+    "subtopic": "dynamic-programming",
+    "difficulty": "Hard",
+    "title": "Longest increasing subsequence at scale",
+    "question": "You must compute the length of the longest strictly increasing subsequence of 1,000,000 integers. The O(n^2) DP is too slow. What achieves O(n log n)?",
+    "options": [
+      "Keep a tails array of smallest ending values and update it via binary search",
+      "Sort the array and return the number of distinct values",
+      "Use a sliding window that grows while values are increasing",
+      "Memoise the O(n^2) recursion with lru_cache to remove repeated work"
+    ],
+    "correctIndex": 0,
+    "explanation": "tails[k] holds the smallest possible tail of an increasing subsequence of length k+1; each element replaces the first tail >= it (bisect_left), so the array length is the answer, in O(n log n). Sorting ignores order, a sliding window only finds contiguous runs, and memoising the quadratic recurrence keeps it quadratic.",
+    "referenceUrl": "https://docs.python.org/3/library/bisect.html"
+  },
+  {
+    "id": "alg-gt-bfs-unweighted-maze",
+    "topic": "algorithms",
+    "subtopic": "graph-traversal",
+    "difficulty": "Easy",
+    "title": "Shortest path in a grid maze",
+    "question": "In a grid maze where every move between adjacent open cells costs the same, which algorithm finds the shortest path from start to exit most simply?",
+    "options": [
+      "Depth-first search, stopping at the first path found",
+      "Breadth-first search from the start cell",
+      "Bellman-Ford over all cells and moves",
+      "Topological sort of the grid cells"
+    ],
+    "correctIndex": 1,
+    "explanation": "BFS explores cells in order of distance, so the first time it reaches the exit is via a shortest path, in O(V + E). DFS finds a path but not necessarily the shortest, Bellman-Ford is correct but needlessly O(V*E), and a grid with two-way moves is not a DAG so topological sort does not apply.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-gt-count-islands",
+    "topic": "algorithms",
+    "subtopic": "graph-traversal",
+    "difficulty": "Easy",
+    "title": "Pattern: counting islands",
+    "question": "Given a 2D grid of land and water cells, you must count islands (groups of horizontally or vertically connected land). What is the standard approach?",
+    "options": [
+      "Sort land cells by coordinates and count gaps between neighbours",
+      "Run Dijkstra from every land cell and count distinct distances",
+      "Start a DFS or BFS from each unvisited land cell and count launches",
+      "Compute prefix sums of land cells and divide by the island size"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each island is a connected component; launching a flood fill (DFS or BFS) from every unvisited land cell marks one whole component, so the number of launches is the answer, in O(rows * cols). Sorting cannot capture 2D connectivity, Dijkstra is unnecessary for connectivity, and islands have different sizes.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-gt-bfs-mark-on-dequeue",
+    "topic": "algorithms",
+    "subtopic": "graph-traversal",
+    "difficulty": "Medium",
+    "title": "BFS marking visited too late",
+    "question": "A BFS adds nodes to the visited set only when they are dequeued, not when they are enqueued. On a dense graph, what is the main consequence?",
+    "options": [
+      "BFS turns into DFS and no longer finds shortest paths",
+      "The algorithm never terminates on graphs with cycles",
+      "Nodes with no incoming edges are never visited",
+      "The same node can be enqueued many times, inflating time and memory"
+    ],
+    "correctIndex": 3,
+    "explanation": "Until a node is dequeued, every neighbour that discovers it enqueues another copy, so the queue can hold O(E) entries and work balloons. Distances remain correct because the first dequeued copy still has the smallest level, and processed nodes are skipped so it terminates. Marking on enqueue keeps each node in the queue at most once.",
+    "referenceUrl": "https://docs.python.org/3/library/collections.html"
+  },
+  {
+    "id": "alg-gt-directed-cycle-dfs",
+    "topic": "algorithms",
+    "subtopic": "graph-traversal",
+    "difficulty": "Hard",
+    "title": "Detecting cycles in a directed graph",
+    "question": "A DFS-based cycle check on a directed graph reports a cycle whenever it reaches an already-visited node. It flags false cycles. What is the correct condition?",
+    "options": [
+      "A cycle exists only if DFS reaches a node with no outgoing edges",
+      "A cycle exists only if a node is visited from two different parents",
+      "A cycle exists only if the edge count exceeds the node count",
+      "A cycle exists only if DFS reaches a node still on the recursion stack"
+    ],
+    "correctIndex": 3,
+    "explanation": "In a directed graph, reaching a fully finished node (a cross or forward edge) does not imply a cycle; only a back edge to a node that is still 'in progress' (gray) does. Hence the standard three-colour DFS. Being reachable from two parents is a diamond, not a cycle, and edge counts say nothing definitive in directed graphs.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-topo-build-order",
+    "topic": "algorithms",
+    "subtopic": "topological-sort",
+    "difficulty": "Easy",
+    "title": "Pattern: build order",
+    "question": "A build system must compile modules so that each module is compiled after everything it depends on. Which algorithm computes a valid order?",
+    "options": [
+      "Topological sort of the dependency graph",
+      "Minimum spanning tree of the dependency graph",
+      "Dijkstra's algorithm from the root module",
+      "Union-find over the dependency edges"
+    ],
+    "correctIndex": 0,
+    "explanation": "A topological order of a DAG lists every node after all its predecessors, exactly what a build order requires; Python's graphlib.TopologicalSorter implements it. MSTs and Dijkstra optimise weights rather than respecting precedence, and union-find tracks connectivity, not direction.",
+    "referenceUrl": "https://docs.python.org/3/library/graphlib.html"
+  },
+  {
+    "id": "alg-topo-kahn-cycle",
+    "topic": "algorithms",
+    "subtopic": "topological-sort",
+    "difficulty": "Medium",
+    "title": "Kahn's algorithm stops early",
+    "question": "Kahn's algorithm repeatedly removes nodes with in-degree zero. On a 50-node graph it outputs only 42 nodes before the queue empties. What does this mean?",
+    "options": [
+      "The remaining nodes are part of or depend on a cycle",
+      "The graph is disconnected, so the remaining 8 must be processed separately",
+      "The queue should have been a stack to reach every node",
+      "The 8 nodes have no edges and were skipped as isolated"
+    ],
+    "correctIndex": 1,
+    "explanation": "In a DAG some node always has in-degree zero, so Kahn's algorithm outputs every node. If it stalls, every remaining node has an incoming edge from another remaining node, which implies a cycle; graphlib raises CycleError in this case. Disconnected and isolated nodes have in-degree zero and are processed normally, and queue versus stack only changes which valid order you get.",
+    "referenceUrl": "https://docs.python.org/3/library/graphlib.html"
+  },
+  {
+    "id": "alg-topo-min-semesters",
+    "topic": "algorithms",
+    "subtopic": "topological-sort",
+    "difficulty": "Hard",
+    "title": "Minimum semesters with prerequisites",
+    "question": "Courses have prerequisites (a DAG) and you may take any number of courses per semester. How do you compute the minimum number of semesters?",
+    "options": [
+      "Count the nodes, since each semester can finish exactly one course",
+      "Run DFS from each course and take the number of connected components",
+      "Run Kahn's algorithm level by level and count the levels",
+      "Compute the minimum spanning tree and count its edges"
+    ],
+    "correctIndex": 2,
+    "explanation": "Processing all zero in-degree courses together forms one semester; the number of such BFS levels equals the longest prerequisite chain, which is the lower bound and is achievable without a per-semester limit. Components and MSTs ignore direction and chain length, and one course per semester ignores parallelism.",
+    "referenceUrl": "https://docs.python.org/3/library/graphlib.html"
+  },
+  {
+    "id": "alg-sp-dijkstra-negative-weights",
+    "topic": "algorithms",
+    "subtopic": "shortest-paths",
+    "difficulty": "Medium",
+    "title": "Dijkstra with negative edges",
+    "question": "A routing graph includes some negative edge weights (rebates), but no negative cycles. Why is Dijkstra unsafe here, and what should you use?",
+    "options": [
+      "Dijkstra finalises nodes too early; use Bellman-Ford instead",
+      "Dijkstra overflows on negatives; use 64-bit distances instead",
+      "Dijkstra needs undirected edges; use BFS on the graph instead",
+      "Dijkstra is fine as long as the heap is a max-heap instead"
+    ],
+    "correctIndex": 0,
+    "explanation": "Dijkstra assumes that once a node is popped with the smallest tentative distance, no later path can be shorter; a negative edge discovered later can violate that. Bellman-Ford relaxes all edges V-1 times and handles negative weights in O(V*E). Overflow, directedness and heap ordering are not the issue.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-sp-heapq-lazy-deletion",
+    "topic": "algorithms",
+    "subtopic": "shortest-paths",
+    "difficulty": "Hard",
+    "title": "Dijkstra with heapq",
+    "question": "Python's heapq has no decrease-key operation. How do typical Dijkstra implementations built on it handle a node whose distance improves?",
+    "options": [
+      "Rebuild the heap with heapify after every relaxation",
+      "Use bisect.insort on the heap list to move the entry",
+      "Store the node only once and mutate its tuple in place",
+      "Push a new (distance, node) entry and skip stale ones when popped"
+    ],
+    "correctIndex": 3,
+    "explanation": "Pushing a duplicate entry costs O(log n); when popped, an entry whose distance exceeds the recorded best is discarded. This lazy deletion keeps O((V + E) log V). Re-heapifying is O(n) per update, insort breaks the heap invariant cost model, and tuples are immutable so in-place mutation is impossible.",
+    "referenceUrl": "https://docs.python.org/3/library/heapq.html"
+  },
+  {
+    "id": "alg-sp-zero-one-bfs",
+    "topic": "algorithms",
+    "subtopic": "shortest-paths",
+    "difficulty": "Hard",
+    "title": "Pattern: edges of weight 0 or 1",
+    "question": "In a grid, moving in the current direction costs 0 and turning costs 1. You need the minimum number of turns between two cells. Which algorithm is most efficient?",
+    "options": [
+      "Plain BFS treating every edge as weight 1",
+      "0-1 BFS with a deque, pushing 0-edges to the front and 1-edges to the back",
+      "Floyd-Warshall over all cells",
+      "Bellman-Ford with early termination"
+    ],
+    "correctIndex": 1,
+    "explanation": "With only 0 and 1 weights, a deque keeps nodes in nondecreasing distance order, giving Dijkstra-correct results in O(V + E) without a heap. Plain BFS ignores the zero-cost moves and overcounts, Floyd-Warshall is O(V^3), and Bellman-Ford is O(V*E).",
+    "referenceUrl": "https://docs.python.org/3/library/collections.html"
+  },
+  {
+    "id": "alg-sp-arbitrage-negative-cycle",
+    "topic": "algorithms",
+    "subtopic": "shortest-paths",
+    "difficulty": "Expert",
+    "title": "Detecting currency arbitrage",
+    "question": "A trading system has exchange rates between 150 currencies and must detect whether a sequence of trades returns more than you started with. Which formulation is standard?",
+    "options": [
+      "Use weights equal to rate and find a maximum spanning tree",
+      "Use weights log(rate) and run Dijkstra from every currency",
+      "Use weights -log(rate) and detect a negative cycle with Bellman-Ford",
+      "Use weights 1/rate and run a topological sort on the graph"
+    ],
+    "correctIndex": 2,
+    "explanation": "An arbitrage cycle has a product of rates > 1, i.e. a sum of log(rate) > 0, i.e. a sum of -log(rate) < 0: a negative cycle. Bellman-Ford detects one when an edge can still be relaxed after V-1 rounds. Dijkstra cannot handle negative weights, spanning trees ignore cycles, and a currency graph is not a DAG.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-uf-kruskal",
+    "topic": "algorithms",
+    "subtopic": "union-find",
+    "difficulty": "Easy",
+    "title": "Union-find inside Kruskal",
+    "question": "Kruskal's algorithm processes edges in increasing weight order. What role does a union-find structure play?",
+    "options": [
+      "It finds the minimum-weight edge leaving the current tree",
+      "It rejects an edge if both endpoints are already in the same set",
+      "It sorts the edges by weight in near-linear time",
+      "It stores tentative distances from the source node"
+    ],
+    "correctIndex": 1,
+    "explanation": "Adding an edge whose endpoints are already connected would create a cycle, so Kruskal checks find(u) == find(v) and otherwise unions the sets. Finding the cheapest outgoing edge from a tree describes Prim's algorithm, sorting is done separately, and tentative distances belong to Dijkstra.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-uf-path-compression-rank",
+    "topic": "algorithms",
+    "subtopic": "union-find",
+    "difficulty": "Expert",
+    "title": "Union-find complexity",
+    "question": "A union-find structure uses both path compression and union by rank. What is the amortised cost per operation over a long sequence of unions and finds?",
+    "options": [
+      "O(log n), from the tree height bound",
+      "O(1) worst case for every individual operation",
+      "O(alpha(n)), the inverse Ackermann function",
+      "O(sqrt n), from balancing the subtree sizes"
+    ],
+    "correctIndex": 2,
+    "explanation": "With both optimisations the amortised cost is O(alpha(n)), which is at most 4 or 5 for any realistic n. Union by rank alone gives O(log n), and individual operations are not O(1) worst case since a single find may traverse a path before compressing it.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/"
+  },
+  {
+    "id": "alg-int-merge-trace",
+    "topic": "algorithms",
+    "subtopic": "intervals",
+    "difficulty": "Easy",
+    "title": "Trace interval merging",
+    "question": "Intervals are sorted by start and merged when the next start <= current end. What is the result for [[1,3],[2,6],[8,10],[9,12]]?",
+    "options": [
+      "[[1,6],[8,10],[9,12]]",
+      "[[1,3],[2,6],[8,12]]",
+      "[[1,12]]",
+      "[[1,6],[8,12]]"
+    ],
+    "correctIndex": 3,
+    "explanation": "[1,3] and [2,6] overlap (2 <= 3), giving [1,6]; 8 > 6 starts a new interval; [8,10] and [9,12] overlap, giving [8,12]. The first two options each leave one overlapping pair unmerged, and [1,12] wrongly merges across the gap between 6 and 8.",
+    "referenceUrl": "https://docs.python.org/3/howto/sorting.html"
+  },
+  {
+    "id": "alg-int-meeting-rooms",
+    "topic": "algorithms",
+    "subtopic": "intervals",
+    "difficulty": "Hard",
+    "title": "Pattern: minimum meeting rooms",
+    "question": "Given meeting intervals, find the minimum number of rooms so no two overlapping meetings share a room. Which approach works in O(n log n)?",
+    "options": [
+      "Merge overlapping intervals and return the number of merged groups",
+      "Sort by start and keep a min-heap of end times; the heap's peak size is the answer",
+      "Sort by duration and assign the longest meetings first",
+      "Count the meetings whose start equals another meeting's end"
+    ],
+    "correctIndex": 1,
+    "explanation": "Processing meetings by start time and popping all rooms whose end time is <= the new start lets you reuse rooms; the maximum heap size equals the maximum number of simultaneous meetings. Merging counts disjoint groups, not concurrency, and the other heuristics ignore actual overlap.",
+    "referenceUrl": "https://docs.python.org/3/library/heapq.html"
+  },
+  {
+    "id": "alg-tt-postorder-trace",
+    "topic": "algorithms",
+    "subtopic": "tree-traversal",
+    "difficulty": "Easy",
+    "title": "Postorder traversal output",
+    "question": "Node 1 is the root, with left child 2 and right child 3; node 2 has left child 4 and right child 5. What is the postorder (left, right, root) sequence?",
+    "options": [
+      "1 2 4 5 3",
+      "4 2 5 1 3",
+      "4 5 2 3 1",
+      "1 2 3 4 5"
+    ],
+    "correctIndex": 2,
+    "explanation": "Postorder visits both subtrees before the node: 4, 5, then 2, then 3, then the root 1. 1 2 4 5 3 is preorder, 4 2 5 1 3 is inorder, and 1 2 3 4 5 is level order (BFS).",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-tt-deep-recursion",
+    "topic": "algorithms",
+    "subtopic": "tree-traversal",
+    "difficulty": "Hard",
+    "title": "Traversing a degenerate tree in Python",
+    "question": "A recursive inorder traversal works on balanced trees but crashes with RecursionError on a 200,000-node tree built from already-sorted keys inserted into an unbalanced BST. What is the most robust fix?",
+    "options": [
+      "Raise sys.setrecursionlimit to 1,000,000 and keep the recursion",
+      "Rewrite the traversal iteratively with an explicit stack",
+      "Switch from inorder to preorder, which uses less stack",
+      "Wrap the recursive call in try/except RecursionError and retry"
+    ],
+    "correctIndex": 1,
+    "explanation": "Sorted inserts produce a linked-list-shaped tree of depth n, exceeding Python's recursion limit (1000 by default). An explicit stack moves that state to the heap. Raising the limit risks crashing the interpreter with a real C stack overflow, all depth-first orders need the same stack depth, and retrying does not change the depth.",
+    "referenceUrl": "https://docs.python.org/3/library/sys.html"
+  },
+  {
+    "id": "alg-str-anagram-counter",
+    "topic": "algorithms",
+    "subtopic": "string-algorithms",
+    "difficulty": "Easy",
+    "title": "Pattern: anagram check",
+    "question": "You must check whether two strings of length n are anagrams of each other. Which approach runs in O(n)?",
+    "options": [
+      "Compare all permutations of the first string to the second",
+      "Check whether each character of one string appears in the other",
+      "Compare the two strings after reversing one of them",
+      "Compare character frequency counts, e.g. with collections.Counter"
+    ],
+    "correctIndex": 3,
+    "explanation": "Anagrams have identical character multisets, so counting characters in both strings and comparing the counts is O(n). Membership checks ignore multiplicities ('aab' vs 'abb'), reversal tests for palindromes, and enumerating permutations is O(n!).",
+    "referenceUrl": "https://docs.python.org/3/library/collections.html"
+  },
+  {
+    "id": "alg-str-kmp",
+    "topic": "algorithms",
+    "subtopic": "string-algorithms",
+    "difficulty": "Medium",
+    "title": "What KMP's failure table buys",
+    "question": "Naive substring search can take O(n*m) on inputs like text 'aaaa...ab' and pattern 'aaab'. How does Knuth-Morris-Pratt guarantee O(n + m)?",
+    "options": [
+      "It hashes every window of the text and compares the hashes",
+      "It sorts the pattern so mismatches are detected sooner",
+      "It precomputes, for each pattern prefix, the longest proper prefix that is also a suffix",
+      "It scans the pattern right to left and skips by the last occurrence table"
+    ],
+    "correctIndex": 2,
+    "explanation": "The failure (prefix) function tells KMP how far the pattern can shift after a mismatch while reusing already-matched characters, so the text pointer never moves backward. Rolling hashes describe Rabin-Karp, right-to-left scanning with skip tables describes Boyer-Moore, and sorting a pattern destroys it.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-str-rabin-karp-collisions",
+    "topic": "algorithms",
+    "subtopic": "string-algorithms",
+    "difficulty": "Hard",
+    "title": "Rolling hash pitfalls",
+    "question": "A plagiarism detector uses a Rabin-Karp rolling hash to find 50-character passages shared between documents. It reports a match as soon as two window hashes are equal. What is the flaw?",
+    "options": [
+      "Hash collisions cause false matches; verify candidates by comparing the text",
+      "Rolling hashes cannot be updated in O(1) when the window slides",
+      "Rabin-Karp only works with patterns shorter than 32 characters",
+      "Equal strings can produce different hashes if they start at different offsets"
+    ],
+    "correctIndex": 0,
+    "explanation": "Different strings can share a hash value, so equal hashes only identify candidates that must be confirmed by comparing characters (or by using double hashing with a negligible error rate). The rolling update is O(1), there is no length limit, and a correct rolling hash depends only on window content, not position.",
+    "referenceUrl": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/"
+  },
+  {
+    "id": "alg-str-catastrophic-backtracking",
+    "topic": "algorithms",
+    "subtopic": "string-algorithms",
+    "difficulty": "Expert",
+    "title": "Regex CPU spike in production",
+    "question": "An API validates input with Python re.match(r'^(a+)+$', s). A request with 40 'a' characters followed by '!' pins a CPU core for a very long time. What is happening?",
+    "options": [
+      "The regex is recompiled for every character in the input string",
+      "The backtracking engine tries exponentially many ways to split the a's",
+      "Python's re module scans the input string once per group in the pattern",
+      "The '!' character forces re to switch to a slower Unicode code path"
+    ],
+    "correctIndex": 1,
+    "explanation": "Nested quantifiers like (a+)+ give the backtracking matcher exponentially many ways to partition the run of a's; when the final '!' makes every attempt fail, it explores them all (catastrophic backtracking, a ReDoS vector). Rewrite the pattern as ^a+$, use possessive quantifiers or atomic groups (Python 3.11+), or bound input length. Compilation is cached and Unicode handling is not the cause.",
+    "referenceUrl": "https://docs.python.org/3/library/re.html"
+  },
+  {
+    "id": "os-pt-threads-share",
+    "topic": "operating-systems",
+    "subtopic": "processes-threads",
+    "difficulty": "Easy",
+    "title": "What threads share",
+    "question": "Two threads belong to the same process. Which of the following do they NOT share?",
+    "options": [
+      "Their stacks and register state",
+      "The heap and global variables",
+      "The process's open file descriptors",
+      "The virtual address space"
+    ],
+    "correctIndex": 0,
+    "explanation": "Threads of a process share the address space, so heap, globals and open file descriptors are common to all of them. Each thread has its own stack and register set (including the program counter), which is why local variables are per-thread.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man7/pthreads.7.html"
+  },
+  {
+    "id": "os-pt-fork-count",
+    "topic": "operating-systems",
+    "subtopic": "processes-threads",
+    "difficulty": "Medium",
+    "title": "Counting fork() output",
+    "question": "Ignoring errors, how many lines does this C program print?\n\nint main(void) {\n    fork();\n    fork();\n    fork();\n    printf(\"hi\\n\");\n    return 0;\n}",
+    "options": [
+      "3",
+      "4",
+      "6",
+      "8"
+    ],
+    "correctIndex": 3,
+    "explanation": "Each fork() doubles the number of processes executing the following code: 1 becomes 2, then 4, then 8, and each of the 8 prints once. 3 counts the calls, 4 stops one fork short, and 6 confuses doubling with adding.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/fork.2.html"
+  },
+  {
+    "id": "os-pt-zombie",
+    "topic": "operating-systems",
+    "subtopic": "processes-threads",
+    "difficulty": "Medium",
+    "title": "Zombies piling up",
+    "question": "A server forks a child per job. ps shows hundreds of entries in state Z marked <defunct>. What is the cause?",
+    "options": [
+      "The parent never calls wait()/waitpid() to reap exited children",
+      "The children are blocked on disk I/O and cannot be scheduled",
+      "The children were stopped by SIGSTOP and never resumed",
+      "The children leaked memory and were frozen by the kernel"
+    ],
+    "correctIndex": 0,
+    "explanation": "A child that exits stays a zombie until its parent collects its status with wait()/waitpid(); only its process-table entry remains. Fix by reaping (e.g. in a SIGCHLD handler) or by setting SIGCHLD to SIG_IGN. Blocked I/O shows state D, stopped processes show T, and memory leaks do not produce Z.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/wait.2.html"
+  },
+  {
+    "id": "os-pt-fork-in-threaded-process",
+    "topic": "operating-systems",
+    "subtopic": "processes-threads",
+    "difficulty": "Expert",
+    "title": "fork() in a multithreaded server",
+    "question": "A multithreaded service calls fork() from a worker thread, and the child, before exec, calls malloc() and occasionally hangs forever. What is the root cause?",
+    "options": [
+      "The child inherits all threads, which deadlock competing for the CPU",
+      "The child gets its own copy of every thread's stack and waits for them to join",
+      "Copy-on-write pages make malloc() block until the parent exits",
+      "Only the calling thread is copied, so a lock held by another thread stays locked forever"
+    ],
+    "correctIndex": 3,
+    "explanation": "fork() creates the child with a single thread, a copy of the caller, but the memory, including mutexes, is copied as-is. If another thread held malloc's internal lock at that moment, nothing in the child will ever release it. POSIX therefore allows only async-signal-safe functions between fork() and exec() in multithreaded programs.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/fork.2.html"
+  },
+  {
+    "id": "os-sched-context-switch-state",
+    "topic": "operating-systems",
+    "subtopic": "scheduling",
+    "difficulty": "Easy",
+    "title": "What a context switch saves",
+    "question": "When the kernel switches the CPU from one thread to another, what must it save so the first thread can resume later?",
+    "options": [
+      "The thread's CPU registers, including program counter and stack pointer",
+      "A full copy of the thread's heap to disk",
+      "The contents of every open file the thread is using",
+      "The entire L1 and L2 cache contents for that thread"
+    ],
+    "correctIndex": 0,
+    "explanation": "Resuming a thread only needs its execution context: general registers, program counter, stack pointer and flags (plus things like FPU state). Memory stays where it is, files are kernel objects that do not need copying, and caches are hardware-managed, which is why switches cause cache misses rather than cache saves.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/windows/win32/procthread/scheduling-priorities"
+  },
+  {
+    "id": "os-sched-quantum-too-small",
+    "topic": "operating-systems",
+    "subtopic": "scheduling",
+    "difficulty": "Medium",
+    "title": "Round-robin time slice too short",
+    "question": "An OS uses round-robin scheduling. What happens if the time quantum is made extremely small compared to the cost of a context switch?",
+    "options": [
+      "Scheduling degenerates into first-come first-served",
+      "Processes starve because low-priority tasks never run",
+      "A large share of CPU time is spent switching instead of doing work",
+      "Response time grows because each task waits for a full quantum"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each quantum ends in a context switch, so if the quantum approaches the switch cost, overhead dominates and throughput collapses. A very large quantum makes round-robin behave like FCFS, round-robin does not starve tasks, and smaller quanta improve rather than worsen responsiveness up to the overhead limit.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man7/sched.7.html"
+  },
+  {
+    "id": "os-sched-priority-inversion",
+    "topic": "operating-systems",
+    "subtopic": "scheduling",
+    "difficulty": "Hard",
+    "title": "High-priority task stuck",
+    "question": "A low-priority thread holds a lock that a high-priority thread needs. Meanwhile CPU-bound medium-priority threads keep preempting the low-priority one, so the high-priority thread waits indefinitely. What is this and what is a standard mitigation?",
+    "options": [
+      "Deadlock; impose a global lock ordering",
+      "Priority inversion; temporarily boost the lock holder's priority (priority inheritance)",
+      "Starvation; switch every thread to round-robin with equal priority",
+      "Livelock; add random back-off before retrying the lock"
+    ],
+    "correctIndex": 1,
+    "explanation": "This is priority inversion: a medium-priority task indirectly blocks a high-priority one. Priority inheritance raises the lock holder to the waiter's priority until it releases the lock (Windows mitigates it by randomly boosting ready threads that hold locks). It is not a deadlock since no cycle exists, and back-off addresses livelock, not this.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/windows/win32/procthread/priority-inversion"
+  },
+  {
+    "id": "os-sched-linux-eevdf",
+    "topic": "operating-systems",
+    "subtopic": "scheduling",
+    "difficulty": "Medium",
+    "title": "Linux fair scheduler",
+    "question": "Since Linux 6.6, which algorithm schedules normal (SCHED_OTHER) tasks in the fair scheduling class?",
+    "options": [
+      "EEVDF, picking the eligible task with the earliest virtual deadline",
+      "O(1) scheduler, using per-priority run queues and bitmaps",
+      "Strict round-robin with a fixed 100 ms quantum",
+      "Multilevel feedback queue with static priority classes"
+    ],
+    "correctIndex": 0,
+    "explanation": "Linux 6.6 replaced the CFS picking logic with EEVDF (Earliest Eligible Virtual Deadline First), which tracks lag to determine eligibility and chooses the eligible task with the earliest virtual deadline, improving latency for short-slice tasks. The O(1) scheduler was replaced by CFS back in 2.6.23, and SCHED_OTHER is not strict round-robin.",
+    "referenceUrl": "https://docs.kernel.org/scheduler/sched-eevdf.html"
+  },
+  {
+    "id": "os-mem-stack-locals",
+    "topic": "operating-systems",
+    "subtopic": "memory-management",
+    "difficulty": "Easy",
+    "title": "Where locals live",
+    "question": "A C function declares int buf[256] as a local variable and recursion goes very deep. Where is buf allocated and what failure can deep recursion cause?",
+    "options": [
+      "On the heap; eventually malloc() returns NULL",
+      "In the data segment; global variables get overwritten",
+      "On the stack; the thread can hit a stack overflow",
+      "In a CPU register; values spill and become corrupted"
+    ],
+    "correctIndex": 2,
+    "explanation": "Non-static locals live in the function's stack frame and are released automatically on return. Each recursive call adds a frame, so deep recursion with large frames exhausts the thread's fixed-size stack (e.g. the RLIMIT_STACK size for the main thread) and crashes with a stack overflow (SIGSEGV). The heap and data segment hold dynamic and static data respectively.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/getrlimit.2.html"
+  },
+  {
+    "id": "os-mem-copy-on-write",
+    "topic": "operating-systems",
+    "subtopic": "memory-management",
+    "difficulty": "Medium",
+    "title": "Why fork() is cheap",
+    "question": "A process using 8 GB of memory calls fork() and the child immediately calls execve(). Why does this not copy 8 GB?",
+    "options": [
+      "The kernel compresses the parent's pages before copying them",
+      "Pages are shared copy-on-write and only duplicated when one side writes",
+      "The child shares the parent's memory permanently like a thread",
+      "fork() only copies the stack; the heap is reloaded from the executable"
+    ],
+    "correctIndex": 1,
+    "explanation": "Linux implements fork() with copy-on-write: both processes map the same physical pages read-only, and a page is copied only when either writes to it. Since execve() replaces the child's address space right away, almost nothing is copied; the cost is mainly duplicating page tables. The child does not permanently share memory, and the heap is not reloaded from the binary.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/fork.2.html"
+  },
+  {
+    "id": "os-mem-minor-major-faults",
+    "topic": "operating-systems",
+    "subtopic": "memory-management",
+    "difficulty": "Medium",
+    "title": "Minor vs major page faults",
+    "question": "Monitoring shows a process with a high rate of major page faults but few minor ones. What does a major page fault indicate?",
+    "options": [
+      "The process accessed an invalid address and will receive SIGSEGV",
+      "The page was in RAM but not yet mapped in the process's page tables",
+      "The TLB entry was evicted and the hardware re-walked the page table",
+      "The page had to be read from disk (file or swap) before mapping it"
+    ],
+    "correctIndex": 3,
+    "explanation": "A major fault requires I/O to bring the page in from the backing file or swap, which is slow; a minor fault is resolved without I/O because the page is already in memory (e.g. in the page cache or shared). TLB misses are resolved by a hardware page walk on x86 without any fault, and an invalid access ends in SIGSEGV rather than a successful page-in. /proc/<pid>/stat exposes minflt and majflt.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man5/proc.5.html"
+  },
+  {
+    "id": "os-mem-tlb-huge-pages",
+    "topic": "operating-systems",
+    "subtopic": "memory-management",
+    "difficulty": "Hard",
+    "title": "Random access over a huge working set",
+    "question": "An in-memory index does random lookups over a 64 GB region. Profiling shows heavy time in page-table walks. Which change most directly helps?",
+    "options": [
+      "Back the region with huge pages to cut TLB misses",
+      "Increase the swappiness so the kernel swaps less often",
+      "Switch the allocator to use smaller 4 KB pages exclusively",
+      "Disable copy-on-write for the process with madvise"
+    ],
+    "correctIndex": 0,
+    "explanation": "Each TLB entry covers one page; with 4 KB pages, 64 GB needs millions of entries, so random access misses constantly. 2 MB huge pages (via THP or hugetlbfs) let each entry cover 512x more memory and shorten page walks. Swappiness affects reclaim, smaller pages worsen the problem, and copy-on-write is unrelated.",
+    "referenceUrl": "https://docs.kernel.org/admin-guide/mm/transhuge.html"
+  },
+  {
+    "id": "os-mem-overcommit-oom",
+    "topic": "operating-systems",
+    "subtopic": "memory-management",
+    "difficulty": "Expert",
+    "title": "malloc succeeded, then OOM-killed",
+    "question": "On Linux with default settings, a service's malloc(6 GB) succeeds on an 8 GB machine where other processes already use 5 GB, but minutes later the process is killed by the OOM killer while filling the buffer. Why?",
+    "options": [
+      "malloc() fell back to swap, and swap I/O timed out the process",
+      "The kernel overcommits virtual memory; physical pages are allocated on first touch",
+      "glibc reserved the memory but the kernel revoked it on the next GC cycle",
+      "The 16 GB was allocated on the stack, which grows until it hits the limit"
+    ],
+    "correctIndex": 1,
+    "explanation": "With vm.overcommit_memory=0 (heuristic), the kernel can grant more virtual memory than is available and backs pages only when they are first written. When the touched pages exceed RAM plus swap, the OOM killer reclaims memory by killing a process. Swap does not time out, the kernel has no GC, and large mallocs come from mmap, not the stack.",
+    "referenceUrl": "https://docs.kernel.org/admin-guide/sysctl/vm.html"
+  },
+  {
+    "id": "os-fs-filename-location",
+    "topic": "operating-systems",
+    "subtopic": "file-systems",
+    "difficulty": "Easy",
+    "title": "Where a filename lives",
+    "question": "On a typical Unix file system (e.g. ext4), where is a file's name stored?",
+    "options": [
+      "In the file's inode, alongside its size and permissions",
+      "In the first data block of the file",
+      "In the superblock's global name table",
+      "In a directory entry that maps the name to an inode number"
+    ],
+    "correctIndex": 3,
+    "explanation": "The inode holds metadata (owner, mode, size, timestamps, block pointers) but not the name. Names live in directory entries that map name -> inode number, which is why one inode can have several hard-linked names. The superblock describes the whole file system, not individual files.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man7/inode.7.html"
+  },
+  {
+    "id": "os-fs-deleted-file-space",
+    "topic": "operating-systems",
+    "subtopic": "file-systems",
+    "difficulty": "Medium",
+    "title": "Disk still full after deleting a log",
+    "question": "A 40 GB log file was deleted with rm, but df shows no free space recovered. The logging daemon is still running. Why?",
+    "options": [
+      "The file system needs fsck to reclaim the blocks",
+      "The daemon still holds an open descriptor, so the inode is not freed",
+      "rm only moves files to a hidden trash directory",
+      "df caches its numbers until the next reboot"
+    ],
+    "correctIndex": 1,
+    "explanation": "unlink() removes the name, but the file's data remains until the last open file descriptor is closed. The daemon keeps writing to the now-nameless file. Restarting or signalling it to reopen logs frees the space; lsof +L1 lists such files. rm has no trash, and fsck and df caching are not involved.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/unlink.2.html"
+  },
+  {
+    "id": "os-fs-atomic-replace",
+    "topic": "operating-systems",
+    "subtopic": "file-systems",
+    "difficulty": "Hard",
+    "title": "Crash-safe config update",
+    "question": "A service rewrites config.json in place with open(O_TRUNC) and write(). After a power loss the file is sometimes empty. What is the robust pattern?",
+    "options": [
+      "Write to a temp file, fsync it, rename() it over the original, then fsync the directory",
+      "Open the file with O_APPEND so existing content is never truncated",
+      "Call sync() before the truncate so the old content is safe on disk",
+      "Write the file twice in a row so at least one copy survives"
+    ],
+    "correctIndex": 0,
+    "explanation": "rename() atomically replaces the target, so readers see either the old or the new file. fsync on the temp file ensures its data is durable before the rename, and fsync on the directory makes the rename itself durable. O_APPEND does not replace contents, and sync() before truncating still leaves a window where the file is empty.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/rename.2.html"
+  },
+  {
+    "id": "os-io-syscall-mode-switch",
+    "topic": "operating-systems",
+    "subtopic": "system-calls-io",
+    "difficulty": "Easy",
+    "title": "What a system call does",
+    "question": "What fundamentally happens when a program calls read() on a file descriptor?",
+    "options": [
+      "The C library reads the file directly from the disk controller",
+      "The CPU traps from user mode into kernel mode to run kernel code",
+      "A new process is spawned to perform the I/O and return the result",
+      "The program jumps to a shared library that owns the device"
+    ],
+    "correctIndex": 1,
+    "explanation": "A system call executes a special instruction (e.g. syscall on x86-64) that switches the CPU to kernel mode, where the kernel validates arguments and performs the operation before returning to user mode. User code cannot access hardware directly, no process is spawned, and libc is only a thin wrapper.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/syscall.2.html"
+  },
+  {
+    "id": "os-io-epoll-scaling",
+    "topic": "operating-systems",
+    "subtopic": "system-calls-io",
+    "difficulty": "Medium",
+    "title": "Many idle connections",
+    "question": "A chat server holds 50,000 mostly idle TCP connections on Linux. Why is epoll preferred over select()?",
+    "options": [
+      "epoll encrypts traffic in the kernel, removing TLS overhead",
+      "epoll creates a kernel thread per socket to read data eagerly",
+      "epoll returns only ready descriptors and has no FD_SETSIZE limit",
+      "epoll guarantees that reads never block even on blocking sockets"
+    ],
+    "correctIndex": 2,
+    "explanation": "select() must pass and scan the whole descriptor set on every call (O(n)) and is limited to FD_SETSIZE (typically 1024). epoll keeps the interest list in the kernel and returns just the ready descriptors, so cost scales with activity rather than connection count. It does no encryption, spawns no threads, and is normally used with non-blocking sockets.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man7/epoll.7.html"
+  },
+  {
+    "id": "os-io-sendfile-zero-copy",
+    "topic": "operating-systems",
+    "subtopic": "system-calls-io",
+    "difficulty": "Hard",
+    "title": "Serving static files efficiently",
+    "question": "A static file server reads each file into a user-space buffer with read() and then write()s it to the socket. What does switching to sendfile() mainly save?",
+    "options": [
+      "Copying data through user space and the extra system calls per chunk",
+      "The TCP handshake for each new client connection",
+      "Disk reads, because sendfile serves from a separate kernel cache",
+      "The need to open the file before transmitting it"
+    ],
+    "correctIndex": 0,
+    "explanation": "sendfile() transfers data between descriptors inside the kernel, avoiding the copy into a user buffer and back out, plus the read/write syscall pairs. Data still comes from the same page cache, handshakes are unaffected, and the file must still be opened to obtain the input descriptor.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/sendfile.2.html"
+  },
+  {
+    "id": "os-io-vdso",
+    "topic": "operating-systems",
+    "subtopic": "system-calls-io",
+    "difficulty": "Hard",
+    "title": "Why clock_gettime is so fast",
+    "question": "Profiling shows a service calls clock_gettime() millions of times per second, yet strace shows almost no clock_gettime system calls. Why?",
+    "options": [
+      "glibc caches the time and only refreshes it once per second",
+      "The kernel batches clock_gettime calls and answers them in bulk",
+      "strace cannot trace syscalls made from multithreaded programs",
+      "The vDSO maps kernel time data into user space so the call needs no mode switch"
+    ],
+    "correctIndex": 3,
+    "explanation": "The kernel maps a small shared object, the vDSO, into every process; functions like clock_gettime() and gettimeofday() read kernel-maintained time data directly in user mode, avoiding the system call overhead entirely. glibc does not cache time at one-second granularity, there is no batching, and strace handles multithreaded programs with -f.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man7/vdso.7.html"
+  },
+  {
+    "id": "os-sync-lost-update",
+    "topic": "operating-systems",
+    "subtopic": "synchronization",
+    "difficulty": "Easy",
+    "title": "Unsynchronised counter",
+    "question": "Two threads each execute counter++ one million times on a shared int without any locking. The final value is often below two million. Why?",
+    "options": [
+      "The compiler removes the loop because its result is unused",
+      "counter++ is a read-modify-write, so concurrent increments overwrite each other",
+      "Each thread gets its own private copy of every global variable",
+      "The OS scheduler only allows one thread to run per process"
+    ],
+    "correctIndex": 1,
+    "explanation": "counter++ loads the value, adds one and stores it back; if both threads load the same value, one increment is lost. Use a mutex or an atomic increment. Globals are shared between threads, the compiler cannot drop the observable store, and threads of one process do run in parallel on multicore machines.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/windows/win32/sync/synchronization"
+  },
+  {
+    "id": "os-sync-counting-semaphore",
+    "topic": "operating-systems",
+    "subtopic": "synchronization",
+    "difficulty": "Easy",
+    "title": "Limiting concurrent access",
+    "question": "A service may open at most 10 simultaneous connections to a licensed database. Which synchronization primitive models this most directly?",
+    "options": [
+      "A counting semaphore initialised to 10",
+      "A mutex shared by all threads",
+      "A condition variable with no predicate",
+      "A spinlock per connection"
+    ],
+    "correctIndex": 0,
+    "explanation": "A counting semaphore lets up to N holders proceed: each acquire decrements the count and blocks at zero, each release increments it. A mutex allows only one holder, a condition variable needs an associated predicate and mutex to express the limit, and per-connection spinlocks do not cap the total.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man7/sem_overview.7.html"
+  },
+  {
+    "id": "os-sync-lock-ordering",
+    "topic": "operating-systems",
+    "subtopic": "synchronization",
+    "difficulty": "Medium",
+    "title": "Two threads, two locks",
+    "question": "Thread A locks accounts then audit; thread B locks audit then accounts. Under load the service occasionally freezes with both threads blocked. What is the simplest robust fix?",
+    "options": [
+      "Make both mutexes recursive so a thread can re-acquire them",
+      "Add a sleep between acquiring the two locks",
+      "Acquire the locks in the same global order in every thread",
+      "Raise the priority of thread A so it always wins"
+    ],
+    "correctIndex": 2,
+    "explanation": "This is a deadlock from circular wait; enforcing one global acquisition order removes the cycle and thus one of the necessary Coffman conditions. Recursive mutexes only help a thread re-lock its own mutex, sleeping only changes timing, and priorities do not prevent each thread from holding what the other needs. Linux's lockdep detects such ordering violations.",
+    "referenceUrl": "https://docs.kernel.org/locking/lockdep-design.html"
+  },
+  {
+    "id": "os-sync-condvar-while",
+    "topic": "operating-systems",
+    "subtopic": "synchronization",
+    "difficulty": "Hard",
+    "title": "Condition variable wait in an if",
+    "question": "A consumer does: lock(m); if (queue_empty) pthread_cond_wait(&cv, &m); item = pop(); unlock(m). It occasionally pops from an empty queue. What is the fix?",
+    "options": [
+      "Call pthread_cond_signal before waiting to wake any producer",
+      "Release the mutex before calling pthread_cond_wait",
+      "Replace the condition variable with a busy-wait loop",
+      "Re-check the condition in a while loop, since wakeups can be spurious or stolen"
+    ],
+    "correctIndex": 3,
+    "explanation": "pthread_cond_wait can return spuriously, and another consumer may take the item between the signal and this thread reacquiring the mutex. Waiting in while (queue_empty) re-validates the predicate after every wakeup. The mutex must be held when calling wait (it is released atomically), and busy-waiting wastes CPU.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man3/pthread_cond_wait.3p.html"
+  },
+  {
+    "id": "os-sync-spinlock-tradeoff",
+    "topic": "operating-systems",
+    "subtopic": "synchronization",
+    "difficulty": "Hard",
+    "title": "When a spinlock hurts",
+    "question": "In which situation is a user-space spinlock clearly worse than a blocking mutex?",
+    "options": [
+      "The critical section is a few instructions on a many-core machine",
+      "The lock holder may be preempted or block on I/O while holding it",
+      "The lock is rarely contended and held for nanoseconds",
+      "Waiters run on different cores from the lock holder"
+    ],
+    "correctIndex": 1,
+    "explanation": "Spinning only pays off when the holder will release the lock very soon; if the holder is descheduled or blocks on I/O, waiters burn whole time slices doing nothing useful, potentially even delaying the holder. Very short, rarely contended sections on separate cores are exactly where spinlocks can beat the cost of sleeping and waking.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man3/pthread_spin_lock.3.html"
+  },
+  {
+    "id": "os-sync-futex-fast-path",
+    "topic": "operating-systems",
+    "subtopic": "synchronization",
+    "difficulty": "Expert",
+    "title": "Why uncontended mutexes are cheap",
+    "question": "On Linux, locking and unlocking an uncontended pthread mutex takes only a few nanoseconds. How does the implementation achieve this?",
+    "options": [
+      "It uses an atomic instruction in user space and calls futex() only on contention",
+      "It always calls into the kernel, but the syscall is served from the vDSO",
+      "It disables interrupts on the current core for the critical section",
+      "It relies on the scheduler never preempting a thread that holds a mutex"
+    ],
+    "correctIndex": 0,
+    "explanation": "glibc mutexes are built on futexes: the fast path is a single atomic compare-and-swap on a user-space integer, and the futex() system call is made only to sleep when the lock is taken or to wake waiters on release. The vDSO does not provide locking, user space cannot disable interrupts, and threads holding mutexes can be preempted.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/futex.2.html"
+  }
+]

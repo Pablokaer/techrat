@@ -1,0 +1,63 @@
+// Sign in, registration and password reset screens (plus the shared auth layout).
+export const auth = {
+  layout: {
+    slogan: ["SAME", "CURIOSITY", "DIFFERENT", "ALTITUDE"],
+    tagline: "A gamified learning platform for tomorrow's builders.",
+    motto: { learn: "LEARN", practice: "PRACTICE", levelUp: "LEVEL UP" },
+    pillars: {
+      practice: { title: "Practice", text: "Real-world questions" },
+      learn: { title: "Learn", text: "Structured roadmaps" },
+      levelUp: { title: "Level up", text: "Earn XP & badges" },
+      grow: { title: "Grow", text: "Track progress and rank up" },
+    },
+  },
+  oauth: {
+    or: "or",
+    continueWithGithub: "Continue with GitHub",
+    soon: "(soon)",
+    githubComingSoon: "GitHub sign-in is coming soon",
+  },
+  fields: {
+    email: "Email",
+    password: "Password",
+    username: "Username",
+    displayName: "Display name",
+    newPassword: "New password",
+    confirmPassword: "Confirm password",
+  },
+  login: {
+    title: "Welcome back",
+    subtitle: "Keep your streak alive. Small steps build big developers.",
+    passwordUpdated: "Password updated. Sign in with your new password.",
+    forgotPassword: "Forgot password?",
+    submit: "Sign in",
+    submitting: "Signing in…",
+    newHere: "New to TechRat?",
+    createAccount: "Create an account",
+  },
+  register: {
+    title: "Create your account",
+    subtitle: "Join the builders leveling up every day.",
+    usernamePlaceholder: "alex_dev",
+    displayNamePlaceholder: "Alex",
+    passwordHint: "8+ characters with upper and lowercase letters and a number.",
+    submit: "Create account",
+    submitting: "Creating account…",
+    haveAccount: "Already have an account?",
+    signIn: "Sign in",
+  },
+  forgotPassword: {
+    title: "Reset your password",
+    subtitle: "We'll email you a link to choose a new one.",
+    sent: "If an account exists for that email, a reset link is on its way.",
+    submit: "Send reset link",
+    remembered: "Remembered it?",
+    backToSignIn: "Back to sign in",
+  },
+  resetPassword: {
+    title: "Choose a new password",
+    subtitle: "Make it strong. Future you will thank you.",
+    invalidLink: "This reset link is invalid or has expired. Request a new one.",
+    submit: "Update password",
+  },
+};

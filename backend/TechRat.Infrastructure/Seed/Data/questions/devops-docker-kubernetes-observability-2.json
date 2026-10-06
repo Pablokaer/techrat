@@ -1,0 +1,1158 @@
+[
+  {
+    "id": "obs-log-stdout-event-stream",
+    "topic": "observability",
+    "subtopic": "logging",
+    "difficulty": "Easy",
+    "title": "Where containerized apps should write logs",
+    "question": "A service running in containers writes rotating log files to /var/log/app inside the container. Following the Twelve-Factor App guidance, what should it do instead?",
+    "options": [
+      "Write logs to a database table so they can be queried with SQL later",
+      "Write an unbuffered event stream to stdout and let the platform route it",
+      "Keep the files but mount a host directory and rotate them with cron",
+      "Send each log line directly over SMTP to the on-call engineer's email inbox"
+    ],
+    "correctIndex": 1,
+    "explanation": "Twelve-Factor treats logs as event streams: the app writes to stdout and the execution environment captures, routes and stores them (e.g. the container runtime plus a log shipper). Managing files, rotation or destinations inside the app couples it to infrastructure. Databases and email are not log transports.",
+    "referenceUrl": "https://12factor.net/logs"
+  },
+  {
+    "id": "obs-log-sensitive-data-redaction",
+    "topic": "observability",
+    "subtopic": "logging",
+    "difficulty": "Medium",
+    "title": "Sensitive data in request logs",
+    "question": "To debug a signup bug, a team logs every full request body at INFO. The bodies contain passwords, emails and card numbers, and logs are shipped to a vendor. What is the right practice?",
+    "options": [
+      "Keep the logs but restrict the vendor dashboard to senior engineers only",
+      "Base64-encode request bodies so secrets are not readable at a glance",
+      "Exclude or mask sensitive fields at the source before anything is logged",
+      "Lower the level to DEBUG so the bodies only appear during incidents"
+    ],
+    "correctIndex": 2,
+    "explanation": "OWASP's logging guidance says passwords, payment data, session tokens and similar data should not be recorded, or should be removed, masked or hashed before logging. Once data reaches a third-party pipeline it is copied, retained and widely readable. Access restrictions, Base64 and log levels do not stop the data being stored.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html"
+  },
+  {
+    "id": "obs-log-lazy-expensive-arguments",
+    "topic": "observability",
+    "subtopic": "logging",
+    "difficulty": "Medium",
+    "title": "Costly arguments to disabled debug logs",
+    "question": "A Python hot path calls `logger.debug('state %s', dump_full_state())`. DEBUG is disabled in production, yet profiling shows `dump_full_state()` using 15% CPU. What fixes it?",
+    "options": [
+      "Switch to an f-string so the message is formatted faster by the interpreter",
+      "Guard the call with `if logger.isEnabledFor(logging.DEBUG):` before logging",
+      "Raise the root logger to WARNING so debug records are dropped earlier",
+      "Move the call into a `finally` block so it runs after the request completes"
+    ],
+    "correctIndex": 1,
+    "explanation": "Python evaluates function arguments before calling `logger.debug`, so `dump_full_state()` runs even though the record is later discarded. %-style parameters only defer string formatting, not argument computation. An `isEnabledFor` guard skips the expensive call entirely; an f-string would make things worse, and raising the level does not stop argument evaluation.",
+    "referenceUrl": "https://docs.python.org/3/howto/logging.html"
+  },
+  {
+    "id": "obs-log-multiline-stacktrace-split",
+    "topic": "observability",
+    "subtopic": "logging",
+    "difficulty": "Hard",
+    "title": "Stack traces split into many log records",
+    "question": "In Kubernetes, a Java service prints exceptions with plain-text stack traces to stdout. In the log backend each trace shows up as 40 separate records, losing level and request fields. What is the most robust fix?",
+    "options": [
+      "Increase the kubelet's container log rotation size so traces fit in one file",
+      "Write logs to stderr instead of stdout, which the runtime keeps as one block",
+      "Emit one JSON object per event with the stack trace as an escaped field",
+      "Disable log buffering in the JVM so the whole trace is flushed in one write"
+    ],
+    "correctIndex": 2,
+    "explanation": "The container runtime and most collectors treat each newline-terminated line on stdout/stderr as a separate log entry, so a multi-line trace is split. Emitting a single-line structured record (newlines escaped inside a JSON field) keeps the trace attached to its level and context. Rotation size, stderr and flushing do not change line-based capture; collector-side multiline parsing is a fragile fallback.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/cluster-administration/logging/"
+  },
+  {
+    "id": "obs-trace-baggage-propagation",
+    "topic": "observability",
+    "subtopic": "tracing",
+    "difficulty": "Medium",
+    "title": "Propagating a value to downstream services",
+    "question": "The edge gateway knows each request's `customer.tier`. Five downstream services, all using OpenTelemetry, need that value to tag their own telemetry without changing every API contract. Which mechanism fits?",
+    "options": [
+      "Set it as a span attribute on the gateway span so children inherit it",
+      "Add it as a span event on the root span and query it from the backend",
+      "Put it in OpenTelemetry Baggage, which propagates alongside trace context",
+      "Encode it into the trace ID so every service can decode it from traceparent"
+    ],
+    "correctIndex": 2,
+    "explanation": "Baggage is a key-value store that travels with the context across process boundaries (via the `baggage` header), so downstream services can read it and copy it onto their spans, metrics or logs. Span attributes and events stay on the span that recorded them and are not inherited by children. Trace IDs are random identifiers and must not carry data.",
+    "referenceUrl": "https://opentelemetry.io/docs/concepts/signals/baggage/"
+  },
+  {
+    "id": "obs-trace-collector-benefits",
+    "topic": "observability",
+    "subtopic": "tracing",
+    "difficulty": "Easy",
+    "title": "Why route telemetry through a Collector",
+    "question": "Services currently export OpenTelemetry traces directly to a vendor backend. What is a key benefit of sending them to an OpenTelemetry Collector first?",
+    "options": [
+      "The Collector instruments application code automatically without any SDK",
+      "The Collector replaces the need for context propagation between services",
+      "The Collector stores traces permanently, so no tracing backend is required",
+      "Batching, retries, filtering and backend changes are handled outside apps"
+    ],
+    "correctIndex": 3,
+    "explanation": "The Collector is a vendor-agnostic proxy that receives, processes (batch, filter, redact, sample) and exports telemetry, so apps can offload that work and switch or add backends via configuration. It does not instrument code, it does not replace propagation between services, and it is not a long-term storage backend.",
+    "referenceUrl": "https://opentelemetry.io/docs/collector/"
+  },
+  {
+    "id": "docker-dockerfile-exec-form-no-expansion",
+    "topic": "docker",
+    "subtopic": "dockerfile",
+    "difficulty": "Medium",
+    "title": "Variables in exec-form CMD",
+    "question": "An image has `ENV APP_PORT=8080` and `CMD [\"node\", \"server.js\", \"--port\", \"$APP_PORT\"]`. The app fails to parse the port and logs the literal string `$APP_PORT`. Why?",
+    "options": [
+      "ENV values are only applied at build time and are not present at container runtime",
+      "Exec form runs the binary without a shell, so no variable expansion occurs",
+      "Variables in CMD must use the `${APP_PORT}` brace syntax to be expanded by Docker",
+      "CMD arguments are passed to ENTRYPOINT, which strips environment references"
+    ],
+    "correctIndex": 1,
+    "explanation": "The exec (JSON array) form does not invoke a command shell, so normal shell processing such as `$VAR` substitution does not happen. Use the shell form, or exec form with `sh -c`, or have the app read the environment variable itself. ENV values are present at runtime, and brace syntax does not change exec-form behaviour.",
+    "referenceUrl": "https://docs.docker.com/reference/dockerfile/"
+  },
+  {
+    "id": "docker-dockerfile-copy-root-ownership",
+    "topic": "docker",
+    "subtopic": "dockerfile",
+    "difficulty": "Hard",
+    "title": "COPY ownership after USER",
+    "question": "A Dockerfile runs `RUN useradd -r app`, then `USER app`, then `COPY . /srv/app`. At runtime the app gets `Permission denied` writing to /srv/app/cache. What explains it?",
+    "options": [
+      "COPY creates files owned by UID/GID 0 regardless of USER unless `--chown` is given",
+      "USER only takes effect after the image is pushed, so COPY ran as an unknown user",
+      "useradd -r creates a system user without a home directory, which blocks all writes",
+      "The build context strips write bits from every file, so `chmod` is always required"
+    ],
+    "correctIndex": 0,
+    "explanation": "The Dockerfile reference states that files and directories created by COPY/ADD get UID and GID 0 unless `--chown` (or `--chmod`) is specified; USER only affects RUN, CMD and ENTRYPOINT. Use `COPY --chown=app:app . /srv/app` or create the writable directory with the right owner. USER applies immediately, and the other options are not real causes.",
+    "referenceUrl": "https://docs.docker.com/reference/dockerfile/"
+  },
+  {
+    "id": "devops-ci-delivery-vs-deployment",
+    "topic": "devops",
+    "subtopic": "ci-cd",
+    "difficulty": "Easy",
+    "title": "Continuous delivery vs continuous deployment",
+    "question": "What distinguishes continuous deployment from continuous delivery?",
+    "options": [
+      "Continuous delivery skips automated tests, while continuous deployment runs them",
+      "They are synonyms that describe the same practice of merging to main often",
+      "Continuous deployment only applies to mobile apps distributed through app stores",
+      "In continuous deployment every passing change goes to production automatically"
+    ],
+    "correctIndex": 3,
+    "explanation": "With continuous delivery, every change is kept releasable and could be deployed at any time, but the production release may be a manual business decision. Continuous deployment goes one step further: every change that passes the pipeline is deployed to production automatically. Both rely heavily on automated testing and are not limited to any platform.",
+    "referenceUrl": "https://martinfowler.com/bliki/ContinuousDelivery.html"
+  },
+  {
+    "id": "devops-ci-pin-actions-sha",
+    "topic": "devops",
+    "subtopic": "ci-cd",
+    "difficulty": "Medium",
+    "title": "Pinning third-party GitHub Actions",
+    "question": "A workflow uses `some-org/setup-tool@v2`. A security review worries that the action's maintainer account could be compromised and the tag moved to malicious code. What is the strongest mitigation?",
+    "options": [
+      "Pin the action to a full-length commit SHA and update it deliberately",
+      "Switch the reference to `@main` so the latest security fixes are used",
+      "Pin to the more specific tag `@v2.3.1` because patch tags are immutable",
+      "Run the step with `continue-on-error: true` so a bad version cannot block CI"
+    ],
+    "correctIndex": 0,
+    "explanation": "GitHub's hardening guide notes that pinning to a full-length commit SHA is the only way to use an action as an immutable release; tags, including specific patch tags, can be moved or deleted. Tracking `main` increases exposure, and `continue-on-error` does nothing to stop malicious code from running with the job's token and secrets.",
+    "referenceUrl": "https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions"
+  },
+  {
+    "id": "devops-ci-merge-queue-semantic-conflict",
+    "topic": "devops",
+    "subtopic": "ci-cd",
+    "difficulty": "Hard",
+    "title": "Main breaks though every PR passed",
+    "question": "Two PRs each pass CI against an older `main` and are merged within minutes. PR 1 renamed a function; PR 2 added a new call to the old name. `main` no longer compiles. Which change most directly prevents this on a busy repo?",
+    "options": [
+      "Require two approving reviews so humans spot cross-PR conflicts before merging",
+      "Run CI on a nightly schedule against main instead of on each pull request",
+      "Use a merge queue that tests each PR on top of latest main and PRs ahead",
+      "Only allow squash merges so each PR lands as a single commit on the main branch"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each PR was tested against a stale base, so the semantic conflict between them was never built. A merge queue creates temporary branches containing the latest base plus queued changes and only merges when those combined checks pass, without forcing authors to rebase manually. Reviews rarely catch this, nightly CI detects breakage too late, and squash merging does not change what was tested.",
+    "referenceUrl": "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue"
+  },
+  {
+    "id": "obs-slo-sli-measurement-point",
+    "topic": "observability",
+    "subtopic": "slo",
+    "difficulty": "Medium",
+    "title": "Where the availability SLI is measured",
+    "question": "A service's availability SLI is computed from application server metrics and shows 99.98%. Users still report frequent errors, which turn out to be requests rejected at the load balancer before reaching any server. What should change?",
+    "options": [
+      "Lower the SLO target so the server-side number matches what users experience",
+      "Exclude load balancer errors from incident reviews because they are infrastructure",
+      "Add CPU and memory saturation of the servers to the SLI as extra success criteria",
+      "Measure the SLI closer to users, e.g. load balancer logs or client probes"
+    ],
+    "correctIndex": 3,
+    "explanation": "An SLI should reflect what users experience; server-side metrics miss requests that never reach the servers. The SRE workbook discusses measuring at the load balancer or with synthetic/client-side probes to capture these failures. Lowering the target or excluding errors hides the problem, and resource saturation is not a user-facing success measure.",
+    "referenceUrl": "https://sre.google/workbook/implementing-slos/"
+  },
+  {
+    "id": "docker-layers-shared-base",
+    "topic": "docker",
+    "subtopic": "images-layers",
+    "difficulty": "Easy",
+    "title": "Layer sharing between images",
+    "question": "Ten different service images on one host are all built `FROM python:3.13-slim`. How is the base image stored on that host?",
+    "options": [
+      "Each image stores its own full copy of the base, so disk use grows tenfold",
+      "Base layers are stored once and shared, since layers are content-addressed",
+      "Docker compresses the duplicates together into a single tarball after each pull",
+      "Only the most recently built image keeps the base; the others re-pull on start"
+    ],
+    "correctIndex": 1,
+    "explanation": "Image layers are immutable and identified by content digest, so identical layers are stored once and reused by every image (and container) that references them. This is why shared base images save disk and pull time. There is no per-image copy, post-hoc compression step, or re-pull on start.",
+    "referenceUrl": "https://docs.docker.com/get-started/docker-concepts/building-images/understanding-image-layers/"
+  },
+  {
+    "id": "docker-layers-stale-base-pull",
+    "topic": "docker",
+    "subtopic": "images-layers",
+    "difficulty": "Medium",
+    "title": "Builds keep using an old base image",
+    "question": "A security fix was published under the same `node:22-alpine` tag, but images built on a long-lived CI host still contain the vulnerable base. Which `docker build` option makes the build fetch the current base image?",
+    "options": [
+      "`--cache-from`, which refreshes base images from the registry cache",
+      "`--squash`, which merges layers and refreshes the base during the merge",
+      "`--pull`, which always attempts to pull a newer version of referenced images",
+      "`--rm`, which removes intermediate containers and the locally cached base"
+    ],
+    "correctIndex": 2,
+    "explanation": "When a base tag is already present locally, the build reuses that local image. `--pull` tells the builder to check the registry and pull a newer image for the tag; CI pipelines often combine it with `--no-cache` for clean rebuilds. `--cache-from` imports build cache, not base images, `--squash` merges layers, and `--rm` only removes intermediate containers.",
+    "referenceUrl": "https://docs.docker.com/reference/cli/docker/buildx/build/"
+  },
+  {
+    "id": "docker-containers-exec-shell",
+    "topic": "docker",
+    "subtopic": "containers",
+    "difficulty": "Easy",
+    "title": "Opening a shell in a running container",
+    "question": "A container named `api` is running and you want an interactive shell inside it to inspect files, without starting a new container. Which command do you use?",
+    "options": [
+      "`docker run -it api sh`",
+      "`docker attach --shell api`",
+      "`docker start -i api sh`",
+      "`docker exec -it api sh`"
+    ],
+    "correctIndex": 3,
+    "explanation": "`docker exec` runs a new process in an already-running container; `-it` allocates a TTY and keeps stdin open for an interactive shell. `docker run` creates a new container from an image, `docker attach` connects to the main process's streams (and has no `--shell` flag), and `docker start` starts a stopped container.",
+    "referenceUrl": "https://docs.docker.com/reference/cli/docker/container/exec/"
+  },
+  {
+    "id": "docker-containers-exits-immediately",
+    "topic": "docker",
+    "subtopic": "containers",
+    "difficulty": "Medium",
+    "title": "Detached container exits right away",
+    "question": "`docker run -d ubuntu` returns an ID, but `docker ps` shows nothing and `docker ps -a` shows the container `Exited (0)` a second later. Why?",
+    "options": [
+      "Detached mode is not supported for images that do not declare an EXPOSE port",
+      "The default command is a shell, which exits at once without a TTY or stdin",
+      "Docker stops containers that do not respond to a health check within one second",
+      "The daemon removes containers from `docker ps` when they run in detached mode"
+    ],
+    "correctIndex": 1,
+    "explanation": "A container lives only as long as its main process. The ubuntu image's default CMD is `bash`; started without `-it`, it has no terminal and stdin is closed, so it exits immediately with status 0. EXPOSE and health checks do not control lifetime, and detached containers do appear in `docker ps` while running.",
+    "referenceUrl": "https://docs.docker.com/engine/containers/run/"
+  },
+  {
+    "id": "docker-containers-init-zombies",
+    "topic": "docker",
+    "subtopic": "containers",
+    "difficulty": "Hard",
+    "title": "Zombie processes inside a container",
+    "question": "A Python app runs as PID 1 and spawns short-lived subprocesses without waiting on them. Over days, `ps` inside the container shows thousands of `<defunct>` entries and eventually forks fail. What is the simplest fix at run time?",
+    "options": [
+      "Start the container with `--init` so a small init process reaps orphaned children",
+      "Raise the container's `--pids-limit` so the process table never fills up",
+      "Add a HEALTHCHECK that restarts the container when defunct processes appear",
+      "Use `--restart=always`, which clears the process table on each daemon check"
+    ],
+    "correctIndex": 0,
+    "explanation": "Exited children stay as zombies until their parent reaps them. In a container the app is PID 1 and must reap orphans itself, which most apps do not. `docker run --init` runs a tiny init (tini) as PID 1 that forwards signals and reaps processes. Raising limits or restarting just postpones the failure.",
+    "referenceUrl": "https://docs.docker.com/reference/cli/docker/container/run/"
+  },
+  {
+    "id": "docker-vol-named-volume-managed",
+    "topic": "docker",
+    "subtopic": "volumes-networks",
+    "difficulty": "Easy",
+    "title": "Named volume vs bind mount",
+    "question": "You run `docker run -v pgdata:/var/lib/postgresql/data postgres:17`. What kind of storage is `pgdata`?",
+    "options": [
+      "A bind mount of a folder called `pgdata` in the current working directory",
+      "A tmpfs mount kept in host memory and discarded when the container stops",
+      "A named volume created and managed by Docker in its own storage area",
+      "A writable image layer that is committed back to the postgres image"
+    ],
+    "correctIndex": 2,
+    "explanation": "When the source of `-v` is a name rather than a path, Docker creates (if needed) a named volume managed by the Docker daemon, independent of the container lifecycle. A bind mount requires an absolute or relative host path, tmpfs uses `--tmpfs` or `--mount type=tmpfs`, and volumes are never committed into images.",
+    "referenceUrl": "https://docs.docker.com/engine/storage/volumes/"
+  },
+  {
+    "id": "docker-net-default-bridge-no-dns",
+    "topic": "docker",
+    "subtopic": "volumes-networks",
+    "difficulty": "Medium",
+    "title": "Name resolution on the default bridge",
+    "question": "Two containers started with plain `docker run --name api ...` and `docker run --name cache ...` cannot reach each other: `ping cache` from `api` fails with `bad address`, but pinging the IP works. What fixes it?",
+    "options": [
+      "Publish the cache port with `-p 6379:6379` so other containers can see it",
+      "Create a user-defined bridge network and attach both containers to it",
+      "Add `--hostname cache` to the cache container so its name is advertised",
+      "Restart the Docker daemon to rebuild the embedded DNS records for both"
+    ],
+    "correctIndex": 1,
+    "explanation": "Containers on the default bridge network can only reach each other by IP address (unless using the legacy `--link`). User-defined bridge networks provide automatic DNS resolution between containers by name or alias. Publishing ports exposes the service to the host, and `--hostname` only sets the name inside the container.",
+    "referenceUrl": "https://docs.docker.com/engine/network/drivers/bridge/"
+  },
+  {
+    "id": "docker-net-publish-bypasses-ufw",
+    "topic": "docker",
+    "subtopic": "volumes-networks",
+    "difficulty": "Hard",
+    "title": "Published port reachable despite firewall",
+    "question": "On an Ubuntu VM with ufw denying all incoming traffic except SSH, a developer runs `docker run -d -p 5432:5432 postgres:17`. A scan shows Postgres is reachable from the internet. Why, and what is a safe fix?",
+    "options": [
+      "ufw only filters IPv6 traffic; adding an IPv4 deny rule for port 5432 fixes it",
+      "Postgres opens its own firewall exception at startup; set `listen_addresses` to none",
+      "ufw rules apply only after a reboot; restarting the VM makes the deny rule effective",
+      "Docker's NAT rules route published ports before ufw sees them; publish on 127.0.0.1"
+    ],
+    "correctIndex": 3,
+    "explanation": "Docker installs iptables/nftables rules that divert traffic to published ports before ufw's INPUT rules are evaluated, so ufw does not block them. If the port only needs local access, publish it on loopback (`-p 127.0.0.1:5432:5432`) or use the DOCKER-USER chain for filtering. ufw handles IPv4 fine and does not need a reboot; Postgres does not edit firewalls.",
+    "referenceUrl": "https://docs.docker.com/engine/network/packet-filtering-firewalls/"
+  },
+  {
+    "id": "docker-compose-down-volumes",
+    "topic": "docker",
+    "subtopic": "compose",
+    "difficulty": "Medium",
+    "title": "What compose down removes",
+    "question": "A developer wants to wipe the local Postgres data stored in the named volume `dbdata` declared in compose.yaml. They run `docker compose down`, but the old data is still there on the next `up`. Why?",
+    "options": [
+      "The volume is cached by BuildKit and reloaded from the cache on the next up",
+      "`docker compose down` only stops containers; it never removes them or networks",
+      "Named volumes are kept by default; `docker compose down -v` also removes them",
+      "Postgres restores the data from its WAL archive stored inside the image layer"
+    ],
+    "correctIndex": 2,
+    "explanation": "`docker compose down` stops and removes the project's containers and networks but keeps named volumes so data survives. Adding `-v`/`--volumes` also removes named volumes declared in the file (external volumes are never removed). BuildKit is unrelated, and the image does not contain the database data.",
+    "referenceUrl": "https://docs.docker.com/reference/cli/docker/compose/down/"
+  },
+  {
+    "id": "docker-compose-up-build-stale",
+    "topic": "docker",
+    "subtopic": "compose",
+    "difficulty": "Medium",
+    "title": "Code changes not picked up by compose up",
+    "question": "A service uses `build: .` in compose.yaml with no bind mounts. After editing source files, `docker compose up -d` restarts quickly but the old code keeps running. What should the developer run?",
+    "options": [
+      "`docker compose restart`, which recreates containers from the latest source",
+      "`docker compose up -d --build`, which rebuilds images before starting containers",
+      "`docker compose pull`, which fetches the newest image built from the source",
+      "`docker compose up -d --force-recreate`, which always rebuilds the image first"
+    ],
+    "correctIndex": 1,
+    "explanation": "If an image for the service already exists, `docker compose up` reuses it; it does not rebuild just because source changed. `--build` builds images before starting containers. `restart` and `--force-recreate` reuse the existing image, and `pull` fetches from a registry rather than building local sources.",
+    "referenceUrl": "https://docs.docker.com/reference/cli/docker/compose/up/"
+  },
+  {
+    "id": "docker-compose-override-auto-merge",
+    "topic": "docker",
+    "subtopic": "compose",
+    "difficulty": "Hard",
+    "title": "Dev settings leaking into a server deploy",
+    "question": "A repo has compose.yaml and compose.override.yaml (bind-mounting source and enabling debug). On a staging server someone runs `docker compose up -d` in the repo, and staging runs with debug and source mounts. Why?",
+    "options": [
+      "Compose automatically merges compose.override.yaml when no `-f` flag is given",
+      "Compose reads every YAML file in the directory and merges them alphabetically",
+      "The override file was cached from the developer's machine in the build context",
+      "Debug settings are inherited from the image labels written at build time"
+    ],
+    "correctIndex": 0,
+    "explanation": "By default Compose reads compose.yaml plus an optional compose.override.yaml and merges them, which is convenient for local development. For other environments, pass files explicitly (e.g. `-f compose.yaml -f compose.prod.yaml`) so the override is not applied. Compose does not merge arbitrary YAML files, and images do not carry Compose settings.",
+    "referenceUrl": "https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/"
+  },
+  {
+    "id": "docker-registry-implicit-docker-hub",
+    "topic": "docker",
+    "subtopic": "registries",
+    "difficulty": "Easy",
+    "title": "Fully qualified name of a short image",
+    "question": "With default settings, which fully qualified image reference does `docker pull nginx` resolve to?",
+    "options": [
+      "`registry.nginx.org/nginx:stable`",
+      "`ghcr.io/library/nginx:latest`",
+      "`docker.io/nginx/nginx:main`",
+      "`docker.io/library/nginx:latest`"
+    ],
+    "correctIndex": 3,
+    "explanation": "A name without a registry host defaults to Docker Hub (`docker.io`); an official image without a namespace lives under `library/`; and an omitted tag defaults to `latest`. Docker does not consult the project's own registry or GitHub Container Registry for short names.",
+    "referenceUrl": "https://docs.docker.com/reference/cli/docker/image/pull/"
+  },
+  {
+    "id": "docker-registry-latest-not-newest",
+    "topic": "docker",
+    "subtopic": "registries",
+    "difficulty": "Medium",
+    "title": "The latest tag is not the newest image",
+    "question": "CI builds and pushes only `team/app:2.0`. A server then runs `docker pull team/app` and gets last month's 1.9 build. Why?",
+    "options": [
+      "`latest` is just the default tag name; it is not updated unless pushed",
+      "Registries cache pulls for 30 days, so the newest tag is not visible yet",
+      "Docker pulls the highest semantic version only when `--all-tags` is set",
+      "The registry resolves `latest` to the oldest image to keep pulls stable"
+    ],
+    "correctIndex": 0,
+    "explanation": "Omitting the tag means `:latest`, which is an ordinary tag that moves only when someone explicitly pushes an image with it. Here `latest` still points to the 1.9 build. Registries do not compute the newest version, and `--all-tags` pulls every tag rather than choosing one. Deploy with explicit tags or digests.",
+    "referenceUrl": "https://docs.docker.com/reference/cli/docker/image/pull/"
+  },
+  {
+    "id": "docker-registry-multi-platform-exec-format",
+    "topic": "docker",
+    "subtopic": "registries",
+    "difficulty": "Hard",
+    "title": "exec format error after pushing from a Mac",
+    "question": "A developer builds and pushes an image from an Apple Silicon laptop. On the x86-64 production cluster the container fails immediately with `exec format error`. What is the right fix?",
+    "options": [
+      "Set `ENV ARCH=amd64` in the Dockerfile so the runtime selects the right binaries",
+      "Pull the image with `--disable-content-trust` so the manifest is not rejected",
+      "Build with buildx for `linux/amd64,linux/arm64` and push a multi-platform index",
+      "Re-tag the image with an `-amd64` suffix so the cluster picks the correct variant"
+    ],
+    "correctIndex": 2,
+    "explanation": "The image was built for linux/arm64, so its binaries cannot run on amd64 nodes. `docker buildx build --platform linux/amd64,linux/arm64 --push` produces an image index (manifest list) that lets each node pull the variant for its own platform. An environment variable or tag suffix does not change the compiled binaries, and content trust is unrelated.",
+    "referenceUrl": "https://docs.docker.com/build/building/multi-platform/"
+  },
+  {
+    "id": "docker-registry-garbage-collection",
+    "topic": "docker",
+    "subtopic": "registries",
+    "difficulty": "Expert",
+    "title": "Disk not freed after deleting tags",
+    "question": "A self-hosted CNCF Distribution registry is running out of disk. The team deletes hundreds of old manifests through the registry API, but disk usage does not change at all. What is happening?",
+    "options": [
+      "Deleting a manifest removes only the reference; blobs are freed by running garbage collection",
+      "The API marks manifests for deletion and the registry purges them after a 90-day retention",
+      "Layers are reference-counted per tag, so they are freed only after a daemon restart",
+      "The storage driver keeps deleted blobs in a trash folder until the filesystem is defragmented"
+    ],
+    "correctIndex": 0,
+    "explanation": "In Distribution, deleting a manifest only removes it from the index; the underlying layer blobs remain until the garbage collector runs a mark-and-sweep that deletes unreferenced blobs (`registry garbage-collect`, typically with the registry read-only or stopped). There is no built-in timed purge, restart-based reclaim or trash folder.",
+    "referenceUrl": "https://distribution.github.io/distribution/about/garbage-collection/"
+  },
+  {
+    "id": "docker-sec-default-root-user",
+    "topic": "docker",
+    "subtopic": "docker-security",
+    "difficulty": "Easy",
+    "title": "Default user inside a container",
+    "question": "An image's Dockerfile has no USER instruction and the container is started without `--user`. As which user does the main process run?",
+    "options": [
+      "As `nobody`, Docker's default unprivileged account for all containers",
+      "As the host user who ran the `docker run` command, with the same UID",
+      "As a random high UID that Docker assigns to each new container",
+      "As root (UID 0) inside the container, unless the base image set USER"
+    ],
+    "correctIndex": 3,
+    "explanation": "Without USER in the image (including its base images) or `--user` at run time, the process runs as root (UID 0). By default that UID is not remapped, so a container escape would be root on the host; set a non-root USER in the image. Docker does not switch to `nobody`, the caller's UID, or a random UID (some platforms like OpenShift do the latter, not Docker).",
+    "referenceUrl": "https://docs.docker.com/reference/dockerfile/"
+  },
+  {
+    "id": "docker-sec-cap-add-not-privileged",
+    "topic": "docker",
+    "subtopic": "docker-security",
+    "difficulty": "Medium",
+    "title": "Granting one capability instead of privileged",
+    "question": "A network diagnostics container needs to change routes and interface settings. It currently runs with `--privileged`. Which change follows least privilege?",
+    "options": [
+      "Keep `--privileged` but run the process as a non-root user inside the container",
+      "Drop `--privileged` and add only the needed capability: `--cap-add NET_ADMIN`",
+      "Use `--network host` instead, which grants every network capability safely",
+      "Use `--security-opt no-new-privileges` together with `--privileged` for balance"
+    ],
+    "correctIndex": 1,
+    "explanation": "`--privileged` grants all capabilities and access to host devices, effectively disabling isolation. Adding only the specific Linux capability needed (NET_ADMIN for network configuration) limits what a compromise could do. Host networking shares the host network namespace and is broader, not safer, and combining options with `--privileged` does not remove its powers.",
+    "referenceUrl": "https://docs.docker.com/engine/containers/run/"
+  },
+  {
+    "id": "docker-sec-userns-remap",
+    "topic": "docker",
+    "subtopic": "docker-security",
+    "difficulty": "Expert",
+    "title": "Mapping container root to an unprivileged host UID",
+    "question": "A legacy vendor image must run as root inside the container and cannot be changed. You want a container escape to land as an unprivileged user on the host, without changing the image. Which daemon feature achieves this?",
+    "options": [
+      "Enable `userns-remap` so container UIDs map to a subordinate, unprivileged host range",
+      "Enable content trust so only signed images can run with root privileges on the host",
+      "Set `--read-only` so the root user inside cannot write to any host files at all",
+      "Set `--cpus` and `--memory` limits so the root process cannot exhaust the host"
+    ],
+    "correctIndex": 0,
+    "explanation": "User namespace remapping (`userns-remap` in daemon.json) maps UID 0 inside containers to a high, unprivileged UID range on the host from /etc/subuid and /etc/subgid. Root in the container is then not root on the host. Content trust verifies image signatures, `--read-only` only protects the container's root filesystem, and resource limits do not change identity.",
+    "referenceUrl": "https://docs.docker.com/engine/security/userns-remap/"
+  },
+  {
+    "id": "k8s-arch-scheduler-role",
+    "topic": "kubernetes",
+    "subtopic": "architecture",
+    "difficulty": "Easy",
+    "title": "Component that assigns Pods to nodes",
+    "question": "A newly created Pod has no `nodeName` yet. Which control plane component chooses a node for it?",
+    "options": [
+      "kube-scheduler",
+      "kube-proxy",
+      "kubelet",
+      "cloud-controller-manager"
+    ],
+    "correctIndex": 0,
+    "explanation": "kube-scheduler watches for Pods without an assigned node and selects one based on resource requests, affinity, taints and other constraints. The kubelet on the chosen node then runs the Pod. kube-proxy maintains Service networking rules, and the cloud-controller-manager integrates with cloud provider APIs.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/overview/components/"
+  },
+  {
+    "id": "k8s-arch-resourcequota-namespace",
+    "topic": "kubernetes",
+    "subtopic": "architecture",
+    "difficulty": "Medium",
+    "title": "Capping a team's namespace usage",
+    "question": "Several teams share a cluster, each in its own namespace. One team keeps launching workloads that consume most of the cluster's CPU and memory requests. How do you cap the total for that namespace?",
+    "options": [
+      "Add a PodDisruptionBudget limiting how many Pods the namespace may run",
+      "Set `--max-pods` on the kubelet so nodes reject that team's extra Pods",
+      "Create a ResourceQuota in the namespace with limits on requests and limits",
+      "Label the namespace with a priority so the scheduler deprioritises its Pods"
+    ],
+    "correctIndex": 2,
+    "explanation": "A ResourceQuota constrains aggregate resource consumption per namespace, such as `requests.cpu`, `limits.memory` or object counts; requests that would exceed it are rejected at admission. PodDisruptionBudgets govern voluntary evictions, `--max-pods` is per node and affects everyone, and namespace labels do not cap usage.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/policy/resource-quotas/"
+  },
+  {
+    "id": "k8s-arch-etcd-quorum-size",
+    "topic": "kubernetes",
+    "subtopic": "architecture",
+    "difficulty": "Hard",
+    "title": "Sizing an etcd cluster for failures",
+    "question": "A cluster runs 3 etcd members. Management wants to survive 2 simultaneous member failures and proposes moving to 4 members. What is the correct assessment?",
+    "options": [
+      "4 members tolerate 2 failures, since each member holds a full copy of the data",
+      "4 members tolerate 3 failures, as long as one member remains to serve reads",
+      "Any member count tolerates 2 failures if snapshots are taken every few minutes",
+      "4 members still tolerate only 1 failure; 5 members are needed to tolerate 2"
+    ],
+    "correctIndex": 3,
+    "explanation": "etcd needs a majority quorum (floor(n/2)+1) to commit writes. With 4 members quorum is 3, so only 1 failure is tolerated, the same as 3 members but with more coordination cost. 5 members (quorum 3) tolerate 2 failures, which is why odd sizes are recommended. Snapshots help recovery but do not keep the cluster writable.",
+    "referenceUrl": "https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/"
+  },
+  {
+    "id": "k8s-workloads-selector-immutable",
+    "topic": "kubernetes",
+    "subtopic": "workloads",
+    "difficulty": "Hard",
+    "title": "Changing a Deployment's label selector",
+    "question": "You change `spec.selector.matchLabels` of an existing apps/v1 Deployment from `app: web` to `app: web-v2` and run `kubectl apply`. What happens?",
+    "options": [
+      "Kubernetes orphans the old Pods and creates new ones with the new labels",
+      "The apply is rejected because the selector is immutable after creation",
+      "The Deployment performs a normal rolling update to the new label set",
+      "Both label sets are merged so old and new Pods are managed together"
+    ],
+    "correctIndex": 1,
+    "explanation": "In apps/v1 a Deployment's label selector is immutable once created, so the API server rejects the change with a `field is immutable` error. To change it you create a new Deployment (or delete and recreate). Only changes to the Pod template trigger a rollout, and selectors are never merged.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
+  },
+  {
+    "id": "k8s-workloads-replicaset-adoption",
+    "topic": "kubernetes",
+    "subtopic": "workloads",
+    "difficulty": "Expert",
+    "title": "Bare Pod with matching labels",
+    "question": "A ReplicaSet with `replicas: 3` and selector `app: worker` is running 3 Pods. An engineer creates a standalone debug Pod (no owner) labelled `app: worker`. What happens next?",
+    "options": [
+      "The ReplicaSet adopts the Pod, finds 4 replicas and deletes one to get back to 3",
+      "The debug Pod runs alongside the others because only owned Pods are counted",
+      "The API server rejects the Pod because its labels collide with a controller selector",
+      "The ReplicaSet scales to 4 to include the new Pod and updates its replicas field"
+    ],
+    "correctIndex": 0,
+    "explanation": "A ReplicaSet acquires any Pod without a controller owner reference whose labels match its selector. It then sees 4 Pods for a desired 3 and terminates one, possibly the debug Pod or a real worker. The API server does not block such labels, and the desired replica count is never changed by adoption.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/"
+  },
+  {
+    "id": "k8s-svc-external-traffic-policy-local",
+    "topic": "kubernetes",
+    "subtopic": "services-networking",
+    "difficulty": "Hard",
+    "title": "Preserving client IP behind a LoadBalancer",
+    "question": "An app behind a `type: LoadBalancer` Service rate-limits by client IP, but every request appears to come from node IPs. Which Service setting preserves the original client source IP, and what is the tradeoff?",
+    "options": [
+      "`sessionAffinity: ClientIP`; it disables load balancing across Pods entirely",
+      "`internalTrafficPolicy: Local`; it blocks traffic from outside the cluster",
+      "`externalTrafficPolicy: Local`; nodes without a ready Pod drop that traffic",
+      "`ipFamilyPolicy: SingleStack`; it removes IPv6 support from the Service"
+    ],
+    "correctIndex": 2,
+    "explanation": "With the default `externalTrafficPolicy: Cluster`, kube-proxy may forward to a Pod on another node and SNAT the packet, hiding the client IP. `Local` only routes to Pods on the receiving node, so no SNAT is needed; the load balancer health-checks nodes and avoids those without local endpoints, and traffic can become uneven. Session affinity, internal traffic policy and IP family do not preserve source IPs.",
+    "referenceUrl": "https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/"
+  },
+  {
+    "id": "k8s-config-volume-keys-as-files",
+    "topic": "kubernetes",
+    "subtopic": "config-secrets",
+    "difficulty": "Easy",
+    "title": "ConfigMap mounted as a volume",
+    "question": "A ConfigMap has keys `app.yaml` and `logging.xml` and is mounted as a volume at /etc/config with no `items` list. What does the container see?",
+    "options": [
+      "A single file /etc/config/configmap.json holding both keys as JSON",
+      "Environment variables named APP_YAML and LOGGING_XML set by the kubelet",
+      "An empty directory until the Pod calls the API server to fetch the data",
+      "Files /etc/config/app.yaml and /etc/config/logging.xml with the key values"
+    ],
+    "correctIndex": 3,
+    "explanation": "When a ConfigMap is used as a volume, each key becomes a file in the mount directory and the value becomes the file's content (`items` can select keys or rename paths). Environment variables require `env`/`envFrom`, and the kubelet populates the files before the container starts.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/configuration/configmap/"
+  },
+  {
+    "id": "k8s-config-subpath-no-update",
+    "topic": "kubernetes",
+    "subtopic": "config-secrets",
+    "difficulty": "Hard",
+    "title": "ConfigMap update not reaching a subPath mount",
+    "question": "A Pod mounts one key of a ConfigMap at /etc/nginx/nginx.conf using `subPath: nginx.conf`. Another Pod mounts the whole ConfigMap as a directory. After editing the ConfigMap, only the second Pod sees the new content. Why?",
+    "options": [
+      "nginx caches its config in memory, so the file changes but nginx ignores it",
+      "Single-key mounts are refreshed only when the Pod's node is rebooted",
+      "Volumes using subPath never receive ConfigMap updates; the Pod must restart",
+      "The kubelet syncs subPath mounts once a day to reduce API server load"
+    ],
+    "correctIndex": 2,
+    "explanation": "The kubelet refreshes projected ConfigMap volumes by atomically swapping a symlinked directory, which a subPath bind mount of a single file cannot follow. The Kubernetes docs state that a container using a ConfigMap as a subPath volume mount does not receive updates. Restart the Pod (or mount the directory instead). The issue is not an nginx cache or a node or daily schedule.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/configuration/configmap/"
+  },
+  {
+    "id": "k8s-config-immutable-configmap",
+    "topic": "kubernetes",
+    "subtopic": "config-secrets",
+    "difficulty": "Medium",
+    "title": "Immutable ConfigMaps",
+    "question": "A cluster runs tens of thousands of Pods that mount ConfigMaps which only change with new releases. The team sets `immutable: true` on them. What are the effects?",
+    "options": [
+      "Edits are rejected and kubelets stop watching them, reducing API server load",
+      "Values are encrypted in etcd and decrypted only by the kubelet on each node",
+      "Pods are restarted automatically whenever a new ConfigMap version is created",
+      "The ConfigMaps can be edited only by cluster admins, and changes roll out slowly"
+    ],
+    "correctIndex": 0,
+    "explanation": "Marking a ConfigMap or Secret immutable prevents accidental updates and lets kubelets stop watching it, significantly reducing kube-apiserver load in large clusters. The flag cannot be reverted; to change values you create a new ConfigMap and point Pods at it. It has nothing to do with encryption, RBAC or automatic restarts.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/configuration/configmap/"
+  },
+  {
+    "id": "k8s-secrets-encryption-rewrite",
+    "topic": "kubernetes",
+    "subtopic": "config-secrets",
+    "difficulty": "Expert",
+    "title": "Enabling encryption at rest for existing Secrets",
+    "question": "You configure an EncryptionConfiguration with a KMS provider for `secrets` and restart all kube-apiservers. A direct etcd read shows Secrets created last year are still stored in plain form. What is the next step?",
+    "options": [
+      "Nothing; the API server re-encrypts all stored Secrets lazily within 24 hours",
+      "Rewrite every Secret through the API, e.g. `kubectl get secrets -A -o json | kubectl replace -f -`",
+      "Restore etcd from a snapshot taken after the configuration change was applied",
+      "Delete the `identity` provider from etcd so old data is purged automatically"
+    ],
+    "correctIndex": 1,
+    "explanation": "Encryption at rest applies when objects are written. Existing Secrets stay in their old form until they are rewritten, so the docs recommend replacing all Secrets via the API so they are stored encrypted with the new provider. There is no background re-encryption, a snapshot restore would not change stored formats, and providers live in the API server config, not in etcd.",
+    "referenceUrl": "https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/"
+  },
+  {
+    "id": "k8s-storage-rwo-means-node",
+    "topic": "kubernetes",
+    "subtopic": "storage",
+    "difficulty": "Easy",
+    "title": "Meaning of ReadWriteOnce",
+    "question": "What does the `ReadWriteOnce` access mode on a PersistentVolume guarantee?",
+    "options": [
+      "Only one Pod in the whole cluster can ever open the volume for writing",
+      "The volume can be written once and is read-only after the first write",
+      "The volume can be mounted read-write by a single node at a time",
+      "Writes are replicated once to a second zone before being acknowledged"
+    ],
+    "correctIndex": 2,
+    "explanation": "ReadWriteOnce means a single node can mount the volume read-write; several Pods on that same node can still use it. For single-Pod exclusivity Kubernetes offers `ReadWriteOncePod`. The access mode says nothing about write-once semantics or replication.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/"
+  },
+  {
+    "id": "k8s-storage-reclaim-delete",
+    "topic": "kubernetes",
+    "subtopic": "storage",
+    "difficulty": "Medium",
+    "title": "Disk deleted together with its PVC",
+    "question": "An engineer deletes a namespace to clean up a test, and the cloud disk behind a dynamically provisioned PVC disappears along with its data. Which setting determined this, and how could it be kept?",
+    "options": [
+      "The PVC's `accessModes`; switching to ReadOnlyMany prevents disk deletion",
+      "The PV's reclaim policy `Delete`; using `Retain` keeps the disk after release",
+      "The Pod's `terminationGracePeriodSeconds`; raising it gives time to snapshot",
+      "The namespace's finalizer; removing it before deletion preserves all volumes"
+    ],
+    "correctIndex": 1,
+    "explanation": "Dynamically provisioned PVs inherit the StorageClass `reclaimPolicy`, which defaults to `Delete`: when the claim is removed the PV and the backing storage asset are deleted. With `Retain` (on the StorageClass or patched on the PV), the volume becomes Released and the data remains for manual recovery. Access modes, grace periods and finalizers do not govern this.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/"
+  },
+  {
+    "id": "k8s-storage-multi-attach-rwo",
+    "topic": "kubernetes",
+    "subtopic": "storage",
+    "difficulty": "Hard",
+    "title": "Multi-Attach error when scaling a Deployment",
+    "question": "A Deployment with one PVC (ReadWriteOnce, cloud block disk) is scaled from 1 to 3 replicas. Pods on other nodes stay `ContainerCreating` with `Multi-Attach error for volume`. What is the best fix?",
+    "options": [
+      "Add a `nodeSelector` so that the new replicas are forced onto other zones",
+      "Raise the PVC size so the disk can be attached to more than one node",
+      "Set `fsGroup` in the securityContext so all Pods share disk permissions",
+      "Use a StatefulSet with per-replica claims, or storage supporting RWX"
+    ],
+    "correctIndex": 3,
+    "explanation": "A ReadWriteOnce block disk can only be attached to one node, so replicas scheduled elsewhere cannot mount it. Either give each replica its own volume (StatefulSet `volumeClaimTemplates`) or use a shared file storage class that supports ReadWriteMany. Node selectors, size or fsGroup do not let a block disk attach to multiple nodes.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/"
+  },
+  {
+    "id": "k8s-storage-volume-expansion",
+    "topic": "kubernetes",
+    "subtopic": "storage",
+    "difficulty": "Medium",
+    "title": "Growing a full PersistentVolumeClaim",
+    "question": "A database PVC of 50Gi is almost full. You edit `spec.resources.requests.storage` to 100Gi and the API server rejects the change. What is the most likely reason?",
+    "options": [
+      "PVC sizes can only be changed by deleting and recreating the claim",
+      "Expansion requires the Pod to be deleted before the edit is accepted",
+      "The StorageClass does not set `allowVolumeExpansion: true`",
+      "Requests above 64Gi need a separate ResourceQuota per claim"
+    ],
+    "correctIndex": 2,
+    "explanation": "PVC expansion is only allowed when the claim's StorageClass has `allowVolumeExpansion: true`; then you edit the request to a larger size and the CSI driver resizes the volume (often online). Shrinking is not supported. There is no general need to delete the claim or Pod, and no special per-claim quota above a size.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/"
+  },
+  {
+    "id": "k8s-probes-grpc-handler",
+    "topic": "kubernetes",
+    "subtopic": "probes",
+    "difficulty": "Easy",
+    "title": "Probing a gRPC-only service",
+    "question": "A distroless container has no shell and no HTTP endpoint, but implements the gRPC Health Checking Protocol on port 9090. Which probe mechanism fits natively?",
+    "options": [
+      "An `exec` probe that runs `curl` against the gRPC port",
+      "An `httpGet` probe on port 9090 with path `/healthz`",
+      "A `grpc` probe with `port: 9090`",
+      "A `udpSocket` probe that checks the port is open"
+    ],
+    "correctIndex": 2,
+    "explanation": "Kubernetes supports four probe mechanisms: exec, httpGet, tcpSocket and grpc. The grpc probe calls the standard gRPC health check service directly. An exec probe needs a binary in the image (there is no shell or curl), httpGet does not speak gRPC health checks, and there is no UDP probe type.",
+    "referenceUrl": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/"
+  },
+  {
+    "id": "k8s-probes-default-timeout",
+    "topic": "kubernetes",
+    "subtopic": "probes",
+    "difficulty": "Medium",
+    "title": "All Pods unready during traffic spikes",
+    "question": "During traffic spikes, every Pod of a service is removed from its Service at the same time. The readiness endpoint takes about 1.5 s to respond under load, and the probe sets only `httpGet` and `periodSeconds: 5`. What is the likely cause?",
+    "options": [
+      "`timeoutSeconds` defaults to 1 second, so slow responses count as failures",
+      "The probe's `successThreshold` defaults to 3, so recovery is too slow",
+      "Readiness probes are skipped under load, so the kubelet marks Pods unready",
+      "`periodSeconds` below 10 is not allowed, so the kubelet fails the probe"
+    ],
+    "correctIndex": 0,
+    "explanation": "`timeoutSeconds` defaults to 1, so a readiness endpoint that takes 1.5 s under load times out and counts as a failure; after `failureThreshold` (default 3) every busy Pod becomes unready at once, which makes the overload worse. Set a realistic timeout and keep the endpoint cheap. `successThreshold` defaults to 1 and short periods are allowed.",
+    "referenceUrl": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/"
+  },
+  {
+    "id": "k8s-resources-cpu-millicores",
+    "topic": "kubernetes",
+    "subtopic": "resources-autoscaling",
+    "difficulty": "Easy",
+    "title": "CPU request units",
+    "question": "A container sets `resources.requests.cpu: 250m`. What does that request?",
+    "options": [
+      "250 megahertz of clock speed on any core",
+      "250 milliseconds of CPU time per minute",
+      "250 MiB of memory reserved for CPU caches",
+      "A quarter of one CPU core (0.25 CPU)"
+    ],
+    "correctIndex": 3,
+    "explanation": "CPU in Kubernetes is measured in CPU units, where 1 equals one physical or virtual core; the `m` suffix means millicpu, so 250m is 0.25 CPU. It is not a clock speed, a per-minute time budget or a memory amount; memory uses suffixes like Mi and Gi.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+  },
+  {
+    "id": "k8s-rollout-template-change-trigger",
+    "topic": "kubernetes",
+    "subtopic": "rollouts",
+    "difficulty": "Medium",
+    "title": "What triggers a new Deployment revision",
+    "question": "Which change to a Deployment creates a new rollout revision?",
+    "options": [
+      "Changing a container image or env var inside `spec.template`",
+      "Scaling with `kubectl scale deployment web --replicas=10`",
+      "Adding an annotation to the Deployment's own metadata",
+      "Letting an HPA raise the replica count during peak load"
+    ],
+    "correctIndex": 0,
+    "explanation": "A Deployment rollout is triggered only when the Pod template (`.spec.template`) changes, for example image, env, labels or resources in the template. Scaling (manually or by an HPA) just changes the replica count of the current ReplicaSet, and Deployment-level metadata does not affect Pods.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
+  },
+  {
+    "id": "k8s-rollout-recreate-strategy",
+    "topic": "kubernetes",
+    "subtopic": "rollouts",
+    "difficulty": "Easy",
+    "title": "Recreate deployment strategy",
+    "question": "A Deployment uses `strategy: { type: Recreate }`. What happens when you update its image?",
+    "options": [
+      "New Pods start first, and old ones are removed once all new ones are Ready",
+      "All existing Pods are terminated before any Pod of the new version is created",
+      "One old Pod is replaced at a time, waiting for readiness after each step",
+      "A copy of the Deployment is created and traffic is switched by the Service"
+    ],
+    "correctIndex": 1,
+    "explanation": "With Recreate, all existing Pods are killed before new ones are created, which causes downtime but guarantees two versions never run at once (useful for some migrations or exclusive volumes). The gradual replacement options describe RollingUpdate behaviour, and Deployments have no built-in blue/green switch.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
+  },
+  {
+    "id": "k8s-rollout-prestop-endpoint-race",
+    "topic": "kubernetes",
+    "subtopic": "rollouts",
+    "difficulty": "Expert",
+    "title": "Errors during every rolling update",
+    "question": "During each rolling update, clients see a burst of 502s and connection resets. Readiness probes are correct, and the app exits as soon as it gets SIGTERM. What change addresses the root cause?",
+    "options": [
+      "Raise `maxSurge` to 100% so new Pods exist before any old Pod receives SIGTERM",
+      "Reduce `terminationGracePeriodSeconds` so old Pods exit before traffic reaches them",
+      "Set `minReadySeconds` so the Service waits before sending traffic to new Pods",
+      "Add a short preStop sleep and drain in-flight requests before the process exits"
+    ],
+    "correctIndex": 3,
+    "explanation": "Pod termination and removal from EndpointSlices, load balancers and kube-proxy rules happen concurrently. If the app exits on SIGTERM immediately, traffic still routed to it fails. A preStop delay plus graceful draining keeps the old Pod serving until routing has converged. Surge and minReadySeconds affect new Pods, and a shorter grace period makes the race worse.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/"
+  },
+  {
+    "id": "devops-shell-deleted-file-disk-full",
+    "topic": "devops",
+    "subtopic": "linux-shell",
+    "difficulty": "Hard",
+    "title": "Disk still full after deleting a log",
+    "question": "`df -h` shows / at 100%. You `rm` a 40 GB log file, but `df` still reports the disk full while `du` totals far less. What is going on?",
+    "options": [
+      "The filesystem needs `fsck` before freed blocks are returned to the free list",
+      "rm only moves files to a hidden trash folder until the next system reboot",
+      "A process still holds the file open; space is freed when that descriptor closes",
+      "`df` caches its numbers for an hour, so it will show the free space later"
+    ],
+    "correctIndex": 2,
+    "explanation": "unlink removes the directory entry, but the inode and its blocks remain until the last open file descriptor is closed. A running process (often the app writing the log) keeps the space allocated; find it with `lsof +L1` and restart it or truncate via /proc. Linux rm has no trash, df is not cached, and fsck is not needed.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/unlink.2.html"
+  },
+  {
+    "id": "devops-shell-redirection-order",
+    "topic": "devops",
+    "subtopic": "linux-shell",
+    "difficulty": "Medium",
+    "title": "Order of stderr and stdout redirection",
+    "question": "A cron job runs `./backup.sh 2>&1 > /var/log/backup.log`. Normal output lands in the file, but error messages still go to the cron email. Why?",
+    "options": [
+      "Redirections apply left to right, so stderr was duplicated to the old stdout first",
+      "`2>&1` only works in interactive shells and is ignored inside cron jobs",
+      "Error messages are written to /dev/tty, which redirections cannot capture",
+      "The log file is opened in append mode, which excludes stderr by design"
+    ],
+    "correctIndex": 0,
+    "explanation": "Bash processes redirections from left to right. `2>&1` first makes stderr a copy of the current stdout (the cron output), and only then is stdout pointed at the file. Writing `> /var/log/backup.log 2>&1` sends both to the file. `2>&1` works in any shell context, and `>` truncates rather than appends.",
+    "referenceUrl": "https://www.gnu.org/software/bash/manual/html_node/Redirections.html"
+  },
+  {
+    "id": "devops-shell-ss-listening-ports",
+    "topic": "devops",
+    "subtopic": "linux-shell",
+    "difficulty": "Easy",
+    "title": "Finding which process listens on a port",
+    "question": "An app fails to start with `address already in use` on port 8080. Which command lists listening TCP sockets with the owning processes?",
+    "options": [
+      "`ps aux --ports 8080`",
+      "`ss -tlnp`",
+      "`top -p 8080`",
+      "`df -i`"
+    ],
+    "correctIndex": 1,
+    "explanation": "`ss -tlnp` shows TCP (-t) listening (-l) sockets with numeric addresses (-n) and the owning processes (-p, which may need root). `ps` has no `--ports` option, `top -p` takes process IDs rather than ports, and `df -i` reports inode usage.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man8/ss.8.html"
+  },
+  {
+    "id": "devops-artifacts-npm-ci-lockfile",
+    "topic": "devops",
+    "subtopic": "build-artifacts",
+    "difficulty": "Medium",
+    "title": "Reproducible dependency installs in CI",
+    "question": "CI runs `npm install`, and two builds of the same commit pick up different transitive dependency versions, one of which breaks tests. The lockfile is committed. What should CI run instead?",
+    "options": [
+      "`npm update`, which refreshes dependencies to their newest allowed versions",
+      "`npm install --force`, which overrides the lockfile with package.json ranges",
+      "`npm audit fix`, which pins every transitive dependency to a safe version",
+      "`npm ci`, which installs exactly the lockfile and fails if it is out of sync"
+    ],
+    "correctIndex": 3,
+    "explanation": "`npm ci` is designed for automated environments: it requires a lockfile, installs exactly what it specifies, never modifies it, removes any existing node_modules, and errors if package.json and the lockfile disagree. `npm update` and `--force` move versions, and `npm audit fix` changes dependencies to address vulnerabilities rather than guaranteeing reproducibility.",
+    "referenceUrl": "https://docs.npmjs.com/cli/v10/commands/npm-ci"
+  },
+  {
+    "id": "devops-artifacts-semver-prerelease-order",
+    "topic": "devops",
+    "subtopic": "build-artifacts",
+    "difficulty": "Hard",
+    "title": "SemVer pre-release precedence",
+    "question": "Which list is in correct ascending Semantic Versioning precedence?",
+    "options": [
+      "1.0.0-beta.11 < 1.0.0-beta.2 < 1.0.0-rc.1 < 1.0.0",
+      "1.0.0 < 1.0.0-alpha < 1.0.0-beta.2 < 1.0.0-rc.1",
+      "1.0.0-alpha < 1.0.0-beta.2 < 1.0.0-beta.11 < 1.0.0",
+      "1.0.0-rc.1 < 1.0.0-beta.2 < 1.0.0-alpha < 1.0.0"
+    ],
+    "correctIndex": 2,
+    "explanation": "A pre-release version has lower precedence than the associated normal version, so 1.0.0 is highest. Pre-release identifiers are compared left to right: alphanumeric ones lexically (alpha < beta < rc) and numeric ones numerically, so beta.2 < beta.11. Comparing 11 and 2 as strings is the common mistake.",
+    "referenceUrl": "https://semver.org/"
+  },
+  {
+    "id": "devops-artifacts-build-provenance",
+    "topic": "devops",
+    "subtopic": "build-artifacts",
+    "difficulty": "Expert",
+    "title": "Proving where an artifact was built",
+    "question": "After a supply-chain incident, a company wants deploy-time proof that each container image was built by its official GitHub Actions workflow from a specific commit, not on a laptop. What provides this?",
+    "options": [
+      "Signed build provenance attestations, verified against the workflow identity before deploy",
+      "An SBOM listing every package in the image, uploaded next to it in the same registry",
+      "A SHA-256 checksum file committed to the repository right after each successful build",
+      "Image tags containing the commit hash, enforced by a naming policy in the registry"
+    ],
+    "correctIndex": 0,
+    "explanation": "Build provenance attestations (SLSA-style) are signed statements binding an artifact digest to the workflow, repository and commit that produced it; GitHub artifact attestations can be verified with `gh attestation verify` before deploying. An SBOM lists contents but not who built it, and checksums or tags can be produced by anyone who can push.",
+    "referenceUrl": "https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds"
+  },
+  {
+    "id": "devops-secrets-ci-secret-store",
+    "topic": "devops",
+    "subtopic": "configuration-secrets",
+    "difficulty": "Easy",
+    "title": "Providing a deploy token to a workflow",
+    "question": "A GitHub Actions workflow needs a third-party deploy token. Where should the token be kept?",
+    "options": [
+      "In a `.env` file committed to the repository so every runner can read it",
+      "In the workflow YAML as a plain env value, since only CI reads that file",
+      "In an encrypted repository or environment secret referenced with `secrets.*`",
+      "In the README under a collapsed section that only maintainers will expand"
+    ],
+    "correctIndex": 2,
+    "explanation": "GitHub Actions secrets are encrypted, scoped to an organization, repository or environment, exposed to jobs only when referenced via the `secrets` context, and masked in logs. Anything committed to the repository, including workflow files, `.env` files or docs, is visible to anyone with read access and stays in git history.",
+    "referenceUrl": "https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions"
+  },
+  {
+    "id": "devops-secrets-dynamic-credentials",
+    "topic": "devops",
+    "subtopic": "configuration-secrets",
+    "difficulty": "Medium",
+    "title": "Dynamic database credentials",
+    "question": "Ten services share one static database password that has not been rotated in two years because rotation breaks everything at once. Which approach best reduces this risk?",
+    "options": [
+      "Store the shared password in a Kubernetes Secret instead of environment files",
+      "Issue each service short-lived, unique DB credentials from a secrets engine",
+      "Rotate the shared password once a year in a planned maintenance window",
+      "Encrypt the password with Base64 in each service's configuration repository"
+    ],
+    "correctIndex": 1,
+    "explanation": "Dynamic secrets, such as HashiCorp Vault's database secrets engine, generate unique credentials per client with a lease and revoke them on expiry. Leaks are short-lived, access is attributable per service, and rotation no longer requires a coordinated big bang. Moving the same static password elsewhere or rotating it yearly keeps the core problem, and Base64 is not encryption.",
+    "referenceUrl": "https://developer.hashicorp.com/vault/docs/secrets/databases"
+  },
+  {
+    "id": "devops-secrets-derived-value-masking",
+    "topic": "devops",
+    "subtopic": "configuration-secrets",
+    "difficulty": "Hard",
+    "title": "Derived secret leaked in CI logs",
+    "question": "A workflow builds a Basic auth header by Base64-encoding `user:${{ secrets.API_PASSWORD }}` and, while debugging, echoes the header. The raw password is masked in the logs, but the encoded header appears in clear text. Why?",
+    "options": [
+      "Masking applies only to steps that use `run:` with bash, not other shells",
+      "Logs are masked only for public repositories; private ones show values in full",
+      "Masking is applied only when the secret is passed through `env:` rather than inline",
+      "Redaction matches the registered secret values; transformed values need `add-mask`"
+    ],
+    "correctIndex": 3,
+    "explanation": "GitHub redacts exact matches of registered secret values in logs. A transformed value (Base64, JSON, a signed token) is a different string and is not masked automatically. Register derived sensitive values with `::add-mask::` and avoid printing secrets at all. Masking does not depend on the shell, repository visibility or whether the secret came via `env:`.",
+    "referenceUrl": "https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions"
+  },
+  {
+    "id": "devops-deploy-canary-basics",
+    "topic": "devops",
+    "subtopic": "deployment-strategies",
+    "difficulty": "Easy",
+    "title": "What a canary release is",
+    "question": "Which description matches a canary release?",
+    "options": [
+      "Deploy the new version to a small share of traffic first and compare it to the baseline",
+      "Run two complete environments side by side and switch all traffic between them in one step",
+      "Stop every instance of the old version, then start the new version on all machines",
+      "Ship code to production disabled behind a flag and enable it for internal staff only"
+    ],
+    "correctIndex": 0,
+    "explanation": "A canary exposes a new version to a small subset of traffic or hosts, evaluates it against the existing version, and only then proceeds with the full rollout, limiting the impact of a bad release. The other options describe blue/green, recreate deployments and dark launching with feature flags.",
+    "referenceUrl": "https://sre.google/workbook/canarying-releases/"
+  },
+  {
+    "id": "devops-deploy-toggle-debt",
+    "topic": "devops",
+    "subtopic": "deployment-strategies",
+    "difficulty": "Medium",
+    "title": "Accumulating release toggles",
+    "question": "A codebase has 140 release toggles, many fully enabled for over a year. Bugs keep appearing in rarely tested flag combinations. What practice addresses this?",
+    "options": [
+      "Convert every release toggle into a permanent operations toggle for safety",
+      "Store toggles in a database instead of config so they can be flipped faster",
+      "Treat release toggles as short-lived and remove them once the rollout finishes",
+      "Test every possible combination of toggles in CI before each production deploy"
+    ],
+    "correctIndex": 2,
+    "explanation": "Release toggles are meant to be transitional; each one adds code paths and combinations to test. Teams should limit their number and remove them soon after a feature is fully released (e.g. with expiry dates or removal tasks). Making them permanent or moving storage keeps the complexity, and testing every combination grows exponentially.",
+    "referenceUrl": "https://martinfowler.com/articles/feature-toggles.html"
+  },
+  {
+    "id": "devops-iac-terraform-init",
+    "topic": "devops",
+    "subtopic": "iac",
+    "difficulty": "Easy",
+    "title": "What terraform init does",
+    "question": "A new team member clones a Terraform repository and `terraform plan` fails asking for initialization. What does `terraform init` do?",
+    "options": [
+      "Creates all resources in the configuration with default variable values",
+      "Writes a new state file by importing every resource in the cloud account",
+      "Formats the .tf files and checks them for syntax errors before committing",
+      "Installs providers and modules and configures the state backend"
+    ],
+    "correctIndex": 3,
+    "explanation": "`terraform init` prepares a working directory: it configures the backend where state is stored, downloads required provider plugins (respecting the dependency lock file) and fetches modules. It is safe to run repeatedly and makes no infrastructure changes. Creation happens with apply, import with `terraform import` or import blocks, and formatting with `terraform fmt`.",
+    "referenceUrl": "https://developer.hashicorp.com/terraform/cli/commands/init"
+  },
+  {
+    "id": "devops-iac-moved-block-refactor",
+    "topic": "devops",
+    "subtopic": "iac",
+    "difficulty": "Hard",
+    "title": "Refactoring a resource into a module",
+    "question": "You move `aws_db_instance.main` into a new module, so its address becomes `module.db.aws_db_instance.main`. `terraform plan` now shows the production database being destroyed and recreated. What is the cleanest fix?",
+    "options": [
+      "Add `lifecycle { ignore_changes = all }` so Terraform skips the resource",
+      "Add a `moved` block mapping the old address to the new address",
+      "Run `terraform apply -refresh-only` so state picks up the new module path",
+      "Delete the state file and re-run init so Terraform rediscovers the database"
+    ],
+    "correctIndex": 1,
+    "explanation": "Terraform tracks objects by resource address, so a renamed address looks like a removed resource plus a new one. A `moved { from = aws_db_instance.main  to = module.db.aws_db_instance.main }` block tells Terraform to update the address in state without replacing the object (`terraform state mv` is the older manual equivalent). ignore_changes does not affect addressing, refresh-only does not rename, and deleting state loses tracking of everything.",
+    "referenceUrl": "https://developer.hashicorp.com/terraform/language/modules/develop/refactoring"
+  },
+  {
+    "id": "obs-metrics-gauge-vs-counter",
+    "topic": "observability",
+    "subtopic": "metrics",
+    "difficulty": "Easy",
+    "title": "Choosing a metric type for queue depth",
+    "question": "You want to export the current number of messages waiting in a queue, which rises and falls over time. Which Prometheus metric type fits?",
+    "options": [
+      "Counter",
+      "Gauge",
+      "Histogram",
+      "Summary"
+    ],
+    "correctIndex": 1,
+    "explanation": "A gauge represents a single value that can go up and down, such as queue depth, memory in use or temperature. A counter only increases (or resets to zero on restart) and suits totals like requests served. Histograms and summaries sample observations such as request durations into buckets or quantiles.",
+    "referenceUrl": "https://prometheus.io/docs/concepts/metric_types/"
+  },
+  {
+    "id": "obs-metrics-pushgateway-batch-job",
+    "topic": "observability",
+    "subtopic": "metrics",
+    "difficulty": "Medium",
+    "title": "Metrics from a short-lived batch job",
+    "question": "A nightly cleanup job runs for 20 seconds. Prometheus scrapes every 60 seconds, so the job's success metric and duration are usually missing. What is the recommended approach for this case?",
+    "options": [
+      "Lower the global scrape interval to 1 second so short jobs are always seen",
+      "Have the job write its metrics to a log file and parse them with recording rules",
+      "Keep the job process sleeping for two minutes after finishing so it is scraped",
+      "Push the job's final metrics to a Pushgateway, which Prometheus then scrapes"
+    ],
+    "correctIndex": 3,
+    "explanation": "Prometheus's pull model can miss jobs that exit before the next scrape. For service-level batch jobs, the Pushgateway holds the last pushed metrics (e.g. last success timestamp, duration) for Prometheus to scrape. A 1-second interval is costly and still racy, sleeping is a hack, and recording rules operate on scraped series rather than log files.",
+    "referenceUrl": "https://prometheus.io/docs/practices/pushing/"
+  },
+  {
+    "id": "obs-alert-grouping-inhibition",
+    "topic": "observability",
+    "subtopic": "alerting-incidents",
+    "difficulty": "Hard",
+    "title": "Alert storm during a network outage",
+    "question": "A network partition in one datacenter fires 300 alerts from every service there, burying the single `DatacenterUnreachable` alert. Which Alertmanager features address this most directly?",
+    "options": [
+      "Grouping related alerts and inhibition rules muting symptoms of the outage alert",
+      "Raising every rule's `for` duration to an hour so fewer alerts can fire at all",
+      "Sending all alerts to a dedicated chat channel instead of paging the on-call",
+      "Deleting per-service alerts and relying only on the datacenter alert from now on"
+    ],
+    "correctIndex": 0,
+    "explanation": "Alertmanager grouping batches similar alerts into one notification, and inhibition suppresses alerts (e.g. per-service ones in the same datacenter) while a related higher-level alert is firing. Long `for` durations delay real pages, moving alerts to chat hides them, and deleting per-service alerts loses coverage for failures that are not datacenter-wide.",
+    "referenceUrl": "https://prometheus.io/docs/alerting/latest/alertmanager/"
+  },
+  {
+    "id": "obs-incident-blameless-postmortem",
+    "topic": "observability",
+    "subtopic": "alerting-incidents",
+    "difficulty": "Easy",
+    "title": "Purpose of a blameless postmortem",
+    "question": "After an outage caused by an engineer running a bad migration, what should a blameless postmortem focus on?",
+    "options": [
+      "Identifying the engineer at fault so the incident is not repeated by them",
+      "The contributing causes and system fixes, without blaming individuals",
+      "Estimating the revenue lost so the team can set next quarter's budget",
+      "Collecting enough detail to decide whether the vendor should be replaced"
+    ],
+    "correctIndex": 1,
+    "explanation": "A blameless postmortem assumes people acted reasonably with the information they had, and looks for the contributing causes and systemic changes (tooling, safeguards, process) that prevent recurrence. Blame discourages honest reporting, and financial or vendor decisions are not its main goal.",
+    "referenceUrl": "https://sre.google/sre-book/postmortem-culture/"
+  },
+  {
+    "id": "obs-alert-absent-metric",
+    "topic": "observability",
+    "subtopic": "alerting-incidents",
+    "difficulty": "Expert",
+    "title": "Alert silent while the service is down",
+    "question": "An alert fires on `sum(rate(http_errors_total[5m])) / sum(rate(http_requests_total[5m])) > 0.05`. The service crashes completely and is not scraped for 30 minutes, yet the alert never fires. Why, and what closes the gap?",
+    "options": [
+      "Rates over 5m windows are cached for an hour; shorten the window to 1m",
+      "Alertmanager suppresses alerts during scrape failures; disable inhibition",
+      "No series means an empty result; also alert on `up == 0` or `absent()`",
+      "The ratio is NaN, which Prometheus treats as above every threshold by design"
+    ],
+    "correctIndex": 2,
+    "explanation": "When targets disappear, the series go stale and the expression returns an empty result, which never satisfies the comparison, so the alert stays silent. Add alerts on target health (`up == 0`) or on missing data with `absent()`/`absent_over_time()`. Rates are not cached, Alertmanager does not inhibit by default, and NaN comparisons are false.",
+    "referenceUrl": "https://prometheus.io/docs/prometheus/latest/querying/functions/"
+  }
+]

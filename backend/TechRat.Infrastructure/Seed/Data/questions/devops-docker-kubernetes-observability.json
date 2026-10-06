@@ -1,0 +1,1498 @@
+[
+  {
+    "id": "devops-shell-pipefail-masks-failure",
+    "topic": "devops",
+    "subtopic": "linux-shell",
+    "difficulty": "Medium",
+    "title": "Pipeline failure hidden by set -e",
+    "question": "A CI step runs `set -e` and then `curl -s https://example.com/dump | gzip > dump.gz`. The download returns a connection error, yet the step passes and an empty archive is published. Why?",
+    "options": [
+      "curl always exits with status 0 unless `--fail-fast` is passed, regardless of network errors",
+      "`set -e` is ignored inside CI runners, so no command failure can ever stop the script",
+      "Without `set -o pipefail`, a pipeline's exit status is that of the last command (gzip), which succeeded",
+      "Redirecting output with `>` resets `$?` to 0, so the shell cannot see any earlier failure"
+    ],
+    "correctIndex": 2,
+    "explanation": "By default Bash reports a pipeline's exit status as the status of its last command, so a failing curl is masked by a successful gzip and `set -e` never triggers. `set -o pipefail` makes the pipeline return the rightmost non-zero status. `set -e` works fine in CI, curl does return non-zero on connection errors, and redirection does not reset statuses.",
+    "referenceUrl": "https://www.gnu.org/software/bash/manual/bash.html"
+  },
+  {
+    "id": "devops-shell-uncatchable-signal",
+    "topic": "devops",
+    "subtopic": "linux-shell",
+    "difficulty": "Easy",
+    "title": "Signal a process cannot handle",
+    "question": "A misbehaving process installs handlers for and ignores most signals. Which signal is guaranteed to terminate it because it cannot be caught, blocked or ignored?",
+    "options": [
+      "SIGINT",
+      "SIGKILL",
+      "SIGTERM",
+      "SIGHUP"
+    ],
+    "correctIndex": 1,
+    "explanation": "SIGKILL (like SIGSTOP) cannot be caught, blocked or ignored, so the kernel always terminates the process. SIGTERM, SIGINT and SIGHUP can all be handled or ignored by the process, which is why SIGTERM is the polite first step in graceful shutdown.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man7/signal.7.html"
+  },
+  {
+    "id": "devops-shell-chmod-750",
+    "topic": "devops",
+    "subtopic": "linux-shell",
+    "difficulty": "Easy",
+    "title": "Reading chmod 750",
+    "question": "After running `chmod 750 deploy.sh`, what permissions does the file have?",
+    "options": [
+      "Owner read/write/execute, group read/write, others execute only",
+      "Owner read/write, group read/execute, others read only",
+      "Owner read/execute, group read/write/execute, others no access",
+      "Owner read/write/execute, group read/execute, others no access"
+    ],
+    "correctIndex": 3,
+    "explanation": "Each octal digit maps to owner, group and others; 7 = rwx (4+2+1), 5 = r-x (4+1) and 0 = no permissions. The distractors mis-assign the digits, for example reading 5 as rw- (which would be 6).",
+    "referenceUrl": "https://man7.org/linux/man-pages/man1/chmod.1.html"
+  },
+  {
+    "id": "devops-ci-core-practice",
+    "topic": "devops",
+    "subtopic": "ci-cd",
+    "difficulty": "Easy",
+    "title": "Essence of continuous integration",
+    "question": "Which practice is most essential to continuous integration?",
+    "options": [
+      "Developers merge small changes into the mainline frequently, each verified by an automated build and tests",
+      "Tests are run nightly on a dedicated server instead of on every commit to save resources",
+      "A release manager integrates all team branches manually at the end of each sprint",
+      "Each developer works on a long-lived feature branch that is merged once the feature is complete"
+    ],
+    "correctIndex": 0,
+    "explanation": "CI means integrating into the mainline at least daily with every integration verified by an automated, self-testing build, so integration problems surface while they are small. Long-lived branches and end-of-sprint merges postpone integration pain, and nightly-only testing delays feedback for up to a day.",
+    "referenceUrl": "https://martinfowler.com/articles/continuousIntegration.html"
+  },
+  {
+    "id": "devops-ci-overlapping-deploys",
+    "topic": "devops",
+    "subtopic": "ci-cd",
+    "difficulty": "Medium",
+    "title": "Overlapping deploy workflows",
+    "question": "Two quick pushes to `main` start two GitHub Actions deploy runs. The older run finishes last and overwrites production with the older build. What is the idiomatic fix?",
+    "options": [
+      "Add `timeout-minutes` to the deploy job so slow runs are cancelled before they overwrite production",
+      "Mark the workflow with `continue-on-error: true` so the newer run takes precedence automatically",
+      "Use a `matrix` strategy so each commit deploys to its own isolated runner in parallel",
+      "Add a `concurrency` group for the deploy job (e.g. per environment) so only one run executes at a time"
+    ],
+    "correctIndex": 3,
+    "explanation": "A `concurrency` group guarantees at most one running job or workflow per group, and with `cancel-in-progress` the stale run is cancelled; this serialises deployments to an environment. Timeouts do not order runs, a matrix increases parallelism, and `continue-on-error` only controls failure handling.",
+    "referenceUrl": "https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/control-the-concurrency-of-workflows-and-jobs"
+  },
+  {
+    "id": "devops-ci-oidc-cloud-auth",
+    "topic": "devops",
+    "subtopic": "ci-cd",
+    "difficulty": "Expert",
+    "title": "Replacing static cloud keys in CI",
+    "question": "A security review flags long-lived cloud access keys stored as repository secrets for deployments from GitHub Actions. Which design best removes them while limiting who can deploy?",
+    "options": [
+      "Encrypt the keys with a GPG passphrase stored in a second secret and decrypt them during the job",
+      "Rotate the access keys monthly with a scheduled workflow and store them as organization-level secrets",
+      "Use OIDC: grant the job `id-token: write`, and have the cloud trust GitHub's issuer only for tokens whose claims match this repo and environment",
+      "Move the keys into the workflow file as base64 and restrict the repository to private visibility"
+    ],
+    "correctIndex": 2,
+    "explanation": "With OIDC the job obtains a short-lived signed token, and the cloud provider exchanges it for temporary credentials only if claims such as `sub` (repo, branch, environment) match the trust policy, so no long-lived secret exists. Rotation and extra encryption still leave static credentials to steal, and base64 in a file is not protection at all.",
+    "referenceUrl": "https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect"
+  },
+  {
+    "id": "devops-artifacts-build-once",
+    "topic": "devops",
+    "subtopic": "build-artifacts",
+    "difficulty": "Medium",
+    "title": "Build once, promote everywhere",
+    "question": "A pipeline rebuilds the application from source separately for staging and for production. A bug appears only in production even though staging passed. What practice prevents this class of problem?",
+    "options": [
+      "Build a single immutable, versioned artifact once and promote that exact artifact through every environment",
+      "Rebuild for production with a clean dependency cache so the latest library versions are always included",
+      "Run the full test suite again after the production rebuild instead of relying on staging results",
+      "Give production its own branch so its builds are isolated from the staging branch's changes"
+    ],
+    "correctIndex": 0,
+    "explanation": "Rebuilding per environment can produce a different binary (drifting dependencies, toolchains, flags), so what was tested is not what ships. Promoting one immutable artifact, as release engineering recommends with reproducible, versioned builds, guarantees staging tested the bits that run in production. Fresh caches and per-environment branches increase drift rather than removing it.",
+    "referenceUrl": "https://sre.google/sre-book/release-engineering/"
+  },
+  {
+    "id": "devops-artifacts-cache-key",
+    "topic": "devops",
+    "subtopic": "build-artifacts",
+    "difficulty": "Medium",
+    "title": "Dependency cache key in CI",
+    "question": "A Node.js workflow uses `actions/cache` for `~/.npm`. Which cache key gives fresh dependencies when they change while reusing the cache otherwise?",
+    "options": [
+      "`npm-${{ runner.os }}-${{ github.run_id }}`",
+      "`npm-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}`",
+      "`npm-${{ runner.os }}-static`",
+      "`npm-${{ runner.os }}-${{ github.sha }}`"
+    ],
+    "correctIndex": 1,
+    "explanation": "Hashing the lockfile changes the key exactly when the resolved dependency set changes, so unchanged lockfiles hit the cache. Keys built from the commit SHA or run ID change on every run and almost never hit, while a static key never refreshes and keeps serving stale dependencies.",
+    "referenceUrl": "https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/caching-dependencies-to-speed-up-workflows"
+  },
+  {
+    "id": "devops-artifacts-semver-patch",
+    "topic": "devops",
+    "subtopic": "build-artifacts",
+    "difficulty": "Easy",
+    "title": "Semantic version bump for a bug fix",
+    "question": "A library at version 2.4.1 ships a backward-compatible bug fix and nothing else. Under Semantic Versioning, what is the next version?",
+    "options": [
+      "2.4.1-1",
+      "2.4.2",
+      "3.0.0",
+      "2.5.0"
+    ],
+    "correctIndex": 1,
+    "explanation": "SemVer increments PATCH for backward-compatible bug fixes, MINOR for backward-compatible new functionality and MAJOR for breaking changes. A hyphen suffix denotes a pre-release, which sorts lower than 2.4.1, so it would not be a newer release.",
+    "referenceUrl": "https://semver.org/"
+  },
+  {
+    "id": "devops-iac-plan-purpose",
+    "topic": "devops",
+    "subtopic": "iac",
+    "difficulty": "Easy",
+    "title": "What terraform plan does",
+    "question": "Before changing production infrastructure, you want to see what Terraform would create, update or destroy without making any changes. Which command do you run?",
+    "options": [
+      "terraform apply -refresh-only",
+      "terraform init -upgrade",
+      "terraform validate",
+      "terraform plan"
+    ],
+    "correctIndex": 3,
+    "explanation": "`terraform plan` compares configuration with state and real infrastructure and shows the proposed actions without performing them. `validate` only checks syntax and internal consistency, `init -upgrade` updates providers and modules, and `apply -refresh-only` can update state.",
+    "referenceUrl": "https://developer.hashicorp.com/terraform/cli/commands/plan"
+  },
+  {
+    "id": "devops-iac-state-locking",
+    "topic": "devops",
+    "subtopic": "iac",
+    "difficulty": "Medium",
+    "title": "Concurrent terraform apply",
+    "question": "Two engineers run `terraform apply` against the same environment at the same time from their laptops, using a state file in a shared bucket without locking. Resources end up duplicated and the state is corrupted. What prevents this?",
+    "options": [
+      "Committing the `terraform.tfstate` file to Git so merge conflicts reveal concurrent changes",
+      "Adding `depends_on` between all resources so Terraform serialises the operations",
+      "A backend that supports state locking, so a second operation waits or fails while the lock is held",
+      "Running `terraform fmt` before each apply so both configurations are textually identical"
+    ],
+    "correctIndex": 2,
+    "explanation": "With locking enabled, Terraform acquires a lock for any operation that could write state, so concurrent applies cannot interleave. Formatting has no effect on state, committing state to Git exposes secrets and still allows races, and `depends_on` only orders resources within a single run.",
+    "referenceUrl": "https://developer.hashicorp.com/terraform/language/state/locking"
+  },
+  {
+    "id": "devops-iac-count-index-shift",
+    "topic": "devops",
+    "subtopic": "iac",
+    "difficulty": "Hard",
+    "title": "Removing an item from a count list",
+    "question": "Buckets are created with `count = length(var.names)` and `name = var.names[count.index]`, where names = [\"logs\", \"media\", \"backups\"]. You remove \"logs\" from the list. What does the plan show?",
+    "options": [
+      "\"media\" and \"backups\" are re-addressed to new indexes, so Terraform plans to replace them and destroy one",
+      "Only the \"logs\" bucket is destroyed because Terraform matches instances by their name attribute",
+      "Nothing changes until you run `terraform state rm` for the logs bucket manually",
+      "Terraform refuses to plan because `count` lists cannot shrink once resources exist"
+    ],
+    "correctIndex": 0,
+    "explanation": "Instances created with `count` are identified by index, so removing the first element shifts every later element: index 0 now wants \"media\", index 1 \"backups\", and index 2 is destroyed. Using `for_each` with a set or map keys instances by stable strings, so only the removed key is destroyed.",
+    "referenceUrl": "https://developer.hashicorp.com/terraform/language/meta-arguments/for_each"
+  },
+  {
+    "id": "devops-iac-sensitive-in-state",
+    "topic": "devops",
+    "subtopic": "iac",
+    "difficulty": "Hard",
+    "title": "Sensitive values and Terraform state",
+    "question": "A module passes a database password through a variable marked `sensitive = true`. The team concludes the password is no longer stored anywhere readable. Why is that wrong?",
+    "options": [
+      "Terraform writes all sensitive values to a separate `.tfvars.secret` file in the working directory",
+      "Sensitive only redacts values from plan and CLI output; the value is still recorded in the state file",
+      "Sensitive only applies to outputs, so variables marked sensitive are logged in plain text during plan",
+      "Sensitive values are encrypted in state with a key that is printed in the apply output"
+    ],
+    "correctIndex": 1,
+    "explanation": "Marking a value sensitive hides it in plan and apply output, but Terraform still stores it in state, which is plaintext locally. State must therefore be treated as sensitive: stored in a backend with encryption at rest and tight access control. Terraform does not encrypt state values itself or create secret side files.",
+    "referenceUrl": "https://developer.hashicorp.com/terraform/language/state/sensitive-data"
+  },
+  {
+    "id": "devops-config-twelve-factor",
+    "topic": "devops",
+    "subtopic": "configuration-secrets",
+    "difficulty": "Easy",
+    "title": "Where config belongs",
+    "question": "According to the Twelve-Factor App methodology, where should configuration that varies between deploys (database URLs, credentials) live?",
+    "options": [
+      "In constants compiled into the application binary",
+      "In a config file committed next to the code for each environment",
+      "In environment variables, strictly separated from the code",
+      "In per-environment branches of the source repository"
+    ],
+    "correctIndex": 2,
+    "explanation": "Twelve-Factor requires strict separation of config from code and recommends environment variables, which change per deploy without code changes and are unlikely to be committed by accident. Constants, per-environment branches and committed config files all couple config to the codebase and tend to leak credentials.",
+    "referenceUrl": "https://12factor.net/config"
+  },
+  {
+    "id": "devops-secrets-leaked-commit",
+    "topic": "devops",
+    "subtopic": "configuration-secrets",
+    "difficulty": "Medium",
+    "title": "API key pushed to a public repository",
+    "question": "A developer pushes an API key to a public GitHub repository and removes it in the very next commit a minute later. What is the most important action?",
+    "options": [
+      "Revoke and rotate the key immediately, treating it as compromised, then clean the history",
+      "Rewrite the Git history with a force push, which fully removes the key from all copies",
+      "Make the repository private so the key in the history is no longer accessible",
+      "Nothing more; the follow-up commit removed the key before anyone could have seen it"
+    ],
+    "correctIndex": 0,
+    "explanation": "Once pushed, a secret can be copied by scrapers within seconds and persists in history, forks and clones, so the only safe assumption is compromise: revoke and rotate first. Deleting it in a later commit, making the repo private or rewriting history do not invalidate copies that already exist.",
+    "referenceUrl": "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository"
+  },
+  {
+    "id": "devops-secrets-fork-pr",
+    "topic": "devops",
+    "subtopic": "configuration-secrets",
+    "difficulty": "Hard",
+    "title": "Secrets in pull requests from forks",
+    "question": "An open-source project's workflow runs on `pull_request`. Tests that call an external API with `${{ secrets.API_TOKEN }}` pass for maintainers' branches but fail for contributors' fork PRs. Why?",
+    "options": [
+      "Fork PRs run on macOS runners, which cannot read repository-level secrets",
+      "The secret must be re-declared in the contributor's fork with the same name to be inherited",
+      "Secrets expire after 24 hours and contributors' PRs usually run after the token has expired",
+      "Secrets other than GITHUB_TOKEN are not passed to runners for workflows triggered from forked repositories"
+    ],
+    "correctIndex": 3,
+    "explanation": "GitHub withholds repository secrets (except `GITHUB_TOKEN`, which is read-only) from workflows triggered by forks so untrusted code cannot exfiltrate them. Secrets do not expire on a timer, runner OS is irrelevant, and a fork's own secrets are never used by the upstream repository.",
+    "referenceUrl": "https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions"
+  },
+  {
+    "id": "devops-deploy-blue-green",
+    "topic": "devops",
+    "subtopic": "deployment-strategies",
+    "difficulty": "Easy",
+    "title": "Blue/green deployment rollback",
+    "question": "In a blue/green deployment, the new version on the green environment shows errors right after the switch. How is rollback typically performed?",
+    "options": [
+      "Rebuild the previous version from source and redeploy it onto green",
+      "Point the router or load balancer back to the still-running blue environment",
+      "Gradually shift 5% of traffic per minute from green back to blue",
+      "Restore the green environment's servers from last night's backup"
+    ],
+    "correctIndex": 1,
+    "explanation": "Blue/green keeps two production-ready environments and moves traffic by switching the router, so rollback is switching back to the idle but intact old environment. Rebuilding or restoring backups is slow, and gradual traffic shifting describes a canary approach rather than the blue/green switch.",
+    "referenceUrl": "https://martinfowler.com/bliki/BlueGreenDeployment.html"
+  },
+  {
+    "id": "devops-deploy-canary-criteria",
+    "topic": "devops",
+    "subtopic": "deployment-strategies",
+    "difficulty": "Hard",
+    "title": "Canary analysis and rollback criteria",
+    "question": "A canary receives 5% of traffic. Its error rate is 0.9% while the remaining 95% of the fleet sits at 0.3%; latency looks similar. Which evaluation approach is sound?",
+    "options": [
+      "Promote it, since a 0.9% error rate is still under a typical 1% alerting threshold for the service",
+      "Wait until the canary reaches 50% of traffic so the error rate is statistically meaningful",
+      "Compare the canary to a baseline over the same window using predefined thresholds, and roll back automatically on breach",
+      "Ignore the error rate because latency, the primary golden signal, did not change"
+    ],
+    "correctIndex": 2,
+    "explanation": "Canary analysis compares the canary against a control population on the same metrics and time window with rollback criteria decided in advance; a 3x error ratio is a clear regression. An absolute threshold hides relative regressions, expanding exposure before deciding defeats the purpose of a canary, and errors matter as much as latency.",
+    "referenceUrl": "https://sre.google/workbook/canarying-releases/"
+  },
+  {
+    "id": "devops-deploy-feature-flag-killswitch",
+    "topic": "devops",
+    "subtopic": "deployment-strategies",
+    "difficulty": "Medium",
+    "title": "Feature flags vs redeploy",
+    "question": "A new checkout flow shipped dark behind a release toggle and was enabled for all users. It starts causing payment failures. What is the fastest safe mitigation that feature flags enable?",
+    "options": [
+      "Revert the merge commit and wait for the pipeline to build and deploy the old version",
+      "Scale the deployment to zero replicas until the payment provider issue is investigated",
+      "Delete the toggle from code so the new flow can no longer be reached by any user",
+      "Turn the toggle off so the old flow is served again without deploying anything"
+    ],
+    "correctIndex": 3,
+    "explanation": "Feature toggles decouple deployment from release, so a release can be undone by flipping configuration in seconds. A revert-and-redeploy works but is slower, scaling to zero causes a full outage, and removing the toggle requires a code change and deploy as well.",
+    "referenceUrl": "https://martinfowler.com/articles/feature-toggles.html"
+  },
+  {
+    "id": "devops-deploy-expand-contract",
+    "topic": "devops",
+    "subtopic": "deployment-strategies",
+    "difficulty": "Expert",
+    "title": "Schema changes with zero-downtime rollback",
+    "question": "A release renames column `fullname` to `display_name` in a single migration and deploys via blue/green. When the new version misbehaves, switching back to blue fails because blue still queries `fullname`. What approach avoids this?",
+    "options": [
+      "Expand/contract: add the new column, write to both, migrate readers, and drop the old column in a later release",
+      "Wrap the rename in a transaction so it can be rolled back automatically if green fails",
+      "Run the migration only after traffic switches to green so blue never sees the new schema",
+      "Give blue and green separate database copies and merge their data after the release is verified"
+    ],
+    "correctIndex": 0,
+    "explanation": "Expand/contract (parallel change) keeps the schema compatible with both the old and new version during the transition, so either can serve traffic and rollback stays possible. Migrating after the switch still breaks blue on rollback, separate databases cause divergent writes that are hard to reconcile, and a committed transaction cannot be undone later.",
+    "referenceUrl": "https://martinfowler.com/bliki/ParallelChange.html"
+  },
+  {
+    "id": "docker-layers-copy-order",
+    "topic": "docker",
+    "subtopic": "images-layers",
+    "difficulty": "Medium",
+    "title": "Dependencies reinstall on every code change",
+    "question": "This Dockerfile reinstalls all npm packages whenever any source file changes:\nFROM node:22\nWORKDIR /app\nCOPY . .\nRUN npm ci\nCMD [\"node\", \"server.js\"]\nWhat change best restores build caching?",
+    "options": [
+      "Move `WORKDIR /app` below `COPY . .` so the copy layer no longer invalidates the cache",
+      "Copy package.json and package-lock.json first, run npm ci, then copy the rest of the source",
+      "Add `--no-cache` to docker build so Docker stops checking which files changed",
+      "Replace `npm ci` with `npm install` so packages are reused from the previous build"
+    ],
+    "correctIndex": 1,
+    "explanation": "A COPY layer is invalidated when any copied file changes, and every following layer rebuilds, so copying all source before `npm ci` ties dependency installation to every code edit. Copying only the manifests first lets the install layer stay cached until dependencies change. `npm install` does not reuse prior layers, `--no-cache` disables caching entirely, and WORKDIR order is irrelevant.",
+    "referenceUrl": "https://docs.docker.com/build/cache/"
+  },
+  {
+    "id": "docker-layers-invalidation-cascade",
+    "topic": "docker",
+    "subtopic": "images-layers",
+    "difficulty": "Easy",
+    "title": "What a cache miss does to later layers",
+    "question": "During `docker build`, the cache for the third instruction of a ten-instruction Dockerfile is invalidated. What happens to instructions four through ten?",
+    "options": [
+      "Only RUN instructions are rebuilt; COPY and ENV instructions are reused",
+      "Docker rebuilds only the final layer and reuses the intermediate ones",
+      "They are reused from cache as long as their own instruction text is unchanged",
+      "They are all rebuilt, because each layer depends on the layers before it"
+    ],
+    "correctIndex": 3,
+    "explanation": "Layers stack on their parents, so once one layer changes every subsequent layer must be rebuilt even if its instruction text is identical. This is why rarely changing steps belong at the top of a Dockerfile and frequently changing ones near the bottom.",
+    "referenceUrl": "https://docs.docker.com/build/cache/"
+  },
+  {
+    "id": "docker-layers-deleted-file-size",
+    "topic": "docker",
+    "subtopic": "images-layers",
+    "difficulty": "Hard",
+    "title": "Deleting files in a later layer",
+    "question": "A Dockerfile has `RUN curl -o /tmp/sdk.tar.gz <url> && tar -xzf /tmp/sdk.tar.gz -C /opt` and, two instructions later, `RUN rm /tmp/sdk.tar.gz`. The image is still 600 MB larger than expected. Why?",
+    "options": [
+      "Docker compresses deleted files into a recycle layer that is removed only by `docker image prune`",
+      "Files under /tmp are always copied into the final layer regardless of deletion",
+      "Layers are immutable; the later rm only adds a whiteout, so the archive still ships in the earlier layer",
+      "The rm runs as a non-root user and silently fails to delete files owned by root"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each instruction creates a new read-only layer, and deleting a file in a later layer just masks it; the bytes remain in the layer that added them. Download, extract and delete in the same RUN, or use a multi-stage build and copy only the result. Prune removes unused images, not data inside a layer, and /tmp has no special treatment.",
+    "referenceUrl": "https://docs.docker.com/get-started/docker-concepts/building-images/understanding-image-layers/"
+  },
+  {
+    "id": "docker-layers-apt-update-stale",
+    "topic": "docker",
+    "subtopic": "images-layers",
+    "difficulty": "Hard",
+    "title": "Separate apt-get update layer",
+    "question": "A Dockerfile has `RUN apt-get update` on one line and `RUN apt-get install -y curl` on the next. Weeks later `nginx` is added to the install line and the build fails with 404 errors for packages. What is the cause?",
+    "options": [
+      "The cached `apt-get update` layer is reused, so the stale package index points at versions no longer on the mirror",
+      "Adding a package invalidates the base image, which must be re-pulled with `--pull`",
+      "apt-get cannot install more than one package per RUN instruction without `--fix-missing`",
+      "Docker does not cache RUN lines that use the network, so update runs in a different build context"
+    ],
+    "correctIndex": 0,
+    "explanation": "Because `apt-get update` is its own unchanged instruction, Docker reuses its cached layer, and the modified install line runs against an outdated index. Docker's best practices recommend `RUN apt-get update && apt-get install -y ...` in one instruction so any package change refreshes the index too. Multiple packages per RUN are fine and network RUNs are cached normally.",
+    "referenceUrl": "https://docs.docker.com/build/building/best-practices/"
+  },
+  {
+    "id": "docker-containers-pid1-signals",
+    "topic": "docker",
+    "subtopic": "containers",
+    "difficulty": "Expert",
+    "title": "Slow docker stop with shell-form CMD",
+    "question": "An image uses `CMD node server.js` (shell form). `docker stop` always takes about 10 seconds and the app never runs its SIGTERM shutdown handler. What is happening?",
+    "options": [
+      "Node.js ignores SIGTERM by default unless started with the `--signals` flag",
+      "docker stop sends SIGINT, which Node.js handles only when attached to a TTY",
+      "`/bin/sh -c` runs as PID 1 and does not forward SIGTERM, so Docker sends SIGKILL after the grace period",
+      "The container's restart policy intercepts SIGTERM and delays it for 10 seconds"
+    ],
+    "correctIndex": 2,
+    "explanation": "In shell form the command runs under `/bin/sh -c`, which becomes PID 1 and does not pass signals to its child, so the app never sees SIGTERM and is killed after the default 10-second timeout. Use the exec form `CMD [\"node\", \"server.js\"]` (or an init such as `--init`) so the app is PID 1. docker stop sends SIGTERM by default and restart policies do not intercept signals.",
+    "referenceUrl": "https://docs.docker.com/reference/dockerfile/"
+  },
+  {
+    "id": "docker-containers-writable-layer",
+    "topic": "docker",
+    "subtopic": "containers",
+    "difficulty": "Easy",
+    "title": "Data in the container's writable layer",
+    "question": "An app writes uploaded files to /data inside a container with no volume mounted. What happens to those files after `docker rm` on the container?",
+    "options": [
+      "They are preserved in an anonymous volume that Docker creates automatically for /data",
+      "They are lost, because the container's writable layer is deleted with the container",
+      "They are merged into the image so the next container from it sees them",
+      "They survive only until the Docker daemon restarts, then they are cleared"
+    ],
+    "correctIndex": 1,
+    "explanation": "Writes go to a thin writable layer that belongs to the container and is removed along with it; stopping keeps it, removing does not. Images are never modified by running containers, and anonymous volumes are only created when a VOLUME instruction or mount requests one. Use a volume for data that must persist.",
+    "referenceUrl": "https://docs.docker.com/engine/storage/volumes/"
+  },
+  {
+    "id": "docker-containers-restart-policy",
+    "topic": "docker",
+    "subtopic": "containers",
+    "difficulty": "Medium",
+    "title": "always vs unless-stopped",
+    "question": "You manually ran `docker stop` on a container before the host rebooted. After the Docker daemon starts again, which restart policy keeps that container stopped?",
+    "options": [
+      "unless-stopped",
+      "always",
+      "on-failure:3",
+      "on-failure"
+    ],
+    "correctIndex": 0,
+    "explanation": "`unless-stopped` behaves like `always` except that a container that was manually stopped stays stopped even after the daemon restarts. With `always`, the container is started again when the daemon restarts. `on-failure` only restarts on non-zero exit and does not express the manual-stop intent.",
+    "referenceUrl": "https://docs.docker.com/engine/containers/start-containers-automatically/"
+  },
+  {
+    "id": "docker-dockerfile-multistage-purpose",
+    "topic": "docker",
+    "subtopic": "dockerfile",
+    "difficulty": "Easy",
+    "title": "Why multi-stage builds",
+    "question": "A Go service image is 1.2 GB because it contains the full compiler toolchain. What is the main benefit of rewriting it as a multi-stage build?",
+    "options": [
+      "Stages run on separate hosts in parallel, making the build itself several times faster",
+      "Each stage is pushed as a separate tag so clients can choose which one to pull",
+      "Multi-stage builds compress layers more aggressively than single-stage builds",
+      "The final stage copies only the compiled binary, leaving the toolchain out of the shipped image"
+    ],
+    "correctIndex": 3,
+    "explanation": "Multi-stage builds let you compile in a heavy builder stage and `COPY --from=<stage>` only the artifacts into a minimal runtime stage, shrinking size and attack surface. Stages do not run on separate hosts, are not pushed as separate tags by default, and compression is unaffected.",
+    "referenceUrl": "https://docs.docker.com/build/building/multi-stage/"
+  },
+  {
+    "id": "docker-dockerfile-entrypoint-cmd",
+    "topic": "docker",
+    "subtopic": "dockerfile",
+    "difficulty": "Medium",
+    "title": "Overriding CMD arguments",
+    "question": "An image has `ENTRYPOINT [\"python\", \"app.py\"]` and `CMD [\"--port\", \"8080\"]`. What runs for `docker run myimg --port 9000`?",
+    "options": [
+      "python app.py --port 8080 --port 9000",
+      "python app.py --port 9000",
+      "--port 9000",
+      "python app.py --port 8080"
+    ],
+    "correctIndex": 1,
+    "explanation": "With exec-form ENTRYPOINT, CMD supplies default arguments, and any arguments given to `docker run` replace CMD entirely while the entrypoint stays. So the defaults are dropped rather than appended to, and the entrypoint is only replaced with `--entrypoint`.",
+    "referenceUrl": "https://docs.docker.com/reference/dockerfile/"
+  },
+  {
+    "id": "docker-dockerfile-arg-before-from",
+    "topic": "docker",
+    "subtopic": "dockerfile",
+    "difficulty": "Hard",
+    "title": "ARG declared before FROM",
+    "question": "A Dockerfile starts with `ARG NODE_VERSION=22`, then `FROM node:${NODE_VERSION}`, then `RUN echo \"v=$NODE_VERSION\"`. The FROM uses version 22, but the RUN prints `v=`. Why?",
+    "options": [
+      "The variable must be referenced as `${{NODE_VERSION}}` inside RUN instructions",
+      "ARG values are only available in ENV instructions, never in RUN commands",
+      "Base images reset all variables, so the value must be passed again with --build-arg",
+      "An ARG before FROM is outside any stage; it must be re-declared with `ARG NODE_VERSION` after FROM to be used"
+    ],
+    "correctIndex": 3,
+    "explanation": "An ARG declared before the first FROM can be used in FROM lines, but it is not in scope inside the build stage. Adding a bare `ARG NODE_VERSION` inside the stage brings the default value into scope. ARGs are usable in RUN, the double-brace syntax belongs to other tools, and --build-arg is not needed when a default exists.",
+    "referenceUrl": "https://docs.docker.com/reference/dockerfile/"
+  },
+  {
+    "id": "docker-dockerfile-dockerignore",
+    "topic": "docker",
+    "subtopic": "dockerfile",
+    "difficulty": "Medium",
+    "title": "Slow builds from a large context",
+    "question": "`docker build .` spends a long time transferring the build context, and `COPY . .` invalidates the cache even when no source changed. The repo contains node_modules, .git and local log files. What is the best fix?",
+    "options": [
+      "Add a .dockerignore excluding node_modules, .git and logs so they are not part of the context",
+      "Use ADD instead of COPY, since ADD skips files that already exist in the image",
+      "Run `docker builder prune` before every build to clear stale context data",
+      "Pass `--squash` so all files are combined into a single layer during the build"
+    ],
+    "correctIndex": 0,
+    "explanation": "Everything in the context is sent to the builder and considered by `COPY . .`, so churny directories like .git and logs both slow the transfer and bust the cache. A .dockerignore file removes them from the context. Pruning just discards cache, ADD has no such skip behaviour, and squashing does not shrink the context.",
+    "referenceUrl": "https://docs.docker.com/build/concepts/context/"
+  },
+  {
+    "id": "docker-net-localhost-between-containers",
+    "topic": "docker",
+    "subtopic": "volumes-networks",
+    "difficulty": "Medium",
+    "title": "Connecting to a database container",
+    "question": "An API container and a Postgres container named `db` run on the same user-defined bridge network. The API is configured with `DB_HOST=localhost` and gets `connection refused`. What fixes it?",
+    "options": [
+      "Publish Postgres with `-p 5432:5432` so localhost inside the API container forwards to it",
+      "Switch both containers to the `none` network driver to share a loopback interface",
+      "Set DB_HOST=db; containers on a user-defined network resolve each other by name",
+      "Add `EXPOSE 5432` to the API image so it can reach port 5432 on localhost"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each container has its own network namespace, so localhost refers to the API container itself. User-defined bridge networks provide built-in DNS, so the database is reachable as `db`. Publishing a port maps it on the host, not inside other containers, the `none` driver removes networking, and EXPOSE is only documentation.",
+    "referenceUrl": "https://docs.docker.com/engine/network/drivers/bridge/"
+  },
+  {
+    "id": "docker-net-port-publish",
+    "topic": "docker",
+    "subtopic": "volumes-networks",
+    "difficulty": "Easy",
+    "title": "Meaning of -p 8080:80",
+    "question": "What does `docker run -p 8080:80 nginx` do?",
+    "options": [
+      "Maps port 8080 on the host to port 80 inside the container",
+      "Maps port 80 on the host to port 8080 inside the container",
+      "Exposes container ports 8080 through 80 to other containers only",
+      "Limits the container to 80 Mbps of bandwidth with an 8080 burst"
+    ],
+    "correctIndex": 0,
+    "explanation": "The publish syntax is `HOST_PORT:CONTAINER_PORT`, so requests to the host's port 8080 are forwarded to nginx listening on 80 in the container. The order is commonly confused, and -p has nothing to do with port ranges or bandwidth.",
+    "referenceUrl": "https://docs.docker.com/engine/network/"
+  },
+  {
+    "id": "docker-vol-bind-mount-obscures",
+    "topic": "docker",
+    "subtopic": "volumes-networks",
+    "difficulty": "Medium",
+    "title": "Bind mount hides image contents",
+    "question": "For local development you run `docker run -v $(pwd):/app myapp`. The image ran `npm ci` into /app/node_modules during build, but now the app fails with `Cannot find module 'express'`. Why?",
+    "options": [
+      "Volumes are mounted before the image's layers are extracted, deleting node_modules",
+      "npm ci output is stored in a separate layer that bind mounts do not merge with",
+      "The bind mount over /app obscures the image's /app, including node_modules, with the host directory",
+      "Bind mounts are read-only by default, so Node cannot read packages from node_modules"
+    ],
+    "correctIndex": 2,
+    "explanation": "Mounting into a non-empty directory obscures the existing contents for as long as the mount exists, so the container sees only the host folder, which lacks node_modules. A common fix is an additional volume for /app/node_modules. Bind mounts are read-write by default, and layer extraction order is not the issue.",
+    "referenceUrl": "https://docs.docker.com/engine/storage/bind-mounts/"
+  },
+  {
+    "id": "docker-compose-depends-on-healthy",
+    "topic": "docker",
+    "subtopic": "compose",
+    "difficulty": "Medium",
+    "title": "depends_on does not wait for readiness",
+    "question": "In Compose, `web` has `depends_on: [db]`. On a fresh `docker compose up`, web crashes because Postgres is not yet accepting connections. What is the Compose-native fix?",
+    "options": [
+      "List db before web in the YAML file because Compose starts services in file order",
+      "Add a healthcheck to db and use `depends_on: { db: { condition: service_healthy } }` in web",
+      "Add `restart: always` to db so Compose starts it twice before starting web",
+      "Use `links: [db]` instead of depends_on, which waits until the port is open"
+    ],
+    "correctIndex": 1,
+    "explanation": "Plain depends_on only orders container start-up; it does not wait for the dependency to be ready. With a healthcheck on db and `condition: service_healthy`, Compose waits for the health status before creating web. Restart policies and legacy links do not provide readiness, and file order is irrelevant.",
+    "referenceUrl": "https://docs.docker.com/compose/how-tos/startup-order/"
+  },
+  {
+    "id": "docker-compose-service-dns",
+    "topic": "docker",
+    "subtopic": "compose",
+    "difficulty": "Easy",
+    "title": "Service discovery in Compose",
+    "question": "A Compose file defines services `api` and `redis` with no custom networks. How should `api` address Redis?",
+    "options": [
+      "Use the container ID of redis, which Compose writes into api's environment variables",
+      "Use `localhost`, because Compose runs all services in a single shared network namespace",
+      "Use the host machine's IP address with the port published in the redis service",
+      "Use the hostname `redis`, since Compose puts services on a default network with name-based DNS"
+    ],
+    "correctIndex": 3,
+    "explanation": "Compose creates a default network for the project and each service joins it, reachable by its service name. Services do not share a network namespace, routing via the host IP needlessly depends on published ports, and Compose does not inject container IDs.",
+    "referenceUrl": "https://docs.docker.com/compose/how-tos/networking/"
+  },
+  {
+    "id": "docker-compose-dotenv-interpolation",
+    "topic": "docker",
+    "subtopic": "compose",
+    "difficulty": "Hard",
+    "title": ".env file vs container environment",
+    "question": "A project has a `.env` file with `API_KEY=abc` next to compose.yaml. The `app` service has no `environment` or `env_file` entries, and inside the container `API_KEY` is unset. Why?",
+    "options": [
+      "Compose only reads .env when started with the `--env-file .env` flag explicitly",
+      "Variables in .env must be prefixed with `COMPOSE_` to be visible inside containers",
+      "The project .env file is used for interpolating ${VAR} in the Compose file, not injected into containers automatically",
+      "The .env file is applied only to services built from a local Dockerfile, not to pulled images"
+    ],
+    "correctIndex": 2,
+    "explanation": "Compose reads the project-level .env for variable substitution in the Compose file itself; a container only receives variables declared via `environment` or `env_file`, for example `environment: [API_KEY=${API_KEY}]`. The default .env is read without flags, prefixes are not required, and the image source is irrelevant.",
+    "referenceUrl": "https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/"
+  },
+  {
+    "id": "docker-registry-digest-pinning",
+    "topic": "docker",
+    "subtopic": "registries",
+    "difficulty": "Medium",
+    "title": "Tags vs digests",
+    "question": "Production pulled `myorg/api:1.4` twice a week apart and got different images, because someone pushed a hotfix under the same tag. How can deployments reference an image immutably?",
+    "options": [
+      "Add `--disable-content-trust` so the registry refuses to overwrite tags",
+      "Use the `latest` tag, which registries lock once an image has been pulled",
+      "Pull with `--platform linux/amd64`, which fixes the image to one build",
+      "Pull by digest, e.g. `myorg/api@sha256:<digest>`, which identifies exact content"
+    ],
+    "correctIndex": 3,
+    "explanation": "Tags are mutable pointers that can be moved to new content, whereas a digest is a content hash, so pulling by digest always yields the same image. `latest` is just another mutable tag, disabling content trust weakens verification rather than locking tags, and the platform flag only selects an architecture.",
+    "referenceUrl": "https://docs.docker.com/reference/cli/docker/image/pull/"
+  },
+  {
+    "id": "docker-registry-tag-target",
+    "topic": "docker",
+    "subtopic": "registries",
+    "difficulty": "Easy",
+    "title": "Which registry a push goes to",
+    "question": "You run `docker tag app:1.0 registry.example.com:5000/team/app:1.0` and then `docker push registry.example.com:5000/team/app:1.0`. Where is the image pushed?",
+    "options": [
+      "To the registry at registry.example.com:5000, under the repository team/app",
+      "To the local image store only, since a port number makes the name local",
+      "To Docker Hub, under a user account named registry.example.com",
+      "To every registry configured in the daemon's registry-mirrors list"
+    ],
+    "correctIndex": 0,
+    "explanation": "The hostname (and optional port) prefix in an image reference selects the registry; names without one default to Docker Hub (docker.io). Mirrors are only used for pulling from Docker Hub, and a port in the name does not make the reference local.",
+    "referenceUrl": "https://docs.docker.com/reference/cli/docker/image/tag/"
+  },
+  {
+    "id": "docker-sec-build-secrets",
+    "topic": "docker",
+    "subtopic": "docker-security",
+    "difficulty": "Hard",
+    "title": "Passing a token to a build",
+    "question": "A build needs a private npm token. The Dockerfile uses `ARG NPM_TOKEN` and `RUN npm ci` with the token in .npmrc. Why is this risky, and what is preferred?",
+    "options": [
+      "ARG values are logged by the registry when pushing; switch to ENV, which is encrypted in the image",
+      "Build args can persist in image metadata and history; use `RUN --mount=type=secret` so the token is never stored",
+      "Build args are limited to 64 characters; use a multi-line COPY of the token file instead",
+      "ARG is safe, but npm ci ignores it; pass the token through a published port during the build"
+    ],
+    "correctIndex": 1,
+    "explanation": "Build arguments and environment variables are not designed for secrets: their values can be exposed via image history or provenance and copied into layers. Secret mounts make the value available only to the RUN step that needs it without persisting it. ENV is worse since it remains in the final image, and copying the file bakes it into a layer.",
+    "referenceUrl": "https://docs.docker.com/build/building/secrets/"
+  },
+  {
+    "id": "docker-sec-oom-exit-137",
+    "topic": "docker",
+    "subtopic": "docker-security",
+    "difficulty": "Easy",
+    "title": "Container exits with code 137",
+    "question": "A container started with `docker run -m 256m` processes a big file and exits with code 137; `docker inspect` shows `OOMKilled: true`. What happened?",
+    "options": [
+      "The app called exit(137) after catching an out-of-memory exception itself",
+      "It ran out of disk space in the writable layer and Docker stopped it gracefully",
+      "It exceeded its 256 MB memory limit and the kernel OOM killer terminated it with SIGKILL",
+      "Docker restarted it because it used more than 256 MB of swap during startup"
+    ],
+    "correctIndex": 2,
+    "explanation": "With a hard memory limit, exceeding it triggers the kernel OOM killer; exit code 137 is 128 + 9, meaning the process was killed by SIGKILL. Disk exhaustion and application exceptions produce different errors, and `OOMKilled: true` explicitly identifies the memory limit.",
+    "referenceUrl": "https://docs.docker.com/engine/containers/resource_constraints/"
+  },
+  {
+    "id": "docker-sec-docker-socket",
+    "topic": "docker",
+    "subtopic": "docker-security",
+    "difficulty": "Hard",
+    "title": "Mounting the Docker socket",
+    "question": "A CI helper container is run with `-v /var/run/docker.sock:/var/run/docker.sock` and as a non-root user inside the container. Why is this still a severe risk?",
+    "options": [
+      "The socket mount disables the container's seccomp profile, enabling all system calls",
+      "Anyone controlling the socket can tell the daemon to start a privileged container with the host root mounted",
+      "Socket access lets the container read other containers' logs, which may contain credentials",
+      "The socket exposes only read-only container metadata, but that includes environment variables"
+    ],
+    "correctIndex": 1,
+    "explanation": "The Docker daemon runs with root privileges, and its API lets a client start containers with arbitrary mounts and privileges, which is effectively root on the host regardless of the in-container user. Reading logs or metadata is possible but understates the risk, and the mount does not alter seccomp.",
+    "referenceUrl": "https://docs.docker.com/engine/security/"
+  },
+  {
+    "id": "k8s-arch-etcd",
+    "topic": "kubernetes",
+    "subtopic": "architecture",
+    "difficulty": "Easy",
+    "title": "Where cluster state is stored",
+    "question": "Which control plane component is the consistent, highly available key-value store holding all Kubernetes cluster data?",
+    "options": [
+      "kube-controller-manager",
+      "kubelet",
+      "kube-scheduler",
+      "etcd"
+    ],
+    "correctIndex": 3,
+    "explanation": "etcd is the backing store for all cluster data and the API server is the only component that talks to it directly. The scheduler assigns pods to nodes, the controller manager runs reconciliation loops, and the kubelet runs on each node to manage pods.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/overview/components/"
+  },
+  {
+    "id": "k8s-arch-cluster-scoped",
+    "topic": "kubernetes",
+    "subtopic": "architecture",
+    "difficulty": "Easy",
+    "title": "Cluster-scoped resources",
+    "question": "Which of these resources is cluster-scoped and therefore cannot belong to a namespace?",
+    "options": [
+      "Node",
+      "ConfigMap",
+      "Service",
+      "Deployment"
+    ],
+    "correctIndex": 0,
+    "explanation": "Nodes, PersistentVolumes, StorageClasses and namespaces themselves are cluster-scoped. ConfigMaps, Services and Deployments are namespaced, so the same name can exist in different namespaces.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/"
+  },
+  {
+    "id": "k8s-arch-drain-pdb",
+    "topic": "kubernetes",
+    "subtopic": "architecture",
+    "difficulty": "Hard",
+    "title": "Node drain blocked",
+    "question": "During a node upgrade, `kubectl drain` hangs on evicting pods of a 3-replica Deployment that has a PodDisruptionBudget with `minAvailable: 3`. Why, and what is the right fix?",
+    "options": [
+      "drain waits for the pods' liveness probes to fail before evicting; disable the probes",
+      "drain cannot evict Deployment pods; delete the Deployment and recreate it after the upgrade",
+      "The PDB only applies to StatefulSets, so the hang is caused by a missing toleration instead",
+      "Eviction would violate the PDB, which allows zero disruptions; lower minAvailable or add replicas first"
+    ],
+    "correctIndex": 3,
+    "explanation": "Drain uses the Eviction API, which respects PodDisruptionBudgets; with minAvailable equal to the replica count no voluntary disruption is ever allowed, so eviction is refused indefinitely. Allow at least one disruption (or scale up first). Drain does evict Deployment pods, PDBs apply to any selected pods, and probes are unrelated.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/pods/disruptions/"
+  },
+  {
+    "id": "k8s-workloads-deployment-replicaset",
+    "topic": "kubernetes",
+    "subtopic": "workloads",
+    "difficulty": "Easy",
+    "title": "What a Deployment manages",
+    "question": "When you create a Deployment, which object does it create and manage directly to keep the desired number of Pods running?",
+    "options": [
+      "A Job",
+      "A DaemonSet",
+      "A ReplicaSet",
+      "A StatefulSet"
+    ],
+    "correctIndex": 2,
+    "explanation": "A Deployment manages ReplicaSets, one per pod template revision, and each ReplicaSet maintains the Pod count; this is what enables rolling updates and rollbacks. StatefulSets, DaemonSets and Jobs are separate workload controllers with different guarantees.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
+  },
+  {
+    "id": "k8s-workloads-statefulset",
+    "topic": "kubernetes",
+    "subtopic": "workloads",
+    "difficulty": "Medium",
+    "title": "Workload for a replicated database",
+    "question": "You run a 3-node replicated database where each member needs a stable hostname (db-0, db-1, db-2) and its own persistent disk that follows it across rescheduling. Which workload fits?",
+    "options": [
+      "A ReplicaSet with a ClusterIP Service and emptyDir volumes",
+      "A StatefulSet with volumeClaimTemplates and a headless Service",
+      "A Deployment with 3 replicas sharing one PersistentVolumeClaim",
+      "A DaemonSet pinned to three labelled nodes using hostPath volumes"
+    ],
+    "correctIndex": 1,
+    "explanation": "StatefulSets give each Pod a stable ordinal identity and network name via a headless Service, and volumeClaimTemplates create a dedicated PVC per replica that is reattached to the same identity. Deployments treat Pods as interchangeable, hostPath ties data to a node, and emptyDir is deleted with the Pod.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/"
+  },
+  {
+    "id": "k8s-workloads-daemonset",
+    "topic": "kubernetes",
+    "subtopic": "workloads",
+    "difficulty": "Easy",
+    "title": "One agent per node",
+    "question": "You need a log-shipping agent to run exactly one Pod on every node, including nodes added later. Which workload should you use?",
+    "options": [
+      "DaemonSet",
+      "StatefulSet",
+      "CronJob",
+      "Deployment with replicas equal to the node count"
+    ],
+    "correctIndex": 0,
+    "explanation": "A DaemonSet ensures all (or selected) nodes run one copy of a Pod and automatically adds Pods to new nodes. A Deployment with a fixed replica count neither guarantees one per node nor adapts to node changes, and StatefulSets and CronJobs solve different problems.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/"
+  },
+  {
+    "id": "k8s-workloads-imagepullbackoff",
+    "topic": "kubernetes",
+    "subtopic": "workloads",
+    "difficulty": "Medium",
+    "title": "Pod stuck in ImagePullBackOff",
+    "question": "A new Pod shows `ImagePullBackOff`, and `kubectl describe pod` reports `pull access denied` for `registry.corp.io/team/api:2.3`. The tag exists. What is the most likely fix?",
+    "options": [
+      "Set `restartPolicy: Always` so the kubelet keeps retrying until the pull succeeds",
+      "Increase the container's memory limit so the image can be decompressed on the node",
+      "Add a readiness probe so the Pod waits until the registry becomes available",
+      "Create a registry credential Secret and reference it in imagePullSecrets (or the ServiceAccount)"
+    ],
+    "correctIndex": 3,
+    "explanation": "`pull access denied` for an existing tag indicates the node is not authenticated to the private registry; Pods supply credentials through imagePullSecrets, directly or via their ServiceAccount. Memory limits apply after the container starts, the kubelet already retries with back-off, and probes run only after the image is pulled.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/containers/images/"
+  },
+  {
+    "id": "k8s-svc-selector-mismatch",
+    "topic": "kubernetes",
+    "subtopic": "services-networking",
+    "difficulty": "Medium",
+    "title": "Service with no endpoints",
+    "question": "Requests to Service `web` time out. `kubectl get endpointslices -l kubernetes.io/service-name=web` shows no endpoints, while the Pods are Running and Ready with label `app: web-api`. The Service selector is `app: web`. What is wrong?",
+    "options": [
+      "ClusterIP Services need an Ingress in front of them before endpoints are populated",
+      "The Service selector does not match the Pods' labels, so no Pods are selected as endpoints",
+      "Services only route to Pods created before the Service, so the Pods must be recreated",
+      "The Pods need a hostPort so the Service can forward traffic to them"
+    ],
+    "correctIndex": 1,
+    "explanation": "A Service selects Pods by label, and EndpointSlices list only matching Ready Pods; `app: web` does not equal `app: web-api`, so there are none. hostPort is unrelated, Services pick up Pods regardless of creation order, and ClusterIP works without an Ingress.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/services-networking/service/"
+  },
+  {
+    "id": "k8s-svc-clusterip-default",
+    "topic": "kubernetes",
+    "subtopic": "services-networking",
+    "difficulty": "Easy",
+    "title": "Default Service type",
+    "question": "You create a Service without specifying `type`. How is it reachable?",
+    "options": [
+      "Through a virtual ClusterIP reachable only from inside the cluster",
+      "Through a port opened on every node's IP address",
+      "Through a DNS CNAME pointing to an external hostname",
+      "Through a cloud load balancer with a public IP address"
+    ],
+    "correctIndex": 0,
+    "explanation": "ClusterIP is the default type, exposing the Service on an internal virtual IP only. LoadBalancer provisions an external load balancer, NodePort opens a port on every node, and ExternalName returns a CNAME record.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/services-networking/service/"
+  },
+  {
+    "id": "k8s-svc-cross-namespace-dns",
+    "topic": "kubernetes",
+    "subtopic": "services-networking",
+    "difficulty": "Medium",
+    "title": "Calling a Service in another namespace",
+    "question": "A Pod in namespace `shop` calls `http://payments:8080` and gets a DNS resolution failure. The `payments` Service lives in namespace `billing`. What address should it use?",
+    "options": [
+      "payments:8080 after adding the billing namespace to the Pod's labels",
+      "payments.svc.billing.cluster.local",
+      "payments.billing (or payments.billing.svc.cluster.local)",
+      "billing.payments (or billing.payments.svc.cluster.local)"
+    ],
+    "correctIndex": 2,
+    "explanation": "Cluster DNS creates `<service>.<namespace>.svc.<cluster-domain>`, and a bare name resolves only within the client's own namespace via its search path. The other forms reverse or misplace the components, and labels do not affect DNS search domains.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/"
+  },
+  {
+    "id": "k8s-svc-networkpolicy-no-effect",
+    "topic": "kubernetes",
+    "subtopic": "services-networking",
+    "difficulty": "Hard",
+    "title": "NetworkPolicy has no effect",
+    "question": "You apply a NetworkPolicy that selects the database Pods with `policyTypes: [Ingress]` and no ingress rules, yet every Pod can still connect to the database. What is the most likely reason?",
+    "options": [
+      "NetworkPolicies only take effect after the selected Pods are restarted",
+      "A policy with no ingress rules allows all traffic; you must list every denied source explicitly",
+      "The cluster's network plugin does not implement NetworkPolicy, so the object is accepted but not enforced",
+      "NetworkPolicies apply only to traffic entering the cluster through an Ingress controller"
+    ],
+    "correctIndex": 2,
+    "explanation": "NetworkPolicy is enforced by the CNI plugin; without a supporting plugin, creating the resource has no effect. With a supporting plugin, selecting Pods for Ingress with no rules denies all ingress to them, so the policy itself is a valid default-deny. Restarts are not required and policies govern Pod-to-Pod traffic too.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/services-networking/network-policies/"
+  },
+  {
+    "id": "k8s-svc-gateway-api",
+    "topic": "kubernetes",
+    "subtopic": "services-networking",
+    "difficulty": "Medium",
+    "title": "Ingress vs Gateway API",
+    "question": "A platform team wants infrastructure owners to manage load balancers while app teams independently attach HTTP routes, with features like header matching and traffic splitting. Why is Gateway API the recommended choice over Ingress?",
+    "options": [
+      "Ingress has been removed from current Kubernetes releases and no longer works on new clusters",
+      "Ingress only supports TCP traffic, while Gateway API is the only way to route HTTP",
+      "Gateway API runs without any controller, whereas Ingress requires one to be installed",
+      "It splits roles across GatewayClass, Gateway and HTTPRoute, and Ingress is frozen with new features going to Gateway API"
+    ],
+    "correctIndex": 3,
+    "explanation": "Gateway API is role-oriented, letting infrastructure providers, cluster operators and app developers own separate resources, and it supports richer routing natively. The Ingress API is frozen: still GA and supported, but not gaining features. Both need a controller implementation, and Ingress is in fact HTTP-focused.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/services-networking/gateway/"
+  },
+  {
+    "id": "k8s-config-env-not-refreshed",
+    "topic": "kubernetes",
+    "subtopic": "config-secrets",
+    "difficulty": "Medium",
+    "title": "ConfigMap change not visible",
+    "question": "You update a ConfigMap key `LOG_LEVEL` from info to debug. Pods consume it via `envFrom` and keep logging at info for hours. Why?",
+    "options": [
+      "envFrom reads ConfigMaps only at Deployment creation, so the Deployment must be deleted",
+      "Environment variables from a ConfigMap are set at container start and require a Pod restart to change",
+      "ConfigMaps are immutable by default, so the update was silently rejected",
+      "ConfigMap updates are propagated only once per day by the kubelet sync loop"
+    ],
+    "correctIndex": 1,
+    "explanation": "ConfigMaps consumed as environment variables are not updated automatically; trigger a rollout such as `kubectl rollout restart`. Values mounted as volumes (without subPath) are refreshed eventually, typically within the kubelet sync period plus cache delay, not daily. ConfigMaps are mutable unless `immutable: true` is set.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/configuration/configmap/"
+  },
+  {
+    "id": "k8s-secrets-base64-not-encryption",
+    "topic": "kubernetes",
+    "subtopic": "config-secrets",
+    "difficulty": "Easy",
+    "title": "How protected are Secrets by default",
+    "question": "A developer argues Kubernetes Secrets are safe to share in manifests because the values look scrambled. What is accurate?",
+    "options": [
+      "Values are only base64-encoded and, by default, stored unencrypted in etcd; enable encryption at rest and RBAC",
+      "Values are AES-encrypted by the API server with a per-namespace key before being stored",
+      "Values are hashed, so they cannot be decoded even by a cluster administrator",
+      "Values are encrypted in manifests but decrypted when written into etcd for performance"
+    ],
+    "correctIndex": 0,
+    "explanation": "Base64 is an encoding, not encryption: anyone who can read the manifest or the object can decode it. Kubernetes stores Secrets unencrypted in etcd unless encryption at rest is configured, so access should be restricted with RBAC, and secrets should not be committed in plain manifests.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/configuration/secret/"
+  },
+  {
+    "id": "k8s-storage-wait-for-first-consumer",
+    "topic": "kubernetes",
+    "subtopic": "storage",
+    "difficulty": "Hard",
+    "title": "PVC Pending: waiting for first consumer",
+    "question": "A new PVC stays `Pending` with the event `waiting for first consumer to be created before binding`. No Pod uses it yet. What does this mean?",
+    "options": [
+      "Its StorageClass uses WaitForFirstConsumer, delaying provisioning until a Pod is scheduled, which is expected",
+      "The cluster has no default StorageClass, so the PVC can never be bound without manual edits",
+      "The PVC's access mode conflicts with the StorageClass and the claim must be recreated",
+      "The requested size exceeds every available PersistentVolume and must be reduced"
+    ],
+    "correctIndex": 0,
+    "explanation": "With `volumeBindingMode: WaitForFirstConsumer`, binding and provisioning wait until a Pod using the PVC is scheduled, so the volume is created in a topology (zone) where the Pod can run. The claim binds once a consumer exists. The other causes produce different events, such as no matching volume or provisioning failures.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/storage/storage-classes/"
+  },
+  {
+    "id": "k8s-storage-pvc-lifecycle",
+    "topic": "kubernetes",
+    "subtopic": "storage",
+    "difficulty": "Medium",
+    "title": "Data survival across Pod restarts",
+    "question": "A Pod writes data to an `emptyDir` volume and another path backed by a PersistentVolumeClaim. The Pod is deleted and the Deployment creates a replacement. Which data is still available?",
+    "options": [
+      "Both, because the replacement Pod has the same name and reuses its volumes",
+      "Only the PVC data; emptyDir is deleted permanently when the Pod is removed",
+      "Neither, because Deployments always provision fresh volumes for new Pods",
+      "Only the emptyDir data, because it is stored on the node that ran the Pod"
+    ],
+    "correctIndex": 1,
+    "explanation": "emptyDir lives exactly as long as the Pod on its node; deleting the Pod deletes the data. A PVC is an independent object, so the replacement Pod mounts the same claim and its bound PersistentVolume. Replacement Pods get new names, and Deployments reference existing claims rather than creating new ones.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/storage/volumes/"
+  },
+  {
+    "id": "k8s-probes-liveness-crashloop",
+    "topic": "kubernetes",
+    "subtopic": "probes",
+    "difficulty": "Medium",
+    "title": "Slow-starting app in CrashLoopBackOff",
+    "question": "A Java service takes about 90 seconds to start. Its liveness probe has `periodSeconds: 10`, `failureThreshold: 3` and no initial delay. Pods enter CrashLoopBackOff, and events show `Liveness probe failed` then `Killing`. What is the best fix?",
+    "options": [
+      "Set `restartPolicy: Never` so the kubelet stops killing the container after probe failures",
+      "Lower `timeoutSeconds` to 1 so each liveness probe returns faster during startup",
+      "Remove the readiness probe so the liveness probe is evaluated only after the Pod is Ready",
+      "Add a startupProbe allowing enough time (e.g. failureThreshold 12, period 10) before liveness checks begin"
+    ],
+    "correctIndex": 3,
+    "explanation": "The liveness probe fails three times about 30 seconds after start, so the kubelet kills the container before it finishes booting, repeatedly. A startupProbe disables liveness and readiness checks until it succeeds, giving slow starts room without weakening liveness later. Readiness does not gate liveness, `Never` stops recovery entirely, and shorter timeouts make failures more likely.",
+    "referenceUrl": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/"
+  },
+  {
+    "id": "k8s-probes-readiness-failure",
+    "topic": "kubernetes",
+    "subtopic": "probes",
+    "difficulty": "Easy",
+    "title": "What failing readiness does",
+    "question": "A container's readiness probe starts failing while its liveness probe keeps passing. What does Kubernetes do?",
+    "options": [
+      "Evicts the Pod and reschedules it onto a different node",
+      "Marks the Deployment as failed and rolls back to the previous revision",
+      "Removes the Pod from Service endpoints until the readiness probe passes again",
+      "Restarts the container after the failure threshold is reached"
+    ],
+    "correctIndex": 2,
+    "explanation": "Readiness only controls whether a Pod receives traffic: a not-ready Pod is removed from Service endpoints but is not restarted. Restarting is the action for failing liveness probes, and neither probe triggers eviction or automatic rollback.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/"
+  },
+  {
+    "id": "k8s-probes-liveness-dependency",
+    "topic": "kubernetes",
+    "subtopic": "probes",
+    "difficulty": "Hard",
+    "title": "Liveness probe checking the database",
+    "question": "Every Pod's liveness endpoint checks connectivity to a shared PostgreSQL. During a 5-minute database failover, all Pods restart repeatedly and the service is slow to recover afterwards. What is the design mistake?",
+    "options": [
+      "The database check belongs in a startupProbe, which repeats for the life of the Pod",
+      "The liveness probe should use a TCP check against PostgreSQL instead of an HTTP endpoint",
+      "Liveness probes should be configured with failureThreshold 1 so restarts happen sooner",
+      "Liveness should reflect only the container's own health; a dependency outage should not trigger restarts"
+    ],
+    "correctIndex": 3,
+    "explanation": "Restarting cannot fix an external dependency, so tying liveness to it turns a dependency blip into a fleet-wide restart storm with cold caches and connection surges. Keep liveness to process health (for example deadlock detection) and reflect dependency issues through readiness or degraded responses with care. Startup probes run only until the first success.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/configuration/liveness-readiness-startup-probes/"
+  },
+  {
+    "id": "k8s-probes-startup-gates-others",
+    "topic": "kubernetes",
+    "subtopic": "probes",
+    "difficulty": "Medium",
+    "title": "Probe behaviour during startup",
+    "question": "A container defines startup, liveness and readiness probes. While the startup probe has not yet succeeded, what happens to the other two probes?",
+    "options": [
+      "They are not run; liveness and readiness checks begin only after the startup probe succeeds",
+      "Readiness runs normally but liveness is paused until the startup probe succeeds",
+      "They run in parallel, and either one succeeding marks the startup probe as passed",
+      "They run, but their failures are recorded only as warnings until startup completes"
+    ],
+    "correctIndex": 0,
+    "explanation": "When a startup probe is configured, liveness and readiness probes are disabled until it succeeds; if the startup probe exhausts its failureThreshold, the container is killed and handled per its restart policy. Other probes cannot short-circuit it, and readiness is not evaluated in the meantime, so the Pod stays not-ready.",
+    "referenceUrl": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/"
+  },
+  {
+    "id": "k8s-resources-oomkilled",
+    "topic": "kubernetes",
+    "subtopic": "resources-autoscaling",
+    "difficulty": "Medium",
+    "title": "Container OOMKilled",
+    "question": "A Pod restarts repeatedly. `kubectl describe` shows `Last State: Terminated, Reason: OOMKilled, Exit Code: 137` and `limits.memory: 512Mi`. The node has plenty of free memory. What is the cause?",
+    "options": [
+      "The memory request is lower than the limit, which makes the scheduler kill the Pod",
+      "The node ran out of memory and the kubelet evicted the lowest-priority Pod",
+      "The container's memory usage exceeded its own 512Mi limit, so the kernel killed it",
+      "The CPU limit was exceeded, which Kubernetes reports as OOMKilled for cgroup reasons"
+    ],
+    "correctIndex": 2,
+    "explanation": "A memory limit is enforced by the kernel via cgroups: exceeding it gets the container OOM-killed even if the node has free memory. Node-pressure eviction shows a different reason (Evicted), requests below limits are normal, and exceeding a CPU limit causes throttling rather than termination.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+  },
+  {
+    "id": "k8s-resources-cpu-throttling",
+    "topic": "kubernetes",
+    "subtopic": "resources-autoscaling",
+    "difficulty": "Hard",
+    "title": "Latency spikes with low average CPU",
+    "question": "A latency-sensitive API has `limits.cpu: 500m`. Average CPU looks like 300m, but p99 latency spikes during bursts and throttling metrics climb. What explains it?",
+    "options": [
+      "The scheduler moves the Pod to another node whenever usage exceeds the limit",
+      "Bursts exceed the CPU limit within enforcement periods, so the container is throttled rather than killed",
+      "CPU limits reserve capacity, so other Pods are slowed down and the node becomes saturated",
+      "Exceeding the CPU limit makes the kubelet restart the container, causing brief outages"
+    ],
+    "correctIndex": 1,
+    "explanation": "CPU is compressible: when a container hits its CPU limit the kernel throttles it for the rest of the enforcement period, which averages hide but tail latency reveals. It is not killed, restarted or rescheduled. Reservation is the job of requests, not limits.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+  },
+  {
+    "id": "k8s-resources-hpa-no-requests",
+    "topic": "kubernetes",
+    "subtopic": "resources-autoscaling",
+    "difficulty": "Medium",
+    "title": "HPA cannot compute CPU utilization",
+    "question": "An HPA targets 70% CPU utilization, but `kubectl get hpa` shows `<unknown>/70%` and it never scales. metrics-server is healthy. What is the most likely cause?",
+    "options": [
+      "CPU utilization targets only work when CPU limits equal requests (Guaranteed QoS)",
+      "The containers have no CPU requests, and utilization is calculated as a percentage of requests",
+      "The HPA must target a ReplicaSet rather than a Deployment to read CPU metrics",
+      "The HPA needs a minimum of 3 replicas before it starts collecting metrics"
+    ],
+    "correctIndex": 1,
+    "explanation": "Resource utilization for the HPA is current usage divided by the container's request; if containers lack a CPU request, utilization cannot be computed. HPAs normally target Deployments, limits do not need to equal requests, and there is no three-replica minimum.",
+    "referenceUrl": "https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/"
+  },
+  {
+    "id": "k8s-resources-scheduling-by-requests",
+    "topic": "kubernetes",
+    "subtopic": "resources-autoscaling",
+    "difficulty": "Hard",
+    "title": "Pending despite idle nodes",
+    "question": "A Pod requesting 4Gi memory stays Pending with `0/5 nodes are available: Insufficient memory`, yet monitoring shows every node using less than 40% of its RAM. Why?",
+    "options": [
+      "Monitoring includes swap, so actual RAM use is higher than displayed",
+      "Pods requesting more than 2Gi need a PriorityClass before they can be scheduled",
+      "The scheduler only considers nodes whose actual usage is below 25% for new Pods",
+      "The scheduler places Pods based on the sum of existing requests, not actual usage, and requests are near capacity"
+    ],
+    "correctIndex": 3,
+    "explanation": "The scheduler ensures the sum of requests on a node stays below its allocatable capacity, regardless of real utilization. Over-sized requests on existing Pods can therefore block scheduling on idle-looking nodes; right-sizing requests or adding capacity fixes it. The other statements are not scheduler rules.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+  },
+  {
+    "id": "k8s-resources-qos-eviction",
+    "topic": "kubernetes",
+    "subtopic": "resources-autoscaling",
+    "difficulty": "Expert",
+    "title": "Eviction order under memory pressure",
+    "question": "A node hits memory pressure. Pod A has no requests or limits, Pod B has requests below limits and is using more than its request, and Pod C has requests equal to limits for every container. In what order does the kubelet typically evict?",
+    "options": [
+      "All three at the same time, since QoS only affects scheduling",
+      "B first, because exceeding requests is treated as a policy violation",
+      "A first, then B, with C (Guaranteed) evicted last",
+      "C first, since Guaranteed Pods hold the most reserved memory"
+    ],
+    "correctIndex": 2,
+    "explanation": "A is BestEffort, B is Burstable and C is Guaranteed. Under node-pressure eviction the kubelet ranks Pods by whether usage exceeds requests, then priority, then usage relative to requests, which in practice evicts BestEffort and over-request Burstable Pods before Guaranteed ones. QoS class therefore directly affects eviction, not just scheduling.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/"
+  },
+  {
+    "id": "k8s-rollout-surge-math",
+    "topic": "kubernetes",
+    "subtopic": "rollouts",
+    "difficulty": "Hard",
+    "title": "Rolling update surge math",
+    "question": "A Deployment has 10 replicas with `maxSurge: 25%` and `maxUnavailable: 25%`. During a rolling update, what are the maximum total Pods and the minimum available Pods?",
+    "options": [
+      "At most 13 Pods total and at least 8 available",
+      "At most 13 Pods total and at least 7 available",
+      "At most 12 Pods total and at least 8 available",
+      "At most 12 Pods total and at least 7 available"
+    ],
+    "correctIndex": 0,
+    "explanation": "maxSurge percentages are rounded up (25% of 10 = 2.5 -> 3), so up to 13 Pods may exist; maxUnavailable is rounded down (2.5 -> 2), so at least 8 must stay available. Mixing the rounding directions produces the other combinations.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
+  },
+  {
+    "id": "k8s-rollout-undo",
+    "topic": "kubernetes",
+    "subtopic": "rollouts",
+    "difficulty": "Easy",
+    "title": "Rolling back a Deployment",
+    "question": "A new image for Deployment `web` is causing errors. Which command returns it to the previous revision?",
+    "options": [
+      "kubectl rollout pause deployment/web",
+      "kubectl rollout undo deployment/web",
+      "kubectl scale deployment/web --replicas=0",
+      "kubectl delete replicaset -l app=web"
+    ],
+    "correctIndex": 1,
+    "explanation": "`kubectl rollout undo` rolls the Deployment back to the previous revision kept in its ReplicaSet history. Pausing only stops further changes, deleting ReplicaSets makes the controller recreate the current one, and scaling to zero causes an outage without restoring the old version.",
+    "referenceUrl": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_rollout/"
+  },
+  {
+    "id": "k8s-rollout-progress-deadline",
+    "topic": "kubernetes",
+    "subtopic": "rollouts",
+    "difficulty": "Expert",
+    "title": "Rollout stuck on a bad version",
+    "question": "A new version's readiness probe never passes. After `progressDeadlineSeconds`, the Deployment shows `Progressing=False, reason ProgressDeadlineExceeded`. What does Kubernetes do next?",
+    "options": [
+      "It deletes the new ReplicaSet and pauses the Deployment until it is resumed",
+      "It scales the old ReplicaSet to zero to force the new Pods to become ready",
+      "It automatically rolls back to the last revision that had all Pods ready",
+      "Nothing automatically; it reports the condition, and you or a higher-level tool must roll back"
+    ],
+    "correctIndex": 3,
+    "explanation": "Deployment controllers only surface ProgressDeadlineExceeded as a status condition; they do not roll back. Because maxUnavailable limits how many old Pods are removed, capacity remains, and CI/CD or progressive-delivery tools can act on the condition (for example `kubectl rollout status` exiting non-zero, then `rollout undo`).",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
+  },
+  {
+    "id": "obs-log-structured",
+    "topic": "observability",
+    "subtopic": "logging",
+    "difficulty": "Easy",
+    "title": "Why structured logs",
+    "question": "A team moves from free-text log lines to JSON logs with fields like `level`, `order_id` and `duration_ms`. What is the main benefit?",
+    "options": [
+      "Fields can be filtered and aggregated reliably without fragile regex parsing",
+      "JSON logs are always smaller on disk than equivalent plain-text logs",
+      "Structured logs are not affected by log level settings, so nothing is dropped",
+      "JSON logs replace the need for metrics because every field becomes a time series"
+    ],
+    "correctIndex": 0,
+    "explanation": "Structured logs carry named fields that log backends can index, query and aggregate consistently. JSON is often larger than plain text, log levels still apply, and logs do not replace metrics, which are cheaper for aggregates over time.",
+    "referenceUrl": "https://opentelemetry.io/docs/concepts/signals/logs/"
+  },
+  {
+    "id": "obs-log-trace-correlation",
+    "topic": "observability",
+    "subtopic": "logging",
+    "difficulty": "Medium",
+    "title": "Linking logs to traces",
+    "question": "During an incident you find a slow trace but cannot find the matching application logs among millions of lines. What change makes this navigation reliable?",
+    "options": [
+      "Raise the log level to DEBUG during incidents so more lines can be inspected",
+      "Write logs and spans to the same database table so they share a primary key",
+      "Include the active trace_id and span_id in every log record emitted within a span",
+      "Log the full request body so it can be matched with the trace by content"
+    ],
+    "correctIndex": 2,
+    "explanation": "When log records carry the trace and span IDs from the current context, backends can jump between a trace and its logs exactly; OpenTelemetry log bridges do this automatically. Matching on content is unreliable and risks leaking data, a shared table is unnecessary, and more DEBUG lines make the search harder.",
+    "referenceUrl": "https://opentelemetry.io/docs/concepts/signals/logs/"
+  },
+  {
+    "id": "obs-metrics-golden-signals",
+    "topic": "observability",
+    "subtopic": "metrics",
+    "difficulty": "Easy",
+    "title": "The four golden signals",
+    "question": "Which set lists the four golden signals of monitoring from Google's SRE book?",
+    "options": [
+      "Requests, retries, timeouts, restarts",
+      "Availability, durability, throughput, cost",
+      "CPU, memory, disk, network",
+      "Latency, traffic, errors, saturation"
+    ],
+    "correctIndex": 3,
+    "explanation": "The SRE book recommends latency, traffic, errors and saturation as the core user-facing signals for a service. Raw resource metrics such as CPU and memory are useful for saturation but are causes rather than a complete view of user experience.",
+    "referenceUrl": "https://sre.google/sre-book/monitoring-distributed-systems/"
+  },
+  {
+    "id": "obs-metrics-high-cardinality",
+    "topic": "observability",
+    "subtopic": "metrics",
+    "difficulty": "Expert",
+    "title": "Metric labels causing a Prometheus blow-up",
+    "question": "After a release, Prometheus memory usage grows tenfold and queries time out. The release added labels `user_id` and `request_path` (raw URLs with IDs) to `http_requests_total`. What is the problem?",
+    "options": [
+      "Label values longer than 32 characters force Prometheus to disable compression for the metric",
+      "Adding labels to an existing metric resets it, so Prometheus re-reads all historical samples",
+      "Every unique label combination is a separate time series, so unbounded labels explode series cardinality",
+      "Counters cannot carry more than two labels, so Prometheus stores them as histograms instead"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each distinct set of label values creates a new time series, so user IDs and raw paths with embedded IDs produce millions of series that consume memory and slow queries. Prometheus guidance is to avoid high-cardinality labels; use route templates like `/orders/{id}` and put per-user detail in logs or traces. The other claims are not Prometheus behaviour.",
+    "referenceUrl": "https://prometheus.io/docs/practices/naming/"
+  },
+  {
+    "id": "obs-metrics-histogram-aggregation",
+    "topic": "observability",
+    "subtopic": "metrics",
+    "difficulty": "Hard",
+    "title": "Aggregating latency percentiles",
+    "question": "Each of 20 replicas exports a Summary with a precomputed p99 latency. A dashboard averages the 20 p99 values to show service-wide p99. Why is this wrong, and what is better?",
+    "options": [
+      "Averaging is fine, but the median of the 20 p99 values should be used to reduce noise",
+      "Quantiles cannot be averaged meaningfully; export histograms and compute histogram_quantile over summed buckets",
+      "Summaries already aggregate across replicas, so each instance reports the global p99",
+      "p99 should be replaced by the mean latency, which can be aggregated across instances exactly"
+    ],
+    "correctIndex": 1,
+    "explanation": "Precomputed quantiles from separate instances cannot be combined statistically; the average of p99s is not the p99 of all requests. Histogram buckets are counters that can be summed across instances before calculating the quantile. Means are aggregatable but hide the tail behaviour that p99 is meant to show.",
+    "referenceUrl": "https://prometheus.io/docs/practices/histograms/"
+  },
+  {
+    "id": "obs-metrics-counter-rate",
+    "topic": "observability",
+    "subtopic": "metrics",
+    "difficulty": "Medium",
+    "title": "Querying a counter",
+    "question": "A dashboard plots the raw value of `http_requests_total` and shows sudden drops to zero whenever pods restart. How should request throughput be queried?",
+    "options": [
+      "Use `rate(http_requests_total[5m])`, which computes a per-second rate and handles counter resets",
+      "Use `max_over_time(http_requests_total[5m])` to hide the drops caused by restarts",
+      "Use `avg(http_requests_total)` across pods so a single reset is averaged out",
+      "Convert the counter to a gauge so restarts no longer reset its value"
+    ],
+    "correctIndex": 0,
+    "explanation": "Counters only increase and reset on process restart, so their raw value is rarely useful; `rate()` computes the per-second increase and automatically adjusts for resets. Max-over-time and averages still plot cumulative totals, and gauges are for values that go up and down, not event counts.",
+    "referenceUrl": "https://prometheus.io/docs/prometheus/latest/querying/functions/"
+  },
+  {
+    "id": "obs-trace-broken-propagation",
+    "topic": "observability",
+    "subtopic": "tracing",
+    "difficulty": "Hard",
+    "title": "Traces split into disconnected pieces",
+    "question": "Service A calls Service B over HTTP. Both are instrumented with OpenTelemetry, but in the trace UI B's spans always appear as separate root traces. A uses a homegrown HTTP client wrapper. What is the most likely cause?",
+    "options": [
+      "A does not inject trace context (e.g. the traceparent header) into outgoing requests, so B starts new traces",
+      "B samples at 100%, which forces it to create a new root span for every request",
+      "B's spans are exported with a different service.name, which splits them into separate traces",
+      "The two services use different programming languages, which OpenTelemetry cannot link"
+    ],
+    "correctIndex": 0,
+    "explanation": "Context propagation requires the caller to inject the current trace context into the request and the callee to extract it; uninstrumented custom clients skip injection, so B has no parent and starts a root span. Propagation via W3C Trace Context is language-agnostic, sampling does not create roots, and service.name only labels the emitting service.",
+    "referenceUrl": "https://opentelemetry.io/docs/concepts/context-propagation/"
+  },
+  {
+    "id": "obs-trace-traceparent-format",
+    "topic": "observability",
+    "subtopic": "tracing",
+    "difficulty": "Easy",
+    "title": "Contents of the traceparent header",
+    "question": "What information does the W3C `traceparent` HTTP header carry?",
+    "options": [
+      "Trace ID, user ID, session ID and an authentication token",
+      "Version, trace ID, parent span ID and trace flags (such as sampled)",
+      "Service name, endpoint, start time and duration of the calling span",
+      "A list of all span IDs on the path from the root to the current service"
+    ],
+    "correctIndex": 1,
+    "explanation": "traceparent has four fields: version, trace-id, parent-id (the caller's span ID) and trace-flags, where the sampled flag is the main one. Span names, timing and user data are not propagated in this header; vendor-specific state goes into `tracestate` and application key-values into baggage.",
+    "referenceUrl": "https://www.w3.org/TR/trace-context/"
+  },
+  {
+    "id": "obs-trace-async-messaging",
+    "topic": "observability",
+    "subtopic": "tracing",
+    "difficulty": "Hard",
+    "title": "Tracing through a message queue",
+    "question": "An order service publishes events to Kafka and a fulfilment service consumes them in batches. Traces end at the producer. How should context be propagated?",
+    "options": [
+      "Have the consumer query the producer's tracing backend for the most recent active trace ID",
+      "Put the trace ID in the message key so Kafka routes all spans of a trace to one partition",
+      "Inject the trace context into message headers on publish, extract it on consume, and use span links for batched messages",
+      "Enable 100% sampling on the consumer so it automatically joins the producer's traces"
+    ],
+    "correctIndex": 2,
+    "explanation": "Context propagation works across any transport as long as the context is injected into a carrier, here message headers, and extracted on the other side. A batch consumer processes messages from many traces, so span links associate its span with each originating context. Keys control partitioning, not tracing, and sampling cannot recreate missing context.",
+    "referenceUrl": "https://opentelemetry.io/docs/concepts/signals/traces/"
+  },
+  {
+    "id": "obs-trace-tail-sampling",
+    "topic": "observability",
+    "subtopic": "tracing",
+    "difficulty": "Expert",
+    "title": "Keeping rare error traces",
+    "question": "Head sampling at 1% keeps costs down but almost never captures traces of a rare checkout error. You deploy tail sampling in multiple OpenTelemetry Collector replicas that keep all error traces. Policies seem to miss errors randomly. Why?",
+    "options": [
+      "Tail sampling decisions are made per span, so error spans are kept but their parents are dropped",
+      "Collectors cannot inspect span status, so error-based tail sampling relies on log correlation",
+      "Tail sampling only works when head sampling is disabled entirely in every SDK",
+      "Spans of one trace land on different collector replicas; route by trace ID (e.g. a load-balancing exporter) so one replica sees the whole trace"
+    ],
+    "correctIndex": 3,
+    "explanation": "Tail sampling decides after seeing all or most spans of a trace, so every span of a trace must reach the same sampler instance; with plain round-robin, each replica sees fragments and may miss the error span. A tier that load-balances by trace ID fixes this. Head sampling may coexist (though it must keep enough traces), status is visible to collectors, and decisions are per trace.",
+    "referenceUrl": "https://opentelemetry.io/docs/concepts/sampling/"
+  },
+  {
+    "id": "obs-slo-sla-difference",
+    "topic": "observability",
+    "subtopic": "slo",
+    "difficulty": "Easy",
+    "title": "SLI, SLO and SLA",
+    "question": "Which statement correctly distinguishes SLI, SLO and SLA?",
+    "options": [
+      "SLI is a measured indicator, SLO is the target for it, and SLA is an agreement with consequences if missed",
+      "SLA is the internal target, SLO is the contract with customers, and SLI is the penalty paid",
+      "SLI is the target, SLO is the measured value, and SLA is the dashboard that compares them",
+      "All three are the same uptime percentage reported to different audiences"
+    ],
+    "correctIndex": 0,
+    "explanation": "An SLI is a quantitative measure of service level (for example the fraction of successful requests), an SLO is a target value or range for that SLI, and an SLA is an explicit or implicit contract with consequences such as credits when it is not met. SLOs are usually stricter than SLAs to leave a safety margin.",
+    "referenceUrl": "https://sre.google/sre-book/service-level-objectives/"
+  },
+  {
+    "id": "obs-slo-error-budget-minutes",
+    "topic": "observability",
+    "subtopic": "slo",
+    "difficulty": "Medium",
+    "title": "Error budget for 99.9% over 30 days",
+    "question": "A service has a 99.9% availability SLO over a 30-day window measured in time. How much full downtime does the error budget allow?",
+    "options": [
+      "About 7.2 hours",
+      "About 43 seconds",
+      "About 43 minutes",
+      "Roughly 4.3 minutes"
+    ],
+    "correctIndex": 2,
+    "explanation": "The error budget is 1 - SLO = 0.1% of the window: 30 days x 24 h x 60 min x 0.001 = 43.2 minutes. 4.3 minutes corresponds to 99.99%, and 7.2 hours to 99%.",
+    "referenceUrl": "https://sre.google/sre-book/embracing-risk/"
+  },
+  {
+    "id": "obs-slo-burn-rate",
+    "topic": "observability",
+    "subtopic": "slo",
+    "difficulty": "Hard",
+    "title": "Interpreting a burn rate",
+    "question": "A service with a 99.9% SLO over 30 days sees a sustained error ratio of 1.44% for one hour. How much of the monthly error budget did that hour consume?",
+    "options": [
+      "About 14.4%",
+      "About 0.1%",
+      "About 1.4%",
+      "About 2%"
+    ],
+    "correctIndex": 3,
+    "explanation": "Burn rate is the error ratio divided by the budget ratio: 1.44% / 0.1% = 14.4. Burning at 14.4x for 1 of 720 hours consumes 14.4/720 = 2% of the budget, which is why the SRE workbook pairs a 14.4 burn rate over one hour with a 2% budget-consumption page.",
+    "referenceUrl": "https://sre.google/workbook/alerting-on-slos/"
+  },
+  {
+    "id": "obs-slo-budget-exhausted",
+    "topic": "observability",
+    "subtopic": "slo",
+    "difficulty": "Medium",
+    "title": "Error budget exhausted",
+    "question": "Halfway through the month a service has used 100% of its error budget after several bad releases. Under a typical error budget policy, what happens?",
+    "options": [
+      "The SLO target is lowered for the rest of the month so the budget becomes positive again",
+      "Feature releases are halted except for reliability fixes until the service is back within its SLO",
+      "Nothing changes until the SLA is also breached and customers are owed credits",
+      "The on-call team is replaced, since the budget measures the team's performance"
+    ],
+    "correctIndex": 1,
+    "explanation": "An error budget policy makes the budget actionable: when it is exhausted, changes are frozen except for P0 and reliability work until reliability recovers, balancing velocity with stability. Moving the target defeats its purpose, the SLO is meant to act before the SLA is breached, and budgets are about the service, not blame.",
+    "referenceUrl": "https://sre.google/workbook/error-budget-policy/"
+  },
+  {
+    "id": "obs-slo-multiwindow-alerts",
+    "topic": "observability",
+    "subtopic": "slo",
+    "difficulty": "Expert",
+    "title": "Multiwindow burn-rate alerting",
+    "question": "An SLO page fires on `1h burn rate > 14.4`. After a short outage is fixed, the alert keeps firing for almost an hour, annoying on-call. Following the SRE workbook, what improves this?",
+    "options": [
+      "Also require a short window (e.g. 5m) to exceed the same burn rate, so the alert resets soon after recovery",
+      "Add `for: 1h` to the rule so the alert fires only after the condition is stable",
+      "Replace the burn-rate alert with a static threshold on the raw count of 5xx responses",
+      "Lengthen the window to 6h so a brief spike can no longer push the burn rate over 14.4"
+    ],
+    "correctIndex": 0,
+    "explanation": "Multiwindow, multi-burn-rate alerts combine a long window for significance with a short window (about 1/12 of it) that confirms the budget is still burning, so the alert stops soon after the problem ends. A 6h window reduces detection speed, raw thresholds ignore traffic volume, and `for: 1h` delays detection without fixing the reset time.",
+    "referenceUrl": "https://sre.google/workbook/alerting-on-slos/"
+  },
+  {
+    "id": "obs-alert-symptoms-not-causes",
+    "topic": "observability",
+    "subtopic": "alerting-incidents",
+    "difficulty": "Medium",
+    "title": "What should page on-call",
+    "question": "On-call is paged dozens of times per week for `CPU > 80%` on individual hosts, though users rarely notice any impact. What is the better alerting approach?",
+    "options": [
+      "Disable alerting during business hours since engineers will notice problems anyway",
+      "Page on every resource metric but route them to a shared channel instead of individuals",
+      "Lower the threshold to 70% so problems are caught earlier, before they become incidents",
+      "Page on user-visible symptoms such as error rate and latency against SLOs, and use cause metrics for diagnosis"
+    ],
+    "correctIndex": 3,
+    "explanation": "Pages should be urgent, actionable and tied to user impact; alerting on symptoms catches problems regardless of cause and reduces noise. High CPU is a cause that is often harmless, so it belongs on dashboards and in investigations. Lowering thresholds or broadcasting alerts increases fatigue.",
+    "referenceUrl": "https://prometheus.io/docs/practices/alerting/"
+  },
+  {
+    "id": "obs-alert-for-clause",
+    "topic": "observability",
+    "subtopic": "alerting-incidents",
+    "difficulty": "Medium",
+    "title": "The for clause in alerting rules",
+    "question": "A Prometheus alerting rule has `expr: job:errors:ratio5m > 0.05` and `for: 10m`. The condition is true for 7 minutes and then becomes false. What happens?",
+    "options": [
+      "The alert fires once the condition becomes false, summarising the 7-minute window",
+      "The alert fires after 7 minutes because more than half of the 10 minutes elapsed",
+      "The alert is pending for 7 minutes and then resets without ever firing",
+      "The alert fires immediately and resolves automatically after 10 minutes"
+    ],
+    "correctIndex": 2,
+    "explanation": "With `for`, an alert stays in the pending state until the expression has been true continuously for the whole duration; if it becomes false earlier, it returns to inactive without firing. This filters brief spikes but adds detection delay, so durations should be chosen deliberately.",
+    "referenceUrl": "https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/"
+  },
+  {
+    "id": "obs-incident-commander",
+    "topic": "observability",
+    "subtopic": "alerting-incidents",
+    "difficulty": "Easy",
+    "title": "Role of the incident commander",
+    "question": "During a major outage, several engineers debug in parallel, nobody updates stakeholders, and two people roll back different services at the same time. Which incident-management role addresses this?",
+    "options": [
+      "A release manager who freezes all deployments until the next scheduled release",
+      "An incident commander who holds overall coordination, assigns roles and delegates work",
+      "A database administrator who approves every production change during the incident",
+      "A postmortem author who documents the timeline while the incident is still ongoing"
+    ],
+    "correctIndex": 1,
+    "explanation": "Google's incident management model assigns an incident commander who keeps the high-level state, delegates operations, communications and planning roles, and prevents uncoordinated actions like conflicting rollbacks. Postmortems come after resolution, and the other roles do not provide overall coordination.",
+    "referenceUrl": "https://sre.google/sre-book/managing-incidents/"
+  }
+]

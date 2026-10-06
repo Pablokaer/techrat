@@ -1,0 +1,26 @@
+// Strings shared across the app. Area-specific strings live in their own namespace file.
+export const common = {
+  appName: "TechRat",
+  loading: "Loading",
+  retry: "Try again",
+  save: "Save",
+  saving: "Saving…",
+  cancel: "Cancel",
+  close: "Close",
+  back: "Back",
+  next: "Next",
+  previous: "Previous",
+  seeAll: "See all",
+  xp: (n: string | number) => `${n} XP`,
+  plusXp: (n: string | number) => `+${n} XP`,
+  level: (n: number) => `Level ${n}`,
+  networkError: "Could not reach TechRat. Try again.",
+  somethingWentWrong: "Something went wrong",
+  difficulty: { Easy: "Easy", Medium: "Medium", Hard: "Hard", Expert: "Expert" } as Record<string, string>,
+  roadmapDifficulty: { Beginner: "Beginner", Intermediate: "Intermediate", Advanced: "Advanced", Expert: "Expert" } as Record<string, string>,
+  tier: { Bronze: "Bronze", Silver: "Silver", Gold: "Gold", Platinum: "Platinum" } as Record<string, string>,
+  language: {
+    label: "Language",
+    choose: "Choose language",
+  },
+};

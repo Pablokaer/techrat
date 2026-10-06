@@ -1,0 +1,1294 @@
+[
+  {
+    "id": "js-types-null-undefined-loose-equality",
+    "topic": "javascript",
+    "subtopic": "types",
+    "difficulty": "Easy",
+    "title": "null vs undefined equality",
+    "question": "What does this log?\n\nconsole.log(null == undefined, null === undefined);",
+    "options": [
+      "true true",
+      "false false",
+      "true false",
+      "false true"
+    ],
+    "correctIndex": 2,
+    "explanation": "Loose equality has a special rule that treats null and undefined as equal to each other (and to nothing else), so `null == undefined` is true. Strict equality also compares types, and null and undefined are different types, so `===` gives false. This is why `x == null` is a common idiom for checking both at once.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Equality_comparisons_and_sameness"
+  },
+  {
+    "id": "js-types-default-sort-string-coercion",
+    "topic": "javascript",
+    "subtopic": "types",
+    "difficulty": "Medium",
+    "title": "Default sort coerces to strings",
+    "question": "What does this log?\n\nconsole.log([10, 1, 2].sort());",
+    "options": [
+      "[1, 2, 10]",
+      "[10, 2, 1]",
+      "[2, 1, 10]",
+      "[1, 10, 2]"
+    ],
+    "correctIndex": 3,
+    "explanation": "Without a compare function, Array.prototype.sort converts elements to strings and compares them by UTF-16 code units, so \"10\" sorts before \"2\". Numbers are not compared numerically, which is why [1, 2, 10] is wrong. Pass a comparator such as `(a, b) => a - b` to sort numbers by value.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort"
+  },
+  {
+    "id": "js-types-object-is-negative-zero",
+    "topic": "javascript",
+    "subtopic": "types",
+    "difficulty": "Hard",
+    "title": "Object.is vs strict equality",
+    "question": "What does this log?\n\nconsole.log(-0 === 0, Object.is(-0, 0), Object.is(NaN, NaN));",
+    "options": [
+      "true true false",
+      "false false true",
+      "true false true",
+      "true true true"
+    ],
+    "correctIndex": 2,
+    "explanation": "Strict equality treats +0 and -0 as equal and NaN as unequal to everything, including itself. Object.is uses the SameValue algorithm, which distinguishes -0 from +0 and treats NaN as equal to NaN. React uses Object.is to compare state and dependencies, so these edge cases matter in practice.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is"
+  },
+  {
+    "id": "js-scope-declaration-vs-expression-hoisting",
+    "topic": "javascript",
+    "subtopic": "scope-closures",
+    "difficulty": "Medium",
+    "title": "Hoisting of declarations vs expressions",
+    "question": "What does this log?\n\nconsole.log(typeof a, typeof b);\nfunction a() {}\nvar b = function () {};",
+    "options": [
+      "\"function\" \"function\"",
+      "\"undefined\" \"undefined\"",
+      "\"function\" \"undefined\"",
+      "It throws a ReferenceError for b"
+    ],
+    "correctIndex": 2,
+    "explanation": "Function declarations are hoisted together with their body, so `a` is already a function before its line. With `var b = function () {}` only the var declaration is hoisted and initialised to undefined; the function is assigned when that line runs. Had b been declared with let or const, `typeof b` would throw because b would be in its temporal dead zone.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Hoisting"
+  },
+  {
+    "id": "js-scope-default-parameter-own-scope",
+    "topic": "javascript",
+    "subtopic": "scope-closures",
+    "difficulty": "Hard",
+    "title": "Default parameter scope",
+    "question": "What does this log?\n\nlet x = 1;\nfunction f(read = () => x) {\n  let x = 2;\n  return read();\n}\nconsole.log(f());",
+    "options": [
+      "1",
+      "2",
+      "undefined",
+      "A ReferenceError, because x is in its TDZ"
+    ],
+    "correctIndex": 0,
+    "explanation": "Default parameter expressions are evaluated in their own scope, which sits between the outer scope and the function body. The arrow function closes over that parameter scope, where no x exists, so it resolves x to the outer `let x = 1`. The body's `let x = 2` is a separate binding that the closure never sees.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Default_parameters"
+  },
+  {
+    "id": "js-class-private-field-outside-access",
+    "topic": "javascript",
+    "subtopic": "objects-prototypes",
+    "difficulty": "Easy",
+    "title": "Private class fields from outside",
+    "question": "What happens when this script is loaded?\n\nclass Counter { #count = 0; }\nconst c = new Counter();\nconsole.log(c.#count);",
+    "options": [
+      "It logs 0",
+      "It logs undefined",
+      "A SyntaxError is raised before any code runs",
+      "It throws a TypeError at runtime when that log line executes"
+    ],
+    "correctIndex": 2,
+    "explanation": "Private names like #count are only valid lexically inside the class body that declares them. Referencing `c.#count` outside is an early SyntaxError, so the whole script fails to parse and nothing executes. Unlike the old underscore convention, true private fields cannot be read from outside, not even with bracket notation.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_properties"
+  },
+  {
+    "id": "js-proto-for-in-inherited-keys",
+    "topic": "javascript",
+    "subtopic": "objects-prototypes",
+    "difficulty": "Medium",
+    "title": "for...in vs Object.keys",
+    "question": "What does this log?\n\nconst base = { a: 1 };\nconst o = Object.create(base);\no.b = 2;\nconst keys = [];\nfor (const k in o) keys.push(k);\nconsole.log(Object.keys(o), keys);",
+    "options": [
+      "[\"b\", \"a\"] [\"b\", \"a\"]",
+      "[\"b\"] [\"b\", \"a\"]",
+      "[\"b\"] [\"b\"]",
+      "[\"a\", \"b\"] [\"b\"]"
+    ],
+    "correctIndex": 1,
+    "explanation": "Object.keys returns only the object's own enumerable string keys, so it gives [\"b\"]. A for...in loop also walks the prototype chain and visits inherited enumerable properties, own keys first, so it collects \"b\" then \"a\". That is why for...in loops are often guarded with Object.hasOwn or replaced by Object.keys/entries.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...in"
+  },
+  {
+    "id": "js-this-arrow-in-object-literal",
+    "topic": "javascript",
+    "subtopic": "functions-this",
+    "difficulty": "Easy",
+    "title": "Arrow function as object method",
+    "question": "In an ES module, why does `obj.get()` throw instead of returning 1?\n\nconst obj = { n: 1, get: () => this.n };",
+    "options": [
+      "Arrow functions cannot be stored as properties of object literals in modules",
+      "Inside an arrow, this refers to the arrow function itself, not to obj",
+      "Arrows take this from the enclosing scope, which is undefined here",
+      "Modules freeze object literals, so their properties cannot be read via this"
+    ],
+    "correctIndex": 2,
+    "explanation": "Arrow functions have no own `this`; they capture it lexically from where they are defined. At the top level of an ES module `this` is undefined, so `this.n` throws a TypeError. Use method syntax (`get() { return this.n; }`) when a function needs the object it is called on.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions"
+  },
+  {
+    "id": "js-functions-arrow-arguments-lexical",
+    "topic": "javascript",
+    "subtopic": "functions-this",
+    "difficulty": "Medium",
+    "title": "arguments inside an arrow function",
+    "question": "What does this log?\n\nfunction outer() {\n  const inner = () => arguments[0];\n  return inner(\"b\");\n}\nconsole.log(outer(\"a\"));",
+    "options": [
+      "\"a\"",
+      "\"b\"",
+      "undefined",
+      "ReferenceError: arguments is not defined"
+    ],
+    "correctIndex": 0,
+    "explanation": "Arrow functions have no `arguments` object of their own, just as they have no own `this`. The reference resolves lexically to the enclosing regular function's arguments, which belong to `outer(\"a\")`. Inside arrows, use rest parameters (`(...args) => args[0]`) to access their own arguments.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/arguments"
+  },
+  {
+    "id": "js-this-new-ignores-bound-this",
+    "topic": "javascript",
+    "subtopic": "functions-this",
+    "difficulty": "Hard",
+    "title": "new with a bound function",
+    "question": "What does this log?\n\nfunction Person(name) { this.name = name; }\nconst Bound = Person.bind({ name: \"bound\" });\nconst p = new Bound(\"Ada\");\nconsole.log(p.name, p instanceof Person);",
+    "options": [
+      "\"bound\" false",
+      "\"Ada\" false",
+      "\"Ada\" true",
+      "TypeError: Bound is not a constructor"
+    ],
+    "correctIndex": 2,
+    "explanation": "A bound function can still be used with `new`; in that case the bound this value is ignored and a fresh object is created from the target function's prototype. So `this.name` is set on the new object to \"Ada\", and the object inherits from Person.prototype, making instanceof true. Only the pre-bound arguments, not the bound this, survive a construct call.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind"
+  },
+  {
+    "id": "js-modules-default-and-named-import",
+    "topic": "javascript",
+    "subtopic": "modules",
+    "difficulty": "Easy",
+    "title": "Importing default and named exports",
+    "question": "greet.js contains `export default function greet() {}` and `export const VERSION = 1;`. Which statement imports both?",
+    "options": [
+      "const { greet, VERSION } = import(\"./greet.js\");",
+      "import greet, { VERSION } from \"./greet.js\";",
+      "import * as greet, VERSION from \"./greet.js\";",
+      "import { default, VERSION } from \"./greet.js\";"
+    ],
+    "correctIndex": 1,
+    "explanation": "The default export is imported without braces under any local name, and named exports go inside braces, so `import greet, { VERSION }` is correct. Dynamic `import()` returns a promise of the module namespace, so destructuring it synchronously yields undefined values. A namespace import cannot be followed by a bare name, and `default` must be renamed (`{ default as greet }`) because it is a reserved word.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export"
+  },
+  {
+    "id": "js-modules-evaluated-once-singleton",
+    "topic": "javascript",
+    "subtopic": "modules",
+    "difficulty": "Medium",
+    "title": "Modules are evaluated once",
+    "question": "config.js logs \"init\" at the top level and exports a mutable `settings` object. header.js and footer.js both import it, and main.js imports both. What happens?",
+    "options": [
+      "\"init\" logs twice and each file gets its own settings copy",
+      "\"init\" logs twice, but settings is shared because it is exported",
+      "\"init\" logs once, and both files share the same settings object",
+      "\"init\" logs once, but each importer receives a frozen copy of settings"
+    ],
+    "correctIndex": 2,
+    "explanation": "A module is fetched, linked and evaluated only once per module map; every later import of the same resolved URL receives the same module instance. Top-level code therefore runs once, and all importers see the same exported object, which is why modules naturally behave like singletons. Exports are live bindings, not copies, and they are not frozen.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules"
+  },
+  {
+    "id": "js-modules-strict-implicit-global",
+    "topic": "javascript",
+    "subtopic": "modules",
+    "difficulty": "Medium",
+    "title": "Modules are always strict",
+    "question": "A legacy script starts with `total = 0;` (no declaration). After loading it with `<script type=\"module\">` it throws. Why?",
+    "options": [
+      "Modules cannot declare variables at the top level of the file",
+      "Module scripts run before the DOM exists, so window globals are not yet defined",
+      "type=\"module\" requires every top-level variable to be exported",
+      "Module code is always strict mode, so this is a ReferenceError"
+    ],
+    "correctIndex": 3,
+    "explanation": "ES modules are always in strict mode, with no 'use strict' needed. In strict mode, assigning to an undeclared identifier throws a ReferenceError instead of silently creating a global. Declare the variable with let/const, or attach it to globalThis explicitly if it truly must be global.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Strict_mode"
+  },
+  {
+    "id": "js-modules-circular-import-tdz",
+    "topic": "javascript",
+    "subtopic": "modules",
+    "difficulty": "Expert",
+    "title": "Circular imports and the TDZ",
+    "question": "main.js runs `import \"./a.js\";`. What happens?\n\n// a.js\nimport { b } from \"./b.js\";\nexport const a = \"A\";\nconsole.log(b);\n\n// b.js\nimport { a } from \"./a.js\";\nexport const b = \"B\";\nconsole.log(a);",
+    "options": [
+      "b.js throws a ReferenceError because a is still in its TDZ",
+      "It logs \"A\" and then \"B\"",
+      "It logs undefined and then \"B\"",
+      "Module loading fails with a SyntaxError reporting the circular dependency"
+    ],
+    "correctIndex": 0,
+    "explanation": "Modules are evaluated depth-first, so b.js (a dependency of a.js) runs before a.js's body. The binding `a` is already linked, but `export const a` has not executed yet, so reading it is a temporal dead zone ReferenceError. Cycles are legal in ES modules; they only work when cyclic bindings are not read during evaluation, for example when they are used inside functions called later.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules"
+  },
+  {
+    "id": "js-dom-textcontent-vs-innerhtml",
+    "topic": "javascript",
+    "subtopic": "dom-browser",
+    "difficulty": "Easy",
+    "title": "Rendering user text safely",
+    "question": "A comment widget does `el.innerHTML = comment;`. A user posts `<img src=x onerror=alert(1)>` and the script runs. What is the simplest safe fix?",
+    "options": [
+      "Assign it with `el.textContent = comment;` instead",
+      "Wrap the assignment in a try/catch block",
+      "Run `encodeURIComponent(comment)` before assigning it",
+      "Assign it with `el.outerHTML = comment;` instead"
+    ],
+    "correctIndex": 0,
+    "explanation": "innerHTML parses the string as HTML, so attacker markup with event handlers executes (XSS). textContent inserts the value as plain text and never parses it. encodeURIComponent is for URL components and would show garbled text, and outerHTML parses HTML just like innerHTML.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent"
+  },
+  {
+    "id": "js-dom-event-delegation",
+    "topic": "javascript",
+    "subtopic": "dom-browser",
+    "difficulty": "Medium",
+    "title": "Event delegation for dynamic items",
+    "question": "A to-do list attaches a click listener to every `li` on page load. Items added later never respond to clicks. Which approach fixes it without re-binding on every insert?",
+    "options": [
+      "Pass `{ once: true }` when adding each item's listener",
+      "One listener on the parent `ul` using `event.target.closest(\"li\")`",
+      "Register the listeners in the capture phase with `{ capture: true }`",
+      "Use inline onclick attributes, which automatically apply to future elements"
+    ],
+    "correctIndex": 1,
+    "explanation": "Click events bubble, so a single listener on a stable ancestor sees clicks on any descendant, including ones added later; `closest(\"li\")` finds which item was hit. This is event delegation. `once` removes listeners after one call, capture only changes the phase, and existing listeners never attach themselves to new nodes.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting/Event_bubbling"
+  },
+  {
+    "id": "js-dom-live-htmlcollection-loop",
+    "topic": "javascript",
+    "subtopic": "dom-browser",
+    "difficulty": "Hard",
+    "title": "Live HTMLCollection in a loop",
+    "question": "Only every other element loses the class. Why?\n\nconst items = document.getElementsByClassName(\"active\");\nfor (let i = 0; i < items.length; i++) {\n  items[i].classList.remove(\"active\");\n}",
+    "options": [
+      "The collection is live, so it shrinks each time a class is removed",
+      "classList.remove is asynchronous and skips elements that are still pending",
+      "The loop needs var instead of let to iterate DOM collections correctly",
+      "HTMLCollection indexes start at 1, so the first element is skipped"
+    ],
+    "correctIndex": 0,
+    "explanation": "getElementsByClassName returns a live HTMLCollection that updates as the DOM changes. Removing the class drops the element from the collection, shifting the remaining items down one index while i still increments, so every other element is skipped. Use querySelectorAll (a static NodeList), Array.from(items), or loop while items.length > 0.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/HTMLCollection"
+  },
+  {
+    "id": "js-fetch-credentials-cross-origin",
+    "topic": "javascript",
+    "subtopic": "dom-browser",
+    "difficulty": "Hard",
+    "title": "Sending cookies with cross-origin fetch",
+    "question": "An SPA on app.example.com calls `fetch(\"https://api.example.com/me\")`. The API authenticates with a session cookie, but requests arrive without it. What is needed?",
+    "options": [
+      "Pass `mode: \"no-cors\"` so the browser attaches cookies to the request",
+      "Pass `credentials: \"include\"`, and the API must allow credentials for that origin",
+      "Set the `Cookie` header manually in the fetch init object",
+      "Set `cache: \"no-store\"` so cookies are not stripped from requests the browser cached"
+    ],
+    "correctIndex": 1,
+    "explanation": "fetch defaults to `credentials: \"same-origin\"`, and a different subdomain is a different origin, so cookies are not sent. With `credentials: \"include\"` the browser sends them, and the server must answer with `Access-Control-Allow-Credentials: true` and an explicit (non-*) Allow-Origin. Cookie is a forbidden request header, and no-cors yields an opaque response the page cannot read.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/RequestInit"
+  },
+  {
+    "id": "js-errors-typeerror-null-property",
+    "topic": "javascript",
+    "subtopic": "errors",
+    "difficulty": "Easy",
+    "title": "Error type for null property access",
+    "question": "Which built-in error does this throw?\n\nconst user = null;\nconsole.log(user.name);",
+    "options": [
+      "ReferenceError",
+      "TypeError",
+      "RangeError",
+      "SyntaxError"
+    ],
+    "correctIndex": 1,
+    "explanation": "Reading a property of null or undefined throws a TypeError, because the value is not of a type that has properties. ReferenceError is for undeclared identifiers, RangeError for out-of-range values such as `new Array(-1)`, and SyntaxError for code that cannot be parsed. Optional chaining (`user?.name`) avoids the error.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypeError"
+  },
+  {
+    "id": "js-errors-settimeout-not-caught",
+    "topic": "javascript",
+    "subtopic": "errors",
+    "difficulty": "Medium",
+    "title": "try/catch around a timer callback",
+    "question": "What happens?\n\ntry {\n  setTimeout(() => { throw new Error(\"boom\"); }, 0);\n} catch (e) {\n  console.log(\"caught\");\n}",
+    "options": [
+      "Nothing is caught; it surfaces as an uncaught exception",
+      "\"caught\" is logged once the timer fires",
+      "\"caught\" is logged right away, before the timer callback runs",
+      "setTimeout rejects its returned promise with the error instead"
+    ],
+    "correctIndex": 0,
+    "explanation": "try/catch only covers code that runs synchronously inside the try block. The callback runs later on a fresh call stack, after the try statement has already finished, so the throw is uncaught. Put the try/catch inside the callback, or wrap the timer in a promise and await it. setTimeout returns a timer id, not a promise.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/try...catch"
+  },
+  {
+    "id": "js-errors-return-without-await",
+    "topic": "javascript",
+    "subtopic": "errors",
+    "difficulty": "Hard",
+    "title": "return vs return await in try",
+    "question": "fetchData() returns a promise that rejects. What does `await load()` do?\n\nasync function load() {\n  try {\n    return fetchData();\n  } catch {\n    return \"fallback\";\n  }\n}",
+    "options": [
+      "It resolves to \"fallback\"",
+      "It rejects with fetchData's error",
+      "It resolves to undefined",
+      "It resolves to the still-pending promise object"
+    ],
+    "correctIndex": 1,
+    "explanation": "`return fetchData()` hands the promise back without awaiting it, so the try block completes normally and the catch never runs; the async function's result then adopts the rejection. Writing `return await fetchData()` makes the rejection throw inside the try, so the catch returns \"fallback\". An async function never resolves to a promise object; it always flattens it.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function"
+  },
+  {
+    "id": "js-errors-node-late-rejection-handler",
+    "topic": "javascript",
+    "subtopic": "errors",
+    "difficulty": "Expert",
+    "title": "Late rejection handler crashes Node",
+    "question": "A Node.js 22 service crashes at startup with an unhandled rejection, although the error looks handled:\n\nconst cfg = loadRemoteConfig(); // rejects after ~50 ms\nawait warmCaches();            // takes ~2 s\ntry { use(await cfg); } catch { useDefaults(); }\n\nWhat is going on?",
+    "options": [
+      "cfg rejected with no handler attached, and Node's default mode then throws",
+      "warmCaches swallowed the rejection, so cfg silently resolved to undefined",
+      "Top-level await is not supported in Node.js, so the try block is skipped",
+      "Rejections inside try blocks always escape unless .catch() is chained on them"
+    ],
+    "correctIndex": 0,
+    "explanation": "When cfg rejects, nothing is awaiting it or has called .then/.catch on it yet, so after the microtask queue drains Node reports an unhandled rejection. Since Node 15 the default `--unhandled-rejections=throw` mode raises it as an uncaught exception and the process exits, long before the try is reached. Attach a handler immediately, for example by awaiting both with Promise.all/allSettled.",
+    "referenceUrl": "https://nodejs.org/api/cli.html"
+  },
+  {
+    "id": "js-memory-gc-reachability",
+    "topic": "javascript",
+    "subtopic": "performance-memory",
+    "difficulty": "Easy",
+    "title": "When objects are garbage collected",
+    "question": "When can a modern JavaScript engine's garbage collector reclaim an object?",
+    "options": [
+      "When no root, such as a global or the stack, can reach it",
+      "As soon as its reference count drops to zero, even inside a cycle",
+      "When the function that created the object returns",
+      "Only after every variable that refers to it is set to null"
+    ],
+    "correctIndex": 0,
+    "explanation": "Modern engines use mark-and-sweep: starting from roots (globals, the current call stack), they mark everything reachable and free the rest. Pure reference counting cannot free cycles, and objects outlive their creating function whenever a closure or another object still references them. Setting variables to null is unnecessary when they simply go out of scope.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Memory_management"
+  },
+  {
+    "id": "js-perf-debounce-search",
+    "topic": "javascript",
+    "subtopic": "performance-memory",
+    "difficulty": "Medium",
+    "title": "Debouncing an expensive handler",
+    "question": "A search box runs an expensive filter on every `input` event and typing feels laggy. Results only matter once the user pauses. Which technique fits best?",
+    "options": [
+      "Throttle the handler so it runs at most once per animation frame",
+      "Make the handler async so the filtering no longer blocks typing",
+      "Debounce the handler so it runs once typing pauses for ~300 ms",
+      "Listen to keydown instead of input so the handler fires less often"
+    ],
+    "correctIndex": 2,
+    "explanation": "Debouncing delays the call until events stop arriving for a set interval, so the filter runs once after the user pauses. Throttling still runs repeatedly while the user types, just less often. Marking a function async does not move CPU work off the main thread, and keydown fires at least as often as input.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Debounce"
+  },
+  {
+    "id": "js-perf-layout-thrashing",
+    "topic": "javascript",
+    "subtopic": "performance-memory",
+    "difficulty": "Expert",
+    "title": "Forced synchronous layout",
+    "question": "This loop takes 400 ms for 1,000 cards. What is the main cause?\n\nfor (const card of cards) {\n  const h = card.offsetHeight;\n  card.style.height = h + 10 + \"px\";\n}",
+    "options": [
+      "Interleaved reads and writes force a synchronous layout on every iteration",
+      "offsetHeight is slow because it must round sub-pixel values to integers",
+      "Each style.height assignment triggers a full repaint of the page right away",
+      "Iterating a NodeList with for...of is far slower than a classic for loop"
+    ],
+    "correctIndex": 0,
+    "explanation": "Writing a style invalidates layout, and the next offsetHeight read forces the browser to recalculate layout synchronously, once per card. This is layout thrashing. Batch all reads first and then all writes (or schedule writes with requestAnimationFrame) so layout runs once. Paint is deferred to the next frame, not done per assignment.",
+    "referenceUrl": "https://web.dev/articles/avoid-large-complex-layouts-and-layout-thrashing"
+  },
+  {
+    "id": "js-perf-async-does-not-yield",
+    "topic": "javascript",
+    "subtopic": "performance-memory",
+    "difficulty": "Hard",
+    "title": "async does not make CPU work non-blocking",
+    "question": "`async function processAll(items)` runs a CPU-heavy calculation for 200,000 items in a plain for loop with no await inside. The page freezes until it finishes. Why, and what helps?",
+    "options": [
+      "It still runs on the main thread; yield between chunks or use a Worker",
+      "Async functions only run in the background inside Workers; enable it with a flag",
+      "The promise is never awaited; awaiting processAll() lets the UI keep painting",
+      "for loops block async functions; switching to forEach makes them non-blocking"
+    ],
+    "correctIndex": 0,
+    "explanation": "An async function runs synchronously until its first await, and this one never awaits, so the entire loop blocks the main thread and no rendering or input handling can happen. Async is about waiting on I/O, not parallel CPU work. Split the work into chunks and yield (setTimeout or scheduler.yield where supported), or move it to a Web Worker.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers"
+  },
+  {
+    "id": "ts-basic-noimplicitany-parameter",
+    "topic": "typescript",
+    "subtopic": "basic-types",
+    "difficulty": "Easy",
+    "title": "Untyped parameter under strict",
+    "question": "With `strict: true`, what does the compiler report?\n\nfunction greet(name) {\n  return \"Hi \" + name;\n}",
+    "options": [
+      "Nothing; name is inferred as string from the concatenation",
+      "Nothing; untyped parameters default to unknown",
+      "Function lacks an explicit return type annotation",
+      "Parameter 'name' implicitly has an 'any' type"
+    ],
+    "correctIndex": 3,
+    "explanation": "TypeScript does not infer parameter types from how the body uses them, so an unannotated parameter is `any`. The noImplicitAny check, enabled by strict, reports that implicit any as an error. Return types are inferred, so a missing return annotation is not an error.",
+    "referenceUrl": "https://www.typescriptlang.org/tsconfig/noImplicitAny.html"
+  },
+  {
+    "id": "ts-basic-mixed-array-inference",
+    "topic": "typescript",
+    "subtopic": "basic-types",
+    "difficulty": "Easy",
+    "title": "Inferred type of a mixed array",
+    "question": "What type does TypeScript infer for `items`?\n\nconst items = [1, \"two\", 3];",
+    "options": [
+      "[number, string, number]",
+      "readonly [1, \"two\", 3]",
+      "any[]",
+      "(string | number)[]"
+    ],
+    "correctIndex": 3,
+    "explanation": "For array literals TypeScript computes a best common type from the elements, here the union string | number, and infers a mutable array of it. Tuple types are only inferred with an annotation or `as const` (which would give the readonly literal tuple). `const` only prevents reassigning the variable; it does not make the array readonly.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/type-inference.html"
+  },
+  {
+    "id": "ts-basic-object-property-widening",
+    "topic": "typescript",
+    "subtopic": "basic-types",
+    "difficulty": "Medium",
+    "title": "Literal widening in object properties",
+    "question": "Why does the call fail to compile, and what is a minimal fix?\n\ndeclare function setTheme(t: \"light\" | \"dark\"): void;\nconst cfg = { theme: \"dark\" };\nsetTheme(cfg.theme);",
+    "options": [
+      "const objects are deeply frozen, so their properties must be spread first",
+      "setTheme needs a generic type parameter to accept property access expressions",
+      "String literal unions cannot be used with object properties; use an enum",
+      "The theme property is widened to string; declare the object `as const`"
+    ],
+    "correctIndex": 3,
+    "explanation": "Object properties are mutable, so even in a const object TypeScript infers `theme: string` rather than the literal \"dark\", and string is not assignable to \"light\" | \"dark\". `as const` (or annotating cfg with a suitable type) keeps the literal type. const only stops reassigning the variable itself.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/everyday-types.html"
+  },
+  {
+    "id": "ts-basic-empty-object-vs-object",
+    "topic": "typescript",
+    "subtopic": "basic-types",
+    "difficulty": "Hard",
+    "title": "{} vs object vs Object",
+    "question": "Under strict mode, which lines fail to compile?\n\nconst a: {} = 42;        // (1)\nconst b: object = 42;    // (2)\nconst c: Object = \"hi\";  // (3)\nconst d: {} = null;      // (4)",
+    "options": [
+      "Only (2)",
+      "Only (4)",
+      "(1), (2) and (4)",
+      "(2) and (4)"
+    ],
+    "correctIndex": 3,
+    "explanation": "`{}` means any non-nullish value, primitives included, so 42 is fine, but with strictNullChecks null is not assignable to it. `object` specifically means non-primitive values, so 42 fails. The global `Object` type also accepts primitives like strings, though `object` or `unknown` are preferred in practice.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/functions.html"
+  },
+  {
+    "id": "ts-types-alias-union",
+    "topic": "typescript",
+    "subtopic": "interfaces-types",
+    "difficulty": "Easy",
+    "title": "Naming a union type",
+    "question": "You need a name for \"a string id or a numeric id\". Which declaration expresses this?",
+    "options": [
+      "type Id = string | number;",
+      "interface Id extends string, number {}",
+      "interface Id { string | number }",
+      "enum Id { string, number }"
+    ],
+    "correctIndex": 0,
+    "explanation": "Type aliases can name any type, including unions of primitives. Interfaces only describe object shapes and cannot extend primitive types or be a union. An enum creates named constants, not a union of the string and number types.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/everyday-types.html"
+  },
+  {
+    "id": "ts-interface-readonly-property",
+    "topic": "typescript",
+    "subtopic": "interfaces-types",
+    "difficulty": "Easy",
+    "title": "readonly interface properties",
+    "question": "What happens here?\n\ninterface User { readonly id: number; name: string }\nconst u: User = { id: 1, name: \"Ada\" };\nu.id = 2;",
+    "options": [
+      "It compiles, because readonly only applies inside classes",
+      "It compiles, but u.id silently stays 1 at runtime",
+      "Error on the interface: readonly needs an initializer",
+      "Compile error: cannot assign to id because it is a read-only property"
+    ],
+    "correctIndex": 3,
+    "explanation": "A readonly property may be set when the object is created but not reassigned afterwards, so `u.id = 2` is a compile-time error. readonly is purely a type-level check: it does not freeze the object at runtime, and it works in interfaces and type aliases as well as classes.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/objects.html"
+  },
+  {
+    "id": "ts-interface-index-signature-conflict",
+    "topic": "typescript",
+    "subtopic": "interfaces-types",
+    "difficulty": "Medium",
+    "title": "Index signature vs named property",
+    "question": "Why does this interface fail to compile?\n\ninterface Scores {\n  [player: string]: number;\n  title: string;\n}",
+    "options": [
+      "title is a string key, so its type must match the number index signature",
+      "Index signatures in interfaces must use number keys, not string keys",
+      "Interfaces cannot combine an index signature with any explicitly named properties",
+      "The index signature parameter must be named key for the compiler to accept it"
+    ],
+    "correctIndex": 0,
+    "explanation": "A string index signature promises that every string-keyed property has that value type, and named properties are string keys too, so `title: string` conflicts with `number`. Named properties are allowed alongside an index signature as long as they conform. Fix it with `number | string` or move title outside the dictionary.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/objects.html"
+  },
+  {
+    "id": "ts-interface-extends-vs-intersection-conflict",
+    "topic": "typescript",
+    "subtopic": "interfaces-types",
+    "difficulty": "Hard",
+    "title": "Conflicting members: extends vs &",
+    "question": "How does the compiler treat these declarations?\n\ninterface A { id: string }\ninterface B extends A { id: number }\ntype C = A & { id: number };",
+    "options": [
+      "Both compile, and id becomes string | number in B and C",
+      "Both are errors because the id types conflict",
+      "B is an error; C compiles but its id is never",
+      "B compiles with id: number; C errors where it is declared"
+    ],
+    "correctIndex": 2,
+    "explanation": "`extends` checks that the derived interface is compatible with the base, so B reports \"incorrectly extends interface A\". An intersection never errors at declaration; it intersects member types, so id becomes string & number, which is never, and no real value can satisfy C. That difference is a key reason to prefer interface extension for object hierarchies.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/objects.html"
+  },
+  {
+    "id": "ts-generics-inferred-return",
+    "topic": "typescript",
+    "subtopic": "generics",
+    "difficulty": "Easy",
+    "title": "Inferring a generic return type",
+    "question": "What is the type of `x`?\n\nfunction first<T>(xs: T[]): T | undefined { return xs[0]; }\nconst x = first([1, 2, 3]);",
+    "options": [
+      "number | undefined",
+      "number",
+      "1 | 2 | 3 | undefined",
+      "unknown"
+    ],
+    "correctIndex": 0,
+    "explanation": "T is inferred from the argument: the array literal is number[], so T is number and the declared return type becomes number | undefined. Literal types like 1 | 2 | 3 are widened for a plain type parameter, and the undefined in the declared return type is kept rather than dropped.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/generics.html"
+  },
+  {
+    "id": "ts-generics-usestate-null-initial",
+    "topic": "typescript",
+    "subtopic": "generics",
+    "difficulty": "Medium",
+    "title": "Generic argument for nullable state",
+    "question": "In a React + TypeScript component, `const [user, setUser] = useState(null);` then fails at `setUser({ name: \"Ada\" })`. What is the idiomatic fix?",
+    "options": [
+      "Use a lazy initializer, useState(() => null), to defer inference",
+      "Use useState(undefined), which widens the state type to any",
+      "Add a return type to the component so the state type is widened",
+      "Pass the type argument explicitly: useState<User | null>(null)"
+    ],
+    "correctIndex": 3,
+    "explanation": "useState is generic, and T is inferred from the initial value; null alone gives state of type null, so nothing else can be set. Supplying the type argument explicitly declares the full set of values. A lazy initializer returning null infers the same type, and under strict mode undefined infers undefined, not any.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/generics.html"
+  },
+  {
+    "id": "ts-narrowing-in-operator",
+    "topic": "typescript",
+    "subtopic": "unions-narrowing",
+    "difficulty": "Easy",
+    "title": "Narrowing with the in operator",
+    "question": "Given `type Fish = { swim(): void }` and `type Bird = { fly(): void }`, which check narrows `pet: Fish | Bird` to Fish?",
+    "options": [
+      "if (typeof pet === \"Fish\")",
+      "if (pet instanceof Fish)",
+      "if (pet.swim)",
+      "if (\"swim\" in pet)"
+    ],
+    "correctIndex": 3,
+    "explanation": "The `in` operator checks for a property at runtime, and TypeScript narrows the union to members that have it. typeof only returns JavaScript type names like \"object\", Fish is a type and does not exist at runtime for instanceof, and `pet.swim` is a compile error because swim does not exist on Bird.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/narrowing.html"
+  },
+  {
+    "id": "ts-narrowing-type-predicate",
+    "topic": "typescript",
+    "subtopic": "unions-narrowing",
+    "difficulty": "Medium",
+    "title": "Type guards need a predicate",
+    "question": "Inside the if, `x.toUpperCase()` is still an error. Why?\n\nfunction isString(x: unknown): boolean {\n  return typeof x === \"string\";\n}\nfunction f(x: unknown) {\n  if (isString(x)) x.toUpperCase();\n}",
+    "options": [
+      "unknown can never be narrowed, so the parameter must be typed as any",
+      "typeof checks narrow only within one function, so the check must be inlined",
+      "toUpperCase needs a non-null assertion, written as x!.toUpperCase()",
+      "The boolean return type hides the check; use `x is string`"
+    ],
+    "correctIndex": 3,
+    "explanation": "A function declared to return plain boolean tells callers nothing about its argument, so no narrowing happens. Declaring the return type as the predicate `x is string` makes the call act as a type guard. Since TypeScript 5.5 such predicates can also be inferred, but only when you omit the explicit boolean annotation.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/narrowing.html"
+  },
+  {
+    "id": "ts-utility-parameters-extract",
+    "topic": "typescript",
+    "subtopic": "utility-types",
+    "difficulty": "Medium",
+    "title": "Reusing an unexported parameter type",
+    "question": "A library exports `createClient(options: { url: string; retries?: number })` but not its options type. How do you reuse that type?",
+    "options": [
+      "type Opts = ReturnType<typeof createClient>;",
+      "type Opts = typeof createClient.options;",
+      "type Opts = InstanceType<typeof createClient>[0];",
+      "type Opts = Parameters<typeof createClient>[0];"
+    ],
+    "correctIndex": 3,
+    "explanation": "Parameters<F> produces a tuple of a function type's parameter types, so indexing [0] gives the options object type. `typeof createClient` is needed to move from the value to its type. ReturnType gives what it returns, and InstanceType only applies to constructor types.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/utility-types.html"
+  },
+  {
+    "id": "ts-utility-readonly-shallow",
+    "topic": "typescript",
+    "subtopic": "utility-types",
+    "difficulty": "Medium",
+    "title": "Readonly is shallow",
+    "question": "Which line compiles?\n\ntype Post = { title: string; tags: string[] };\nconst p: Readonly<Post> = { title: \"Hi\", tags: [] };\np.title = \"Bye\";    // (1)\np.tags.push(\"ts\");  // (2)\np.tags = [];        // (3)",
+    "options": [
+      "None of them",
+      "Only (2)",
+      "(2) and (3)",
+      "Only (1)"
+    ],
+    "correctIndex": 1,
+    "explanation": "Readonly<T> marks only the top-level properties as readonly, so reassigning title or tags is an error. The array stored in tags is still a mutable string[], so calling push on it compiles. For deep immutability you need readonly string[] in the type, `as const`, or a recursive DeepReadonly helper.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/utility-types.html"
+  },
+  {
+    "id": "ts-utility-omit-union-not-distributive",
+    "topic": "typescript",
+    "subtopic": "utility-types",
+    "difficulty": "Hard",
+    "title": "Omit on a union type",
+    "question": "Why does the last line fail to compile?\n\ntype Shape =\n  | { kind: \"circle\"; id: string; radius: number }\n  | { kind: \"square\"; id: string; size: number };\ntype NewShape = Omit<Shape, \"id\">;\nconst s: NewShape = { kind: \"circle\", radius: 2 };",
+    "options": [
+      "Omit also removes the discriminant, so kind becomes never",
+      "Object literals need a cast before they are assigned to Omit types",
+      "Omit accepts only interfaces, so the union collapses to an empty object",
+      "Omit keeps only keys common to all members, so radius is gone"
+    ],
+    "correctIndex": 3,
+    "explanation": "Omit<T, K> is built from keyof T, and keyof a union yields only the keys shared by every member (kind and id). The result is a single object type { kind: \"circle\" | \"square\" }, so radius is an excess property. Use a distributive helper such as `T extends unknown ? Omit<T, K> : never` to keep each member's own keys.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/utility-types.html"
+  },
+  {
+    "id": "ts-enum-numeric-auto-increment",
+    "topic": "typescript",
+    "subtopic": "enums-modules",
+    "difficulty": "Easy",
+    "title": "Numeric enum auto-increment",
+    "question": "What is the value of `Level.High`?\n\nenum Level { Low = 1, Medium, High }",
+    "options": [
+      "2",
+      "\"High\"",
+      "undefined",
+      "3"
+    ],
+    "correctIndex": 3,
+    "explanation": "Members of a numeric enum without an initializer take the previous member's value plus one. Low is 1, so Medium is 2 and High is 3. Only string enums use string values, and those must be initialised explicitly.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/enums.html"
+  },
+  {
+    "id": "ts-modules-import-type-erased",
+    "topic": "typescript",
+    "subtopic": "enums-modules",
+    "difficulty": "Easy",
+    "title": "What import type guarantees",
+    "question": "What does `import type { User } from \"./models\";` guarantee?",
+    "options": [
+      "The import is fully erased from the emitted JavaScript",
+      "User is imported as a class that cannot be instantiated",
+      "./models is loaded lazily the first time User is used",
+      "./models still loads at runtime, but only for its side effects"
+    ],
+    "correctIndex": 0,
+    "explanation": "`import type` only brings in declarations for type checking, and the statement is always removed from the output, so ./models is not loaded at runtime by this import. You can use User in annotations but not as a value. This matters for avoiding unwanted runtime imports and for tools that compile files in isolation.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-8.html"
+  },
+  {
+    "id": "ts-modules-nodenext-js-extension",
+    "topic": "typescript",
+    "subtopic": "enums-modules",
+    "difficulty": "Medium",
+    "title": "Relative imports under nodenext",
+    "question": "A package has `\"type\": \"module\"` and tsconfig `\"module\": \"nodenext\"`. In src/index.ts, `import { add } from \"./math\";` is an error. What fixes it with the default tsc output?",
+    "options": [
+      "Set baseUrl to \".\" so extensionless relative paths resolve",
+      "Switch it to a default import: import add from \"./math\"",
+      "Write the specifier as \"./math.js\", the extension of the emitted file",
+      "Add a math.d.ts declaration file next to math.ts"
+    ],
+    "correctIndex": 2,
+    "explanation": "Node's ESM loader requires full relative specifiers including the extension, and tsc does not rewrite import paths by default. So you write the specifier as it must appear in the emitted JavaScript, \"./math.js\"; TypeScript maps it back to math.ts during type checking. baseUrl and declaration files do not change Node's runtime resolution rules.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/modules/reference.html"
+  },
+  {
+    "id": "ts-enum-node-type-stripping",
+    "topic": "typescript",
+    "subtopic": "enums-modules",
+    "difficulty": "Hard",
+    "title": "Enums and Node type stripping",
+    "question": "Running `node src/app.ts` with Node's built-in TypeScript type stripping fails with ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX on `enum Status { Active, Banned }`. Why?",
+    "options": [
+      "Node requires enums to be declared in a separate .d.ts file first",
+      "Enums emit runtime JavaScript, and Node only erases type-only syntax",
+      "Numeric enums are deprecated in TypeScript 5.x and must be string enums",
+      "Node strips types only from .mts files, so .ts files are parsed as plain JavaScript"
+    ],
+    "correctIndex": 1,
+    "explanation": "Node runs TypeScript by removing inline type annotations without transforming code. Enums, namespaces with runtime code and parameter properties generate JavaScript, so they are rejected. Replace the enum with an `as const` object plus a union type, or compile with tsc; TypeScript 5.8's erasableSyntaxOnly option flags such syntax at compile time.",
+    "referenceUrl": "https://nodejs.org/api/typescript.html"
+  },
+  {
+    "id": "ts-advanced-keyof-typeof",
+    "topic": "typescript",
+    "subtopic": "advanced-types",
+    "difficulty": "Easy",
+    "title": "keyof typeof an object",
+    "question": "What is `RouteName`?\n\nconst routes = { home: \"/\", about: \"/about\" };\ntype RouteName = keyof typeof routes;",
+    "options": [
+      "\"/\" | \"/about\"",
+      "string",
+      "{ home: string; about: string }",
+      "\"home\" | \"about\""
+    ],
+    "correctIndex": 3,
+    "explanation": "`typeof routes` turns the value into its object type { home: string; about: string }, and keyof then produces the union of its keys. The values (\"/\", \"/about\") would need an indexed access type like `(typeof routes)[keyof typeof routes]`, and with as const they would be literals.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/keyof-types.html"
+  },
+  {
+    "id": "ts-advanced-template-literal-capitalize",
+    "topic": "typescript",
+    "subtopic": "advanced-types",
+    "difficulty": "Medium",
+    "title": "Template literal types over a union",
+    "question": "What is `Handler`?\n\ntype Evt = \"click\" | \"focus\";\ntype Handler = `on${Capitalize<Evt>}`;",
+    "options": [
+      "`on${Capitalize<string>}`",
+      "`on${string}`",
+      "\"onClick\" | \"onFocus\"",
+      "string"
+    ],
+    "correctIndex": 2,
+    "explanation": "Template literal types distribute over unions in their placeholders, producing one string literal per member. Capitalize uppercases the first character of each, giving \"onClick\" | \"onFocus\". The result stays a precise union rather than widening to string or a pattern type.",
+    "referenceUrl": "https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html"
+  },
+  {
+    "id": "react-jsx-lowercase-component",
+    "topic": "react",
+    "subtopic": "components-jsx",
+    "difficulty": "Easy",
+    "title": "Component names must be capitalized",
+    "question": "A component is defined as `function profileCard() {...}` and used as `<profileCard />`. Its content never renders. Why?",
+    "options": [
+      "Components must be declared with arrow functions in order to render",
+      "JSX requires a component to be default-exported before it can be used",
+      "Lowercase JSX tags are treated as HTML elements, not components",
+      "Self-closing tags only work for built-in elements like <img />"
+    ],
+    "correctIndex": 2,
+    "explanation": "JSX uses capitalization to decide what a tag means: lowercase names become DOM elements (here an unknown <profilecard> element), and capitalized names refer to component variables in scope. Rename it ProfileCard. Function declarations, named exports and self-closing component tags all work fine.",
+    "referenceUrl": "https://react.dev/learn/your-first-component"
+  },
+  {
+    "id": "react-jsx-inline-style-object",
+    "topic": "react",
+    "subtopic": "components-jsx",
+    "difficulty": "Easy",
+    "title": "Inline style syntax in JSX",
+    "question": "Which JSX correctly sets an inline red text color?",
+    "options": [
+      "<p styles={{ color: \"red\" }}>Hi</p>",
+      "<p style={{ color: \"red\" }}>Hi</p>",
+      "<p style={{ textColor: \"red\" }}>Hi</p>",
+      "<p css={{ color: \"red\" }}>Hi</p>"
+    ],
+    "correctIndex": 1,
+    "explanation": "In React the style prop takes a JavaScript object with camelCase keys, not a CSS string. The outer braces enter JavaScript and the inner braces are the object literal, hence the double braces. Keys must be real CSS properties in camelCase (textColor is not one), the prop is named style rather than styles, and css is not a built-in React prop.",
+    "referenceUrl": "https://react.dev/learn/javascript-in-jsx-with-curly-braces"
+  },
+  {
+    "id": "react-jsx-fragment-key",
+    "topic": "react",
+    "subtopic": "components-jsx",
+    "difficulty": "Medium",
+    "title": "Keys on fragments",
+    "question": "A glossary maps each term to `<><dt>{t.term}</dt><dd>{t.def}</dd></>` and React warns about missing keys. How do you add the key?",
+    "options": [
+      "Put key={t.id} on the <dt>, the first child inside the fragment",
+      "Use the explicit <Fragment key={t.id}> instead of the <> shorthand",
+      "Put key={t.id} on the <dd>, since React reads the last child",
+      "Pass t.id as map's second argument: terms.map(render, t.id)"
+    ],
+    "correctIndex": 1,
+    "explanation": "The key must be on the outermost element returned from map, which here is the fragment. The short <></> syntax cannot take props, so use the explicit <Fragment key={t.id}>. Keys on inner children do not identify the list item, and map's second argument is the this value, not a key.",
+    "referenceUrl": "https://react.dev/reference/react/Fragment"
+  },
+  {
+    "id": "react-pure-component-strictmode",
+    "topic": "react",
+    "subtopic": "components-jsx",
+    "difficulty": "Hard",
+    "title": "Impure render under StrictMode",
+    "question": "In development with <StrictMode>, three cups show guest numbers 2, 4, 6 instead of 1, 2, 3. Why?\n\nlet guest = 0;\nfunction Cup() {\n  guest++;\n  return <h2>Tea for guest #{guest}</h2>;\n}",
+    "options": [
+      "StrictMode mounts every Cup twice in the DOM and hides the duplicate copies",
+      "Module-level variables are reset by React between the two commit phases",
+      "Cup mutates an outer variable during render, and StrictMode renders twice",
+      "JSX evaluates {guest} once during render and again during the commit"
+    ],
+    "correctIndex": 2,
+    "explanation": "Components must be pure: same inputs, same output, no changes to pre-existing variables during render. In development StrictMode calls component functions twice to expose impurity, so each Cup increments guest twice. Pass the number as a prop instead; the production build would show 1, 2, 3 but the bug would remain latent.",
+    "referenceUrl": "https://react.dev/learn/keeping-components-pure"
+  },
+  {
+    "id": "react-props-readonly-lift-state",
+    "topic": "react",
+    "subtopic": "props-state",
+    "difficulty": "Easy",
+    "title": "Changing a value received as a prop",
+    "question": "A child component needs to change a value it receives as a prop. What is the React way?",
+    "options": [
+      "Assign the new value to props.value so React re-renders the child",
+      "Lift the state to the parent and pass down a setter callback",
+      "Mutate the prop object and then call forceUpdate on the child",
+      "Use Object.assign(props, changes) so the parent sees the update"
+    ],
+    "correctIndex": 1,
+    "explanation": "Props are read-only snapshots owned by the parent; mutating them neither updates the parent nor reliably triggers a render. The parent should hold the state and pass both the value and a function to change it, so the child requests the change and the parent re-renders with the new props.",
+    "referenceUrl": "https://react.dev/learn/passing-props-to-a-component"
+  },
+  {
+    "id": "react-events-handler-called-in-render",
+    "topic": "react",
+    "subtopic": "props-state",
+    "difficulty": "Medium",
+    "title": "Calling a handler instead of passing it",
+    "question": "This component crashes with \"Too many re-renders\". Why?\n\n<button onClick={setOpen(true)}>Open</button>",
+    "options": [
+      "onClick expects the handler's name as a string, not an expression",
+      "setOpen(true) runs during every render instead of when clicked",
+      "Boolean state cannot be updated directly from a button element",
+      "The button needs type=\"button\" to stop it from re-rendering in a loop"
+    ],
+    "correctIndex": 1,
+    "explanation": "The expression inside the braces is evaluated on every render, so setOpen(true) is called while rendering, which schedules another render, and so on. onClick must receive a function: `onClick={() => setOpen(true)}`. JSX event props take functions, not strings.",
+    "referenceUrl": "https://react.dev/learn/responding-to-events"
+  },
+  {
+    "id": "react-state-mirroring-props",
+    "topic": "react",
+    "subtopic": "props-state",
+    "difficulty": "Hard",
+    "title": "Mirroring props in state",
+    "question": "`function Badge({ color }) { const [c, setC] = useState(color); return <span style={{ color: c }} />; }` keeps showing the first color after the parent passes a new one. Why?",
+    "options": [
+      "Props are frozen after mount unless the parent calls forceUpdate",
+      "React caches style objects, so later color changes are ignored",
+      "Badge must be wrapped in memo before it can receive updated props",
+      "useState reads its argument only on the first render of Badge"
+    ],
+    "correctIndex": 3,
+    "explanation": "The initial value passed to useState is read only on the first render; later renders keep the stored state, so c never follows the color prop. Use the prop directly (it is already reactive), or if you really want an initial value, name it initialColor to make that explicit. Badge does receive the new props; it just ignores them.",
+    "referenceUrl": "https://react.dev/learn/choosing-the-state-structure"
+  },
+  {
+    "id": "react-hooks-uselayouteffect-flicker",
+    "topic": "react",
+    "subtopic": "hooks",
+    "difficulty": "Expert",
+    "title": "Measuring layout before paint",
+    "question": "A Tooltip renders at a default position, measures its height in useEffect, then sets state to move above the target. Users briefly see it in the wrong place. What fixes the flicker?",
+    "options": [
+      "Wrap the setState call in startTransition so both positions commit together",
+      "Do the measurement in useLayoutEffect, which runs before the browser paints",
+      "Move the measurement into useMemo so it runs during render instead",
+      "Call flushSync inside the useEffect to skip the intermediate paint"
+    ],
+    "correctIndex": 1,
+    "explanation": "useEffect usually runs after the browser has painted, so the first position is visible for a frame. useLayoutEffect runs after DOM mutations but before paint, and state updates inside it are processed synchronously, so the user only sees the final position. It blocks painting, so reserve it for measurements like this. The DOM does not exist yet during render.",
+    "referenceUrl": "https://react.dev/reference/react/useLayoutEffect"
+  },
+  {
+    "id": "react-query-enabled-dependent",
+    "topic": "react",
+    "subtopic": "data-fetching",
+    "difficulty": "Easy",
+    "title": "Dependent queries with enabled",
+    "question": "With TanStack Query, a projects query needs `user.id`, which comes from another query and starts undefined. How do you keep it from running too early?",
+    "options": [
+      "Pass `enabled: !!user?.id` so the query waits for the id",
+      "Call useQuery inside an if (user) block in the component",
+      "Set `staleTime: Infinity` until the id becomes available",
+      "Set `retry: false` so the failing first request is ignored"
+    ],
+    "correctIndex": 0,
+    "explanation": "The enabled option keeps a query idle until it is true, which is the documented pattern for dependent queries. Calling hooks conditionally breaks the Rules of Hooks, staleTime controls freshness rather than whether a query runs, and disabling retries would still fire the bad request.",
+    "referenceUrl": "https://tanstack.com/query/latest/docs/framework/react/guides/dependent-queries"
+  },
+  {
+    "id": "react-query-gctime-vs-staletime",
+    "topic": "react",
+    "subtopic": "data-fetching",
+    "difficulty": "Hard",
+    "title": "Cached but stale data",
+    "question": "With TanStack Query defaults, a user leaves the Todos page and returns 2 minutes later. Todos appear instantly, then a network request fires. Why?",
+    "options": [
+      "The browser HTTP cache served the first render, and Query revalidated it",
+      "staleTime defaults to 5 minutes, but remounting always forces a refetch",
+      "Data stays cached for 5 min (gcTime) but is already stale (staleTime 0)",
+      "gcTime keeps data fresh for 5 minutes, but refetchOnMount ignores freshness"
+    ],
+    "correctIndex": 2,
+    "explanation": "Inactive query data is kept in the cache for gcTime (5 minutes by default), so the remounted component renders it immediately. staleTime defaults to 0, so that data is already stale, and refetchOnMount triggers a background refetch for stale queries. Raise staleTime if the data can be considered fresh for longer.",
+    "referenceUrl": "https://tanstack.com/query/latest/docs/framework/react/guides/caching"
+  },
+  {
+    "id": "react-usecallback-stale-empty-deps",
+    "topic": "react",
+    "subtopic": "memoization",
+    "difficulty": "Medium",
+    "title": "useCallback with missing dependencies",
+    "question": "Clicking Save always submits the initial empty draft. Why?\n\nconst [draft, setDraft] = useState(\"\");\nconst handleSave = useCallback(() => save(draft), []);",
+    "options": [
+      "It captures the first render's draft; add draft to the deps",
+      "useCallback calls save immediately during render, before any typing",
+      "useState resets draft whenever a memoized callback is invoked",
+      "save must be wrapped in useMemo before it is passed to useCallback"
+    ],
+    "correctIndex": 0,
+    "explanation": "useCallback returns the same function until a dependency changes. With an empty array, the cached function is the one from the first render, which closed over draft = \"\". Listing draft as a dependency gives a fresh function whenever the draft changes; the exhaustive-deps lint rule catches this.",
+    "referenceUrl": "https://react.dev/reference/react/useCallback"
+  },
+  {
+    "id": "react-usememo-not-semantic-guarantee",
+    "topic": "react",
+    "subtopic": "memoization",
+    "difficulty": "Hard",
+    "title": "useMemo is not for side effects",
+    "question": "A component creates a socket with `const socket = useMemo(() => new WebSocket(url), [url]);`. Why is this a bad idea?",
+    "options": [
+      "useMemo can only cache primitive values, not objects such as sockets",
+      "useMemo runs after paint, so the socket would connect too late",
+      "useMemo is only a performance hint, and React may drop its cache",
+      "Memoized values are frozen, so the socket would be unable to send messages"
+    ],
+    "correctIndex": 2,
+    "explanation": "React treats useMemo purely as an optimisation and may throw away cached values, recreating the socket without ever closing the old one. useMemo also offers no cleanup. Opening connections is a side effect, so it belongs in useEffect with a cleanup that closes the socket. useMemo can cache any value and runs during render.",
+    "referenceUrl": "https://react.dev/reference/react/useMemo"
+  },
+  {
+    "id": "react-context-default-without-provider",
+    "topic": "react",
+    "subtopic": "refs-context",
+    "difficulty": "Easy",
+    "title": "Context without a provider",
+    "question": "`const ThemeContext = createContext(\"light\");` A component calls `useContext(ThemeContext)` with no provider above it. What does it get?",
+    "options": [
+      "undefined",
+      "\"light\"",
+      "null",
+      "It throws a missing-provider error"
+    ],
+    "correctIndex": 1,
+    "explanation": "When no matching provider exists above the component, useContext returns the default value passed to createContext. The default never changes. React does not throw for a missing provider, which is why some teams use a default of null and throw a custom error themselves.",
+    "referenceUrl": "https://react.dev/reference/react/createContext"
+  },
+  {
+    "id": "react-ref-null-during-render",
+    "topic": "react",
+    "subtopic": "refs-context",
+    "difficulty": "Medium",
+    "title": "Reading a DOM ref during render",
+    "question": "This throws on the first render. Why?\n\nfunction Search() {\n  const inputRef = useRef(null);\n  inputRef.current.focus();\n  return <input ref={inputRef} />;\n}",
+    "options": [
+      "useRef must be given the element type, as in useRef(HTMLInputElement)",
+      "React sets ref.current after commit, so it is still null during render",
+      "focus() is unavailable until the component is wrapped in forwardRef",
+      "Refs can only be attached to class components, not to <input> elements"
+    ],
+    "correctIndex": 1,
+    "explanation": "React assigns DOM nodes to refs during the commit phase, after rendering, so on the first render inputRef.current is still null. Access DOM refs in an effect or an event handler instead, for example `useEffect(() => inputRef.current.focus(), [])`. Built-in elements accept refs directly.",
+    "referenceUrl": "https://react.dev/learn/manipulating-the-dom-with-refs"
+  },
+  {
+    "id": "react-context-memo-does-not-block",
+    "topic": "react",
+    "subtopic": "refs-context",
+    "difficulty": "Hard",
+    "title": "memo and context updates",
+    "question": "`const Sidebar = memo(SidebarImpl)` receives no props, yet it re-renders whenever the theme changes. SidebarImpl calls `useContext(ThemeContext)`. Why?",
+    "options": [
+      "memo is ignored for components that receive no props at all",
+      "Context providers remount every memoized descendant on each change",
+      "memo compares props only; context changes still re-render consumers",
+      "useContext clears memo's cache whenever any provider in the tree re-renders"
+    ],
+    "correctIndex": 2,
+    "explanation": "memo lets React skip a render when props are unchanged, but a component that reads a context always re-renders when that context's value changes. This is expected behaviour, not a leak around memo. To limit work, split contexts or pass narrower values so fewer components subscribe.",
+    "referenceUrl": "https://react.dev/reference/react/memo"
+  },
+  {
+    "id": "react-custom-hook-use-prefix",
+    "topic": "react",
+    "subtopic": "custom-hooks",
+    "difficulty": "Easy",
+    "title": "Naming functions that call hooks",
+    "question": "A helper `function getWindowWidth()` calls useState and useEffect, and the linter reports a Rules of Hooks error. What is the fix?",
+    "options": [
+      "Move the useState call inside a useEffect in the helper",
+      "Rename it useWindowWidth so it is treated as a Hook",
+      "Export the helper as a default export so the linter skips it",
+      "Wrap the helper's body in useCallback to make it a Hook"
+    ],
+    "correctIndex": 1,
+    "explanation": "Hooks may only be called from components or from other Hooks, and the `use` prefix is how React and its linter recognise a custom Hook. Renaming it makes the rule checks apply to its callers correctly. Calling Hooks inside effects or callbacks is itself a violation.",
+    "referenceUrl": "https://react.dev/learn/reusing-logic-with-custom-hooks"
+  },
+  {
+    "id": "react-custom-hook-reactive-args",
+    "topic": "react",
+    "subtopic": "custom-hooks",
+    "difficulty": "Medium",
+    "title": "Custom hooks receive latest values",
+    "question": "`useChatRoom({ roomId })` connects inside a useEffect with `[roomId]` as dependencies. When the parent changes roomId, what happens?",
+    "options": [
+      "The hook re-runs with the new roomId and the effect reconnects",
+      "Nothing; custom hooks read their arguments only on the first mount",
+      "The component unmounts and remounts so that the hook can reset",
+      "React throws an error, since hook arguments must stay constant"
+    ],
+    "correctIndex": 0,
+    "explanation": "A custom hook is just part of the component's render, so it runs on every render with the latest arguments. Because roomId is an effect dependency, React disconnects the old room in cleanup and connects to the new one. Custom hook arguments are reactive values like any other props or state.",
+    "referenceUrl": "https://react.dev/learn/reusing-logic-with-custom-hooks"
+  },
+  {
+    "id": "react-custom-hook-useeffectevent",
+    "topic": "react",
+    "subtopic": "custom-hooks",
+    "difficulty": "Expert",
+    "title": "Event handlers passed to custom hooks",
+    "question": "`useChatRoom({ roomId, onMessage })` lists onMessage in its effect deps. Parents pass inline arrows, so the chat reconnects on every parent render. In React 19.2+, what is the cleanest fix inside the hook?",
+    "options": [
+      "Remove onMessage from the deps and disable the exhaustive-deps lint rule there",
+      "Wrap onMessage with useEffectEvent and keep the effect deps as [roomId]",
+      "Copy onMessage into useState so that its identity stays stable",
+      "Require every caller to wrap onMessage in useMemo with empty deps"
+    ],
+    "correctIndex": 1,
+    "explanation": "useEffectEvent creates an Effect Event that always sees the latest onMessage without being a dependency, so the effect only re-syncs when roomId changes. Suppressing the lint rule freezes the first callback (a stale closure), state would also freeze it, and forcing empty-deps memoization on callers makes them stale too.",
+    "referenceUrl": "https://react.dev/reference/react/useEffectEvent"
+  },
+  {
+    "id": "react-render-usedeferredvalue-needs-memo",
+    "topic": "react",
+    "subtopic": "rendering",
+    "difficulty": "Expert",
+    "title": "useDeferredValue requires memo",
+    "question": "To keep typing responsive, a page does `const deferred = useDeferredValue(text);` and renders `<SlowList text={deferred} />`. SlowList is a plain function component and typing is still laggy. What is missing?",
+    "options": [
+      "SlowList needs memo so the urgent re-render can skip it with old props",
+      "useDeferredValue needs a timeout, such as 300 ms, as a second argument",
+      "The text input must be uncontrolled for a deferred value to take effect",
+      "SlowList must be lazy-loaded with React.lazy inside a Suspense boundary"
+    ],
+    "correctIndex": 0,
+    "explanation": "On each keystroke React first re-renders with the old deferred value, then renders the new value in the background. Without memo, SlowList re-renders during that urgent render anyway because its parent did, so the expensive work is not skipped. Wrapping it in memo lets React bail out when its props are unchanged. useDeferredValue has no fixed delay.",
+    "referenceUrl": "https://react.dev/reference/react/useDeferredValue"
+  },
+  {
+    "id": "react-router-link-vs-anchor",
+    "topic": "react",
+    "subtopic": "routing-forms",
+    "difficulty": "Medium",
+    "title": "Client-side navigation links",
+    "question": "In a React Router app, navigating with `<a href=\"/settings\">` wipes in-memory state such as an open cart. What should be used instead?",
+    "options": [
+      "<a href=\"#/settings\">, because hash links keep the app's store alive",
+      "<Navigate to=\"/settings\">, which is the router's clickable link element",
+      "<Link to=\"/settings\">, which changes the URL without a page reload",
+      "<Route path=\"/settings\">, so the route itself handles the click"
+    ],
+    "correctIndex": 2,
+    "explanation": "A plain anchor makes the browser load a new document, discarding all JavaScript state. Link renders an anchor but intercepts the click and updates the URL through the History API, so the app stays mounted. Navigate redirects as soon as it renders, and a hash URL does not match routes in a browser router.",
+    "referenceUrl": "https://reactrouter.com/api/components/Link"
+  },
+  {
+    "id": "react-forms-useactionstate-args",
+    "topic": "react",
+    "subtopic": "routing-forms",
+    "difficulty": "Medium",
+    "title": "useActionState action arguments",
+    "question": "With React 19's `const [state, formAction, isPending] = useActionState(updateName, null);` passed to a form, what arguments does `updateName` receive on submit?",
+    "options": [
+      "(formData) only",
+      "(event, formData)",
+      "(formData, previousState)",
+      "(previousState, formData)"
+    ],
+    "correctIndex": 3,
+    "explanation": "An action wrapped by useActionState receives the previous (or initial) state first and then the form data, and whatever it returns becomes the new state. This differs from a plain form action, which receives only formData. Form actions never receive the submit event.",
+    "referenceUrl": "https://react.dev/reference/react/useActionState"
+  },
+  {
+    "id": "react-forms-action-auto-reset",
+    "topic": "react",
+    "subtopic": "routing-forms",
+    "difficulty": "Hard",
+    "title": "Form actions reset uncontrolled fields",
+    "question": "A React 19 `<form action={createPost}>` uses uncontrolled inputs. After createPost succeeds the fields are empty, although no code clears them. Why?",
+    "options": [
+      "The browser reloads the page because the form posts to the server",
+      "createPost's return value replaces the form inputs' defaultValue props",
+      "React resets uncontrolled fields after a successful form action",
+      "useFormStatus clears all inputs automatically when pending turns false"
+    ],
+    "correctIndex": 2,
+    "explanation": "When a function is passed as a form's action, React submits without navigating and, after the action succeeds, resets uncontrolled form fields. To keep values, use controlled inputs or return state from useActionState and render it as defaultValue. requestFormReset exists for resetting manually in other cases.",
+    "referenceUrl": "https://react.dev/reference/react-dom/components/form"
+  },
+  {
+    "id": "react-error-boundary-getderivedstatefromerror",
+    "topic": "react",
+    "subtopic": "error-boundaries",
+    "difficulty": "Easy",
+    "title": "Showing the fallback UI",
+    "question": "In a class error boundary, which method should switch the UI to a fallback after a child throws during rendering?",
+    "options": [
+      "componentWillUnmount()",
+      "shouldComponentUpdate(nextProps)",
+      "static getDerivedStateFromError(error)",
+      "getSnapshotBeforeUpdate(prevProps)"
+    ],
+    "correctIndex": 2,
+    "explanation": "getDerivedStateFromError runs during rendering after a descendant throws and returns state such as { hasError: true }, which render uses to show the fallback. componentDidCatch is its companion for side effects like logging. The other lifecycles are unrelated to error handling.",
+    "referenceUrl": "https://react.dev/reference/react/Component"
+  },
+  {
+    "id": "react-error-boundary-granularity",
+    "topic": "react",
+    "subtopic": "error-boundaries",
+    "difficulty": "Medium",
+    "title": "Placing error boundaries",
+    "question": "A single error boundary wraps the whole app. A crash in the optional Recommendations widget replaces the entire page with \"Something went wrong\". What is the better design?",
+    "options": [
+      "Add separate boundaries around independent sections like widgets",
+      "Wrap the Recommendations JSX in try/catch to trap its child errors",
+      "Handle it in window.onerror and call root.render to restore the page",
+      "Move the boundary into index.html so it catches errors before React"
+    ],
+    "correctIndex": 0,
+    "explanation": "An error boundary replaces everything below it with its fallback, so boundary placement decides how much UI is lost. Wrapping independent areas (widgets, panels, routes) lets one fail while the rest keeps working. A try/catch around JSX cannot catch errors thrown while React renders children, and boundaries only exist as React components.",
+    "referenceUrl": "https://react.dev/reference/react/Component"
+  },
+  {
+    "id": "react-error-boundary-reset-on-navigation",
+    "topic": "react",
+    "subtopic": "error-boundaries",
+    "difficulty": "Hard",
+    "title": "Resetting a boundary after navigation",
+    "question": "A custom error boundary wraps the router outlet. After a crash on /reports it shows its fallback, and client-side navigation to /home still shows the fallback. Why, and what is a common fix?",
+    "options": [
+      "Boundaries catch only once per session, so the page must be reloaded",
+      "React caches the fallback output; call root.unmount() on every navigation",
+      "Navigation errors bypass boundaries, so wrap each Link in its own boundary",
+      "Its error state persists; remount it with key={location.pathname}"
+    ],
+    "correctIndex": 3,
+    "explanation": "The boundary instance stays mounted across client-side navigation, and its hasError state remains true, so it keeps rendering the fallback. Changing its key on route change remounts it with fresh state (libraries offer resetKeys for the same purpose). Boundaries can catch any number of errors once reset.",
+    "referenceUrl": "https://react.dev/learn/preserving-and-resetting-state"
+  },
+  {
+    "id": "react-error-root-oncaughterror",
+    "topic": "react",
+    "subtopic": "error-boundaries",
+    "difficulty": "Expert",
+    "title": "Central error reporting in React 19",
+    "question": "In React 19 you want every error caught by any error boundary, plus every uncaught render error, reported to monitoring from one place. Where do you hook in?",
+    "options": [
+      "window.addEventListener(\"error\") alone, since boundaries rethrow errors",
+      "A global componentDidCatch registered through React.setErrorHandler()",
+      "An onError prop on <StrictMode> at the very top of the component tree",
+      "createRoot(container, { onCaughtError, onUncaughtError }) root options"
+    ],
+    "correctIndex": 3,
+    "explanation": "React 19 added root options: onCaughtError fires for errors caught by an error boundary, onUncaughtError for errors no boundary caught, and onRecoverableError for errors React recovered from automatically. Caught errors are not rethrown to window, so a global error listener misses them. React has no setErrorHandler API, and StrictMode takes no onError prop.",
+    "referenceUrl": "https://react.dev/reference/react-dom/client/createRoot"
+  },
+  {
+    "id": "react-testing-user-event-await",
+    "topic": "react",
+    "subtopic": "testing-react",
+    "difficulty": "Medium",
+    "title": "Awaiting user-event v14 calls",
+    "question": "With @testing-library/user-event v14, `userEvent.click(button); expect(onSave).toHaveBeenCalled();` fails intermittently. What is the recommended pattern?",
+    "options": [
+      "Replace it with fireEvent.click inside act() and enable fake timers",
+      "const user = userEvent.setup(); then await user.click(button)",
+      "Call userEvent.click twice, since the first click only focuses",
+      "Call jest.useRealTimers() before the click so events can dispatch"
+    ],
+    "correctIndex": 1,
+    "explanation": "In user-event v14 every interaction API returns a promise, because it simulates the full sequence of browser events. Not awaiting it lets the assertion run before the click completes. The docs recommend creating a session with userEvent.setup() before rendering and awaiting each interaction.",
+    "referenceUrl": "https://testing-library.com/docs/user-event/intro"
+  },
+  {
+    "id": "react-testing-icon-button-accessible-name",
+    "topic": "react",
+    "subtopic": "testing-react",
+    "difficulty": "Medium",
+    "title": "Querying an icon-only button",
+    "question": "`screen.getByRole(\"button\", { name: /delete/i })` cannot find an icon-only button that renders only an `<svg>`. What is the best fix?",
+    "options": [
+      "Switch to getByTestId, because role queries skip any SVG content",
+      "Give the button an accessible name, e.g. aria-label=\"Delete\"",
+      "Query getByRole(\"img\") instead, since the svg defines the role",
+      "Add role=\"button\" to the svg itself so the role query matches it"
+    ],
+    "correctIndex": 1,
+    "explanation": "The name option matches the accessible name, and an icon-only button has none, which is also a real accessibility bug for screen reader users. Adding aria-label (or visually hidden text) fixes both the app and the test. Test ids bypass the problem instead of fixing it.",
+    "referenceUrl": "https://testing-library.com/docs/queries/byrole"
+  },
+  {
+    "id": "react-testing-waitfor-side-effects",
+    "topic": "react",
+    "subtopic": "testing-react",
+    "difficulty": "Hard",
+    "title": "Side effects inside waitFor",
+    "question": "A test does `await waitFor(() => { fireEvent.click(retry); expect(screen.getByText(\"Done\")).toBeInTheDocument(); });` and the retry handler sometimes runs many times. Why?",
+    "options": [
+      "fireEvent is asynchronous, so waitFor queues one click per animation frame",
+      "getByText triggers a re-render that dispatches the click event again",
+      "When the timeout expires, waitFor replays every event fired inside it",
+      "waitFor re-runs its callback until it passes, clicking on every attempt"
+    ],
+    "correctIndex": 3,
+    "explanation": "waitFor calls its callback repeatedly, on an interval and on DOM mutations, until it stops throwing or times out. Any side effect inside it, like a click, repeats with every attempt. Perform the interaction once before waitFor and keep only assertions inside the callback.",
+    "referenceUrl": "https://testing-library.com/docs/dom-testing-library/api-async"
+  }
+]

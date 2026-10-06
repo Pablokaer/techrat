@@ -1,0 +1,1277 @@
+[
+  {
+    "id": "nw-models-switch-forwards-by-mac",
+    "topic": "networking",
+    "subtopic": "models",
+    "difficulty": "Easy",
+    "title": "What an Ethernet switch forwards on",
+    "question": "A frame arrives at an Ethernet switch. Which information does the switch use to decide which port to send it out of?",
+    "options": [
+      "The destination IP address in the packet header",
+      "The destination TCP port in the segment header",
+      "The destination MAC address in the frame header",
+      "The hostname that DNS resolved for the destination"
+    ],
+    "correctIndex": 2,
+    "explanation": "A switch is a Layer 2 (link layer) device: it learns which MAC addresses sit behind which ports and forwards frames by destination MAC. IP addresses are Layer 3 and drive routers' decisions, ports are Layer 4, and DNS names never appear in forwarding decisions at all.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc1122"
+  },
+  {
+    "id": "nw-models-arp-for-gateway",
+    "topic": "networking",
+    "subtopic": "models",
+    "difficulty": "Medium",
+    "title": "ARP for an off-subnet destination",
+    "question": "Host 192.168.1.10/24 sends its first packet to 8.8.8.8 and its ARP cache is empty. Which MAC address does it send an ARP request for?",
+    "options": [
+      "The MAC address of its default gateway, 192.168.1.1",
+      "The MAC address of 8.8.8.8, resolved across the internet",
+      "None, because the DNS answer already included a MAC",
+      "The broadcast MAC, so that every router forwards it on"
+    ],
+    "correctIndex": 0,
+    "explanation": "8.8.8.8 is outside 192.168.1.0/24, so the host hands the packet to its default gateway: the frame is addressed to the router's MAC while the IP destination stays 8.8.8.8. ARP only works inside one broadcast domain, so you can never ARP for a remote host, and DNS returns IP addresses, not MAC addresses.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc826"
+  },
+  {
+    "id": "nw-models-per-hop-header-rewrite",
+    "topic": "networking",
+    "subtopic": "models",
+    "difficulty": "Hard",
+    "title": "What routers rewrite at each hop",
+    "question": "A packet travels from a laptop through three routers to a server, with no NAT anywhere on the path. Which header fields are rewritten at each router hop?",
+    "options": [
+      "Source and destination IP addresses, replaced with each router's own",
+      "TCP source and destination ports, mapped to new ephemeral values",
+      "Nothing; routers forward the original frame and packet untouched",
+      "Link-layer MAC addresses and the IP TTL with its header checksum"
+    ],
+    "correctIndex": 3,
+    "explanation": "Each router strips the incoming frame and builds a new one from its own interface MAC to the next hop's MAC. At Layer 3 it decrements the TTL (Hop Limit in IPv6) and, for IPv4, recomputes the header checksum, but the source and destination IP addresses stay end-to-end. Addresses and ports only change when NAT/PAT is involved.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc791"
+  },
+  {
+    "id": "nw-models-encapsulation-order",
+    "topic": "networking",
+    "subtopic": "models",
+    "difficulty": "Easy",
+    "title": "Encapsulation order of an HTTP request",
+    "question": "An HTTP request leaves a laptop over Ethernet. In which order is it encapsulated, from innermost to outermost?",
+    "options": [
+      "HTTP data, then IP packet, then TCP segment, then Ethernet frame",
+      "HTTP data, then TCP segment, then IP packet, then Ethernet frame",
+      "HTTP data, then Ethernet frame, then TCP segment, then IP packet",
+      "HTTP data, then TCP segment, then Ethernet frame, then IP packet"
+    ],
+    "correctIndex": 1,
+    "explanation": "Each layer wraps the one above it: application data gets a TCP header (a segment), the segment goes inside an IP packet that addresses the hosts, and the packet goes inside an Ethernet frame for the local link. The receiver unwraps the layers in reverse order.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc1122"
+  },
+  {
+    "id": "nw-ip-rfc1918-172-boundary",
+    "topic": "networking",
+    "subtopic": "ip-subnetting",
+    "difficulty": "Easy",
+    "title": "Spotting a non-private IPv4 address",
+    "question": "Which of these IPv4 addresses is NOT in a private (RFC 1918) range?",
+    "options": [
+      "10.255.0.1",
+      "172.31.200.5",
+      "192.168.100.1",
+      "172.32.0.10"
+    ],
+    "correctIndex": 3,
+    "explanation": "RFC 1918 reserves 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16. The /12 block spans 172.16.0.0 to 172.31.255.255, so 172.31.200.5 is private but 172.32.0.10 is public address space. Assuming that all of 172.x is private is a common mistake.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc1918"
+  },
+  {
+    "id": "nw-ip-169-254-no-dhcp",
+    "topic": "networking",
+    "subtopic": "ip-subnetting",
+    "difficulty": "Medium",
+    "title": "A 169.254.x.x address on a laptop",
+    "question": "A laptop on the office network shows the address 169.254.37.12/16 and cannot reach anything beyond its own segment. What does this address tell you?",
+    "options": [
+      "It got a public address because the NAT router has failed",
+      "It got no DHCP lease and self-assigned a link-local address",
+      "It is in the tunnel range handed out by the corporate VPN",
+      "It received a valid lease from a second, rogue DHCP server"
+    ],
+    "correctIndex": 1,
+    "explanation": "169.254.0.0/16 is reserved for IPv4 link-local autoconfiguration (RFC 3927): a host picks an address there when no DHCP server answers. Such addresses have no gateway and only work on the local link, so troubleshoot DHCP reachability (cable, VLAN, DHCP server or relay). A rogue DHCP server or VPN client would hand out addresses from its own configured pool.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc3927"
+  },
+  {
+    "id": "nw-ip-route-summarization-22",
+    "topic": "networking",
+    "subtopic": "ip-subnetting",
+    "difficulty": "Hard",
+    "title": "Summarising four /24 subnets",
+    "question": "Branch subnets 10.20.4.0/24, 10.20.5.0/24, 10.20.6.0/24 and 10.20.7.0/24 must be advertised as one summary route that covers exactly them and nothing else. Which prefix is it?",
+    "options": [
+      "10.20.0.0/21",
+      "10.20.4.0/23",
+      "10.20.4.0/22",
+      "10.20.4.0/21"
+    ],
+    "correctIndex": 2,
+    "explanation": "Four contiguous /24s fit in a /22, and 4 is a multiple of 4, so 10.20.4.0/22 covers 10.20.4.0-10.20.7.255 exactly. A /23 covers only .4-.5, 10.20.0.0/21 also swallows .0-.3, and 10.20.4.0/21 is not a valid network address because /21 blocks start at multiples of 8 in the third octet.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc4632"
+  },
+  {
+    "id": "nw-tcp-connection-refused-rst",
+    "topic": "networking",
+    "subtopic": "tcp-udp",
+    "difficulty": "Medium",
+    "title": "Connection refused versus a timeout",
+    "question": "Connecting to 10.0.2.15:8080 fails instantly with 'Connection refused' instead of hanging until a timeout. What does that most likely indicate?",
+    "options": [
+      "The host replied with a TCP RST because nothing listens on that port",
+      "A firewall silently dropped the SYN, so the client gave up at once",
+      "DNS failed to resolve the target, so no packet was sent to the host",
+      "The server accepted the connection, then the TLS handshake failed"
+    ],
+    "correctIndex": 0,
+    "explanation": "'Connection refused' (ECONNREFUSED) means a RST came back for the SYN, usually because no process is listening on that port (or a firewall rule actively rejects). Silently dropped packets cause a hang until timeout, not an instant error. The target is an IP literal so DNS is not involved, and TLS only starts after TCP is established.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9293"
+  },
+  {
+    "id": "nw-tcp-nagle-delayed-ack-stall",
+    "topic": "networking",
+    "subtopic": "tcp-udp",
+    "difficulty": "Hard",
+    "title": "Small writes and a fixed latency penalty",
+    "question": "A custom RPC client sends each request as two small write() calls (header, then body) on one TCP socket. The server answers in 1 ms, yet every request takes tens of milliseconds longer than expected. What is the classic cause and fix?",
+    "options": [
+      "TCP slow start restarts per request; raise the initial congestion window",
+      "The receive buffer is too small; increase SO_RCVBUF on the server side",
+      "Each write opens a new handshake; enable TCP keep-alive on the socket",
+      "Nagle's algorithm meets delayed ACK; batch writes or set TCP_NODELAY"
+    ],
+    "correctIndex": 3,
+    "explanation": "Nagle's algorithm holds the second small segment until the first is acknowledged, while the receiver's delayed-ACK timer waits to piggyback the ACK on a response that cannot be produced until the body arrives. Sending the message in one write (or disabling Nagle with TCP_NODELAY) removes the stall. Slow start, buffer sizes and keep-alive do not create a fixed per-request pause.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc1122"
+  },
+  {
+    "id": "nw-dns-mx-record-mail",
+    "topic": "networking",
+    "subtopic": "dns",
+    "difficulty": "Easy",
+    "title": "Record type for mail delivery",
+    "question": "Which DNS record type tells other mail servers which host accepts email for example.com?",
+    "options": [
+      "TXT",
+      "MX",
+      "SRV",
+      "PTR"
+    ],
+    "correctIndex": 1,
+    "explanation": "MX records list mail exchangers with preference values, and senders deliver to the most preferred reachable one. TXT holds arbitrary text (SPF and DKIM policies live there, but they do not route mail), SRV locates services for other protocols, and PTR maps an IP address back to a name.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc1035"
+  },
+  {
+    "id": "nw-dns-iterative-referrals",
+    "topic": "networking",
+    "subtopic": "dns",
+    "difficulty": "Easy",
+    "title": "How a recursive resolver finds an answer",
+    "question": "A recursive resolver has nothing cached and receives a query for www.example.com. What does it do?",
+    "options": [
+      "Forwards it to the ISP, which always holds every DNS record there is",
+      "Broadcasts the query to every DNS server on the local network segment",
+      "Follows referrals from a root server to .com to example.com's servers",
+      "Asks the example.com web server, since it owns the requested hostname"
+    ],
+    "correctIndex": 2,
+    "explanation": "The resolver starts at a root server, which refers it to the .com TLD servers, which refer it to example.com's authoritative name servers, which answer. Each step is cached according to its TTL. No server holds every record, DNS does not broadcast queries, and web servers are not DNS servers.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc1034"
+  },
+  {
+    "id": "nw-http-mixed-content-blocked",
+    "topic": "networking",
+    "subtopic": "http-https",
+    "difficulty": "Easy",
+    "title": "HTTP script blocked on an HTTPS page",
+    "question": "An HTTPS page includes `<script src=\"http://cdn.example/lib.js\">`, and the browser console says the request was blocked. Why?",
+    "options": [
+      "The CDN's certificate expired, so the browser refused the connection",
+      "Scripts can only load from the page's own origin unless CORS allows it",
+      "Mixed content: browsers block HTTP scripts on HTTPS pages",
+      "The script tag lacks a nonce, which every external script must carry"
+    ],
+    "correctIndex": 2,
+    "explanation": "Loading active content such as scripts over plain HTTP into a secure page would let a network attacker modify it and take over the page, so browsers block mixed active content; load it over https:// instead. No TLS is attempted for an http:// URL, classic script tags do not need CORS to execute, and nonces only matter when a CSP requires them.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content"
+  },
+  {
+    "id": "nw-https-eavesdropper-visibility",
+    "topic": "networking",
+    "subtopic": "http-https",
+    "difficulty": "Easy",
+    "title": "What HTTPS still reveals on the network",
+    "question": "A user on public Wi-Fi opens https://bank.example/accounts/123?view=full. Which information can a passive eavesdropper on that network still see?",
+    "options": [
+      "The server's IP address and, usually, the hostname",
+      "The full path and query string, /accounts/123?view=full",
+      "The Cookie and Authorization request headers sent",
+      "The HTML and JSON content returned by the server"
+    ],
+    "correctIndex": 0,
+    "explanation": "TLS encrypts the whole HTTP message: method, path, query string, headers and body. IP addresses are visible in packet headers, and the hostname usually leaks through the DNS lookup and the SNI field of the ClientHello unless encrypted DNS and Encrypted Client Hello are used. Traffic sizes and timing are observable too.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc8446"
+  },
+  {
+    "id": "nw-http-range-206-resume",
+    "topic": "networking",
+    "subtopic": "http-https",
+    "difficulty": "Medium",
+    "title": "Resuming an interrupted download",
+    "question": "A 4 GiB download dropped after 1.5 GiB. The client wants to fetch only the remainder from a server that supports byte ranges. What does the exchange look like?",
+    "options": [
+      "It sends If-None-Match with the ETag and receives 304 for the rest",
+      "It sends Content-Range and receives 200 with the remaining bytes",
+      "It sends Accept-Ranges: bytes and receives 416 with the remaining data",
+      "It sends Range: bytes=1610612736- and receives 206 Partial Content"
+    ],
+    "correctIndex": 3,
+    "explanation": "The client requests a byte range with the Range header; a server that supports it (advertised with Accept-Ranges: bytes) answers 206 Partial Content plus a Content-Range header describing the slice. Adding If-Range with the ETag ensures the file did not change in between. Content-Range and Accept-Ranges are response headers, and 416 means the requested range cannot be satisfied.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Range_requests"
+  },
+  {
+    "id": "nw-http-request-smuggling-cl-te",
+    "topic": "networking",
+    "subtopic": "http-https",
+    "difficulty": "Expert",
+    "title": "Content-Length versus Transfer-Encoding",
+    "question": "A front-end proxy frames requests by Content-Length, while the back-end it shares keep-alive connections with honours Transfer-Encoding: chunked. An attacker sends a request carrying both headers. What can happen?",
+    "options": [
+      "The back-end returns 411 Length Required and the request is simply lost",
+      "Leftover bytes get parsed as the start of the next user's request",
+      "The proxy downgrades the connection to HTTP/1.0 and drops keep-alive",
+      "Both servers reject it with 400, because HTTP forbids sending both"
+    ],
+    "correctIndex": 1,
+    "explanation": "When two hops disagree on where a request ends, bytes the front-end treated as body become a prefix of the next request on the shared connection: HTTP request smuggling, used to bypass front-end controls or poison other users' responses. RFC 9112 forbids senders from sending both and says Transfer-Encoding wins and such messages ought to be treated as errors, but servers that do not reject them are exactly what makes the attack possible. Fix it by rejecting ambiguous requests at the edge or using HTTP/2 end to end.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9112"
+  },
+  {
+    "id": "nw-tls-sni-certificate-selection",
+    "topic": "networking",
+    "subtopic": "tls",
+    "difficulty": "Easy",
+    "title": "Choosing a certificate on a shared IP",
+    "question": "One IP address serves shop.example and blog.example over HTTPS, each with its own certificate. How does the server know which certificate to present?",
+    "options": [
+      "From the Host header of the first HTTP request on the connection",
+      "From a reverse DNS lookup of the connecting client's IP address",
+      "It sends both certificates and the client picks the matching one",
+      "From the Server Name Indication extension in the ClientHello"
+    ],
+    "correctIndex": 3,
+    "explanation": "The certificate is sent during the handshake, before any HTTP is exchanged, so the Host header arrives too late. SNI carries the requested hostname in the ClientHello so the server can pick the right certificate. A server presents one certificate chain per handshake, and reverse DNS identifies clients, not the site they want.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc6066"
+  },
+  {
+    "id": "nw-tls-wildcard-single-label",
+    "topic": "networking",
+    "subtopic": "tls",
+    "difficulty": "Medium",
+    "title": "What a wildcard certificate covers",
+    "question": "A certificate's only SAN entry is `*.example.com`. Browsers will reject it for which hostname?",
+    "options": [
+      "api.eu.example.com",
+      "shop.example.com",
+      "accounts.example.com",
+      "www.example.com"
+    ],
+    "correctIndex": 0,
+    "explanation": "A wildcard matches exactly one whole left-most label, so *.example.com covers shop., accounts. and www.example.com but not api.eu.example.com, which has two labels in that position (it does not cover the bare example.com either). Deeper names need their own SAN entry or a *.eu.example.com certificate.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9525"
+  },
+  {
+    "id": "nw-proxy-forward-vs-reverse",
+    "topic": "networking",
+    "subtopic": "proxies-load-balancing",
+    "difficulty": "Easy",
+    "title": "Forward proxy versus reverse proxy",
+    "question": "What distinguishes a reverse proxy from a forward proxy?",
+    "options": [
+      "A reverse proxy handles only UDP traffic, while a forward proxy handles TCP",
+      "A reverse proxy encrypts traffic while a forward proxy never touches it",
+      "A reverse proxy fronts servers; a forward proxy acts on behalf of clients",
+      "A reverse proxy caches responses, while a forward proxy can never cache"
+    ],
+    "correctIndex": 2,
+    "explanation": "A forward proxy is configured by clients (for example a corporate egress proxy) to reach arbitrary servers. A reverse proxy such as nginx, a load balancer or a CDN is deployed by the site owner in front of its servers, and clients believe they are talking to the origin. Both kinds can cache, terminate TLS and carry TCP traffic.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Proxy_server"
+  },
+  {
+    "id": "nw-proxy-x-forwarded-proto-scheme",
+    "topic": "networking",
+    "subtopic": "proxies-load-balancing",
+    "difficulty": "Medium",
+    "title": "App builds http:// URLs behind TLS termination",
+    "question": "TLS is terminated at a load balancer that forwards plain HTTP to the app. The app's login now redirects users to http:// URLs and treats requests as insecure. What is the standard fix?",
+    "options": [
+      "Have the load balancer rewrite http:// to https:// in response bodies",
+      "Trust X-Forwarded-Proto from the LB to learn the original scheme",
+      "Switch the load balancer from layer 7 to layer 4 to keep the scheme",
+      "Set the Host header to the public domain name on the load balancer"
+    ],
+    "correctIndex": 1,
+    "explanation": "After TLS termination the app only sees plain HTTP, so frameworks build http:// URLs and skip secure-only behaviour. The load balancer adds X-Forwarded-Proto: https; configure the app (for example with forwarded-headers middleware) to trust it, but only from the known proxy. Rewriting bodies is fragile, switching to layer 4 changes the whole architecture, and Host carries the hostname, not the scheme.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-Proto"
+  },
+  {
+    "id": "nw-proxy-retry-non-idempotent-post",
+    "topic": "networking",
+    "subtopic": "proxies-load-balancing",
+    "difficulty": "Hard",
+    "title": "Proxy retries causing double charges",
+    "question": "nginx proxies checkout requests to an order service with `proxy_next_upstream error timeout non_idempotent;`. During a slow period some customers are charged twice for a single click. Why?",
+    "options": [
+      "Clients double-click, and nginx cannot deduplicate identical requests",
+      "Keep-alive reuses a connection, so one request body is sent twice",
+      "The upstream hash method changed, sending one order to two servers",
+      "A timed-out POST that already ran is retried on another upstream"
+    ],
+    "correctIndex": 3,
+    "explanation": "By default nginx does not pass a request with a non-idempotent method (POST, LOCK, PATCH) to the next upstream once it has been sent, because the first server may already have processed it. The non_idempotent flag removes that protection, so a slow but successful order is replayed on another server. Drop the flag for such routes and make the endpoint idempotent with idempotency keys.",
+    "referenceUrl": "https://nginx.org/en/docs/http/ngx_http_proxy_module.html"
+  },
+  {
+    "id": "nw-lb-proxy-protocol-passthrough",
+    "topic": "networking",
+    "subtopic": "proxies-load-balancing",
+    "difficulty": "Expert",
+    "title": "Client IP through TLS passthrough",
+    "question": "A layer-4 load balancer passes TLS through to the backends untouched (no termination), and the backends need each client's real IP. Why can't X-Forwarded-For be used, and what is the standard solution?",
+    "options": [
+      "The LB can't edit encrypted HTTP; use PROXY protocol on both sides",
+      "XFF only works with HTTP/2; upgrade clients so the header survives",
+      "Backends must read the SNI field, which carries the client's address",
+      "Turn off passthrough and run reverse DNS on the LB's source address"
+    ],
+    "correctIndex": 0,
+    "explanation": "With passthrough the HTTP headers travel inside a TLS stream the load balancer cannot read or modify, so it cannot add X-Forwarded-For. PROXY protocol prepends a small header with the original source and destination addresses at the start of the TCP connection; the backend must be configured to expect it, or it will misparse the stream. SNI carries the requested hostname, not the client IP.",
+    "referenceUrl": "https://www.haproxy.org/download/2.9/doc/proxy-protocol.txt"
+  },
+  {
+    "id": "nw-nat-pat-shared-public-ip",
+    "topic": "networking",
+    "subtopic": "nat-firewall",
+    "difficulty": "Easy",
+    "title": "Many laptops behind one public IP",
+    "question": "Fifty laptops in an office browse the web at the same time through a router with a single public IPv4 address. How does the router keep their connections apart?",
+    "options": [
+      "It gives each laptop its own public IP from a pool, one at a time",
+      "It relies on each laptop's MAC address, which travels to the server",
+      "It maps each connection to a unique source port on the public IP",
+      "It tags packets with a VLAN ID that the remote server echoes back"
+    ],
+    "correctIndex": 2,
+    "explanation": "Port address translation (NAPT, the common form of NAT) rewrites each outgoing connection's private source address and port to the shared public IP plus a unique port, and keeps a table to translate replies back. MAC addresses never leave the local link, one-to-one address pools would need fifty public addresses, and VLAN tags stay inside the LAN.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc3022"
+  },
+  {
+    "id": "nw-nat-gateway-private-egress",
+    "topic": "networking",
+    "subtopic": "nat-firewall",
+    "difficulty": "Medium",
+    "title": "Outbound-only internet for private instances",
+    "question": "Instances in a private AWS subnet must download OS updates from the internet but must never accept connections initiated from it. What is the standard setup?",
+    "options": [
+      "Point the private subnet's route table straight at the internet gateway",
+      "Route 0.0.0.0/0 to a NAT gateway placed in a public subnet",
+      "Give each instance an Elastic IP and block inbound in its security group",
+      "Peer with another VPC that already has its own internet access set up"
+    ],
+    "correctIndex": 1,
+    "explanation": "A NAT gateway in a public subnet (which routes to the internet gateway) translates outbound connections to its own address, and unsolicited inbound connections have no translation entry to land on. Routing straight to the internet gateway or using Elastic IPs makes instances publicly addressable, and VPC peering is not transitive, so it cannot provide internet egress.",
+    "referenceUrl": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html"
+  },
+  {
+    "id": "nw-nat-snat-port-exhaustion",
+    "topic": "networking",
+    "subtopic": "nat-firewall",
+    "difficulty": "Hard",
+    "title": "Intermittent failures behind one NAT IP",
+    "question": "Hundreds of pods egress through a single NAT IP, and each opens many short-lived connections to one third-party API IP on port 443. At peak, new connections fail intermittently while CPU and bandwidth look fine. What is the most likely cause?",
+    "options": [
+      "The API's TLS certificate is rotated too often for clients to cache",
+      "An MTU mismatch between the pod network and NAT drops large packets",
+      "DNS returns too many addresses for the NAT translation table to track",
+      "SNAT port exhaustion for that single destination IP and port"
+    ],
+    "correctIndex": 3,
+    "explanation": "A NAT needs a unique (NAT IP, source port) pair for each translated connection to a given destination IP and port, which caps it at roughly 64k concurrent flows per NAT IP per destination, and closed connections hold their ports for a while. Fix it with connection pooling and keep-alive, more NAT IPs, or private endpoints. MTU problems break large transfers rather than connection setup at peak load.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/load-balancer/load-balancer-outbound-connections"
+  },
+  {
+    "id": "nw-nat-conntrack-table-full",
+    "topic": "networking",
+    "subtopic": "nat-firewall",
+    "difficulty": "Expert",
+    "title": "nf_conntrack table full on a NAT box",
+    "question": "A Linux NAT gateway carrying a flood of short-lived DNS and HTTP flows starts dropping new connections at random, and dmesg shows `nf_conntrack: table full, dropping packet`. What is going on?",
+    "options": [
+      "Conntrack hit nf_conntrack_max; raise it or shorten its timeouts",
+      "The NIC's receive ring buffer overflows; enlarge it with ethtool -G",
+      "The ARP neighbour table is full; raise gc_thresh3 for the cache",
+      "The listen backlog is exhausted; raise net.core.somaxconn to fix it"
+    ],
+    "correctIndex": 0,
+    "explanation": "NAT and stateful filtering depend on netfilter connection tracking, and every flow, including each UDP DNS exchange, holds an entry until its timeout expires. When the table reaches nf_conntrack_max, new flows are dropped. Raise nf_conntrack_max (and the hash size), shorten timeouts such as the UDP one, or exempt traffic that needs no tracking. Ring-buffer, neighbour-table and backlog problems produce different symptoms and log messages.",
+    "referenceUrl": "https://docs.kernel.org/networking/nf_conntrack-sysctl.html"
+  },
+  {
+    "id": "nw-cdn-edge-cache-latency",
+    "topic": "networking",
+    "subtopic": "cdn-websocket",
+    "difficulty": "Easy",
+    "title": "How a CDN speeds up static assets",
+    "question": "What is the main way a CDN speeds up delivery of static assets to users around the world?",
+    "options": [
+      "It compresses files far better than the origin server is able to",
+      "It converts HTTP/1.1 traffic to UDP so that no handshakes are needed",
+      "It moves the origin database closer to users through replication",
+      "It serves cached copies from edge locations close to each user"
+    ],
+    "correctIndex": 3,
+    "explanation": "A CDN caches content in many points of presence, so most requests are answered by a nearby edge with a short round-trip time instead of crossing the world to the origin, which also offloads the origin. Compression helps but is not the core mechanism, CDNs do not replicate your database, and even HTTP/3 over QUIC still performs handshakes.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/CDN"
+  },
+  {
+    "id": "nw-websocket-nginx-upgrade-headers",
+    "topic": "networking",
+    "subtopic": "cdn-websocket",
+    "difficulty": "Medium",
+    "title": "WebSocket handshake failing through nginx",
+    "question": "A WebSocket server works when clients connect directly, but through an nginx reverse proxy the handshake fails and the server only sees an ordinary HTTP GET. Which nginx configuration is missing?",
+    "options": [
+      "`proxy_buffering off`, so frames are not buffered before being forwarded",
+      "`listen 443 http2`, since WebSockets require HTTP/2 to the browser",
+      "HTTP/1.1 upstream plus passing on the Upgrade and Connection headers",
+      "`proxy_read_timeout 0`, so the connection is never closed while idle"
+    ],
+    "correctIndex": 2,
+    "explanation": "Upgrade and Connection are hop-by-hop headers, so a proxy does not forward them by default, and nginx speaks HTTP/1.0 to upstreams unless told otherwise. Setting `proxy_http_version 1.1` plus `proxy_set_header Upgrade $http_upgrade` and `proxy_set_header Connection \"upgrade\"` lets the 101 Switching Protocols handshake reach the backend. Buffering and timeouts only matter after the handshake, and WebSockets do not need HTTP/2.",
+    "referenceUrl": "https://nginx.org/en/docs/http/websocket.html"
+  },
+  {
+    "id": "nw-cdn-purge-cannot-clear-browsers",
+    "topic": "networking",
+    "subtopic": "cdn-websocket",
+    "difficulty": "Hard",
+    "title": "Broken page survives a CDN purge",
+    "question": "A bad deploy shipped a broken index.html with `Cache-Control: public, max-age=3600`. You roll back and purge the CDN, yet many users keep seeing the broken page for up to an hour. Why?",
+    "options": [
+      "CDN purges take an hour to propagate to every edge location worldwide",
+      "Browsers cached it too, and a CDN purge cannot reach those copies",
+      "The purge removed only the gzip variant and left the brotli one behind",
+      "max-age applies only to the CDN, so the origin keeps serving the old file"
+    ],
+    "correctIndex": 1,
+    "explanation": "max-age applies to every cache, including each user's browser, which serves its copy until it expires without asking anyone; a purge only affects the CDN. Give HTML entry points a short browser lifetime (or no-cache with revalidation) and let the CDN keep them longer with s-maxage, so purges actually take effect, while fingerprinted assets keep long lifetimes. Purges usually complete within seconds to minutes, and the origin was already rolled back.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control"
+  },
+  {
+    "id": "git-basics-diff-staged-review",
+    "topic": "git",
+    "subtopic": "basics",
+    "difficulty": "Medium",
+    "title": "Reviewing what is about to be committed",
+    "question": "You edited three files and ran `git add .`. Now `git diff` prints nothing, but you want to review exactly what will be committed. Which command shows it?",
+    "options": [
+      "git diff --staged",
+      "git diff HEAD~1",
+      "git log -p -1",
+      "git status --short"
+    ],
+    "correctIndex": 0,
+    "explanation": "Plain `git diff` compares the working tree with the index; after staging everything they match, so the output is empty. `git diff --staged` (alias --cached) compares the index with HEAD, which is exactly the next commit. `git diff HEAD~1` mixes in the previous commit's changes, `git log -p -1` shows the last commit, and status only lists file names.",
+    "referenceUrl": "https://git-scm.com/docs/git-diff"
+  },
+  {
+    "id": "git-basics-rename-reuses-blob",
+    "topic": "git",
+    "subtopic": "basics",
+    "difficulty": "Hard",
+    "title": "Storage cost of renaming a large file",
+    "question": "You rename an unchanged 200 MB file with `git mv big.bin assets/big.bin` and commit. Roughly how much does the repository's object store grow?",
+    "options": [
+      "About 200 MB, since each commit stores a full copy of every file",
+      "About 400 MB, since Git keeps the data under both the old and new path",
+      "Only a few small tree and commit objects; the blob is reused",
+      "Only a diff of the file, since Git stores changes between commits"
+    ],
+    "correctIndex": 2,
+    "explanation": "Git objects are content-addressed: a blob's ID is the hash of its content, independent of its file name. The rename creates new tree objects that point at the same blob, plus a new commit, so storage barely changes. Commits are snapshots of trees rather than diffs, but unchanged content is shared instead of copied.",
+    "referenceUrl": "https://git-scm.com/book/en/v2/Git-Internals-Git-Objects"
+  },
+  {
+    "id": "git-basics-blobless-partial-clone",
+    "topic": "git",
+    "subtopic": "basics",
+    "difficulty": "Hard",
+    "title": "Fast CI clones that keep full history",
+    "question": "CI clones a monorepo with 10 years of history and many large binaries, and clones take 15 minutes. Jobs run `git log` and `git describe` over the full history but only build the current commit. Which clone option fits best?",
+    "options": [
+      "`--depth 1`, so only the latest commit and its files are fetched",
+      "`--single-branch`, so other branches' history is never downloaded",
+      "`--bare`, so no working tree is checked out on the build agent",
+      "`--filter=blob:none`: full history, file contents fetched lazily"
+    ],
+    "correctIndex": 3,
+    "explanation": "A blobless partial clone downloads every commit and tree, so log and describe work across the whole history, while file contents are fetched on demand for what is checked out. `--depth 1` truncates history and breaks describe. Single-branch still downloads every blob in that branch's history, and a bare clone downloads everything while leaving nothing to build.",
+    "referenceUrl": "https://git-scm.com/docs/git-clone"
+  },
+  {
+    "id": "git-merge-finish-after-conflict",
+    "topic": "git",
+    "subtopic": "branching-merging",
+    "difficulty": "Easy",
+    "title": "Completing a merge after fixing conflicts",
+    "question": "`git merge feature` stops with a conflict in app.js. You edit the file and remove the conflict markers. What completes the merge?",
+    "options": [
+      "`git merge --abort`, then run the same merge again from the start",
+      "`git add app.js`, then `git commit` (or `git merge --continue`)",
+      "`git reset app.js`, then `git push` so the remote finishes the merge",
+      "`git stash`, then `git stash pop` to re-apply the merged result"
+    ],
+    "correctIndex": 1,
+    "explanation": "Staging the file tells Git the conflict is resolved, and committing (or `git merge --continue`) creates the merge commit. `--abort` throws the merge attempt away, `git reset app.js` only unstages, pushing never resolves anything locally, and stashing is unrelated to finishing a merge.",
+    "referenceUrl": "https://git-scm.com/docs/git-merge"
+  },
+  {
+    "id": "git-branch-delete-not-fully-merged",
+    "topic": "git",
+    "subtopic": "branching-merging",
+    "difficulty": "Medium",
+    "title": "Branch refuses to delete",
+    "question": "`git branch -d experiment` fails with 'error: the branch 'experiment' is not fully merged'. What does this tell you?",
+    "options": [
+      "It is checked out in another worktree, so Git has locked it for now",
+      "Its remote copy on origin still exists and must be removed first",
+      "It has uncommitted changes sitting in the working tree right now",
+      "Some of its commits aren't in HEAD or its upstream; -D forces it"
+    ],
+    "correctIndex": 3,
+    "explanation": "`-d` is the safe delete: it refuses when the branch tip is not merged into its upstream (or into HEAD when there is no upstream), because deleting would orphan commits. Inspect them with `git log HEAD..experiment`, and use `-D` only if you really mean to discard them (they stay recoverable through the reflog for a while). Remote copies and uncommitted changes do not trigger this message.",
+    "referenceUrl": "https://git-scm.com/docs/git-branch"
+  },
+  {
+    "id": "git-remotes-push-rejected-fetch-first",
+    "topic": "git",
+    "subtopic": "remotes",
+    "difficulty": "Easy",
+    "title": "Push rejected with 'fetch first'",
+    "question": "`git push origin main` is rejected with '! [rejected] main -> main (fetch first)'. What is the right next step?",
+    "options": [
+      "Run `git push --force`, because the remote branch is out of date",
+      "Delete the local branch and re-clone the repository from scratch",
+      "Bring in the new remote commits (merge or rebase), then push again",
+      "Run `git commit --amend` so your commit hashes match the remote's"
+    ],
+    "correctIndex": 2,
+    "explanation": "The remote has commits you do not have, so your push is not a fast-forward and Git refuses to overwrite them. Fetch and integrate them (git pull, or pull --rebase), resolve any conflicts, and push again. Force-pushing would discard teammates' work, and amending or re-cloning does not address the divergence.",
+    "referenceUrl": "https://git-scm.com/docs/git-push"
+  },
+  {
+    "id": "git-remotes-prune-stale-tracking",
+    "topic": "git",
+    "subtopic": "remotes",
+    "difficulty": "Medium",
+    "title": "Stale origin/* branches after deletion",
+    "question": "Merged branches were deleted on GitHub weeks ago, but `git branch -r` still lists dozens of them under origin/. What cleans them up?",
+    "options": [
+      "`git fetch --prune` (or set fetch.prune=true)",
+      "`git branch -d` on each stale remote branch",
+      "`git gc --aggressive` to drop unused refs",
+      "`git pull --all` to resync every remote branch"
+    ],
+    "correctIndex": 0,
+    "explanation": "Remote-tracking branches are only updated by fetch, and by default fetch does not delete ones whose upstream branch has disappeared. `--prune` (or the fetch.prune setting) removes them. `git branch -d` works on local branches, gc does not delete refs, and `pull --all` fetches all remotes without pruning.",
+    "referenceUrl": "https://git-scm.com/docs/git-fetch"
+  },
+  {
+    "id": "git-remotes-refspec-force-plus",
+    "topic": "git",
+    "subtopic": "remotes",
+    "difficulty": "Hard",
+    "title": "The plus sign in a fetch refspec",
+    "question": "A remote's config contains `fetch = +refs/heads/*:refs/remotes/origin/*`. What does the leading `+` do?",
+    "options": [
+      "Fetches tags along with branches, including annotated tag objects",
+      "Lets remote-tracking refs update even when it is not a fast-forward",
+      "Creates a local branch automatically for every new remote branch",
+      "Fetches branches recursively, including all submodule branches too"
+    ],
+    "correctIndex": 1,
+    "explanation": "By default a ref is only updated when the new value is a fast-forward of the old one. The `+` forces the update, which matters because remote branches can be rewritten by rebase or force-push and your origin/* copies should mirror them. The refspec maps remote refs/heads/* to refs/remotes/origin/*; it creates no local branches, and tags and submodules are controlled separately.",
+    "referenceUrl": "https://git-scm.com/docs/git-fetch"
+  },
+  {
+    "id": "git-remotes-atomic-push-tag",
+    "topic": "git",
+    "subtopic": "remotes",
+    "difficulty": "Medium",
+    "title": "All-or-nothing push of a branch and a tag",
+    "question": "A release script runs `git push origin main v2.0.0`. Sometimes main is rejected because someone pushed first, but the tag is accepted, leaving a release tag on an unreleased commit. How do you make both updates all-or-nothing?",
+    "options": [
+      "`git push --follow-tags`, so tags go up only with their commits",
+      "`git push --force-with-lease`, so main's update can't be rejected",
+      "`git push --atomic`, so the server applies every ref or none of them",
+      "Push the tag in a separate command first, then push main right after"
+    ],
+    "correctIndex": 2,
+    "explanation": "With `--atomic`, a server that supports it applies either all ref updates or none, so a rejected main also rejects the tag. `--follow-tags` only adds annotated tags reachable from the pushed commits and has no transactional behaviour. Force-with-lease would still fail or overwrite others' work, and reordering pushes does not make them atomic.",
+    "referenceUrl": "https://git-scm.com/docs/git-push"
+  },
+  {
+    "id": "git-rebase-todo-fixup",
+    "topic": "git",
+    "subtopic": "rebase",
+    "difficulty": "Easy",
+    "title": "Interactive rebase command that drops a message",
+    "question": "In a `git rebase -i` todo list, which command melds a commit into the one before it and discards its commit message?",
+    "options": [
+      "pick",
+      "squash",
+      "fixup",
+      "reword"
+    ],
+    "correctIndex": 2,
+    "explanation": "`fixup` combines the commit into the previous one and keeps only the previous commit's message. `squash` also combines them but opens an editor with both messages, `reword` keeps the commit and only lets you edit its message, and `pick` keeps it unchanged.",
+    "referenceUrl": "https://git-scm.com/docs/git-rebase"
+  },
+  {
+    "id": "git-rebase-ours-theirs-swapped",
+    "topic": "git",
+    "subtopic": "rebase",
+    "difficulty": "Medium",
+    "title": "Who is 'theirs' during a rebase",
+    "question": "During `git rebase main` on your feature branch, a conflict appears and you run `git checkout --theirs app.js`. Whose version of app.js do you get?",
+    "options": [
+      "Your feature commit being replayed onto main",
+      "The version from main that you are rebasing onto",
+      "The common ancestor version from the merge base",
+      "The version from your last push to the remote"
+    ],
+    "correctIndex": 0,
+    "explanation": "A rebase replays your commits on top of main, so the so-far rebased series starting at main is 'ours' and the commit being applied, which is yours, is 'theirs'. This is the reverse of merging main into your branch, and it often trips people up when resolving conflicts in bulk with --ours or --theirs.",
+    "referenceUrl": "https://git-scm.com/docs/git-rebase"
+  },
+  {
+    "id": "git-undo-fsck-lost-staged-blob",
+    "topic": "git",
+    "subtopic": "undoing",
+    "difficulty": "Hard",
+    "title": "Recovering staged work after reset --hard",
+    "question": "You ran `git add` on a new file but never committed it, then ran `git reset --hard`. Can the file's content still be recovered?",
+    "options": [
+      "No, reset --hard deletes staged content and nothing is left in Git",
+      "Yes, with `git reflog`, since every git add creates a reflog entry",
+      "Yes, with `git stash list`, since reset --hard auto-stashes changes",
+      "Likely: the blob from git add is found by `git fsck --lost-found`"
+    ],
+    "correctIndex": 3,
+    "explanation": "`git add` writes the content into the object database as a blob. After reset --hard that blob is dangling but survives until garbage collection prunes it, and `git fsck --lost-found` writes dangling blobs into .git/lost-found/other. The reflog only records ref movements, reset does not stash anything, and changes that were never staged really are gone.",
+    "referenceUrl": "https://git-scm.com/docs/git-fsck"
+  },
+  {
+    "id": "git-adv-stash-pop-vs-apply",
+    "topic": "git",
+    "subtopic": "advanced",
+    "difficulty": "Easy",
+    "title": "git stash pop versus git stash apply",
+    "question": "What is the difference between `git stash apply` and `git stash pop`?",
+    "options": [
+      "apply restores only the staged changes; pop also restores unstaged ones",
+      "pop drops the stash after applying it; apply keeps it in the stash list",
+      "apply works on any branch; pop only works on the original branch",
+      "pop applies the oldest stash entry, while apply uses the newest one"
+    ],
+    "correctIndex": 1,
+    "explanation": "Both apply stash@{0} by default onto whatever branch is checked out. pop also removes the entry from the stash list when it applies cleanly (on a conflict the entry is kept), while apply leaves it there, which is handy for applying the same changes to several branches.",
+    "referenceUrl": "https://git-scm.com/docs/git-stash"
+  },
+  {
+    "id": "git-adv-cherry-pick-merge-mainline",
+    "topic": "git",
+    "subtopic": "advanced",
+    "difficulty": "Hard",
+    "title": "Cherry-picking a merge commit",
+    "question": "You run `git cherry-pick 9f1c2e` to bring a merged feature onto a release branch, and Git answers that the commit is a merge but no -m option was given. What does -m do here?",
+    "options": [
+      "Chooses the parent to diff against; -m 1 takes the merged-in changes",
+      "Appends the original commit message to the new commit, like -x does",
+      "Merges the release branch into the commit's branch before picking",
+      "Replays each commit of the merged branch individually, in order"
+    ],
+    "correctIndex": 0,
+    "explanation": "A merge commit has several parents, so Git cannot know which diff to apply. `-m 1` applies the difference between the first parent (the mainline) and the merge, which is everything the feature brought in, as one new commit. It does not replay the individual commits (cherry-pick a range for that), and -x is the option that records the source commit.",
+    "referenceUrl": "https://git-scm.com/docs/git-cherry-pick"
+  },
+  {
+    "id": "git-wf-codeowners-auto-review",
+    "topic": "git",
+    "subtopic": "workflows",
+    "difficulty": "Easy",
+    "title": "Automatic reviewers for a path",
+    "question": "Which GitHub feature automatically requests a review from the payments team whenever a pull request touches files under /payments/?",
+    "options": [
+      "Branch protection rules",
+      "Required status checks",
+      "Repository rulesets",
+      "A CODEOWNERS file"
+    ],
+    "correctIndex": 3,
+    "explanation": "A CODEOWNERS file maps path patterns to users or teams, who are requested as reviewers automatically when matching files change; with branch protection or rulesets you can also require their approval. Protection rules, status checks and rulesets enforce policy but do not decide who reviews which paths.",
+    "referenceUrl": "https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners"
+  },
+  {
+    "id": "git-wf-trunk-based-short-branches",
+    "topic": "git",
+    "subtopic": "workflows",
+    "difficulty": "Medium",
+    "title": "Painful merges from long-lived branches",
+    "question": "Feature branches in your team live for 4-6 weeks, and every merge brings days of conflict resolution and surprise regressions. Which practice addresses the root cause?",
+    "options": [
+      "Require two approving reviews on every PR before it can merge to main",
+      "Merge small changes to main often, hiding unfinished work with flags",
+      "Rebase each feature branch onto main one more time before merging",
+      "Add a long-lived develop branch so that features merge there first"
+    ],
+    "correctIndex": 1,
+    "explanation": "Merge pain grows with how long branches diverge. Continuous integration, with short-lived branches merged at least daily and feature flags hiding incomplete work, keeps divergence small. Extra reviews do not reduce divergence, a final rebase still has to absorb weeks of drift, and a develop branch just adds another integration point.",
+    "referenceUrl": "https://martinfowler.com/articles/branching-patterns.html"
+  },
+  {
+    "id": "git-wf-pull-request-target-pwn",
+    "topic": "git",
+    "subtopic": "workflows",
+    "difficulty": "Expert",
+    "title": "Running PR code under pull_request_target",
+    "question": "A GitHub Actions workflow triggered by `pull_request_target` checks out the PR's head commit and runs `npm install && npm test`, with deploy secrets available. Why is this dangerous?",
+    "options": [
+      "pull_request_target gives forks read-only tokens, so the tests fail",
+      "The workflow tests the base branch's code, so the PR change is untested",
+      "Untrusted fork code runs with the base repo's secrets and write token",
+      "npm install ignores the lockfile when run under pull_request_target"
+    ],
+    "correctIndex": 2,
+    "explanation": "pull_request_target runs in the context of the base repository, with access to secrets and a token that can write, because it is meant for trusted tasks such as labelling. Checking out and executing the PR's code (install scripts, tests) lets any fork author run arbitrary code with those privileges, a so-called pwn request. Use pull_request for untrusted code, or split the job so the privileged part never executes PR code. The base-branch checkout in option B is only the default, which this workflow explicitly overrides.",
+    "referenceUrl": "https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/"
+  },
+  {
+    "id": "sec-authz-authn-vs-authz",
+    "topic": "security",
+    "subtopic": "authorization",
+    "difficulty": "Easy",
+    "title": "Authentication versus authorization",
+    "question": "What is the difference between authentication and authorization?",
+    "options": [
+      "Authentication verifies who you are; authorization decides what you may do",
+      "Authentication is for users; authorization is only for service accounts",
+      "Authentication happens per request; authorization happens once at login",
+      "Authentication encrypts the session; authorization signs every API call"
+    ],
+    "correctIndex": 0,
+    "explanation": "Authentication establishes identity (password, passkey, token); authorization checks whether that identity may perform a given action on a given resource, ideally on every request. Both apply to people and services alike, and neither is about encryption or signing as such.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-authz-deny-by-default",
+    "topic": "security",
+    "subtopic": "authorization",
+    "difficulty": "Medium",
+    "title": "Endpoints accidentally left public",
+    "question": "An audit finds three new API endpoints were publicly accessible because developers forgot to add an `[Authorize]` attribute to them. Which change prevents this class of bug?",
+    "options": [
+      "Add a code review checklist item reminding developers about the attribute",
+      "Give internal endpoints an /internal prefix so they cannot be guessed",
+      "Hide new endpoints from the public OpenAPI document and Swagger UI",
+      "Require authorization globally and mark public endpoints as exceptions"
+    ],
+    "correctIndex": 3,
+    "explanation": "OWASP recommends deny by default: a global policy (such as a fallback authorization policy) makes every endpoint require authorization unless it is explicitly opted out, for example with [AllowAnonymous], so a forgotten attribute fails closed. Checklists depend on people remembering, and obscure paths or hidden docs are security through obscurity.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-authz-abac-role-explosion",
+    "topic": "security",
+    "subtopic": "authorization",
+    "difficulty": "Medium",
+    "title": "Role explosion in expense approvals",
+    "question": "Policy: managers may approve expenses only for their own department and under $10,000, unless they are directors. The team keeps creating roles like 'Approver-Sales-Under10k'. Which model fits better?",
+    "options": [
+      "Plain RBAC with one role per department and limit combination",
+      "ABAC, evaluating user, resource and context attributes in a policy",
+      "Access control lists stored on every single expense record",
+      "Discretionary access, letting each expense owner pick approvers"
+    ],
+    "correctIndex": 1,
+    "explanation": "Rules that depend on attributes such as department, amount and job title cause role explosion in pure RBAC. Attribute-based access control evaluates one policy over attributes of the subject, the resource and the context, so a single rule covers every department and threshold; OWASP recommends preferring ABAC or ReBAC over RBAC for this reason. Per-record ACLs and owner-chosen approvers do not encode the business rule.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-authz-postgres-rls-tenants",
+    "topic": "security",
+    "subtopic": "authorization",
+    "difficulty": "Hard",
+    "title": "Tenant isolation enforced by the database",
+    "question": "A multi-tenant SaaS filters every query with `WHERE tenant_id = @tenant`. A developer forgot the filter in one report query and leaked data across tenants. Which defence-in-depth control enforces isolation in the database itself?",
+    "options": [
+      "A unique index on tenant_id in every table that stores tenant data",
+      "A separate read replica per tenant, used only for reporting queries",
+      "Row-level security policies keyed on a per-session tenant setting",
+      "Encrypting the tenant_id column with a key derived for each tenant"
+    ],
+    "correctIndex": 2,
+    "explanation": "PostgreSQL row-level security attaches policies to tables, for example `USING (tenant_id = current_setting('app.tenant_id')::uuid)`, so every query is filtered even when a developer forgets the WHERE clause. Superusers always bypass RLS and table owners do too unless FORCE ROW LEVEL SECURITY is set, so the application should connect as a non-owner role. Indexes, replicas and column encryption do not restrict which rows a query returns.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/ddl-rowsecurity.html"
+  },
+  {
+    "id": "sec-sqli-order-by-allowlist",
+    "topic": "security",
+    "subtopic": "injection",
+    "difficulty": "Medium",
+    "title": "Safely handling a user-chosen sort column",
+    "question": "An endpoint takes `?sort=price` and builds `\"ORDER BY \" + sort`. The team tries to parameterize it as `ORDER BY @sort`, but sorting stops working. What is the right fix?",
+    "options": [
+      "Escape single quotes in the sort value before concatenating it",
+      "Wrap the sort value in double quotes so it becomes an identifier",
+      "Use a stored procedure that concatenates the column name inside",
+      "Map the input to a fixed allow-list of known column names"
+    ],
+    "correctIndex": 3,
+    "explanation": "Parameters bind values, not identifiers, so `ORDER BY @sort` sorts by a constant. Column names must come from code: map the allowed inputs ('price', 'name') to hard-coded column names and reject anything else. Escaping quotes does not protect an identifier context, hand-quoting identifiers is fragile, and dynamic SQL inside a stored procedure is just as injectable.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-nosql-operator-injection",
+    "topic": "security",
+    "subtopic": "injection",
+    "difficulty": "Hard",
+    "title": "Bypassing a MongoDB lookup with operators",
+    "question": "A password-reset handler runs `users.findOne({ email: req.body.email, resetCode: req.body.code })` against MongoDB, with JSON request bodies. An attacker resets the admin's password without knowing the code. What did they most likely send?",
+    "options": [
+      "{\"email\":\"admin@x.io\",\"code\":\"' OR 1=1 --\"}",
+      "{\"email\":\"admin@x.io\",\"code\":{\"$ne\":null}}",
+      "{\"email\":\"admin@x.io\",\"code\":\"<script>\"}",
+      "{\"email\":\"admin@x.io\",\"code\":\"%00\"}"
+    ],
+    "correctIndex": 1,
+    "explanation": "Because the body is parsed as JSON, `code` can be an object, and MongoDB treats `{\"$ne\": null}` as a query operator meaning 'resetCode is not null', which matches any pending reset. Enforce types (require strings) or use a schema or sanitiser that rejects keys starting with `$`. SQL syntax means nothing to MongoDB, and a script tag is an XSS payload.",
+    "referenceUrl": "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/05.6-Testing_for_NoSQL_Injection"
+  },
+  {
+    "id": "sec-cmd-argument-injection-git",
+    "topic": "security",
+    "subtopic": "injection",
+    "difficulty": "Expert",
+    "title": "Option injection without a shell",
+    "question": "A service runs `subprocess.run([\"git\", \"log\", user_ref], cwd=repo)` without a shell. An attacker sends user_ref = `--output=/srv/app/static/index.html` and overwrites that file. What is the issue and the fix?",
+    "options": [
+      "Argument injection; reject a leading '-' or pass `--end-of-options`",
+      "The list form still invokes /bin/sh; pass shell=False explicitly too",
+      "Python expands '--' sequences; escape the ref with shlex.quote first",
+      "Git reads options from the environment; clear it before running git"
+    ],
+    "correctIndex": 0,
+    "explanation": "No shell is involved, so this is not command injection, but a value starting with '-' is parsed by git as an option (argument injection, CWE-88), and `--output` writes the log to an arbitrary file. Reject values that start with '-' and put `--end-of-options` before user-supplied revisions; a plain `--` would make git treat the value as a path instead. shlex.quote targets shell parsing, which is not happening, and shell=False is already the default.",
+    "referenceUrl": "https://cwe.mitre.org/data/definitions/88.html"
+  },
+  {
+    "id": "sec-csrf-json-text-plain-form",
+    "topic": "security",
+    "subtopic": "xss-csrf",
+    "difficulty": "Expert",
+    "title": "Forging a JSON request with a plain form",
+    "question": "An API accepts `POST /transfer` with a JSON body, authenticates with a SameSite=None session cookie, parses the body as JSON whatever the Content-Type, and has no CSRF token because 'cross-site forms cannot send JSON'. How can an attacker still forge a transfer?",
+    "options": [
+      "Send fetch with application/json; POST requests never get a preflight",
+      "Read the session cookie via document.cookie and replay it from a server",
+      "Point an <img> tag at the endpoint, since images can send POST bodies",
+      "Submit a form with enctype=text/plain whose field forms a JSON body"
+    ],
+    "correctIndex": 3,
+    "explanation": "A form with enctype=\"text/plain\" sends name=value, so a field named `{\"amount\":5000,\"to\":\"eve\",\"x\":\"` with value `\"}` yields valid JSON; as a simple request it needs no preflight and carries the cookie. Requiring Content-Type: application/json (which forces a preflight cross-site), CSRF tokens and SameSite=Lax or Strict close the gap. A cross-origin fetch with application/json is preflighted, the attacker's page cannot read your site's cookies, and images only issue GETs.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-auth-login-user-enumeration",
+    "topic": "security",
+    "subtopic": "passwords-authentication",
+    "difficulty": "Medium",
+    "title": "Login errors that reveal accounts",
+    "question": "A login form replies 'No account with that email' for unknown users and 'Wrong password' for known ones. Why is this a problem, and what should it do instead?",
+    "options": [
+      "It leaks password policy details; show the password rules instead",
+      "It lets attackers enumerate accounts; use one generic error message",
+      "It frustrates users; redirect to sign-up when an email is unknown",
+      "It weakens MFA; send a one-time code before checking the password"
+    ],
+    "correctIndex": 1,
+    "explanation": "Different messages (or noticeably different response times) let attackers confirm which emails are registered, which feeds credential stuffing and targeted phishing. OWASP recommends a generic response such as 'Invalid username or password' and similar processing time for both cases. The other options either do not address enumeration or make it worse.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-jwt-revocation-short-lifetime",
+    "topic": "security",
+    "subtopic": "oauth-oidc-jwt",
+    "difficulty": "Medium",
+    "title": "Disabled user keeps using a JWT",
+    "question": "An admin disables a compromised account, but the user keeps calling APIs for another 50 minutes. The APIs validate self-contained JWT access tokens locally, and tokens live for 1 hour. What best explains and fixes this?",
+    "options": [
+      "The signature check is broken; switch the tokens from RS256 to HS256",
+      "Clients cache API responses; add Cache-Control: no-store everywhere",
+      "Local JWT checks ignore revocation; shorten lifetimes or introspect",
+      "The refresh token was revoked too late; revoke it before the access token"
+    ],
+    "correctIndex": 2,
+    "explanation": "A self-contained token is checked only by signature and expiry, so the API cannot know the account was disabled until the token expires. Use short-lived access tokens (minutes) with revocable refresh tokens, or token introspection (RFC 7662) or a revocation check for sensitive APIs. Switching to HS256 adds shared-secret risk without solving anything, and response caching is not the issue.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc7662"
+  },
+  {
+    "id": "sec-ssrf-webhook-localhost-admin",
+    "topic": "security",
+    "subtopic": "ssrf",
+    "difficulty": "Easy",
+    "title": "Webhook tester reaching localhost",
+    "question": "A 'test webhook' feature makes the server POST to any URL the user enters. An attacker enters http://localhost:8080/admin/reset and the internal admin endpoint runs. What vulnerability is this?",
+    "options": [
+      "Server-side request forgery (SSRF)",
+      "Cross-site request forgery (CSRF)",
+      "Open redirect on the webhook endpoint",
+      "Reflected cross-site scripting (XSS)"
+    ],
+    "correctIndex": 0,
+    "explanation": "The attacker makes the server send requests to destinations of their choosing, including internal services that trust traffic from localhost. CSRF abuses a victim's browser rather than the server, an open redirect sends users to another site, and XSS runs script in other users' browsers.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-ssrf-imdsv2-session-token",
+    "topic": "security",
+    "subtopic": "ssrf",
+    "difficulty": "Medium",
+    "title": "Why IMDSv2 blunts SSRF",
+    "question": "Why does enforcing IMDSv2 on EC2 instances blunt most SSRF attacks against the instance metadata service?",
+    "options": [
+      "IMDSv2 moves the metadata endpoint to a random IP on every reboot",
+      "IMDSv2 encrypts credentials so stolen values can't be used elsewhere",
+      "IMDSv2 only answers requests coming from processes running as root",
+      "It needs a token from a PUT request with a custom header first"
+    ],
+    "correctIndex": 3,
+    "explanation": "IMDSv2 is session-oriented: a client must first send a PUT to /latest/api/token with the X-aws-ec2-metadata-token-ttl-seconds header and then present the token in a header on each request. Typical SSRF primitives can only make simple GETs without custom headers, and a low hop limit on the token response adds protection. The endpoint stays at 169.254.169.254, credentials are returned in plain form, and there is no per-user check.",
+    "referenceUrl": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html"
+  },
+  {
+    "id": "sec-ssrf-decimal-ip-bypass",
+    "topic": "security",
+    "subtopic": "ssrf",
+    "difficulty": "Medium",
+    "title": "Bypassing a string-based localhost filter",
+    "question": "An SSRF filter rejects URLs whose host equals 'localhost' or starts with '127.'. Which URL most likely still reaches an admin service listening on the server's loopback interface?",
+    "options": [
+      "http://localhost@evil.example:8080/admin",
+      "http://2130706433:8080/admin",
+      "http://evil.example:8080/admin#127.0.0.1",
+      "http://192.168.0.127:8080/admin"
+    ],
+    "correctIndex": 1,
+    "explanation": "2130706433 is 127.0.0.1 written as one 32-bit decimal number, which URL parsers and resolvers accept, so string matching misses it (as it misses octal, hex, [::1] or DNS names that resolve to 127.0.0.1). In the other URLs the real host is evil.example or another LAN address. Parse and resolve the URL, then check the resulting IP against blocked ranges, or better, use an allow-list.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-ssrf-redirect-follow-bypass",
+    "topic": "security",
+    "subtopic": "ssrf",
+    "difficulty": "Hard",
+    "title": "SSRF through an HTTP redirect",
+    "question": "Your SSRF defence resolves the user's URL, verifies it maps to a public IP and pins the request to that IP. Attackers still reach 169.254.169.254: their URL points at their own server, which answers `302 Location: http://169.254.169.254/...`. What fixes this?",
+    "options": [
+      "Disable automatic redirects, or validate every redirect hop the same way",
+      "Pin a longer DNS TTL so the attacker cannot rebind the domain later",
+      "Block the attacker's domain in a deny-list once it has been detected",
+      "Require HTTPS for user URLs, since redirects only work over plain HTTP"
+    ],
+    "correctIndex": 0,
+    "explanation": "Validation applied only to the first URL is bypassed when the HTTP client follows redirects to internal targets. Turn off redirect following, or run the same resolve-and-check logic on every Location before following it. DNS TTLs are irrelevant because no rebinding is involved, deny-lists never end, and redirects work over HTTPS just as well.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-cors-browser-enforced-only",
+    "topic": "security",
+    "subtopic": "cors-headers-tls",
+    "difficulty": "Easy",
+    "title": "What CORS does not protect",
+    "question": "An API sends no CORS headers. A developer says this means attackers cannot call it from their own scripts or servers. What is wrong with that claim?",
+    "options": [
+      "CORS headers are required for any HTTP client to reach an API at all",
+      "CORS only controls browser reads; tools like curl ignore it entirely",
+      "Missing CORS headers make the API open to every origin instead",
+      "CORS is enforced by the API's firewall, which must be set up as well"
+    ],
+    "correctIndex": 1,
+    "explanation": "CORS is a browser mechanism that relaxes the same-origin policy: it decides whether JavaScript from another origin may read a response. Non-browser clients ignore it completely, so it is neither authentication nor access control. Even in browsers, simple cross-origin requests are still sent; only reading the response is blocked.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS"
+  },
+  {
+    "id": "sec-hsts-preload-first-visit",
+    "topic": "security",
+    "subtopic": "cors-headers-tls",
+    "difficulty": "Medium",
+    "title": "Stopping SSL stripping on the first visit",
+    "question": "example.com redirects HTTP to HTTPS, but on public Wi-Fi an attacker intercepts the first plain-HTTP request and keeps the victim on HTTP (SSL stripping). What prevents this, including on the very first visit?",
+    "options": [
+      "A 301 redirect with a long cache lifetime on the plain HTTP site",
+      "The Secure flag on every cookie, so none is ever sent over HTTP",
+      "HSTS with includeSubDomains, plus submitting the domain to preload",
+      "A Content-Security-Policy that sets upgrade-insecure-requests"
+    ],
+    "correctIndex": 2,
+    "explanation": "Strict-Transport-Security makes the browser use only HTTPS for the domain for max-age seconds, so later visits never touch HTTP. Since the header arrives only with an HTTPS response, the first visit is still exposed unless the domain is in the browsers' built-in HSTS preload list. A cached redirect still starts over HTTP, Secure cookies protect cookies but not the page, and upgrade-insecure-requests only rewrites subresource URLs on a page already delivered.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security"
+  },
+  {
+    "id": "sec-headers-nosniff-uploads",
+    "topic": "security",
+    "subtopic": "cors-headers-tls",
+    "difficulty": "Easy",
+    "title": "Stopping uploaded text from running as script",
+    "question": "Users can upload files that are served back from your own domain. An attacker uploads a .txt file containing JavaScript and loads it with an injected `<script src>` to get around a `script-src 'self'` CSP. Which header makes browsers refuse to run a response whose Content-Type is not a JavaScript type?",
+    "options": [
+      "Referrer-Policy: same-origin",
+      "Cross-Origin-Opener-Policy: same-origin",
+      "Access-Control-Allow-Origin: null",
+      "X-Content-Type-Options: nosniff"
+    ],
+    "correctIndex": 3,
+    "explanation": "With nosniff, browsers block script and style loads whose declared MIME type does not match instead of sniffing the content, so a text/plain upload cannot execute as JavaScript. Serving uploads from a separate domain with Content-Disposition: attachment adds further protection. Referrer-Policy controls the Referer header, COOP isolates browsing context groups, and Access-Control-Allow-Origin is a CORS response header.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Content-Type-Options"
+  },
+  {
+    "id": "sec-cors-preflight-blocked-by-auth",
+    "topic": "security",
+    "subtopic": "cors-headers-tls",
+    "difficulty": "Hard",
+    "title": "Preflight rejected with 401",
+    "question": "A SPA on app.example sends a cross-origin PUT with `Authorization: Bearer ...` and `Content-Type: application/json`. The API's CORS config allows that origin, method and headers, yet the browser reports a CORS error and the PUT never reaches the controller. Server logs show `OPTIONS /items 401`. Why?",
+    "options": [
+      "Auth middleware rejects the preflight, which carries no credentials",
+      "Browsers never allow cross-origin PUT, so the method must become POST",
+      "Authorization headers can't be sent cross-origin; use cookies instead",
+      "The API must also send Access-Control-Allow-Origin: * for preflights"
+    ],
+    "correctIndex": 0,
+    "explanation": "PUT, the Authorization header and the JSON content type all trigger a preflight OPTIONS request, which browsers send without credentials or the Authorization header. If authentication runs before CORS handling and returns 401, the preflight fails and the real request is never sent. Let preflights through unauthenticated (run CORS handling first). PUT and Authorization are fine once allowed, and a wildcard origin would not fix a 401.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS"
+  },
+  {
+    "id": "sec-secrets-logging-auth-headers",
+    "topic": "security",
+    "subtopic": "secrets",
+    "difficulty": "Easy",
+    "title": "Logging every request header",
+    "question": "For debugging, a service logs every incoming request with all of its headers at INFO level, and the logs are shipped to a shared platform. What is the main problem?",
+    "options": [
+      "Header logging is slow and will noticeably increase request latency",
+      "Bearer tokens and cookies end up readable by anyone with log access",
+      "Log platforms reject header data unless it is base64-encoded first",
+      "INFO is too low a level; headers must always be logged at ERROR level"
+    ],
+    "correctIndex": 1,
+    "explanation": "Authorization headers, session cookies and API keys are credentials, and logging them copies secrets into a system with broad access and long retention. Redact or drop sensitive headers and log only what you need; OWASP's logging guidance lists access tokens, session identifiers and passwords among the data to exclude. Latency, encoding and log levels are not the issue.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-secrets-db-least-privilege-role",
+    "topic": "security",
+    "subtopic": "secrets",
+    "difficulty": "Medium",
+    "title": "Database role for a web application",
+    "question": "A web app connects to PostgreSQL as the database owner role. A SQL injection bug let an attacker drop tables and read an unrelated HR schema. Besides fixing the injection, what limits the blast radius?",
+    "options": [
+      "Rotate the owner password monthly so stolen credentials expire sooner",
+      "Enable TLS between the app and database to encrypt all of the queries",
+      "Move the database into a private subnet with no public IP address",
+      "Connect as a role granted only the DML it needs on its own tables"
+    ],
+    "correctIndex": 3,
+    "explanation": "Least privilege for database access means the application's role can only run the SELECT, INSERT, UPDATE and DELETE statements it needs on its own tables, while schema changes use a separate migration role; an injection then cannot drop tables or reach other schemas. Rotation, TLS and network isolation are good practice but do not restrict what the already-connected app, and therefore the attacker, can do.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Database_Security_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-secrets-rotation-alternating-users",
+    "topic": "security",
+    "subtopic": "secrets",
+    "difficulty": "Hard",
+    "title": "Rotating a DB password without downtime",
+    "question": "You must rotate a database password used by 40 app instances every 30 days with no downtime and no failed logins. Which strategy works?",
+    "options": [
+      "Change the password and restart all 40 instances at the same moment",
+      "Email the new password to on-call so they update configs in time",
+      "Alternate two DB users: rotate the idle one, then switch apps to it",
+      "Skip rotation and use a much longer password that never expires"
+    ],
+    "correctIndex": 2,
+    "explanation": "With alternating users, the rotation updates the credentials of the user that is not currently in use and then makes it the current version of the secret; apps pick it up on their next fetch while the previous user's credentials keep working, so no instance ever holds an invalid password. A simultaneous change-and-restart races, emailing secrets leaks them, and never rotating leaves leaked credentials valid forever.",
+    "referenceUrl": "https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotation-strategy.html"
+  },
+  {
+    "id": "sec-secrets-kms-envelope-encryption",
+    "topic": "security",
+    "subtopic": "secrets",
+    "difficulty": "Expert",
+    "title": "Why large files use envelope encryption",
+    "question": "An app must encrypt 5 GB files with a key managed in AWS KMS. Why does the standard design generate a data key with KMS and encrypt the files locally, instead of sending the file contents to KMS Encrypt?",
+    "options": [
+      "KMS Encrypt takes tiny payloads; local data keys handle bulk data",
+      "KMS keys can't be rotated unless every ciphertext embeds a data key",
+      "Data keys are stronger than KMS keys, using AES-512 for bulk data",
+      "KMS charges per byte encrypted, so bulk data would cost too much"
+    ],
+    "correctIndex": 0,
+    "explanation": "KMS Encrypt accepts at most 4 KB of plaintext and every call is a network round trip, so bulk data uses envelope encryption: GenerateDataKey returns a plaintext data key (used locally with AES-GCM, then discarded) plus the same key encrypted under the KMS key, which is stored next to the ciphertext. Only the small encrypted data key goes back to KMS for decryption. Key rotation does not depend on this, AES-512 does not exist, and KMS bills per request, not per byte.",
+    "referenceUrl": "https://docs.aws.amazon.com/kms/latest/developerguide/kms-cryptography.html"
+  },
+  {
+    "id": "sec-threat-stride-repudiation",
+    "topic": "security",
+    "subtopic": "owasp-threat-modeling",
+    "difficulty": "Easy",
+    "title": "Denying an action with no audit trail",
+    "question": "A customer claims they never approved a $5,000 transfer, and the system has no record of who approved it or when. Which STRIDE threat was left unmitigated?",
+    "options": [
+      "Spoofing",
+      "Tampering",
+      "Repudiation",
+      "Information disclosure"
+    ],
+    "correctIndex": 2,
+    "explanation": "Repudiation is a user denying an action when the system cannot prove otherwise; it is mitigated with tamper-evident audit logs that record identity and time, backed by strong authentication or signatures. Spoofing is impersonation, tampering is unauthorized modification, and information disclosure is data leaking to the wrong party.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Threat_Modeling_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-owasp-sbom-dependency-inventory",
+    "topic": "security",
+    "subtopic": "owasp-threat-modeling",
+    "difficulty": "Medium",
+    "title": "Finding which services ship a vulnerable library",
+    "question": "A critical CVE is announced in a popular logging library. Within the hour, security asks which of your 120 services ship the vulnerable version, including as a transitive dependency. What makes this answerable quickly?",
+    "options": [
+      "A WAF rule that blocks the exploit's known payload patterns",
+      "SBOMs per build plus continuous dependency scanning (SCA)",
+      "Static analysis (SAST) of each service's own first-party code",
+      "Yearly penetration tests that report any outdated libraries"
+    ],
+    "correctIndex": 1,
+    "explanation": "A software bill of materials lists every direct and transitive component and version in each build, and software composition analysis matches them against vulnerability data continuously, so the affected services can be queried immediately. A WAF rule may buy time but does not tell you what is affected, SAST examines your own code, and yearly pentests are far too infrequent.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Vulnerable_Dependency_Management_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-threat-implicit-internal-trust",
+    "topic": "security",
+    "subtopic": "owasp-threat-modeling",
+    "difficulty": "Medium",
+    "title": "Unauthenticated internal service calls",
+    "question": "Internal microservices accept any request from inside the cluster without authentication because 'the network is trusted'. During threat modelling, what is the main concern?",
+    "options": [
+      "Internal traffic is slower without an authentication cache enabled",
+      "Unauthenticated calls can't be traced by the observability stack",
+      "Kubernetes blocks unauthenticated traffic between namespaces anyway",
+      "One compromised pod can call every service with no further checks"
+    ],
+    "correctIndex": 3,
+    "explanation": "Network location is not identity. Once any workload is compromised, through a vulnerable dependency or SSRF for instance, the attacker can move laterally to every internal API. Zero trust architecture (NIST SP 800-207) calls for authenticating and authorizing every request, for example with mTLS workload identities and per-service authorization. Kubernetes does not block such traffic by default, and tracing works without authentication.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/207/final"
+  },
+  {
+    "id": "sec-supply-chain-dependency-confusion",
+    "topic": "security",
+    "subtopic": "owasp-threat-modeling",
+    "difficulty": "Hard",
+    "title": "Internal package replaced from the public registry",
+    "question": "Builds resolve npm packages through a registry proxy that merges your private registry with the public one. One day CI installs an `acme-billing` with a much higher version than your internal package of that name, and it exfiltrates environment variables. What is the most effective fix?",
+    "options": [
+      "Use an org scope (@acme/) mapped only to your private registry",
+      "Add a postinstall script that verifies the package name after install",
+      "Run npm audit in CI so malicious packages fail the build automatically",
+      "Rename the internal package with a random suffix that is hard to guess"
+    ],
+    "correctIndex": 0,
+    "explanation": "This is dependency confusion: the resolver sees the same unscoped name on the public registry with a higher version and prefers it. Publishing internal packages under a scope you own, mapped to the private registry, removes the ambiguity, and lockfiles with integrity hashes add protection. A postinstall check runs after the malicious install scripts already executed, npm audit only flags known advisories, and obscure names leak through manifests and error messages.",
+    "referenceUrl": "https://docs.npmjs.com/cli/v10/using-npm/scope"
+  },
+  {
+    "id": "sec-coding-csprng-reset-tokens",
+    "topic": "security",
+    "subtopic": "secure-coding",
+    "difficulty": "Easy",
+    "title": "Generating password-reset tokens",
+    "question": "A Python service generates password-reset tokens. Which approach is appropriate?",
+    "options": [
+      "random.choices(string.ascii_letters, k=32)",
+      "hashlib.md5(str(time.time()).encode()).hexdigest()",
+      "secrets.token_urlsafe(32)",
+      "uuid.uuid1().hex"
+    ],
+    "correctIndex": 2,
+    "explanation": "The secrets module uses the operating system's CSPRNG and is designed for security tokens. The random module is a Mersenne Twister whose output can be predicted after observing enough values, a hash of the timestamp is guessable, and uuid1 is built from the time and the host's MAC address.",
+    "referenceUrl": "https://docs.python.org/3/library/secrets.html"
+  },
+  {
+    "id": "sec-coding-xxe-disable-dtd",
+    "topic": "security",
+    "subtopic": "secure-coding",
+    "difficulty": "Medium",
+    "title": "XML upload leaking server files",
+    "question": "A Java endpoint parses uploaded XML with a default DocumentBuilderFactory. An attacker uploads a document that declares `<!ENTITY x SYSTEM \"file:///etc/passwd\">` and references &x;, and the file's contents appear in the response. What is the fix?",
+    "options": [
+      "Validate the XML against an XSD schema before parsing it at all",
+      "Disable DTDs (or external entities) in the parser configuration",
+      "Escape angle brackets in the upload before handing it to the parser",
+      "Switch the endpoint from HTTP POST to PUT for XML file uploads"
+    ],
+    "correctIndex": 1,
+    "explanation": "This is XML External Entity (XXE) injection: the parser resolves the external entity and inlines the file. OWASP recommends disabling DOCTYPE declarations entirely (disallow-doctype-decl) or at least external entities and DTD loading. Schema validation requires parsing first, escaping brackets breaks the XML itself, and the HTTP method is irrelevant.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "sec-coding-race-single-use-coupon",
+    "topic": "security",
+    "subtopic": "secure-coding",
+    "difficulty": "Hard",
+    "title": "Single-use coupon redeemed many times",
+    "question": "A single-use coupon is redeemed with `if not coupon.used: apply_discount(); coupon.used = True; save()`. An attacker sends 30 parallel requests and gets the discount 12 times. What is the right fix?",
+    "options": [
+      "Add a short sleep before saving so duplicate requests settle down",
+      "Validate the coupon code more strictly with a regular expression",
+      "Rate-limit redemptions to one request per second per user account",
+      "Make check-and-mark atomic, e.g. a conditional UPDATE in the DB"
+    ],
+    "correctIndex": 3,
+    "explanation": "The check and the update are separate steps, so concurrent requests all see used = false: a time-of-check to time-of-use race. Do it atomically, for example `UPDATE coupons SET used = true WHERE id = $1 AND used = false` and apply the discount only if exactly one row changed, or lock the row with SELECT ... FOR UPDATE in a transaction. Sleeps and rate limits only shrink the window, and input validation is unrelated.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/explicit-locking.html"
+  },
+  {
+    "id": "sec-coding-reset-link-host-poisoning",
+    "topic": "security",
+    "subtopic": "secure-coding",
+    "difficulty": "Expert",
+    "title": "Password reset links built from the Host header",
+    "question": "A 'forgot password' handler builds the reset link as `https://{request.Host}/reset?token=...` and emails it to the account owner. How can an attacker take over a victim's account, and what is the fix?",
+    "options": [
+      "Brute-force the token from the email; make tokens longer and random",
+      "Forge Host so the emailed link hits their server; use a fixed base URL",
+      "Replay the reset email from an old backup; expire tokens on first use",
+      "Change the victim's email via CSRF first; add a CSRF token to the form"
+    ],
+    "correctIndex": 1,
+    "explanation": "The attacker requests a reset for the victim's address with Host: evil.example. The victim gets a genuine email whose link points at the attacker's server, and clicking it (or a mail scanner prefetching it) leaks the token. OWASP says reset URLs should be hard-coded or validated against trusted domains, so build them from a configured base URL. The tokens themselves were already random, so brute force and replay are not the weakness here.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html"
+  }
+]

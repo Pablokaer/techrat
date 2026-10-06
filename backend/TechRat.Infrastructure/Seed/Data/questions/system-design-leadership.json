@@ -1,0 +1,1617 @@
+[
+  {
+    "id": "sd-dns-ttl-cutover",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Medium",
+    "title": "Lowering DNS TTL before a migration",
+    "question": "api.example.com has an A record with a TTL of 86400 seconds. Next week you will point it at a new load balancer IP and want clients to switch quickly. What should you do a few days before the cutover?",
+    "options": [
+      "Raise the TTL so resolvers hold the record longer and are less likely to see a mixed state",
+      "Flush the cache on your authoritative DNS server at the moment of cutover",
+      "Lower the TTL (e.g. to 300s) days ahead so resolvers cache the old IP only briefly",
+      "Replace the A record with a CNAME at cutover because CNAME answers are never cached"
+    ],
+    "correctIndex": 2,
+    "explanation": "Recursive resolvers may cache an answer for up to its TTL, so with 86400s some clients would keep the old IP for a day. The TTL must be reduced at least one old-TTL period before the change. Flushing your own authoritative server does nothing for caches elsewhere, and CNAME records are cached according to their TTL like any other record.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc1035.html"
+  },
+  {
+    "id": "sd-keyset-pagination",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Medium",
+    "title": "Deep pagination with OFFSET",
+    "question": "A feed API uses `ORDER BY created_at DESC LIMIT 20 OFFSET :n`. Requests for page 5,000 are slow, and users sometimes see duplicates when new posts arrive while paging. What is the best change?",
+    "options": [
+      "Keep OFFSET but add a covering index so skipped rows no longer need to be computed",
+      "Cache each page number in Redis so repeated deep page requests become constant time",
+      "Increase the page size to 500 so users reach deep pages in fewer requests",
+      "Keyset pagination: return a cursor and query `WHERE created_at < :cursor`"
+    ],
+    "correctIndex": 3,
+    "explanation": "With OFFSET the database still has to produce and discard every skipped row, so cost grows with depth, and inserts shift every later page causing duplicates or gaps. A keyset cursor seeks directly via the index and is stable under inserts. Page caches go stale on every new post and bigger pages only reduce the request count, not the per-row cost.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/queries-limit.html"
+  },
+  {
+    "id": "sd-sse-vs-websocket",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Easy",
+    "title": "One-way server push to browsers",
+    "question": "A dashboard only needs the server to push status updates to the browser; the browser never sends data over that channel. Which option is the simplest fit that runs over plain HTTP and reconnects automatically?",
+    "options": [
+      "WebSockets with a custom heartbeat protocol",
+      "Server-Sent Events via the EventSource API",
+      "Short polling the API every 500 milliseconds",
+      "WebRTC data channels between browser and server"
+    ],
+    "correctIndex": 1,
+    "explanation": "Server-Sent Events are a one-way, server-to-client stream over a normal HTTP response, and EventSource reconnects automatically. WebSockets are bidirectional and need more connection handling than this use case requires, aggressive polling wastes requests, and WebRTC is designed for peer-to-peer media and data.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events"
+  },
+  {
+    "id": "sd-202-accepted",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Easy",
+    "title": "Responding to long-running requests",
+    "question": "POST /reports starts a report that takes several minutes to generate. Which response best fits an asynchronous API design?",
+    "options": [
+      "200 OK after holding the connection open until the report is done",
+      "201 Created with an empty body before any work has been queued",
+      "202 Accepted with a Location to a status resource the client can poll",
+      "204 No Content, then email the client when the report is ready"
+    ],
+    "correctIndex": 2,
+    "explanation": "202 Accepted means the request was accepted for processing but has not completed, and pointing to a status resource lets clients track progress without long-held connections. Blocking for minutes hits proxy and client timeouts, 201 claims the resource already exists, and 204 gives the client nothing to follow up on.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/202"
+  },
+  {
+    "id": "sd-stateless-sessions",
+    "topic": "system-design",
+    "subtopic": "scaling",
+    "difficulty": "Easy",
+    "title": "Session state and horizontal scaling",
+    "question": "A web app keeps user sessions in each server's memory. You want to add servers behind a load balancer without sticky sessions. What change is required?",
+    "options": [
+      "Increase each server's RAM so sessions survive longer on the instance",
+      "Store sessions in a shared store such as Redis, not in server memory",
+      "Give each server its own database replica to hold its session data",
+      "Shorten the session timeout so lost sessions are recreated quickly"
+    ],
+    "correctIndex": 1,
+    "explanation": "Horizontal scale-out works best when instances are stateless and interchangeable; externalising session state makes that possible. More RAM is vertical scaling and does not fix requests landing on a different instance, per-server replicas still tie a user to one server, and shorter timeouts just log users out more often.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/guide/design-principles/scale-out"
+  },
+  {
+    "id": "sd-vertical-limits",
+    "topic": "system-design",
+    "subtopic": "scaling",
+    "difficulty": "Easy",
+    "title": "Drawback of vertical scaling",
+    "question": "What is the main limitation of scaling a database only vertically (bigger machines)?",
+    "options": [
+      "It requires rewriting the application to be stateless before it can work",
+      "It forces data to be sharded across nodes, complicating every query",
+      "Machine size has a ceiling and the node is still a single point of failure",
+      "It always costs less than horizontal scaling, hiding inefficient queries"
+    ],
+    "correctIndex": 2,
+    "explanation": "Scaling up is simple because the application does not change, but hardware has a maximum size and one big node is still a single point of failure, often needing downtime to resize. Statelessness and sharding are concerns of scaling out, not up, and large instances tend to get disproportionately expensive.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/guide/design-principles/scale-out"
+  },
+  {
+    "id": "sd-autoscale-metric",
+    "topic": "system-design",
+    "subtopic": "scaling",
+    "difficulty": "Hard",
+    "title": "Choosing an autoscaling signal",
+    "question": "Queue workers are autoscaled on CPU utilisation. During a spike the backlog grows to 2 million messages, yet CPU stays at 20% because workers mostly wait on a downstream API. Which scaling signal fits better?",
+    "options": [
+      "Memory utilisation, since waiting requests hold buffers in RAM",
+      "Queue backlog per worker or oldest-message age, as an external metric",
+      "CPU utilisation with the target lowered from 70% to 10%",
+      "Number of HTTP requests served by the public web tier"
+    ],
+    "correctIndex": 1,
+    "explanation": "For I/O-bound consumers CPU does not reflect demand; the backlog and message age directly measure work waiting. Kubernetes HPA can scale on external metrics such as queue length. Lowering the CPU target still tracks the wrong signal, memory is equally indirect, and web-tier traffic is not the queue's actual load.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/"
+  },
+  {
+    "id": "sd-cache-aside-miss",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Easy",
+    "title": "Cache-aside on a miss",
+    "question": "In the cache-aside pattern, what happens when the application requests a key that is not in the cache?",
+    "options": [
+      "The cache automatically loads the data from the database on the application's behalf",
+      "The request fails and a background job later warms the missing cache entry",
+      "The database pushes the row to the cache on its next scheduled replication",
+      "The application reads the data from the database and then writes it into the cache"
+    ],
+    "correctIndex": 3,
+    "explanation": "In cache-aside the application owns the logic: check the cache, on a miss load from the data store, then populate the cache for later readers. A cache that loads data itself is read-through, and failing or waiting for a background job would make every miss an error.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside"
+  },
+  {
+    "id": "sd-cache-stampede",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Hard",
+    "title": "Cache stampede on a hot key",
+    "question": "A product page cache key with a 60s TTL is read 20,000 times per second. Each time it expires, the database CPU spikes to 100% for several seconds. What is the most effective mitigation?",
+    "options": [
+      "Switch the key to write-through caching so the database is no longer read on expiry",
+      "Add read replicas so the burst of identical queries is spread across more nodes",
+      "Lower the TTL to 5s so each expiry produces a smaller burst of database reads",
+      "Coalesce concurrent misses into one recompute, serve stale meanwhile, jitter TTLs"
+    ],
+    "correctIndex": 3,
+    "explanation": "This is a thundering herd: every concurrent miss independently queries the database. Request coalescing (single-flight or a short lock) plus serving stale data collapses the burst to one query, and jitter keeps many keys from expiring together. Replicas only absorb the herd at higher cost, a shorter TTL makes the herds more frequent, and write-through does not change what happens on expiry.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/caching-challenges-and-strategies/"
+  },
+  {
+    "id": "sd-cache-aside-race",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Expert",
+    "title": "Stale data race in cache-aside",
+    "question": "Cache-aside with this update path: `UPDATE row; COMMIT; DEL cache:key`. Occasionally a key stays stale until its TTL expires. Which interleaving explains it?",
+    "options": [
+      "A slow reader caches the old row it read just before the writer's commit and DEL",
+      "Redis DEL is asynchronous, so the key remains readable until the next eviction cycle",
+      "Redis applies the DEL on replicas before the primary, so primary reads return the old value",
+      "The LRU policy restores recently deleted keys from an internal shadow copy"
+    ],
+    "correctIndex": 0,
+    "explanation": "Invalidation after commit still races with a slow reader whose database read happened before the commit but whose cache write lands after the delete. Short TTLs, versioned values or compare-and-set writes bound or eliminate the window. DEL removes the key synchronously (UNLINK only frees memory in the background), replication flows from primary to replicas, and eviction never resurrects keys.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside"
+  },
+  {
+    "id": "sd-redis-noeviction",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Medium",
+    "title": "Redis OOM errors when used as a cache",
+    "question": "A Redis instance used purely as a cache reaches maxmemory, and SET commands start failing with OOM errors instead of old keys being dropped. What is the most likely cause?",
+    "options": [
+      "maxmemory-policy is allkeys-lru, which only evicts keys that have a TTL",
+      "Redis cannot evict keys while AOF persistence is enabled on the instance",
+      "Eviction only runs when a client issues an explicit MEMORY PURGE command",
+      "maxmemory-policy is noeviction, so writes are rejected rather than evicting"
+    ],
+    "correctIndex": 3,
+    "explanation": "With noeviction Redis returns errors for commands that would add data once the limit is hit. A cache should use a policy such as allkeys-lru or allkeys-lfu. allkeys-lru considers every key, not only those with a TTL, persistence does not disable eviction, and MEMORY PURGE is an allocator hint, not the eviction mechanism.",
+    "referenceUrl": "https://redis.io/docs/latest/develop/reference/eviction/"
+  },
+  {
+    "id": "sd-redis-volatile-policy",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Hard",
+    "title": "Mixing cache and persistent keys in Redis",
+    "question": "One Redis instance holds cache entries (all with TTLs) and session keys (no TTL) that must never be evicted. The team sets maxmemory-policy to volatile-lru. What happens if memory fills up with mostly session keys?",
+    "options": [
+      "Redis falls back to evicting the least recently used session keys",
+      "Redis adds a default TTL to session keys so they become eligible",
+      "Too few keys have TTLs to evict, so writes fail as with noeviction",
+      "Redis swaps the least recently used keys to disk until memory frees up"
+    ],
+    "correctIndex": 2,
+    "explanation": "volatile-* policies only evict keys with an expire set; if there are not enough of them Redis behaves like noeviction and returns errors on writes. It never silently evicts non-expiring keys, adds TTLs, or swaps to disk. Separating persistent data and cache onto different instances is the cleaner design.",
+    "referenceUrl": "https://redis.io/docs/latest/develop/reference/eviction/"
+  },
+  {
+    "id": "sd-write-behind-risk",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Medium",
+    "title": "Write-behind caching risk",
+    "question": "A team wants write-behind caching: writes go to the cache and are flushed to the database asynchronously in batches. What is the main risk they accept?",
+    "options": [
+      "Acknowledged writes are lost if the cache fails before flushing them",
+      "Every write now waits for both the cache and the database to confirm it",
+      "Reads always bypass the cache, so latency for hot keys gets worse",
+      "The database receives more write operations than with write-through"
+    ],
+    "correctIndex": 0,
+    "explanation": "Write-behind improves write latency and lets you batch database writes, but the cache temporarily holds the only copy, so a crash loses data that clients were told was saved. Waiting on both stores describes write-through, reads still hit the cache, and batching reduces rather than increases database writes.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/caching"
+  },
+  {
+    "id": "sd-cdn-fingerprinted-assets",
+    "topic": "system-design",
+    "subtopic": "cdn",
+    "difficulty": "Medium",
+    "title": "Releasing static assets behind a CDN",
+    "question": "After each deploy some users run old JavaScript for hours because app.js is cached by the CDN and browsers. What is the standard fix?",
+    "options": [
+      "Set Cache-Control: no-store on app.js so it is always fetched from the origin",
+      "Hash asset filenames, cache them for a year, and give the HTML a short TTL",
+      "Issue a full CDN invalidation of every path on each deploy and keep the same names",
+      "Lower app.js max-age to 60 seconds and keep the same filename across releases"
+    ],
+    "correctIndex": 1,
+    "explanation": "Content-hashed filenames make every release a new URL, so assets can be cached forever while short-lived HTML references the new names. no-store destroys the CDN's value, invalidations do not purge browser caches and take time to propagate, and a 60s TTL still serves stale code and increases origin load.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching"
+  },
+  {
+    "id": "sd-cdn-cache-key",
+    "topic": "system-design",
+    "subtopic": "cdn",
+    "difficulty": "Hard",
+    "title": "Low CDN cache hit ratio",
+    "question": "A CDN in front of a product catalog has a 4% hit ratio. Its cache key includes the full query string (including utm_* tracking parameters) and the Cookie header, although the origin ignores both. What is the best fix?",
+    "options": [
+      "Increase the TTL to 30 days so each unique variant stays cached for longer",
+      "Add more edge locations so each variant is more likely to be cached nearby",
+      "Use origin shielding so misses are collapsed at a regional cache tier",
+      "Limit the cache key to the parameters and headers the origin varies on"
+    ],
+    "correctIndex": 3,
+    "explanation": "Every unique combination of tracking parameters and cookies creates a separate cache entry, so almost every request is a miss. Restricting the cache key to the inputs that change the response collapses those variants. Longer TTLs and more edges do not help when keys never repeat, and an origin shield reduces origin load but not the fragmentation itself.",
+    "referenceUrl": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/understanding-the-cache-key.html"
+  },
+  {
+    "id": "sd-cache-control-private",
+    "topic": "system-design",
+    "subtopic": "cdn",
+    "difficulty": "Easy",
+    "title": "Keeping personalised responses out of shared caches",
+    "question": "GET /me/profile returns user-specific data. Which header stops a CDN from storing it while still allowing the user's browser to cache it?",
+    "options": [
+      "Cache-Control: private",
+      "Cache-Control: public",
+      "Cache-Control: immutable",
+      "Cache-Control: s-maxage=60"
+    ],
+    "correctIndex": 0,
+    "explanation": "private means the response is intended for a single user and must not be stored by shared caches like CDNs or proxies, though the browser cache may keep it. public explicitly allows shared caching, immutable only says the body will not change during its freshness lifetime, and s-maxage sets a freshness lifetime specifically for shared caches.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control"
+  },
+  {
+    "id": "sd-l7-routing",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Easy",
+    "title": "Path-based routing",
+    "question": "You need to send /api/* requests to one server pool and /images/* to another. What kind of load balancer is required?",
+    "options": [
+      "A layer 4 load balancer that balances based on TCP ports",
+      "A layer 7 load balancer that inspects the HTTP request path",
+      "DNS round robin across the IP addresses of both pools",
+      "A layer 4 load balancer configured with source IP affinity"
+    ],
+    "correctIndex": 1,
+    "explanation": "Routing by URL path requires parsing HTTP, which is a layer 7 capability. Layer 4 balancers only see IPs and ports, so both paths on port 443 look identical, and DNS has no visibility into individual HTTP requests.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/guide/technology-choices/load-balancing-overview"
+  },
+  {
+    "id": "sd-least-outstanding",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Medium",
+    "title": "Uneven load with round robin",
+    "question": "An API mixes 20ms lookups with 30s report exports. Under round robin, some instances pile up long-running requests and time out while others sit idle. Which balancing strategy fits better?",
+    "options": [
+      "Weighted round robin with equal weights assigned to every instance",
+      "Least outstanding requests, sending work to the least busy backend",
+      "Source IP hashing, so each client always reaches the same instance",
+      "Random selection, since it is statistically equivalent to round robin"
+    ],
+    "correctIndex": 1,
+    "explanation": "Round robin assumes requests cost about the same; with highly variable durations, counting in-flight requests is a much better signal of load. Equal weights is plain round robin, IP hashing ignores load entirely and can create hotspots, and random selection has the same blind spot as round robin.",
+    "referenceUrl": "https://sre.google/sre-book/load-balancing-datacenter/"
+  },
+  {
+    "id": "sd-deep-health-check",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Hard",
+    "title": "Health checks that cause outages",
+    "question": "Each web instance's health check queries the shared database. During a 30-second database blip, every instance fails its check and the load balancer removes all of them, turning a brief slowdown into a full outage. What is the best design change?",
+    "options": [
+      "Use shallow local health checks and let the LB fail open if all look down",
+      "Make the health check also verify every downstream API, not just the database",
+      "Lower the unhealthy threshold so failing instances are removed even faster",
+      "Restart instances automatically whenever their health check fails"
+    ],
+    "correctIndex": 0,
+    "explanation": "Deep checks on a shared dependency fail on every host at once, so the balancer removes the whole fleet even though the hosts are fine. Shallow local checks, combined with fail-open (route to all targets when all appear unhealthy), avoid this. Checking more dependencies widens the blast radius, faster removal speeds up the outage, and restarts add churn without fixing the dependency.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/implementing-health-checks/"
+  },
+  {
+    "id": "sd-read-your-writes",
+    "topic": "system-design",
+    "subtopic": "replication-partitioning",
+    "difficulty": "Medium",
+    "title": "Stale reads after an update",
+    "question": "Writes go to a PostgreSQL primary and reads go to asynchronous replicas. Users complain that after editing their profile, the refreshed page still shows the old values. What is the most targeted fix?",
+    "options": [
+      "Switch all replicas to synchronous replication so they can never lag at all",
+      "Add more read replicas so each one has less load and replicates faster",
+      "Send a user's reads to the primary briefly after they write",
+      "Cache profile pages in a CDN so the reads no longer hit the replicas"
+    ],
+    "correctIndex": 2,
+    "explanation": "Asynchronous replicas lag the primary, so a read immediately after a write may miss it. Pinning the writer's reads to the primary (or to a replica that has caught up to the write's position) provides read-your-writes without slowing every commit. Synchronous replication adds commit latency to every write, more replicas do not remove lag, and a CDN makes staleness worse.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/warm-standby.html"
+  },
+  {
+    "id": "sd-hot-shard-timestamp",
+    "topic": "system-design",
+    "subtopic": "replication-partitioning",
+    "difficulty": "Medium",
+    "title": "Choosing a shard key",
+    "question": "An event store is range-sharded by event timestamp. Write throughput is capped because nearly all writes land on one shard. Why, and what is a better key?",
+    "options": [
+      "Range sharding cannot use indexes; switch to sharding by event type instead",
+      "Timestamps collide too often; add milliseconds to the timestamp to spread writes",
+      "The newest shard has the smallest disk; give the newest range more storage",
+      "New events all hit the newest range; hash a high-cardinality key like device ID"
+    ],
+    "correctIndex": 3,
+    "explanation": "Monotonically increasing keys send every new write to the shard that owns the latest range, creating a hotspot. Hashing a high-cardinality attribute spreads writes evenly. Event type has few values and creates its own hotspots, extra timestamp precision still lands in the same range, and disk size is not the bottleneck.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/sharding"
+  },
+  {
+    "id": "sd-mod-n-rehash",
+    "topic": "system-design",
+    "subtopic": "replication-partitioning",
+    "difficulty": "Hard",
+    "title": "Adding a node with hash mod N",
+    "question": "Keys are placed on cache nodes using `hash(key) % N`. You grow from 10 to 11 nodes. Roughly what fraction of keys now map to a different node?",
+    "options": [
+      "About 9% of keys move to a different node",
+      "About 50% of keys move to a different node",
+      "About 91% of keys move to a different node",
+      "No keys move until the cache entries expire"
+    ],
+    "correctIndex": 2,
+    "explanation": "A key keeps its node only when hash mod 10 equals hash mod 11, which holds for about 1 in 11 keys, so roughly 10/11 of keys remap and the cache is effectively emptied. Approaches such as consistent hashing or a fixed number of logical partitions move only around 1/11 of keys when one node is added.",
+    "referenceUrl": "https://martinfowler.com/articles/patterns-of-distributed-systems/fixed-partitions.html"
+  },
+  {
+    "id": "sd-index-table-scatter",
+    "topic": "system-design",
+    "subtopic": "replication-partitioning",
+    "difficulty": "Hard",
+    "title": "Queries that don't use the shard key",
+    "question": "Users are sharded across 64 databases by user_id. Login looks up users by email, so every login queries all 64 shards. What is the most scalable fix?",
+    "options": [
+      "Run the 64 queries in parallel so login latency equals the slowest shard",
+      "Keep an index table mapping email to user_id and look it up first",
+      "Reshard all users by email so login becomes a single-shard query",
+      "Cache every user row in Redis so login avoids the shards entirely"
+    ],
+    "correctIndex": 1,
+    "explanation": "An index table (a global secondary index) turns a scatter-gather into two point lookups. Parallelising still multiplies load by 64 and is bounded by the slowest shard, resharding by email breaks the many queries that use user_id, and caching every row is costly and still needs a source of truth for misses.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/index-table"
+  },
+  {
+    "id": "sd-sync-standby-stall",
+    "topic": "system-design",
+    "subtopic": "replication-partitioning",
+    "difficulty": "Expert",
+    "title": "Synchronous replication availability",
+    "question": "PostgreSQL has `synchronous_standby_names = 's1'` with synchronous_commit on. Standby s1 crashes and all write transactions on the primary hang. Which change keeps synchronous durability while tolerating one standby failure?",
+    "options": [
+      "Add a second standby and set `synchronous_standby_names = 'ANY 1 (s1, s2)'`",
+      "Set synchronous_commit to local so commits wait only for the primary's WAL flush",
+      "Add a third asynchronous standby that is not listed in synchronous_standby_names",
+      "Lower wal_sender_timeout so the primary detects the dead standby sooner"
+    ],
+    "correctIndex": 0,
+    "explanation": "With one named synchronous standby, each commit waits for that standby's confirmation, so losing it blocks writes. Quorum-based ANY 1 over two standbys keeps every commit on at least two nodes while surviving one standby failure. synchronous_commit=local gives up the durability guarantee, async standbys do not count toward confirmation, and faster detection does not stop commits from waiting.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/warm-standby.html"
+  },
+  {
+    "id": "sd-queue-load-leveling",
+    "topic": "system-design",
+    "subtopic": "messaging",
+    "difficulty": "Easy",
+    "title": "Why put a queue in front of a slow service",
+    "question": "Order submissions arrive in bursts of 5,000/s, but the fulfilment service can process only 500/s. What does placing a queue between them primarily achieve?",
+    "options": [
+      "It increases the fulfilment service's maximum throughput to match the bursts",
+      "It guarantees each order is processed exactly once with no extra work",
+      "It removes the need to monitor the fulfilment service's latency",
+      "It buffers bursts so the service consumes at its own steady rate"
+    ],
+    "correctIndex": 3,
+    "explanation": "Queue-based load leveling decouples arrival rate from processing rate: the queue buffers spikes while consumers work at a sustainable pace. It does not make the consumer faster, most queues provide at-least-once delivery so consumers still need idempotency, and backlog and age still need monitoring.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/queue-based-load-leveling"
+  },
+  {
+    "id": "sd-kafka-key-ordering",
+    "topic": "system-design",
+    "subtopic": "messaging",
+    "difficulty": "Medium",
+    "title": "Per-entity ordering in Kafka",
+    "question": "OrderCreated, OrderPaid and OrderShipped events must be consumed in order for each order, but the topic needs many partitions for throughput. How should the producer publish them?",
+    "options": [
+      "Use a random key so events are spread evenly across all partitions",
+      "Publish each event type to its own topic and join them in the consumer",
+      "Key each message by order ID so an order's events share a partition",
+      "Create the topic with a single partition and scale with more consumers"
+    ],
+    "correctIndex": 2,
+    "explanation": "Kafka guarantees ordering only within a partition, and the default partitioner sends equal keys to the same partition, giving per-order ordering while different orders run in parallel. Random keys break ordering, separate topics have no ordering between them, and one partition can be consumed by only one member of a consumer group.",
+    "referenceUrl": "https://kafka.apache.org/documentation/"
+  },
+  {
+    "id": "sd-kafka-consumer-count",
+    "topic": "system-design",
+    "subtopic": "messaging",
+    "difficulty": "Medium",
+    "title": "Scaling Kafka consumers",
+    "question": "A topic has 6 partitions. To speed up processing, the team scales a single consumer group from 6 to 12 instances. What happens?",
+    "options": [
+      "Each partition is split so all 12 instances share the messages",
+      "Every instance receives all messages, doubling the total work done",
+      "Six instances receive partitions and the other six sit idle",
+      "Kafka automatically creates 6 more partitions to match the group"
+    ],
+    "correctIndex": 2,
+    "explanation": "In a consumer group, each partition is assigned to at most one consumer, so parallelism is capped by the partition count. Messages are not split within a partition, broadcasting to every member happens only across different groups, and partitions are never added automatically.",
+    "referenceUrl": "https://kafka.apache.org/documentation/"
+  },
+  {
+    "id": "sd-sqs-visibility",
+    "topic": "system-design",
+    "subtopic": "messaging",
+    "difficulty": "Medium",
+    "title": "Duplicate processing in SQS",
+    "question": "An SQS consumer takes about 90 seconds per message, and the queue's visibility timeout is 30 seconds. Messages are frequently processed twice. What is the cause?",
+    "options": [
+      "Messages reappear after 30s, before processing ends, and are received again",
+      "SQS standard queues always deliver each message exactly twice for durability",
+      "The consumer deletes the message before processing, which triggers a redelivery",
+      "Long polling causes the same message to be returned to several receivers at once"
+    ],
+    "correctIndex": 0,
+    "explanation": "During the visibility timeout the message is hidden; if it is not deleted before the timeout expires, it reappears for other consumers. Set the timeout above the processing time or extend it while working. Standard queues are at-least-once, not exactly twice, deleting early would prevent redelivery, and long polling only reduces empty receives.",
+    "referenceUrl": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html"
+  },
+  {
+    "id": "sd-dead-letter-queue",
+    "topic": "system-design",
+    "subtopic": "messaging",
+    "difficulty": "Easy",
+    "title": "Handling poison messages",
+    "question": "One malformed message makes the consumer throw every time it is received, and it keeps being retried forever. What is the standard way to handle this?",
+    "options": [
+      "Increase the visibility timeout so the malformed message is retried less often",
+      "Route it to a dead-letter queue after a max number of receive attempts",
+      "Purge the entire queue whenever an exception is thrown by the consumer",
+      "Add more consumers so the malformed message is spread across them"
+    ],
+    "correctIndex": 1,
+    "explanation": "A dead-letter queue isolates messages that fail repeatedly (after maxReceiveCount) so they can be inspected without blocking or wasting capacity. A longer timeout only slows the retry loop, purging discards good messages, and more consumers just fail on the same message.",
+    "referenceUrl": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html"
+  },
+  {
+    "id": "sd-token-bucket",
+    "topic": "system-design",
+    "subtopic": "rate-limiting",
+    "difficulty": "Easy",
+    "title": "Allowing bursts with a token bucket",
+    "question": "An API should allow an average of 10 requests/s per client but tolerate short bursts of up to 50 requests. How is a token bucket configured for this?",
+    "options": [
+      "Refill rate of 50 tokens per second with a bucket capacity of 10",
+      "Refill rate of 10 tokens per second with a bucket capacity of 10",
+      "Refill rate of 60 tokens per second with a bucket capacity of 0",
+      "Refill rate of 10 tokens per second with a bucket capacity of 50"
+    ],
+    "correctIndex": 3,
+    "explanation": "The refill rate sets the sustained throughput and the capacity sets the maximum burst; each request consumes a token. AWS API Gateway exposes exactly these two settings as rate and burst. Swapping them allows 50/s sustained, and capacity 10 removes the burst allowance.",
+    "referenceUrl": "https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-throttling.html"
+  },
+  {
+    "id": "sd-fixed-window-boundary",
+    "topic": "system-design",
+    "subtopic": "rate-limiting",
+    "difficulty": "Medium",
+    "title": "Fixed window boundary burst",
+    "question": "A fixed-window limiter allows 100 requests per calendar minute. A client sends 100 requests at 12:00:59 and another 100 at 12:01:00, all accepted. Which algorithm prevents this double burst?",
+    "options": [
+      "A fixed window with a larger 2-minute window and a limit of 200",
+      "Resetting the fixed-window counter on the first request of each minute",
+      "A sliding window that counts requests over any rolling 60 seconds",
+      "A fixed window keyed by client IP address instead of API key"
+    ],
+    "correctIndex": 2,
+    "explanation": "Fixed windows reset at boundaries, so a client can send up to twice the limit across the edge. Sliding windows evaluate the trailing period, smoothing out the burst. A bigger fixed window has the same edge problem, the reset timing is the problem itself, and changing the key does not address boundary behaviour.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/rate-limiting-pattern"
+  },
+  {
+    "id": "sd-429-retry-after",
+    "topic": "system-design",
+    "subtopic": "rate-limiting",
+    "difficulty": "Easy",
+    "title": "Signalling a rate limit to clients",
+    "question": "A client has exceeded its quota. Which response best tells it what happened and when to try again?",
+    "options": [
+      "503 Service Unavailable with an empty response body",
+      "403 Forbidden with an error message in the body",
+      "400 Bad Request with a quota_exceeded error code",
+      "429 Too Many Requests with a Retry-After header"
+    ],
+    "correctIndex": 3,
+    "explanation": "429 is the status specifically for too many requests, and Retry-After tells well-behaved clients how long to wait. 503 implies the server itself is down, 403 implies the client is not permitted at all, and 400 means the request itself is malformed.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429"
+  },
+  {
+    "id": "sd-gateway-offloading",
+    "topic": "system-design",
+    "subtopic": "api-gateway",
+    "difficulty": "Easy",
+    "title": "Gateway offloading",
+    "question": "Twelve microservices each implement TLS termination, JWT validation and response compression. Which pattern moves these shared concerns into one place?",
+    "options": [
+      "Gateway Offloading, handling cross-cutting concerns at the API gateway",
+      "Strangler Fig, gradually replacing each service with a new one",
+      "Sidecar, compiling the shared logic into every service binary",
+      "Saga, coordinating the concerns across services with compensations"
+    ],
+    "correctIndex": 0,
+    "explanation": "Gateway Offloading moves shared functionality such as TLS, authentication and compression to the gateway so services stay focused on business logic. Strangler Fig is a migration pattern, a sidecar runs as a separate process beside each service rather than being compiled in, and Saga is about distributed transactions.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/gateway-offloading"
+  },
+  {
+    "id": "sd-bff",
+    "topic": "system-design",
+    "subtopic": "api-gateway",
+    "difficulty": "Medium",
+    "title": "Different clients, different payloads",
+    "question": "The mobile app needs small, aggregated payloads while the web app needs rich ones. One general-purpose gateway API has become bloated with client-specific branches owned by different teams. Which pattern helps?",
+    "options": [
+      "One shared GraphQL schema that every client team edits as needed",
+      "Gateway Routing based on the User-Agent header to the same handlers",
+      "Backends for Frontends: a dedicated backend per client type",
+      "Moving all aggregation logic into the mobile and web clients"
+    ],
+    "correctIndex": 2,
+    "explanation": "BFF gives each frontend a dedicated backend tailored to its needs and release cadence, removing the conflicts of one shared layer. A shared schema can work but keeps the same coupling, routing by User-Agent still hits the same bloated logic, and client-side aggregation means more round trips over mobile networks.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/backends-for-frontends"
+  },
+  {
+    "id": "sd-k8s-service-discovery",
+    "topic": "system-design",
+    "subtopic": "api-gateway",
+    "difficulty": "Medium",
+    "title": "Service discovery in Kubernetes",
+    "question": "In Kubernetes, pods of the orders service are rescheduled frequently and get new IPs. How should the payments service reliably reach orders?",
+    "options": [
+      "Store the pod IPs in a ConfigMap and redeploy payments when they change",
+      "Call the orders Service's stable DNS name instead of pod IPs",
+      "Use the node IPs where orders pods ran at deployment time",
+      "Pin the orders pods to fixed IPs using hostNetwork on every node"
+    ],
+    "correctIndex": 1,
+    "explanation": "A Kubernetes Service gives a set of pods a stable virtual IP and DNS name and tracks endpoints as pods come and go, which is built-in service discovery. Hard-coded pod or node IPs go stale on rescheduling, and hostNetwork pinning sacrifices scheduling flexibility and isolation.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/services-networking/service/"
+  },
+  {
+    "id": "sd-circuit-half-open",
+    "topic": "system-design",
+    "subtopic": "resilience",
+    "difficulty": "Easy",
+    "title": "Circuit breaker half-open state",
+    "question": "What is the purpose of the half-open state in a circuit breaker?",
+    "options": [
+      "Send half of all traffic to the dependency and half to a fallback",
+      "Queue requests in memory until the dependency reports that it is healthy",
+      "Let a few trial requests through to test if the dependency recovered",
+      "Retry each failed request once before counting it as a failure"
+    ],
+    "correctIndex": 2,
+    "explanation": "After the open state's timeout the breaker goes half-open and lets a few requests through; success closes it, failure reopens it. This avoids hammering a recovering service. It does not split traffic evenly, buffer requests, or act as a per-request retry policy.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker"
+  },
+  {
+    "id": "sd-retry-jitter",
+    "topic": "system-design",
+    "subtopic": "resilience",
+    "difficulty": "Medium",
+    "title": "Synchronised retries",
+    "question": "After a brief outage, 10,000 clients all retry with exponential backoff of 1s, 2s, 4s, 8s. Monitoring shows load arriving in sharp spikes that keep knocking the service over. What change helps most?",
+    "options": [
+      "Switch to a fixed retry interval of 1s so recovery happens sooner",
+      "Remove the backoff entirely and retry immediately after each failure",
+      "Add random jitter to each client's backoff delays",
+      "Increase the number of retries from 4 to 10 on every client"
+    ],
+    "correctIndex": 2,
+    "explanation": "Clients that failed together retry together; plain exponential backoff keeps them synchronised. Jitter randomises the delays and spreads the load. Fixed or immediate retries make the spikes worse, and more retries add load to a service that is already struggling.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/"
+  },
+  {
+    "id": "sd-retry-amplification",
+    "topic": "system-design",
+    "subtopic": "resilience",
+    "difficulty": "Hard",
+    "title": "Retry amplification across layers",
+    "question": "A request passes through five service layers, and each layer makes up to 3 attempts against the layer below. When the deepest dependency fails, what is the worst-case number of calls it receives for one user request?",
+    "options": [
+      "243 calls, because the attempts multiply at every layer (3^5)",
+      "15 calls, because each of the five layers adds three attempts",
+      "3 calls, because only the deepest layer's retries reach it",
+      "8 calls, because retries overlap across adjacent layers"
+    ],
+    "correctIndex": 0,
+    "explanation": "Retries at each layer multiply: 3 x 3 x 3 x 3 x 3 = 243, turning a small failure into massive overload. The usual remedies are retrying at a single layer, using retry budgets or token buckets, and failing fast. The additive and single-layer answers ignore that each upper attempt triggers a full set below.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/"
+  },
+  {
+    "id": "sd-bulkhead",
+    "topic": "system-design",
+    "subtopic": "resilience",
+    "difficulty": "Medium",
+    "title": "One slow dependency takes down everything",
+    "question": "A service calls a recommendations API and a payments API from one shared 200-thread pool. When recommendations slows to 30s per call, checkout also fails because no threads are free. Which pattern addresses this?",
+    "options": [
+      "Bulkhead: isolate each dependency in its own bounded pool",
+      "Cache-aside: cache recommendations so fewer calls reach the slow API",
+      "Retry with backoff: retry recommendation calls until they succeed",
+      "Scale up: increase the shared pool to 2,000 threads"
+    ],
+    "correctIndex": 0,
+    "explanation": "Bulkheads partition resources so failure in one area is contained, keeping checkout's threads available while recommendations degrades. Caching can help but does not bound resource use on misses, retries keep threads busy longer, and a larger shared pool just takes longer to exhaust.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/bulkhead"
+  },
+  {
+    "id": "sd-timeout-percentile",
+    "topic": "system-design",
+    "subtopic": "resilience",
+    "difficulty": "Hard",
+    "title": "Picking a client timeout",
+    "question": "A downstream call has p50 = 20ms, p99 = 180ms and p99.9 = 400ms. Clients currently use a 30s timeout and threads pile up during incidents. How should the timeout be chosen?",
+    "options": [
+      "Set it to the p50 latency so most requests fail fast during incidents",
+      "Keep 30s, because any timeout below that risks failing slow but valid requests",
+      "Set it to the average latency multiplied by the number of retries allowed",
+      "Base it on a high percentile like p99.9, accepting rare false timeouts"
+    ],
+    "correctIndex": 3,
+    "explanation": "Choosing a timeout from a high latency percentile accepts a small, known rate of false timeouts while freeing resources quickly when the dependency hangs. p50 would fail half of healthy calls, 30s ties up threads and connections far beyond normal latency, and averages hide the tail.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/"
+  },
+  {
+    "id": "sd-load-shedding",
+    "topic": "system-design",
+    "subtopic": "resilience",
+    "difficulty": "Expert",
+    "title": "Goodput collapse under overload",
+    "question": "Under 2x normal traffic, a service's in-memory request queue grows until server-side latency exceeds the 2s client timeout. Throughput looks high, but nearly every response arrives after the client has given up. What is the best remedy?",
+    "options": [
+      "Increase the queue size so no requests are ever rejected under load",
+      "Raise the client timeout to 30s so slow responses are still accepted",
+      "Process the queue FIFO with more worker threads on the same hosts",
+      "Bound the queue and reject excess requests early, before they wait"
+    ],
+    "correctIndex": 3,
+    "explanation": "When queueing time exceeds the client timeout, the server spends all its capacity on work nobody will use, so goodput collapses. Rejecting excess load early keeps latency within bounds for the requests it accepts. Bigger queues increase latency further, longer timeouts spread the backlog to clients, and more threads on saturated hosts add contention.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/using-load-shedding-to-avoid-overload/"
+  },
+  {
+    "id": "sd-put-idempotent",
+    "topic": "system-design",
+    "subtopic": "idempotency",
+    "difficulty": "Easy",
+    "title": "Idempotent HTTP methods",
+    "question": "Which HTTP method is defined as idempotent but not safe?",
+    "options": [
+      "PUT",
+      "GET",
+      "POST",
+      "PATCH"
+    ],
+    "correctIndex": 0,
+    "explanation": "PUT replaces the target's state, so sending the same request repeatedly has the same effect as sending it once, but it does modify state and is therefore not safe. GET is both safe and idempotent, POST is neither, and PATCH is not guaranteed to be idempotent.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9110.html"
+  },
+  {
+    "id": "sd-idempotency-key",
+    "topic": "system-design",
+    "subtopic": "idempotency",
+    "difficulty": "Medium",
+    "title": "Retrying a payment request safely",
+    "question": "A mobile app calls POST /charges; the network drops before the response arrives and the app retries. Some customers are charged twice. What is the standard fix?",
+    "options": [
+      "The server rejects any second charge for the same amount within 24 hours",
+      "The client switches from POST to GET so the request becomes idempotent",
+      "Send a unique Idempotency-Key per charge; the server replays the first result",
+      "The client disables retries for all POST requests to the payments API"
+    ],
+    "correctIndex": 2,
+    "explanation": "An idempotency key lets the server recognise a retry of the same operation and return the saved result instead of executing it again. Amount-based deduplication blocks legitimate repeat purchases, GET must not have side effects, and disabling retries leaves the client unsure whether it was charged.",
+    "referenceUrl": "https://docs.stripe.com/api/idempotent_requests"
+  },
+  {
+    "id": "sd-idempotency-key-mismatch",
+    "topic": "system-design",
+    "subtopic": "idempotency",
+    "difficulty": "Hard",
+    "title": "Reused key with a different payload",
+    "question": "A client reuses an idempotency key from a successful $20 charge, but this time sends amount=$50. How should a well-designed payments API respond?",
+    "options": [
+      "Return the original $20 result, since the key alone identifies the operation",
+      "Process the new $50 charge and overwrite the stored result for the key",
+      "Charge the $30 difference so the total matches the latest request",
+      "Reject it with an error, since the parameters differ from the original"
+    ],
+    "correctIndex": 3,
+    "explanation": "A reused key with different parameters almost always indicates a client bug, so the server compares the incoming parameters with the original and returns an error rather than guessing. Silently returning the old result hides the bug, while executing or adjusting the charge breaks the guarantee that a key maps to one operation.",
+    "referenceUrl": "https://docs.stripe.com/api/idempotent_requests"
+  },
+  {
+    "id": "sd-idempotent-consumer-tx",
+    "topic": "system-design",
+    "subtopic": "idempotency",
+    "difficulty": "Expert",
+    "title": "Deduplicating at-least-once messages",
+    "question": "A consumer receives at-least-once messages and must apply each balance update exactly once. It records processed message IDs in a table. Why must that insert be in the same database transaction as the balance update?",
+    "options": [
+      "A crash between separate writes causes a duplicate or a lost update",
+      "Because message IDs are only unique within a single transaction scope",
+      "Because the broker requires a transaction ID to acknowledge the message",
+      "Because separate transactions would deadlock on the processed-ID table"
+    ],
+    "correctIndex": 0,
+    "explanation": "An idempotent receiver is only correct if the side effect and the record that it happened commit atomically. If they are separate, a crash can leave the update applied without the ID (causing a duplicate on redelivery) or the ID stored without the update (losing it). Message IDs are globally unique, acknowledgements do not require database transactions, and deadlocks are not the core issue.",
+    "referenceUrl": "https://martinfowler.com/articles/patterns-of-distributed-systems/idempotent-receiver.html"
+  },
+  {
+    "id": "sd-cap-partition",
+    "topic": "system-design",
+    "subtopic": "consistency",
+    "difficulty": "Medium",
+    "title": "CAP during a network partition",
+    "question": "A network partition splits a replicated database's nodes into two groups. The system is designed to favour consistency (CP). What must the minority side do?",
+    "options": [
+      "Reject requests it cannot confirm with a majority, giving up availability",
+      "Accept writes locally and reconcile them with last-write-wins after healing",
+      "Continue serving reads and writes because partitions are rare in practice",
+      "Elect its own leader so both sides can keep accepting writes"
+    ],
+    "correctIndex": 0,
+    "explanation": "CAP says that during a partition you must choose between consistency and availability. A CP system rejects requests on the side that cannot reach a quorum rather than risk divergent data. Accepting local writes or electing a second leader is the AP choice (and risks split-brain), and assuming partitions never happen is not a design.",
+    "referenceUrl": "https://sre.google/sre-book/managing-critical-state/"
+  },
+  {
+    "id": "sd-quorum-rw",
+    "topic": "system-design",
+    "subtopic": "consistency",
+    "difficulty": "Medium",
+    "title": "Quorum read and write sizes",
+    "question": "A leaderless store keeps N=3 replicas. Which setting guarantees that every read quorum overlaps the latest successful write quorum?",
+    "options": [
+      "W=1 and R=1, since each replica is checked eventually",
+      "W=1 and R=2, since reads use more replicas than writes",
+      "W=2 and R=1, since writes reach a majority of replicas",
+      "W=2 and R=2, since R + W > N"
+    ],
+    "correctIndex": 3,
+    "explanation": "Overlap is guaranteed when R + W > N: any 2 replicas read must include at least one of the 2 that acknowledged the write. With R + W = 3 or less, as in the other options, a read can hit only replicas that missed the latest write.",
+    "referenceUrl": "https://martinfowler.com/articles/patterns-of-distributed-systems/quorum.html"
+  },
+  {
+    "id": "sd-raft-even-cluster",
+    "topic": "system-design",
+    "subtopic": "consistency",
+    "difficulty": "Hard",
+    "title": "Raft cluster sizing",
+    "question": "A team runs a 3-node Raft cluster (e.g. etcd) and proposes moving to 4 nodes for better fault tolerance. What is the effect?",
+    "options": [
+      "It tolerates two failed nodes, because half the cluster can still vote",
+      "It tolerates three failed nodes, because one node can act as the leader",
+      "It still tolerates only one failed node, because a majority of 4 is 3",
+      "It tolerates no failures, because Raft requires an odd number of nodes"
+    ],
+    "correctIndex": 2,
+    "explanation": "Raft needs a majority (floor(N/2) + 1) to elect a leader and commit entries. With 4 nodes the majority is 3, so only one failure is tolerated, the same as 3 nodes but with more replication overhead. Raft works with even sizes; it just gains nothing over the next smaller odd size, which is why 3 or 5 is typical.",
+    "referenceUrl": "https://raft.github.io/"
+  },
+  {
+    "id": "sd-fencing-token",
+    "topic": "system-design",
+    "subtopic": "consistency",
+    "difficulty": "Expert",
+    "title": "Lease expiry and stale lock holders",
+    "question": "Worker A holds a lease-based lock to write a file in storage, then pauses for 40s in a GC pause. The lease expires, worker B acquires the lock and writes. A resumes and overwrites B's data. What prevents this?",
+    "options": [
+      "Make the lease longer than the longest possible GC pause on any worker",
+      "Issue increasing fencing tokens and have storage reject stale tokens",
+      "Have each worker check that it still holds the lock just before writing",
+      "Use a lock service backed by a Raft cluster instead of a single node"
+    ],
+    "correctIndex": 1,
+    "explanation": "A paused process cannot know its lease expired, so checks in the client are always racy and no lease length can bound pauses. A fencing token (a generation number) lets the resource itself reject writes from a stale holder. A consensus-backed lock service makes grants reliable but cannot stop a stale holder's late write on its own.",
+    "referenceUrl": "https://martinfowler.com/articles/patterns-of-distributed-systems/generation.html"
+  },
+  {
+    "id": "sd-lww-clock-skew",
+    "topic": "system-design",
+    "subtopic": "consistency",
+    "difficulty": "Hard",
+    "title": "Last-write-wins with wall clocks",
+    "question": "A multi-region store resolves conflicts with last-write-wins using each server's wall-clock timestamp. An update made later in real time is sometimes discarded. What is the most likely cause?",
+    "options": [
+      "Network latency reordered the packets inside each individual write request",
+      "Last-write-wins always keeps the first write it receives, not the newest",
+      "Clock skew: the earlier write's server clock was ahead of the other",
+      "The database rounded both timestamps to the same second and dropped one"
+    ],
+    "correctIndex": 2,
+    "explanation": "Wall clocks across machines drift, so a write with a larger timestamp is not necessarily later. LWW then silently drops the real latest update. Hybrid logical clocks or version vectors give an ordering that respects causality. Packet reordering inside one request does not change timestamps, and LWW keeps the highest timestamp, not the first arrival.",
+    "referenceUrl": "https://martinfowler.com/articles/patterns-of-distributed-systems/hybrid-clock.html"
+  },
+  {
+    "id": "sd-saga-compensation",
+    "topic": "system-design",
+    "subtopic": "distributed-transactions",
+    "difficulty": "Easy",
+    "title": "When a saga step fails",
+    "question": "An order saga runs: reserve inventory, charge payment, schedule shipping. Charging payment fails permanently. What does the saga do?",
+    "options": [
+      "Roll back all services with a single distributed ACID transaction",
+      "Retry the payment step forever until it eventually succeeds",
+      "Run compensating transactions for completed steps, e.g. release inventory",
+      "Leave inventory reserved and let an operator decide what to do later"
+    ],
+    "correctIndex": 2,
+    "explanation": "A saga is a sequence of local transactions; when a step fails, previously completed steps are undone by explicit compensating actions. There is no global rollback because each service commits locally, infinite retries never resolve a permanent failure, and leaving reservations dangling causes inconsistency.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/saga"
+  },
+  {
+    "id": "sd-dual-write-outbox",
+    "topic": "system-design",
+    "subtopic": "distributed-transactions",
+    "difficulty": "Medium",
+    "title": "Saving and publishing atomically",
+    "question": "A service inserts an order into its database and then publishes OrderCreated to Kafka. If it crashes between the two steps, the event is lost. Which pattern fixes this?",
+    "options": [
+      "Transactional outbox: store the event in the same DB transaction, relay later",
+      "Publish the event first, then insert the order if the publish succeeds",
+      "Wrap the insert and publish in a try/catch that retries the publish once",
+      "Have consumers poll the orders table instead of subscribing to events"
+    ],
+    "correctIndex": 0,
+    "explanation": "The outbox makes the state change and the event a single atomic local write; a relay or CDC process publishes outbox rows, giving at-least-once delivery. Publishing first just reverses the failure mode, a retry in the same process is lost when the process crashes, and polling business tables couples consumers to the schema.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/databases/guide/transactional-outbox-cosmos"
+  },
+  {
+    "id": "sd-saga-orchestration",
+    "topic": "system-design",
+    "subtopic": "distributed-transactions",
+    "difficulty": "Medium",
+    "title": "Choreography vs orchestration",
+    "question": "A loan-approval saga has nine steps, conditional branches and timeouts, and the team struggles to see which step a given application is in. Which saga style fits better?",
+    "options": [
+      "Choreography, with each service reacting to the events of the previous step",
+      "Two-phase commit across all nine services involved in the process",
+      "Orchestration, with a coordinator that owns workflow state",
+      "A single shared database that all nine services update directly"
+    ],
+    "correctIndex": 2,
+    "explanation": "Choreography works well for a few steps but becomes hard to follow and debug as flows grow, since the logic is spread across services. An orchestrator makes the state and branching explicit. 2PC holds locks across services and is a poor fit for long-running flows, and a shared database recreates tight coupling.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/saga"
+  },
+  {
+    "id": "sd-saga-isolation",
+    "topic": "system-design",
+    "subtopic": "distributed-transactions",
+    "difficulty": "Hard",
+    "title": "Saga lack of isolation",
+    "question": "During a booking saga, the hotel is reserved before the flight step fails and compensates. Meanwhile, a reporting service read the hotel reservation and emailed a confirmation. What property of sagas caused this, and what is a common countermeasure?",
+    "options": [
+      "Sagas lack durability; persist each step's result to disk before continuing",
+      "Sagas lack isolation; mark records PENDING until the saga completes",
+      "Sagas lack atomicity within a service; wrap each local step in two transactions",
+      "Sagas lack ordering; publish every step's events to the same Kafka partition"
+    ],
+    "correctIndex": 1,
+    "explanation": "Each saga step commits locally, so other transactions can observe intermediate state that may later be compensated. Countermeasures include semantic locks or pending states, commutative updates, and ordering steps so risky ones run first. Durability and local atomicity are provided by each service's database, and event ordering does not hide uncommitted business state.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/saga"
+  },
+  {
+    "id": "sd-2pc-blocking",
+    "topic": "system-design",
+    "subtopic": "distributed-transactions",
+    "difficulty": "Expert",
+    "title": "Two-phase commit coordinator failure",
+    "question": "In two-phase commit, all participants vote YES in the prepare phase, then the coordinator crashes before sending the decision. What state are the participants in?",
+    "options": [
+      "Committed: a unanimous YES vote means each participant commits on its own",
+      "Aborted: participants time out and roll back, which is always safe after a YES vote",
+      "Blocked: holding locks, unable to safely commit or abort on their own",
+      "Split: participants elect a new coordinator from among themselves and continue"
+    ],
+    "correctIndex": 2,
+    "explanation": "After voting YES a participant has promised to commit if told to, so aborting alone could contradict a commit the coordinator may already have logged, and committing alone could contradict an abort. It must wait for recovery, holding locks. This blocking behaviour is a key reason 2PC is avoided across microservices. Plain 2PC has no participant-led election.",
+    "referenceUrl": "https://martinfowler.com/articles/patterns-of-distributed-systems/two-phase-commit.html"
+  },
+  {
+    "id": "sd-event-carried-state",
+    "topic": "system-design",
+    "subtopic": "event-driven",
+    "difficulty": "Medium",
+    "title": "Avoiding callbacks after an event",
+    "question": "The shipping service receives CustomerAddressChanged events containing only the customer ID, then calls the customer service to fetch the new address, which overloads it. Which approach removes that call?",
+    "options": [
+      "Event notification: keep the ID-only event and increase customer service replicas",
+      "Synchronous RPC: have customer service call shipping directly on every change",
+      "Event-carried state transfer: put the new address in the event itself",
+      "Batching: deliver the ID-only events once per hour to reduce call volume"
+    ],
+    "correctIndex": 2,
+    "explanation": "With event-carried state transfer, events include the data consumers need, so they do not need to query the source and stay available when it is down, at the cost of data duplication. The other options keep shipping dependent on customer service, add temporal coupling, or delay updates.",
+    "referenceUrl": "https://martinfowler.com/articles/201701-event-driven.html"
+  },
+  {
+    "id": "sd-event-sourcing-snapshots",
+    "topic": "system-design",
+    "subtopic": "event-driven",
+    "difficulty": "Medium",
+    "title": "Event sourcing load times",
+    "question": "An event-sourced Account aggregate has 200,000 events, and loading it by replaying all of them takes seconds. What is the usual fix that preserves the event log?",
+    "options": [
+      "Store periodic snapshots and replay only events after the latest one",
+      "Delete events older than 30 days once they have been applied to the account",
+      "Merge all events into a single updated event that is rewritten on each change",
+      "Switch the aggregate to a CRUD table and drop the event store entirely"
+    ],
+    "correctIndex": 0,
+    "explanation": "Snapshots capture state at a point in the stream so rebuilding only needs the tail of events, while the full immutable history remains for audit and replay. Deleting or rewriting events defeats the point of event sourcing, and abandoning it is unnecessary for a performance problem.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing"
+  },
+  {
+    "id": "sd-cqrs-lag",
+    "topic": "system-design",
+    "subtopic": "event-driven",
+    "difficulty": "Hard",
+    "title": "Missing data after a write in CQRS",
+    "question": "With CQRS, commands update the write store and an asynchronous projector updates a read store. A user creates a project and is redirected to the project list, which does not show it yet. What is the best response?",
+    "options": [
+      "Make the projector synchronous inside every command transaction for all read models",
+      "Design the UX for eventual consistency, e.g. show the item from the command result",
+      "Query the write store for every list page so the read store is no longer used",
+      "Run the projector more often, since a faster poll interval removes the lag"
+    ],
+    "correctIndex": 1,
+    "explanation": "Asynchronous projections are eventually consistent by design; the UI should handle it, for example by using the command's response, optimistic display, or waiting until the read model reaches the write's version. Synchronous projection or reading from the write store discards the benefits of CQRS, and faster polling shrinks the window but cannot eliminate it.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs"
+  },
+  {
+    "id": "sd-rpo-definition",
+    "topic": "system-design",
+    "subtopic": "high-availability",
+    "difficulty": "Easy",
+    "title": "Recovery point objective",
+    "question": "A system's recovery point objective (RPO) is 5 minutes. What does that mean?",
+    "options": [
+      "The system must be fully restored within 5 minutes of the failure",
+      "Backups must be retained for at least 5 minutes after they are taken",
+      "At most 5 minutes of data, measured back from the failure, may be lost",
+      "Failover must be tested at least once every 5 minutes in production"
+    ],
+    "correctIndex": 2,
+    "explanation": "RPO is the maximum acceptable data loss expressed as time, which drives backup and replication frequency. The time allowed to restore service is the recovery time objective (RTO). Retention and testing cadence are separate policies.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/well-architected/reliability/metrics"
+  },
+  {
+    "id": "sd-dr-warm-standby",
+    "topic": "system-design",
+    "subtopic": "high-availability",
+    "difficulty": "Medium",
+    "title": "Choosing a DR strategy",
+    "question": "A business needs an RTO of a few minutes after a regional failure, but cannot afford running full production capacity in two regions. Which DR strategy fits best?",
+    "options": [
+      "Backup and restore: recreate everything from backups in the second region",
+      "Warm standby: a smaller, running copy that scales up on failover",
+      "Multi-site active/active: serve full traffic from both regions at all times",
+      "Pilot light: replicate data only and provision the app tier during a disaster"
+    ],
+    "correctIndex": 1,
+    "explanation": "Warm standby keeps a functional, smaller environment running, so recovery is mostly scaling up, which fits a minutes-level RTO at lower cost than active/active. Backup and restore typically takes hours, pilot light needs time to deploy and start the application tier, and active/active exceeds the budget.",
+    "referenceUrl": "https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html"
+  },
+  {
+    "id": "sd-serial-availability",
+    "topic": "system-design",
+    "subtopic": "high-availability",
+    "difficulty": "Medium",
+    "title": "Availability of serial dependencies",
+    "question": "A request must succeed through an API (99.95%), a database (99.95%) and an identity provider (99.9%), all required. What is the approximate best-case availability of the request path?",
+    "options": [
+      "About 99.8%, because availabilities of required dependencies multiply",
+      "99.95%, because the path is as available as its strongest component",
+      "99.9%, because the path is exactly as available as its weakest component",
+      "About 99.93%, because the path is the average of the components"
+    ],
+    "correctIndex": 0,
+    "explanation": "For hard dependencies in series, availability is the product: 0.9995 x 0.9995 x 0.999 is about 0.998. The composite is lower than any single component, so neither the strongest, the weakest nor the average is correct. Redundancy or removing hard dependencies is how you raise it.",
+    "referenceUrl": "https://sre.google/sre-book/embracing-risk/"
+  },
+  {
+    "id": "sd-static-stability",
+    "topic": "system-design",
+    "subtopic": "high-availability",
+    "difficulty": "Expert",
+    "title": "Surviving an availability zone loss",
+    "question": "A service runs in 3 AZs at 70% utilisation and relies on autoscaling to add capacity if an AZ fails. During a real AZ outage, the control plane is degraded and new instances launch slowly. What design avoids depending on that?",
+    "options": [
+      "Shorter autoscaling cooldowns so new instances are requested sooner",
+      "Deep health checks so traffic leaves the failed AZ more quickly",
+      "Moving the whole service into a single, larger availability zone",
+      "Pre-provision so surviving AZs carry full load with no new launches"
+    ],
+    "correctIndex": 3,
+    "explanation": "A statically stable system keeps working during a failure without needing changes such as launching capacity, because control planes are often impaired in the same event. With 3 AZs, each must be able to absorb 50% extra load. Faster scaling still depends on the control plane, health checks do not create capacity, and one AZ removes zone redundancy.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/static-stability-using-availability-zones/"
+  },
+  {
+    "id": "sd-url-shortener-ids",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Medium",
+    "title": "URL shortener: generating short codes",
+    "question": "A URL shortener runs on 40 app servers and must create unique 7-character codes at high write rates without checking the database for collisions. Which approach fits best?",
+    "options": [
+      "Hash the long URL with MD5 and keep the first 7 characters of the hash",
+      "Servers lease ID blocks from a central counter and base62-encode them",
+      "Generate 7 random characters and retry with a new value if insert fails",
+      "Use each server's local auto-increment counter starting from zero"
+    ],
+    "correctIndex": 1,
+    "explanation": "Leasing ID ranges from an atomic counter (e.g. Redis INCRBY or a database sequence) guarantees uniqueness with a coordination call only once per block, and base62 of a 64-bit range easily fits 7 characters for billions of links. Truncated hashes and random codes collide and need lookups, and independent local counters produce duplicates across servers.",
+    "referenceUrl": "https://redis.io/docs/latest/commands/incr/"
+  },
+  {
+    "id": "sd-url-shortener-redirect",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Easy",
+    "title": "URL shortener: redirect status",
+    "question": "The product team wants to count every click on short links. Which redirect status should the service return?",
+    "options": [
+      "302 Found, so the redirect isn't cached and every click is counted",
+      "301 Moved Permanently, so browsers cache it and later clicks are faster",
+      "200 OK with the destination page proxied through the shortener",
+      "404 Not Found with a Location header pointing to the long URL"
+    ],
+    "correctIndex": 0,
+    "explanation": "Permanent redirects (301/308) may be cached by browsers indefinitely, so repeat clicks bypass the shortener and are not counted. A temporary redirect such as 302 keeps each click visible. Proxying the destination is costly and breaks the target site, and a 404 signals an error rather than a redirect.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/302"
+  },
+  {
+    "id": "sd-chat-routing",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Hard",
+    "title": "Chat app: delivering across servers",
+    "question": "A chat app keeps WebSocket connections on 50 gateway servers. Alice is connected to gateway 3 and Bob to gateway 17. How should Alice's message reach Bob in real time?",
+    "options": [
+      "Gateway 3 opens a WebSocket directly to Bob's browser to deliver it",
+      "Bob's client polls the database every few seconds for new messages",
+      "Use sticky sessions so Alice and Bob always connect to the same gateway",
+      "Look up Bob's gateway in a presence registry and publish to it via pub/sub"
+    ],
+    "correctIndex": 3,
+    "explanation": "Gateways are stateless relays; a registry maps users to the gateway holding their connection, and a pub/sub channel delivers the message there for push over Bob's socket. A server cannot open a WebSocket to a browser, polling adds latency and load, and stickiness cannot place every pair of chatting users on one server.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/publisher-subscriber"
+  },
+  {
+    "id": "sd-chat-ordering",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Hard",
+    "title": "Chat app: message ordering",
+    "question": "Group chat members sometimes see messages in different orders because messages are sorted by the sender device's timestamp. What gives a consistent order for everyone?",
+    "options": [
+      "Sort by the server's arrival time on whichever gateway received each message",
+      "Synchronise all client clocks with NTP before allowing users to send",
+      "Assign per-conversation sequence numbers at a single owner",
+      "Sort by message ID generated as a random UUIDv4 on each device"
+    ],
+    "correctIndex": 2,
+    "explanation": "Total order within a conversation needs a single sequencer: routing all of a conversation's messages through one partition or owner lets it assign increasing sequence numbers. Device clocks and arrival times on different gateways are not comparable across machines, NTP reduces but does not remove skew, and random UUIDs carry no order.",
+    "referenceUrl": "https://kafka.apache.org/documentation/"
+  },
+  {
+    "id": "sd-video-abr",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Medium",
+    "title": "Video streaming: smooth playback",
+    "question": "A video platform serves one 1080p MP4 file per video. Mobile users on weak networks see constant buffering. What is the standard design?",
+    "options": [
+      "Transcode to several bitrates and serve adaptive HLS segments",
+      "Serve the single 1080p file from more origin servers in each region",
+      "Compress the 1080p file harder so it is smaller for every viewer",
+      "Stream the video over WebSockets so frames arrive with less overhead"
+    ],
+    "correctIndex": 0,
+    "explanation": "Adaptive bitrate streaming (HLS or DASH) provides several renditions split into short segments listed in a playlist; the player picks the best one for current bandwidth and switches mid-stream, and segments cache well on CDNs. More origins do not reduce the bitrate a weak link must sustain, one smaller file lowers quality for everyone, and WebSockets are not a media delivery format.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc8216.html"
+  },
+  {
+    "id": "sd-file-upload-presigned",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Medium",
+    "title": "File storage: large uploads",
+    "question": "Users upload files up to 5 GB. Currently uploads stream through the API servers to object storage, tying up connections and bandwidth. What is the better design?",
+    "options": [
+      "Clients upload directly to storage via pre-signed URLs, in multipart",
+      "Increase the API servers' request size limit and their network bandwidth",
+      "Base64-encode files in JSON request bodies to simplify the upload API",
+      "Store uploaded files as BLOBs in the relational database for consistency"
+    ],
+    "correctIndex": 0,
+    "explanation": "The Valet Key pattern gives clients a scoped, time-limited token to access storage directly, removing the API tier from the data path, and multipart upload allows parallel, resumable parts for large files. Scaling the proxy is costly, base64 adds about a third in size, and multi-GB BLOBs strain databases and backups.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/valet-key"
+  },
+  {
+    "id": "sd-feed-fanout",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Hard",
+    "title": "News feed: fan-out strategy",
+    "question": "A social app precomputes each user's home feed by writing every new post into each follower's feed (fan-out on write). Posts from accounts with 50M followers take hours to propagate. What is the common fix?",
+    "options": [
+      "Fan out on read for all users, computing every feed from scratch on each request",
+      "Fan out on write for all users, but add more workers for celebrity posts",
+      "Store all posts in one table and sort by timestamp for every feed request",
+      "Hybrid: precompute most feeds, merge celebrity posts at read time"
+    ],
+    "correctIndex": 3,
+    "explanation": "Precomputed feeds (a materialized view) make reads cheap but are expensive to update for huge follower counts. A hybrid keeps precomputation for most authors and pulls high-follower authors' posts at read time. Pure fan-out on read makes every feed load expensive, more workers still perform 50M writes per post, and a global sort does not scale.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/materialized-view"
+  },
+  {
+    "id": "sd-notification-priority",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Medium",
+    "title": "Notification system: urgent messages",
+    "question": "A notification service sends one-time login codes and marketing campaigns through the same queue. During a 10M-message campaign, login codes arrive 40 minutes late. What design fixes this?",
+    "options": [
+      "Add more consumers to the shared queue only while campaigns are running",
+      "Separate priority queues with dedicated consumers for urgent codes",
+      "Send marketing messages first so the queue drains faster for login codes",
+      "Lower the message size limit so each campaign message is processed faster"
+    ],
+    "correctIndex": 1,
+    "explanation": "With the Priority Queue pattern, high-priority messages are processed independently of bulk traffic, often with separate queues and reserved consumers. Adding consumers helps but codes still wait behind millions of messages, reordering makes it worse, and message size is not the bottleneck.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/priority-queue"
+  },
+  {
+    "id": "sd-payment-unknown-outcome",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Expert",
+    "title": "Payment system: PSP timeout",
+    "question": "Your payment service calls an external payment provider to charge a card. The call times out after 10 seconds, so you don't know whether the charge happened. What should the service do?",
+    "options": [
+      "Mark the payment failed and ask the customer to try again with a new request",
+      "Mark it pending, retry with the same idempotency key, and reconcile",
+      "Immediately send a new charge request without an idempotency key",
+      "Mark the payment successful, since most timed-out calls actually succeed"
+    ],
+    "correctIndex": 1,
+    "explanation": "A timeout means the outcome is unknown, not failed. Recording a pending state and retrying with the same idempotency key (or querying the provider) safely converges on the true result, with reconciliation as a backstop. Failing it or sending a fresh charge risks double-charging, and assuming success risks shipping goods without payment.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/"
+  },
+  {
+    "id": "sd-search-index",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Hard",
+    "title": "Search: full-text product search",
+    "question": "Product search uses `WHERE name LIKE '%term%'` on a 50M-row table, and queries take seconds and cannot rank results by relevance. What is the typical design?",
+    "options": [
+      "Add a B-tree index on name so the leading-wildcard LIKE query uses it",
+      "Index products in a search engine fed via CDC, with near-real-time lag",
+      "Cache all search results in Redis keyed by the exact search string",
+      "Shard the products table by name so each LIKE scans fewer rows"
+    ],
+    "correctIndex": 1,
+    "explanation": "Search engines build inverted indexes for fast term lookup, relevance scoring and fuzzy matching; feeding them from change data capture keeps them in sync with a short delay (Elasticsearch makes new documents searchable after a refresh, about 1s by default). A B-tree cannot serve leading-wildcard patterns, exact-string caching misses most queries, and sharding still scans every row.",
+    "referenceUrl": "https://www.elastic.co/docs/manage-data/data-store/near-real-time-search"
+  },
+  {
+    "id": "sd-distributed-rate-limiter",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Hard",
+    "title": "Rate limiter: across many gateways",
+    "question": "Each of 20 API gateway instances enforces 100 requests/s per API key in local memory, so a client can actually reach 2,000/s. What design enforces a true global limit?",
+    "options": [
+      "Use sticky sessions so each API key always reaches the same gateway instance",
+      "Atomic per-key counters in a shared Redis, e.g. INCR plus EXPIRE",
+      "Divide the limit by 20 and enforce 5 requests/s locally on every instance",
+      "Let each instance sync its counters to the others every 60 seconds"
+    ],
+    "correctIndex": 1,
+    "explanation": "A shared, atomic counter gives all gateways a single view of usage per key, at the cost of a network hop (often mitigated with local batching). Stickiness breaks when instances scale or fail, splitting the limit is only accurate with perfectly even balancing, and minute-long sync lets clients burst far past the limit.",
+    "referenceUrl": "https://redis.io/docs/latest/commands/incr/"
+  },
+  {
+    "id": "sd-leaderboard-zset",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Medium",
+    "title": "Leaderboard: real-time ranking",
+    "question": "A game with 10M players needs real-time score updates and fast 'what is my rank' queries. Recomputing ranks with SQL ORDER BY on each request is too slow. Which approach fits best?",
+    "options": [
+      "A Redis list with LPUSH for updates and a full LRANGE scan for each rank",
+      "A Redis sorted set with ZINCRBY updates and ZREVRANK lookups",
+      "A Redis hash of player to score, sorting all entries on each rank query",
+      "A nightly batch job that writes every player's rank into the SQL table"
+    ],
+    "correctIndex": 1,
+    "explanation": "Sorted sets keep members ordered by score, so updates and rank lookups are logarithmic, and ZREVRANGE fetches the top N efficiently. Lists and hashes require scanning or sorting everything per query, and a nightly batch is not real time.",
+    "referenceUrl": "https://redis.io/docs/latest/develop/data-types/sorted-sets/"
+  },
+  {
+    "id": "lead-cr-small-changes",
+    "topic": "engineering-leadership",
+    "subtopic": "code-review",
+    "difficulty": "Easy",
+    "title": "Handling a huge pull request",
+    "question": "A teammate opens a 2,500-line pull request mixing a refactor, a new feature and dependency upgrades. What is the most effective request a reviewer can make?",
+    "options": [
+      "Approve it quickly, since reviewing large changes in detail is rarely worth it",
+      "Review only the files you know best and approve the rest without reading them",
+      "Ask a second reviewer to read it so the effort is split in half",
+      "Ask them to split it into smaller, self-contained pull requests"
+    ],
+    "correctIndex": 3,
+    "explanation": "Small, focused changes are reviewed faster and more thoroughly, are easier to roll back, and make bugs easier to spot. Rubber-stamping or partial review lets defects through, and adding a reviewer does not fix the fact that the change mixes unrelated concerns.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/developer/small-cls.html"
+  },
+  {
+    "id": "lead-cr-standard",
+    "topic": "engineering-leadership",
+    "subtopic": "code-review",
+    "difficulty": "Medium",
+    "title": "When to approve a change",
+    "question": "A change clearly improves the code and fixes a bug, but you would have named two variables differently and structured one helper another way. Following Google's code review standard, what should you do?",
+    "options": [
+      "Approve it, optionally leaving the naming ideas as non-blocking suggestions",
+      "Block it until every suggestion is applied so the code is exactly as you'd write it",
+      "Rewrite the helper yourself in a follow-up without telling the author",
+      "Approve it silently and keep your naming preferences to yourself"
+    ],
+    "correctIndex": 0,
+    "explanation": "The guiding principle is to approve once a change definitely improves overall code health, even if it is not perfect; there is no perfect code, only better code. Personal preferences should not block, but mentioning them as optional suggestions shares knowledge. Silent rewrites skip the conversation and undermine trust.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/standard.html"
+  },
+  {
+    "id": "lead-cr-nit",
+    "topic": "engineering-leadership",
+    "subtopic": "code-review",
+    "difficulty": "Easy",
+    "title": "Marking optional comments",
+    "question": "In a code review you want to point out a minor style polish that the author may ignore. How should you signal that the comment is not blocking?",
+    "options": [
+      "Prefix it with something like 'Nit:' or 'Optional:'",
+      "Add it as a blocking comment so the author is sure to read it",
+      "Leave it out entirely, since minor comments are never useful",
+      "Send it privately in chat so it doesn't appear in the review"
+    ],
+    "correctIndex": 0,
+    "explanation": "Labelling severity, for example 'Nit:' for minor points, tells the author what is required versus nice to have and avoids treating every comment as mandatory. Blocking on polish slows delivery, skipping it loses a learning opportunity, and side-channel comments are not recorded with the change.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/comments.html"
+  },
+  {
+    "id": "lead-cr-speed",
+    "topic": "engineering-leadership",
+    "subtopic": "code-review",
+    "difficulty": "Medium",
+    "title": "Review response time",
+    "question": "Engineers on a team wait 3-4 days for first review comments and have started bundling more work into each PR to compensate. Per Google's review guidance, what should the team target?",
+    "options": [
+      "Respond within one week, since thorough reviews matter more than speed",
+      "Respond within one business day at most, without breaking focus",
+      "Interrupt any work immediately whenever a review request comes in",
+      "Batch all reviews into a single weekly review meeting"
+    ],
+    "correctIndex": 1,
+    "explanation": "Slow reviews reduce team velocity, encourage larger and riskier changes, and frustrate authors. The guidance is a maximum of one business day to respond, while not breaking focus mid-task. A week or a weekly meeting is far too slow, and constant interruption harms the reviewer's own productivity.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/speed.html"
+  },
+  {
+    "id": "lead-adr-purpose",
+    "topic": "engineering-leadership",
+    "subtopic": "technical-decisions",
+    "difficulty": "Easy",
+    "title": "Architecture decision records",
+    "question": "What should an Architecture Decision Record (ADR) capture?",
+    "options": [
+      "The full design specification and API contract for the affected systems",
+      "Meeting minutes listing everyone who attended the architecture review",
+      "A list of tasks and owners needed to implement the chosen architecture",
+      "The decision, its context, options considered and consequences"
+    ],
+    "correctIndex": 3,
+    "explanation": "An ADR is a brief record of one significant decision: what was decided, why (context and forces), which options were considered and what consequences are expected. That lets future engineers understand the reasoning. Full specs, attendance lists and task plans belong in other artifacts.",
+    "referenceUrl": "https://martinfowler.com/bliki/ArchitectureDecisionRecord.html"
+  },
+  {
+    "id": "lead-adr-superseded",
+    "topic": "engineering-leadership",
+    "subtopic": "technical-decisions",
+    "difficulty": "Medium",
+    "title": "Changing an accepted decision",
+    "question": "Two years ago the team accepted an ADR choosing RabbitMQ. They are now moving to Kafka. How should the decision log be updated?",
+    "options": [
+      "Write a new ADR and mark the old one as superseded by it",
+      "Edit the original ADR to say Kafka so the log reflects the current architecture",
+      "Delete the old ADR, since outdated decisions confuse new team members",
+      "Add a comment to the old ADR and skip writing a new record"
+    ],
+    "correctIndex": 0,
+    "explanation": "Accepted ADRs should not be reopened or rewritten; instead a new ADR supersedes them, which preserves a clear log of decisions and how long each one governed the work. Editing or deleting history loses the reasoning behind past choices, and a comment alone does not record the new decision's context and consequences.",
+    "referenceUrl": "https://martinfowler.com/bliki/ArchitectureDecisionRecord.html"
+  },
+  {
+    "id": "lead-strangler-vs-rewrite",
+    "topic": "engineering-leadership",
+    "subtopic": "technical-decisions",
+    "difficulty": "Hard",
+    "title": "Big-bang rewrite vs incremental migration",
+    "question": "A team proposes freezing features for 18 months to rewrite a revenue-critical monolith from scratch. As tech lead, which alternative best reduces risk while still modernising?",
+    "options": [
+      "Migrate feature by feature behind a facade (Strangler Fig)",
+      "Approve the rewrite but double the team size so it finishes in nine months",
+      "Do the rewrite in parallel and switch all traffic over on a single launch day",
+      "Reject any modernisation and keep patching the monolith as long as possible"
+    ],
+    "correctIndex": 0,
+    "explanation": "The Strangler Fig approach delivers value continuously, lets you validate the new system with real traffic and limits the blast radius of mistakes. Big-bang rewrites often run late and must reach feature parity with a moving target; adding people adds coordination cost, a single cutover concentrates risk, and refusing to modernise ignores the underlying problem.",
+    "referenceUrl": "https://martinfowler.com/bliki/StranglerFigApplication.html"
+  },
+  {
+    "id": "lead-tech-debt-quadrant",
+    "topic": "engineering-leadership",
+    "subtopic": "technical-decisions",
+    "difficulty": "Medium",
+    "title": "Classifying technical debt",
+    "question": "Before a regulatory deadline, the team knowingly skips a planned refactor and writes a follow-up ticket explaining the shortcut and how to repay it. In Fowler's Technical Debt Quadrant, what is this?",
+    "options": [
+      "Deliberate and prudent debt",
+      "Inadvertent and prudent debt",
+      "Deliberate and reckless debt",
+      "Inadvertent and reckless debt"
+    ],
+    "correctIndex": 0,
+    "explanation": "The team chose the shortcut knowingly (deliberate) and with an understanding of the consequences and a repayment plan (prudent): 'we must ship now and deal with the consequences.' Inadvertent debt is only discovered later, and reckless debt ignores design or the cost of shortcuts.",
+    "referenceUrl": "https://martinfowler.com/bliki/TechnicalDebtQuadrant.html"
+  },
+  {
+    "id": "lead-incident-commander",
+    "topic": "engineering-leadership",
+    "subtopic": "incident-handling",
+    "difficulty": "Easy",
+    "title": "Incident commander role",
+    "question": "During a major incident, what is the main responsibility of the incident commander?",
+    "options": [
+      "Personally debug the system, since the most senior engineer should drive the fix",
+      "Write the postmortem document while the incident is still in progress",
+      "Coordinate the response: assign roles, track state, make decisions",
+      "Handle all customer support tickets that arrive during the incident"
+    ],
+    "correctIndex": 2,
+    "explanation": "The incident commander holds the high-level state, assigns operations, communications and planning roles, and keeps work coordinated. Getting pulled into debugging loses that overview; postmortems come afterwards, and customer communication is usually a delegated role.",
+    "referenceUrl": "https://sre.google/sre-book/managing-incidents/"
+  },
+  {
+    "id": "lead-mitigate-first",
+    "topic": "engineering-leadership",
+    "subtopic": "incident-handling",
+    "difficulty": "Medium",
+    "title": "Mitigate before root cause",
+    "question": "Ten minutes after a deploy, error rates jump to 30%. The on-call engineer wants to find the exact bug before acting. What should the team do first?",
+    "options": [
+      "Find and fix the root cause before changing anything in production",
+      "Deploy a hotfix based on the first plausible theory from the logs",
+      "Wait 30 minutes to see whether error rates recover on their own",
+      "Roll back or mitigate first, then investigate the root cause"
+    ],
+    "correctIndex": 3,
+    "explanation": "The priority during an incident is to stop the bleeding and restore service; rollback of a recent change is usually the fastest, safest mitigation. Root-causing while users suffer prolongs impact, an untested hotfix can make things worse, and waiting extends the outage.",
+    "referenceUrl": "https://sre.google/sre-book/managing-incidents/"
+  },
+  {
+    "id": "lead-blameless-postmortem",
+    "topic": "engineering-leadership",
+    "subtopic": "incident-handling",
+    "difficulty": "Medium",
+    "title": "Blameless postmortems",
+    "question": "A postmortem draft says: 'Root cause: Sam ran the migration script against production.' How should a blameless postmortem reframe this?",
+    "options": [
+      "Keep the finding but remove Sam's name so the document is anonymous",
+      "Add a corrective action requiring Sam to complete extra training",
+      "Remove the finding, since blameless postmortems avoid discussing actions",
+      "Ask why the system allowed an unchecked production migration"
+    ],
+    "correctIndex": 3,
+    "explanation": "Blameless postmortems assume people acted reasonably with the information and tools they had, and look for the systemic contributing factors such as missing guardrails, confusing tooling or absent review. Anonymising still frames it as individual fault, singling out training blames the person, and omitting the event hides what happened.",
+    "referenceUrl": "https://sre.google/sre-book/postmortem-culture/"
+  },
+  {
+    "id": "lead-error-budget-math",
+    "topic": "engineering-leadership",
+    "subtopic": "reliability",
+    "difficulty": "Medium",
+    "title": "Error budget from an SLO",
+    "question": "A service has a 99.9% availability SLO over a 30-day window. Approximately how much full downtime does its error budget allow in that window?",
+    "options": [
+      "About 4 minutes",
+      "About 43 minutes",
+      "About 7 hours",
+      "About 9 hours"
+    ],
+    "correctIndex": 1,
+    "explanation": "The error budget is 1 - SLO = 0.1% of the window: 30 days x 24 h x 60 min = 43,200 minutes, and 0.1% of that is about 43 minutes. About 4 minutes corresponds to 99.99% (4.3 min), about 7 hours to 99% (7.2 h), and about 9 hours is 99.9% over a full year (8.8 h).",
+    "referenceUrl": "https://sre.google/sre-book/embracing-risk/"
+  },
+  {
+    "id": "lead-error-budget-policy",
+    "topic": "engineering-leadership",
+    "subtopic": "reliability",
+    "difficulty": "Hard",
+    "title": "Exhausted error budget",
+    "question": "Halfway through the window, a service has consumed its entire error budget, mostly due to bad releases. The product manager wants to ship two big features this week. Under a typical error budget policy, what happens?",
+    "options": [
+      "Ship the features but lower the SLO target so the service is back within budget",
+      "Ship the features as planned, since budgets only matter at the end of the window",
+      "Pause feature releases except fixes and security patches until within SLO",
+      "Freeze all changes, including fixes for the bugs that consumed the budget"
+    ],
+    "correctIndex": 2,
+    "explanation": "An error budget policy turns the SLO into an agreed decision rule: once the budget is spent, change velocity is reduced in favour of reliability work, while fixes for the causes and security patches proceed. Moving the SLO to fit the outcome defeats its purpose, ignoring the policy erodes trust, and freezing fixes would prolong the problem.",
+    "referenceUrl": "https://sre.google/workbook/error-budget-policy/"
+  },
+  {
+    "id": "lead-burn-rate-alerts",
+    "topic": "engineering-leadership",
+    "subtopic": "reliability",
+    "difficulty": "Expert",
+    "title": "Alerting on SLO burn rate",
+    "question": "A team pages whenever the error rate over the last 5 minutes exceeds 0.1% (their SLO threshold). On-call is flooded with pages for short blips that barely affect the monthly budget. What does the SRE workbook recommend?",
+    "options": [
+      "Raise the threshold to 1% over 5 minutes so only large spikes trigger a page",
+      "Multiwindow, multi-burn-rate alerts, e.g. 14.4x over both 1h and 5m",
+      "Alert only when the 30-day error budget has been fully consumed",
+      "Require the 5-minute condition to hold for 24 hours before paging"
+    ],
+    "correctIndex": 1,
+    "explanation": "Burn-rate alerts measure how quickly the budget is being consumed; a 14.4x burn rate over an hour uses about 2% of a 30-day budget, which is significant enough to page, while the short window makes the alert reset quickly once errors stop. An arbitrary higher threshold misses slow burns, alerting at exhaustion is too late, and a 24-hour hold delays detection of real outages.",
+    "referenceUrl": "https://sre.google/workbook/alerting-on-slos/"
+  },
+  {
+    "id": "lead-toil",
+    "topic": "engineering-leadership",
+    "subtopic": "reliability",
+    "difficulty": "Easy",
+    "title": "Identifying toil",
+    "question": "Which task best fits the SRE definition of toil?",
+    "options": [
+      "Designing a new sharding scheme for a database that is outgrowing one node",
+      "Manually resizing disks each week, work that grows with fleet size",
+      "Writing a postmortem after a significant production incident",
+      "Attending the quarterly planning meeting for the team's roadmap"
+    ],
+    "correctIndex": 1,
+    "explanation": "Toil is manual, repetitive, automatable, tactical work with no enduring value that scales linearly as the service grows. Design work and postmortems produce lasting value, and meetings are overhead rather than toil.",
+    "referenceUrl": "https://sre.google/sre-book/eliminating-toil/"
+  },
+  {
+    "id": "lead-canary",
+    "topic": "engineering-leadership",
+    "subtopic": "reliability",
+    "difficulty": "Medium",
+    "title": "Reducing deployment risk",
+    "question": "Most of a team's incidents come from releases that go straight to 100% of traffic. Which practice most directly limits the blast radius of a bad release?",
+    "options": [
+      "Canary releases to a small share of traffic, compared to baseline",
+      "Running the full test suite twice before every deployment",
+      "Deploying only on Fridays when traffic is lower than usual",
+      "Requiring two approvals on every pull request before merging"
+    ],
+    "correctIndex": 0,
+    "explanation": "A canary exposes a change to a small subset of users and compares key signals against the baseline, so a regression affects few users and can be rolled back automatically. More tests and approvals help but cannot catch everything production reveals, and Friday deploys reduce traffic slightly while making weekend incidents more likely.",
+    "referenceUrl": "https://sre.google/workbook/canarying-releases/"
+  },
+  {
+    "id": "lead-mentor-strong-style",
+    "topic": "engineering-leadership",
+    "subtopic": "mentoring",
+    "difficulty": "Medium",
+    "title": "Pairing for knowledge transfer",
+    "question": "You are pairing with a junior engineer on unfamiliar code and want to transfer knowledge effectively. Which approach does strong-style pairing recommend?",
+    "options": [
+      "You drive the keyboard while the junior watches and takes notes",
+      "You each work on separate files and compare results at the end",
+      "The junior drives alone and you review the result in the pull request",
+      "The junior types while you navigate, guiding with ideas"
+    ],
+    "correctIndex": 3,
+    "explanation": "Strong-style pairing's rule is that for an idea to go from your head into the computer it must go through someone else's hands; having the less experienced person drive keeps them engaged and learning. Watching passively, working apart or reviewing only afterwards miss the real-time guidance.",
+    "referenceUrl": "https://martinfowler.com/articles/on-pair-programming.html"
+  },
+  {
+    "id": "lead-mentor-review-teaching",
+    "topic": "engineering-leadership",
+    "subtopic": "mentoring",
+    "difficulty": "Hard",
+    "title": "Teaching through code review",
+    "question": "A junior engineer's PR has an inefficient query. You could write the exact fix in a comment, but you want them to grow. Which approach balances learning with getting the change done?",
+    "options": [
+      "Push the fix to their branch yourself so the PR can merge immediately",
+      "Approve the PR and fix the query later without mentioning it",
+      "Reject the PR with 'this query is wrong' and no further explanation",
+      "Explain the problem and why, then let them design the fix"
+    ],
+    "correctIndex": 3,
+    "explanation": "Pointing out the issue and its reasoning while letting the author find the solution helps them learn; explicit directions are still appropriate when learning isn't the priority. Silently fixing it removes the learning, approving bad code hurts code health, and unexplained rejection is discouraging and unhelpful.",
+    "referenceUrl": "https://google.github.io/eng-practices/review/reviewer/comments.html"
+  },
+  {
+    "id": "lead-conway",
+    "topic": "engineering-leadership",
+    "subtopic": "communication",
+    "difficulty": "Medium",
+    "title": "Conway's Law in practice",
+    "question": "Leadership wants an independently deployable payments service, but frontend, backend and database specialists sit in separate teams that all touch every feature. What does Conway's Law suggest?",
+    "options": [
+      "Architecture is independent of team structure if interfaces are well documented",
+      "Add a dedicated integration team to coordinate the three specialist teams",
+      "Split the codebase first, and team communication patterns will follow it",
+      "Form a cross-functional team that owns payments end to end"
+    ],
+    "correctIndex": 3,
+    "explanation": "Conway's Law observes that systems mirror the communication structures of the organisations that build them, so teams split by layer tend to produce layered, coupled systems. Aligning a cross-functional team to the desired service boundary (the inverse Conway manoeuvre) supports that architecture. Documentation and coordination teams do not remove the cross-team dependencies.",
+    "referenceUrl": "https://martinfowler.com/bliki/ConwaysLaw.html"
+  },
+  {
+    "id": "lead-advice-process",
+    "topic": "engineering-leadership",
+    "subtopic": "communication",
+    "difficulty": "Hard",
+    "title": "Decentralised architecture decisions",
+    "question": "A central architecture board approves every design and has become a bottleneck with a six-week queue. In the 'Advice Process' Fowler's site describes, how are decisions made instead?",
+    "options": [
+      "Decisions are made by majority vote among all engineers in the organisation",
+      "The board delegates decisions only to the most senior engineer on each team",
+      "Anyone may decide after seeking advice from those affected and experts",
+      "Teams decide independently and are not expected to consult anyone else"
+    ],
+    "correctIndex": 2,
+    "explanation": "In the Advice Process the decider must consult people who will be affected and those with relevant expertise, but is not required to follow the advice; accountability stays with the decider. Voting is slow and diffuses accountability, delegating only to seniors keeps a bottleneck, and deciding without consultation loses the conversations that make it work.",
+    "referenceUrl": "https://martinfowler.com/articles/scaling-architecture-conversationally.html"
+  },
+  {
+    "id": "lead-c4-audience",
+    "topic": "engineering-leadership",
+    "subtopic": "communication",
+    "difficulty": "Easy",
+    "title": "Diagrams for different audiences",
+    "question": "You must explain a new platform to executives and product managers who care about which users and external systems it interacts with. In the C4 model, which diagram should you lead with?",
+    "options": [
+      "A Component diagram",
+      "A System Context diagram",
+      "A Code (class) diagram",
+      "A Deployment diagram"
+    ],
+    "correctIndex": 1,
+    "explanation": "The System Context diagram is the highest-level C4 view, showing the system as a box with its users and the external systems it depends on, which suits non-technical audiences. Component and code diagrams zoom into internal structure for developers, and deployment diagrams map software onto infrastructure.",
+    "referenceUrl": "https://c4model.com/"
+  }
+]

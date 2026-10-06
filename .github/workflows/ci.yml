@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (build + unit + integration tests)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: "10.0.x" }
+      - name: Restore
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --no-restore -c Release -warnaserror
+      - name: Test (xUnit + Testcontainers PostgreSQL)
+        run: dotnet test --no-build -c Release --logger "trx;LogFileName=results.trx" --results-directory TestResults
+      - name: Validate seed questions
+        working-directory: .
+        run: python3 scripts/seed-src/validate_questions.py
+      - name: Seed script tests + README catalog is up to date
+        working-directory: .
+        run: |
+          python3 -m unittest discover -s scripts/seed-src -p "test_*.py"
+          python3 scripts/seed-src/readme_catalog.py --check
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: backend-test-results, path: backend/TestResults }
+
+  frontend:
+    name: Frontend (lint, typecheck, tests, web build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck (packages, web, mobile)
+        run: npm run typecheck
+      - name: Unit / component tests (packages, web, mobile)
+        run: npm test
+      - name: Build web
+        run: npm run build -w @techrat/web
+      - name: Build desktop static export
+        run: npm run build:desktop -w @techrat/web
+
+  e2e:
+    name: End-to-end (Docker Compose + Playwright)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    env:
+      AUTH_RATE_LIMIT_PER_MINUTE: "1000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - name: Start stack
+        run: docker compose up -d --build
+      - name: Wait for API and web
+        run: |
+          for i in $(seq 1 90); do curl -sf http://localhost:5080/health/ready && curl -sf -o /dev/null http://localhost:3000/login && exit 0; sleep 2; done
+          docker compose logs api; exit 1
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Playwright
+        run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: playwright-report }
+      - name: Stack logs
+        if: failure()
+        run: docker compose logs --no-color
+
+  docker:
+    name: Docker images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build API image
+        run: docker build -t techrat-api:${{ github.sha }} backend
+      - name: Build web image
+        run: docker build -f apps/web/Dockerfile -t techrat-web:${{ github.sha }} .
+      # No deployment yet: pushing to a registry / Azure requires explicit configuration.
