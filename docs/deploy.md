@@ -33,7 +33,25 @@ Internet ─► Apache :80/:443 (Let's Encrypt via certbot)
 
 ## Updating: continuous deployment
 
-Every push to `main` goes live by itself once CI is green:
+### Branch flow and promotion gate
+
+```
+feature branch ─PR─► dev ─(CI green, merged)─► PR dev ─► main ─(CI + promotion gate)─► merge ─► Deploy
+```
+
+Nothing is pushed straight to `dev` or `main`: both are protected and only change through pull requests
+([ADR-0021](adr/0021-dev-to-main-promotion-gate.md)). A PR into `dev` needs the CI checks; a PR into `main` must come
+from `dev` (check *Promotion gate*) and pass CI again. Use a merge commit when promoting dev to main. Protection is
+configured in GitHub (Settings → Branches), reproduced by:
+
+```
+gh api -X PUT repos/Pablokaer/techrat/branches/dev/protection --input deploy/protection-dev.json
+gh api -X PUT repos/Pablokaer/techrat/branches/main/protection --input deploy/protection-main.json
+```
+
+### Deploy
+
+Every push to `main` (that is, every dev → main promotion) goes live by itself once CI is green:
 
 ```
 push to main ─► CI (.github/workflows/ci.yml) ─► success ─► Deploy (.github/workflows/deploy.yml)

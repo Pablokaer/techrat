@@ -447,12 +447,12 @@ The web and desktop apps support English (`en`) and Brazilian Portuguese (`pt-BR
 | Shared packages | `npm test -w @techrat/auth -w @techrat/validation` | Token refresh (single flight), validation rules |
 | Mobile (jest-expo) | `npm test -w @techrat/mobile` | Answer flow with mocked API, helpers, roadmap module states (shared, completed elsewhere, optional, capstone, new steps) |
 | Seed scripts (unittest) | `python3 -m unittest discover -s scripts/seed-src -p "test_*.py"` | Question validator (translations, answer-length bias), catalog validator (scope ownership, reuse, cycles, capstones, easier-to-harder module order), roadmap module ordering, README catalog generator, and that the README catalog matches the seed |
-| Deploy script (unittest) | `python3 -m unittest discover -s deploy -p "test_*.py"` | `deploy/deploy.sh` against a throwaway git repo with fake docker/curl: deploys the CI-tested commit, keeps `.env`, rejects non-sha input, skips commits that are no longer the tip of main, rolls back when unhealthy |
+| Deploy script and promotion gate (unittest) | `python3 -m unittest discover -s deploy -p "test_*.py"` | `deploy/deploy.sh` against a throwaway git repo with fake docker/curl: deploys the CI-tested commit, keeps `.env`, rejects non-sha input, skips commits that are no longer the tip of main, rolls back when unhealthy; promotion gate accepts only `dev` of this repository into `main` |
 | E2E (Playwright) | `docker compose up -d` and then `npx playwright test` | Register → logout/login → Learn → Data Structures → practice → answer → XP → topic progress → profile XP; Portuguese browser → app in Portuguese → EN/PT switch persists; mobile bottom navigation |
 
 To reuse a running PostgreSQL instead of Testcontainers, set `TECHRAT_TEST_POSTGRES="Host=…;Username=…;Password=…"`.
 
-CI (`.github/workflows/ci.yml`) runs the backend build (warnings as errors) and tests, seed validation, the seed script tests and the README catalog check, lint, typecheck, unit tests, the web and desktop builds, Docker image builds, and the Compose + Playwright E2E. When CI passes on `main`, `.github/workflows/deploy.yml` deploys that commit to the production VPS (https://techrat.io) — see [docs/deploy.md](docs/deploy.md).
+CI (`.github/workflows/ci.yml`) runs the backend build (warnings as errors) and tests, seed validation, the seed script tests and the README catalog check, lint, typecheck, unit tests, the web and desktop builds, Docker image builds, and the Compose + Playwright E2E. Work flows `feature branch → PR → dev → PR → main`: `main` and `dev` are protected (PRs only, CI required) and a PR into `main` must come from `dev` (`.github/workflows/promotion-gate.yml`, [ADR-0021](docs/adr/0021-dev-to-main-promotion-gate.md)). When CI passes on `main`, `.github/workflows/deploy.yml` deploys that commit to the production VPS (https://techrat.io) — see [docs/deploy.md](docs/deploy.md).
 
 ## Security
 

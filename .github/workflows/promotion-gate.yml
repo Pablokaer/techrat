@@ -1,0 +1,28 @@
+name: Promotion gate
+
+# Required status check on main: only a pull request from dev can be merged into main (see docs/adr/0021).
+# Flow: feature branch ─PR─► dev (CI + review) ─PR─► main (CI again + this gate) ─► Deploy.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Promotion gate (main accepts only dev)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}   # trusted code: the gate script comes from main, not from the PR
+      - name: Only dev may be promoted to main
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
+        run: python3 -I .github/scripts/promotion_gate.py "$BASE" "$HEAD" "$HEAD_REPO" "$THIS_REPO"
