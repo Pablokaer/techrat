@@ -373,6 +373,7 @@ If you build behind a TLS-inspecting corporate proxy, set `EXTRA_CA_CERT=/path/t
 | `Gamification__*` | API | XP values, level curve, step criteria, daily challenge (see `appsettings.json`) |
 | `RateLimiting__AuthPerMinute` / `RateLimiting__AnswersPerMinute` / `RateLimiting__UploadsPerMinute` | API | Rate limits per user or IP (uploads default to 10/min; Compose: `AUTH_RATE_LIMIT_PER_MINUTE`) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | API | Enables OTLP export of traces and metrics |
+| `PUBLIC_WEB_URL` | web (runtime), API | Public origin (e.g. `https://techrat.io`). The web app uses it as `metadataBase` so link previews (Open Graph / Twitter card, image `app/opengraph-image.png`) carry absolute URLs; defaults to `https://techrat.io` |
 | `API_INTERNAL_URL` | web (build) | Backend URL the Next.js proxy forwards to |
 | `NEXT_PUBLIC_AUTH_MODE`, `NEXT_PUBLIC_API_URL` | desktop build | `bearer` mode and API URL for the static export |
 | `EXPO_PUBLIC_API_URL` | mobile | API URL for the Expo app |
