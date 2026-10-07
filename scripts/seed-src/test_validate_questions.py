@@ -79,6 +79,26 @@ class ValidateQuestionsTests(unittest.TestCase):
         self.assertError(result, "duplicate id")
         self.assertError(result, "unknown topic")
 
+    def test_generic_framing_is_rejected(self):
+        qs = balanced("git")
+        qs[0]["question"] = "A newcomer asks the team to confirm a fundamental before continuing: What does git add do? Which answer should the team record?"
+        qs[1]["title"] = "Core knowledge: Staging"
+        self.seed.group("git", qs)
+        result = self.run_all()
+        self.assertError(result, "git-0: generic framing")
+        self.assertError(result, "git-1: title prefix")
+
+    def test_a_reframed_copy_of_another_question_is_a_duplicate(self):
+        qs = balanced("git")
+        qs[1]["question"] = qs[0]["question"]
+        self.seed.group("git", qs[:1])
+        self.seed.group("extra", [qs[1]])
+        self.assertError(self.run_all(), "duplicate question text")
+        qs2 = balanced("zz")
+        qs2[1]["question"] = "During implementation, the team must make a practical choice: " + qs2[0]["question"] + " Which answer should the team record?"
+        self.seed.group("zz", qs2)
+        self.assertError(self.run_all(), "zz-1")
+
     def test_every_question_needs_a_portuguese_translation(self):
         qs = balanced("git")
         self.seed.group("git", qs, translations=[translation(q) for q in qs[:3]])

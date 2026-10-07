@@ -72,6 +72,22 @@ def positional_reference(item):
     return bool(POSITIONAL_OPTION.search(" | ".join(str(item.get(k, "")) for k in ("title", "question", "explanation"))))
 
 
+# Boilerplate wrapped around existing questions to disguise them as new ones; see QUESTION_AUTHORING.md.
+FRAME_PREFIX = re.compile(
+    r"^(A newcomer asks the team to confirm a fundamental before continuing|Before approving a change, a reviewer asks the team to resolve this point"
+    r"|While preparing an implementation, an engineer raises the following question|A technical discussion is blocked until the team answers this accurately"
+    r"|The team is documenting an important decision and must confirm the following|During implementation, the team must make a practical choice"
+    r"|During a production design review, the team must resolve this risk):\s*")
+FRAME_SUFFIX = re.compile(r"\s*Which answer should (the team record|guide the team)\?$")
+TITLE_PREFIXES = ("Practical review:", "Core knowledge:", "Engineering trade-off:", "Foundation check:", "Implementation choice:",
+                  "Critical architecture review:", "Production review:")
+
+
+def strip_frame(text):
+    """The question text without the generic framing sentences, used to find disguised duplicates."""
+    return FRAME_SUFFIX.sub("", FRAME_PREFIX.sub("", text))
+
+
 def norm(s):
     return re.sub(r"[^a-z0-9]", "", s.lower())
 
@@ -173,7 +189,11 @@ def validate(files, data_dir=DEFAULT_DATA_DIR):
                               f"language-neutral, so move it to the {lang} topic or rewrite it in pseudocode")
             if positional_reference(q):
                 errors.append(f"{where}: refers to an option by its position; options are shuffled, so name the option's content")
-            key = norm(q["question"])
+            if strip_frame(q["question"]) != q["question"]:
+                errors.append(f"{where}: generic framing around the question; state the scenario directly")
+            if q["title"].startswith(TITLE_PREFIXES):
+                errors.append(f"{where}: title prefix {q['title'].split(':')[0]!r} is not allowed")
+            key = norm(strip_frame(q["question"]))
             if key in seen_text:
                 errors.append(f"{where}: duplicate question text (also {seen_text[key]})")
             seen_text[key] = q["id"]

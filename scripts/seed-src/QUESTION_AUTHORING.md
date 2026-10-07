@@ -31,7 +31,7 @@ Rules
   - Expert: distributed systems, advanced optimisation, internals, architecture decisions, production incidents.
 - Prefer scenario questions over memorised definitions, especially for Medium+ (e.g. "An API's p95 jumped to 4s after a feature started loading Orders per User in a loop. What is the most likely problem?").
 - Every subtopic of your topics must have at least 2 questions; important subtopics should have 3-5.
-- No near-duplicates. Each question must test a distinct piece of knowledge.
+- No near-duplicates. Each question must test a distinct piece of knowledge. Never wrap an existing question in generic framing ("A newcomer asks the team…", "Which answer should the team record?") or title prefixes ("Core knowledge:", "Practical review:"): the validator strips the framing before comparing, so such copies are rejected as duplicates.
 - Code inside question text is allowed (use \n for newlines). Keep it short.
 - Technically accurate as of 2026. If unsure about a fact, do not write that question.
 - Written in English, with a Brazilian Portuguese translation of every question (CLAUDE.md): `backend/TechRat.Infrastructure/Seed/Data/i18n/questions/<group>.pt-BR.json`, entries `{"id", "title", "question", "options" (same order), "explanation"}`. Code, identifiers and anything in backticks stay byte-identical; keep product names and common dev jargon.
