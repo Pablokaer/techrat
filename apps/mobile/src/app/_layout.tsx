@@ -7,6 +7,7 @@ import { colors } from "@techrat/theme";
 import { ApiProvider } from "@/lib/api-context";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { createQueryClient } from "@/lib/query-client";
+import { useT } from "@/lib/i18n";
 import { session } from "@/lib/session";
 import { LoadingState } from "@/components/ui";
 
@@ -32,6 +33,7 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const { status } = useAuth();
+  const t = useT();
   if (status === "restoring") return <LoadingState label="Restoring your session" />;
   const signedIn = status === "signedIn";
   return (
@@ -52,6 +54,7 @@ function RootNavigator() {
         <Stack.Screen name="leaderboard" options={{ title: "Leaderboard" }} />
         <Stack.Screen name="avatar-crop" options={{ title: "Adjust photo", presentation: "modal" }} />
         <Stack.Screen name="change-password" options={{ title: "Password" }} />
+        <Stack.Screen name="delete-account" options={{ title: t.profile.deleteAccountTitle }} />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />

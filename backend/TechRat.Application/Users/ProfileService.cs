@@ -89,7 +89,7 @@ public sealed class ProfileService(
         IReadOnlyList<RoadmapStepDto> currentSteps = [];
         if (current is not null)
         {
-            var detail = await roadmaps.GetAsync(current.Slug, userId, ct);
+            var detail = await roadmaps.GetAsync(current.Slug, userId, isAdmin, ct);
             var all = detail.Modules.SelectMany(m => m.Steps).ToList();
             var idx = Math.Max(0, all.FindIndex(s => s.Status == StepStatus.Current) - 1);
             currentSteps = all.Skip(idx).Take(5).ToList();

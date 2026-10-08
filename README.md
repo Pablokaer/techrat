@@ -13,10 +13,13 @@ This repository holds a working MVP: an ASP.NET Core 10 API, a responsive Next.j
 | Roadmaps | Career, language, skill and best-practice paths composed from a shared module catalog: a step proven once counts in every roadmap (full list in [Catalog](#catalog)). A **Recommended for juniors** filter shows the platform's top 6 roadmaps for a junior developer, most recommended first, and their cards carry a "#N for juniors" badge (ADR-0015). |
 | Profile photo | Pick a JPG, PNG, WEBP or HEIC photo (up to 5 MB) from the device, or take one with the camera on mobile, adjust it inside a circle (drag, pinch/wheel/slider zoom, live preview) and save it. The client exports a compressed 512×512 square; the API stores it in PostgreSQL and serves it from a versioned, cacheable URL. Replacing or removing the photo updates every avatar without a reload (ADR-0017). |
 | Password | Change the password from Settings (web, desktop) or the profile (mobile): the current password is checked on the server, the sign-up rules apply, other sessions are signed out while this one continues, and the owner gets an email. Accounts without a password (external sign-in, when enabled) set one instead (ADR-0018). |
+| Account deletion | Delete the account from Settings (web), from Profile (mobile) or from the public page `/account/delete`, which works without the app (Google Play requires both). The owner re-authenticates with the password (or types the username when the account has none); the profile, photo, progress, XP, achievements and sessions are removed in one step, every token stops working at once (also access tokens), leaderboards stop showing the learner, and an email confirms it. The last administrator cannot delete itself (ADR-0023). |
+| Privacy policy and terms | Public pages `/privacy` and `/terms` (English and Portuguese), linked from the landing page, the sign-in pages, the app footer, the register page and the mobile profile. They are **drafts pending legal review** with visible `TODO` markers; the company name and contact email are set in `apps/web/src/lib/legal.ts`. |
+| Android app | The Expo app is ready for **EAS Build** and Google Play (package `io.techrat.app`, build profiles in `apps/mobile/eas.json`, release-safe API URL, minimal permissions, adaptive and themed icons). The steps that need a person are in [docs/android-release.md](docs/android-release.md) (ADR-0024); the Play Console Data safety answers are in [docs/play-store/data-safety.md](docs/play-store/data-safety.md). |
 | Study resources | Each roadmap has overview reading and each module lists the topics to master with sources to learn them from (official docs, specs, books, courses, articles), each tagged with its type and language and opened in a new tab. Curated and bilingual in `resources.json`, link-checked by `validate_resources.py --check-urls` (ADR-0020). |
 | Leaderboard privacy | A checkbox in Settings ("Show me on the leaderboards") removes the learner from the global, weekly, monthly and topic leaderboards at once; progress, XP and achievements are kept, and the rank shows as "—". Opting back in returns them (within the 30 s page cache). Set in the web app; the mobile app only shows the state. |
 | Gamification | XP ledger, progressive levels (global + per topic), streaks, 24 achievements/badges, daily challenge, Global/Weekly/Monthly/Topic leaderboards |
-| Languages | English and Brazilian Portuguese (web + desktop): the whole UI, every question (text, options, explanation), topic, module, roadmap and achievement names, server messages and emails. |
+| Languages | English and Brazilian Portuguese (web + desktop): the whole UI, every question (text, options, explanation), topic, module, roadmap and achievement names, server messages and emails. The mobile app is translated only on its newest screens (see [Known limitations](#known-limitations)). |
 
 <!-- catalog:start -->
 ## Catalog
@@ -310,7 +313,7 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 * **Backend:** a modular monolith. `Domain` holds the entities and pure rules, `Application` the use cases, `Infrastructure` EF Core, Redis, the outbox, email and seed, `Modules` the HTTP endpoints and `Api` the host. All business rules live in the backend (ADR-0007).
 * **Answer flow:** grading, the attempt, the XP ledger, user and topic progress, the streak and roadmap steps are written in **one transaction**. Achievements, the rank snapshot and realtime notifications go through a **transactional outbox** (ADR-0009).
 * **Auth:** ASP.NET Core Identity. The web app uses an HttpOnly cookie. Mobile and desktop use bearer and refresh tokens (ADR-0008).
-* **Roadmaps and modules (ADR-0012):** roadmaps are ordered compositions of reusable catalog modules. Progress is stored per module step, so knowledge proven in one roadmap counts in every roadmap containing the same module, and XP is paid once.
+* **Roadmaps and modules (ADR-0012):** roadmaps are ordered compositions of reusable catalog modules. Progress is stored per module step, so knowledge proven in one roadmap counts in every roadmap containing the same module, and XP is paid once. **Administrators bypass the gates:** every roadmap is unlocked (prerequisites are not required to start one) and every uncompleted module and step is open, so content can be reviewed without completing what comes before it. Learners are unaffected.
 
 ```
 Topic ─┬─ Subtopic (scope) ◄── ModuleStep ──┐            each scope belongs to exactly one module
@@ -344,6 +347,8 @@ backend/
 e2e/          Playwright end-to-end tests
 scripts/      seed sources and validator, OpenAPI client generation, dev helpers
 docs/adr/     architecture decision records
+docs/android-release.md   releasing the Android app (EAS, Google Play)
+docs/play-store/          Play Console answers (Data safety)
 ```
 
 ## Prerequisites
@@ -386,7 +391,8 @@ If you build behind a TLS-inspecting corporate proxy, set `EXTRA_CA_CERT=/path/t
 | `PUBLIC_WEB_URL` | web (runtime), API | Public origin (e.g. `https://techrat.io`). The web app uses it as `metadataBase` so link previews (Open Graph / Twitter card, image `app/opengraph-image.png`) carry absolute URLs; defaults to `https://techrat.io` |
 | `API_INTERNAL_URL` | web (build) | Backend URL the Next.js proxy forwards to |
 | `NEXT_PUBLIC_AUTH_MODE`, `NEXT_PUBLIC_API_URL` | desktop build | `bearer` mode and API URL for the static export |
-| `EXPO_PUBLIC_API_URL` | mobile | API URL for the Expo app |
+| `EXPO_PUBLIC_API_URL` | mobile (build) | API URL for the Expo app. **Required and `https://` in release builds** (they refuse to start otherwise); set by the `preview` and `production` EAS profiles to `https://techrat.io`. Development defaults to the emulator/localhost |
+| `EXPO_PUBLIC_WEB_URL` | mobile (build) | Website the app opens for the privacy policy, terms and account deletion. Optional: defaults to the API URL (same origin in production); in development use the web dev server (`http://localhost:3000`) |
 
 No secrets are committed. `.env.example` contains placeholders only, and the development defaults are limited to `docker-compose.yml` and `appsettings.Development.json`.
 
@@ -435,7 +441,7 @@ npm run generate:api      # builds the API, downloads /openapi/v1.json, runs ope
 
 ### Mobile and desktop
 
-* Mobile: `cd apps/mobile && EXPO_PUBLIC_API_URL=http://<your-ip>:5080 npx expo start`. See [`apps/mobile/README.md`](apps/mobile/README.md).
+* Mobile: `cd apps/mobile && EXPO_PUBLIC_API_URL=http://<your-ip>:5080 npx expo start`. See [`apps/mobile/README.md`](apps/mobile/README.md). To build and publish the Android app (EAS profiles, versions, Play Console): [docs/android-release.md](docs/android-release.md).
 * Desktop: `npm run build -w @techrat/desktop` builds the installers. See [`apps/desktop/README.md`](apps/desktop/README.md).
 
 ## Languages (i18n)
@@ -446,6 +452,7 @@ The web and desktop apps support English (`en`) and Brazilian Portuguese (`pt-BR
 * **UI strings:** `apps/web/src/i18n/messages/<locale>/<namespace>.ts`, one namespace per area. The pt-BR files are typed against the English ones, so a missing key fails `npm run typecheck`. Components use `const t = useT()` and `useFormat()` for numbers, dates and durations.
 * **API:** every request sends `Accept-Language`. The API (request localization) answers in that language: catalog names, validation and error messages (`TechRat.Application/Common/Localization.cs`, plus a localized Identity error describer), recommendation reasons, achievement notifications and emails. Unsupported languages fall back to English.
 * **Content translations:** stored in `content.content_translations`. Catalog texts are seeded from `backend/TechRat.Infrastructure/Seed/Data/i18n/pt-BR.json` (topics/subtopics by slug, modules with step titles keyed by `topic/subtopic`, roadmaps by slug, achievements by code); questions from `Seed/Data/i18n/questions/<group>.pt-BR.json` (by question id) and served per practice session. Seed-managed rows follow the files; rows customised by an admin are kept. The base (English) text lives on the entities; missing translations fall back to it.
+* **Mobile:** `apps/mobile/src/lib/i18n.ts` (device language, English and Portuguese) serves only the screens written for the Android release (version label, delete account, legal rows, register consent); its test fails when the two languages differ. Every API request from the app sends `Accept-Language`.
 * **Design:** see [ADR-0011](docs/adr/0011-internationalization.md).
 * **Adding a language:** add the code to `LOCALES` (web) and `AppLocales.Supported` (API), add a `messages/<locale>` folder, the server texts in `Localization.cs` and a `Seed/Data/i18n/<locale>.json`.
 
@@ -456,14 +463,15 @@ The web and desktop apps support English (`en`) and Brazilian Portuguese (`pt-BR
 | Backend unit + integration (xUnit, Testcontainers PostgreSQL) | `cd backend && dotnet test` | Level curve, XP, grading, XP once per question, topic progression, roadmap criteria/unlocking/prerequisites, achievements (outbox, idempotent), streaks, leaderboard ranking/periods, difficulty analytics, adaptive selection, daily challenge, auth boundaries (401/403/admin), cookies, refresh/logout, validation, seed integrity and idempotency, module catalog (composition rules, shared credit across roadmaps, XP once, optional modules, versioning, data migration, module/admin composition API), localization (catalog/messages/Identity errors/notifications in pt-BR, fallback to English, translation coverage, text parity) |
 | Web component tests (Vitest + Testing Library) | `npm test -w @techrat/web` | Question flow (correct/incorrect feedback, locking, Learn more, next, summary, keyboard), auth form validation, accessibility primitives, i18n (locale detection, EN/PT switch and persistence, message parity, Accept-Language, formatting, translated validation), shared modules on roadmaps (Shared/Also in, completed elsewhere, optional/capstone, "already have N of M"), module page, admin module catalog and roadmap composition |
 | Shared packages | `npm test -w @techrat/auth -w @techrat/validation` | Token refresh (single flight), validation rules |
-| Mobile (jest-expo) | `npm test -w @techrat/mobile` | Answer flow with mocked API, helpers, roadmap module states (shared, completed elsewhere, optional, capstone, new steps) |
+| Mobile (jest-expo) | `npm test -w @techrat/mobile` | Answer flow with mocked API, helpers, roadmap module states (shared, completed elsewhere, optional, capstone, new steps), release-safe API URL, the store-facing `app.json`/`eas.json` settings, launcher icon geometry, account deletion and legal rows, the production-config check |
+| Mobile release checks | `cd apps/mobile && npx expo-doctor` and `npm run check:production-config -w @techrat/mobile` | SDK-compatible dependencies without duplicates, and the production Expo config (package, version, https API URL); both also run in CI |
 | Seed scripts (unittest) | `python3 -m unittest discover -s scripts/seed-src -p "test_*.py"` | Question validator (translations, answer-length bias), catalog validator (scope ownership, reuse, cycles, capstones, easier-to-harder module order), roadmap module ordering, README catalog generator, and that the README catalog matches the seed |
 | Deploy script and promotion gate (unittest) | `python3 -m unittest discover -s deploy -p "test_*.py"` | `deploy/deploy.sh` against a throwaway git repo with fake docker/curl: deploys the CI-tested commit, keeps `.env`, rejects non-sha input, skips commits that are no longer the tip of main, rolls back when unhealthy; promotion gate accepts only `dev` of this repository into `main` |
-| E2E (Playwright) | `docker compose up -d` and then `npx playwright test` | Register → logout/login → Learn → Data Structures → practice → answer → XP → topic progress → profile XP; Portuguese browser → app in Portuguese → EN/PT switch persists; mobile bottom navigation |
+| E2E (Playwright) | `docker compose up -d` and then `npx playwright test` | Register → logout/login → Learn → Data Structures → practice → answer → XP → topic progress → profile XP; Portuguese browser → app in Portuguese → EN/PT switch persists; mobile bottom navigation; account deletion (dialog, wrong password, public `/account/delete`, policy and terms links); bearer login, refresh and authenticated calls through the web `/api` proxy (the path the Android app uses) |
 
 To reuse a running PostgreSQL instead of Testcontainers, set `TECHRAT_TEST_POSTGRES="Host=…;Username=…;Password=…"`.
 
-CI (`.github/workflows/ci.yml`) runs the backend build (warnings as errors) and tests, seed validation, the seed script tests and the README catalog check, lint, typecheck, unit tests, the web and desktop builds, Docker image builds, and the Compose + Playwright E2E. Work flows `feature branch → PR → dev → PR → main`: `main` and `dev` are protected (PRs only, CI required) and a PR into `main` must come from `dev` (`.github/workflows/promotion-gate.yml`, [ADR-0021](docs/adr/0021-dev-to-main-promotion-gate.md)). When CI passes on `main`, `.github/workflows/deploy.yml` deploys that commit to the production VPS (https://techrat.io) — see [docs/deploy.md](docs/deploy.md).
+CI (`.github/workflows/ci.yml`) runs the backend build (warnings as errors) and tests, seed validation, the seed script tests and the README catalog check, lint, typecheck, unit tests, `expo-doctor` and the production Expo config check, the web and desktop builds, Docker image builds, and the Compose + Playwright E2E. Work flows `feature branch → PR → dev → PR → main`: `main` and `dev` are protected (PRs only, CI required) and a PR into `main` must come from `dev` (`.github/workflows/promotion-gate.yml`, [ADR-0021](docs/adr/0021-dev-to-main-promotion-gate.md)). When CI passes on `main`, `.github/workflows/deploy.yml` deploys that commit to the production VPS (https://techrat.io) — see [docs/deploy.md](docs/deploy.md).
 
 ## Security
 
@@ -490,14 +498,18 @@ CI (`.github/workflows/ci.yml`) runs the backend build (warnings as errors) and 
 * **Analytics** group the selected period (up to 365 days) in memory per user. This is fine at MVP scale; move to SQL or materialized aggregates when it grows.
 * **Rate limiting** is in-process per instance. Move it to Redis or the gateway when scaling out.
 * **Desktop tokens** are stored in the webview's app-private storage; moving them to the OS keychain is planned (ADR-0006). The desktop `.deb` was built in CI-like conditions but not exercised interactively.
-* **Mobile** was verified by typecheck, unit tests and an Android bundle export. It has not been run on a device in this environment.
+* **Mobile** was verified by typecheck, unit tests, `expo-doctor` and an Android bundle export. It has not been run on a device in this environment, and no EAS build has been made yet: the first one needs the Expo and Play Console steps in [docs/android-release.md](docs/android-release.md) (store screenshots, a reviewer test account, the signing key EAS creates).
+* **Privacy policy and terms are drafts.** They carry visible `TODO(owner)` and `TODO(legal)` markers (company name and contact email, minimum age, hosting and email provider and country, backup and log retention, governing law) and a draft banner; `LEGAL.draft` in `apps/web/src/lib/legal.ts` must stay true until a lawyer has reviewed them. Google Play rejects placeholder policies.
+* **Account deletion** is immediate and irreversible, with no grace period. Backups made earlier, if any, and server logs (which keep the random account id) outlive it; the policy says so. People who cannot sign in are asked to write to the contact email, which needs a monitored mailbox.
+* **Leaderboard opt-out** removes the learner from the rankings but does not hide the public profile page that other signed-in users can open, and the profile photo URL is anonymous and cached. The policy discloses both.
+* **Apache access logs** (deployment) record query strings, so password-reset links (email and code) and `/profile?u=…` land in them. Consider logging without query strings.
 * **Question types:** only MultipleChoice is playable. The other types are modeled for future use.
 * On the very first startup, EF logs one expected `fail:` line while it probes for the migrations history table.
 * Social features (duels, friends, teams, community) and AI recommendations are P2 and not implemented. The Community page says so.
 * **Profile photos:** HEIC can be picked on iOS and in Safari; other browsers cannot decode it and ask for a JPG or PNG. Leaderboards cache rows for a few minutes, so other learners may see a new photo with that delay. The mobile photo screens are English-only, like the rest of the mobile app.
 * **Study resources** cover every roadmap and module, but links rot: re-run `python3 scripts/seed-src/validate_resources.py --check-urls` before releases. Microsoft Learn rate-limits scripts (HTTP 429), so check it slowly. The mobile app does not show them yet.
 * **Junior recommendations** are curated in `scripts/seed-src/roadmaps.py` (`JUNIOR_TOP`) and have no admin screen. The mobile app receives `juniorRank` but has no "Recommended for juniors" filter yet (ADR-0015).
-* **Portuguese coverage:** the mobile app is not translated yet, and translations of questions and catalog texts can only be changed through the seed files (the admin area edits the English text).
+* **Portuguese coverage:** the mobile app is translated only on its newest screens (version label, delete account, legal rows, register consent), and translations of questions and catalog texts can only be changed through the seed files (the admin area edits the English text).
 
 ## Next steps
 

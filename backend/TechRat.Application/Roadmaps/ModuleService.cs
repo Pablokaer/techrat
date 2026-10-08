@@ -28,7 +28,7 @@ public sealed class ModuleService(IAppDbContext db, RoadmapProgressService progr
         return await SummariesAsync(modules, userId, tr, ct);
     }
 
-    public async Task<ModuleDetailDto> GetAsync(string slug, Guid? userId, CancellationToken ct)
+    public async Task<ModuleDetailDto> GetAsync(string slug, Guid? userId, bool isAdmin, CancellationToken ct)
     {
         var module = await db.LearningModules.AsNoTracking().Include(m => m.Dependencies)
             .FirstOrDefaultAsync(m => m.Slug == slug && m.IsPublished, ct) ?? throw new NotFoundException("Module", slug);
@@ -48,13 +48,16 @@ public sealed class ModuleService(IAppDbContext db, RoadmapProgressService progr
             ? await progress.SnapshotAsync(uid, [module.Id], track: false, ct)
             : new ModuleProgressSnapshot { StepsByModule = [], CompletedSteps = [], ModuleProgress = [] };
         var current = RoadmapComposition.CurrentStep(steps.Select(s => s.Step), snapshot.CompletedSteps);
-        var criteria = userId is { } u2 && current is not null ? await progress.EvaluateStepsAsync(u2, [current], ct) : [];
+        // Administrators review everything, so every uncompleted step is open (not just the next one).
+        var openSteps = isAdmin ? steps.Select(s => s.Step).Where(s => !snapshot.CompletedSteps.Contains(s.Id)).ToList()
+            : current is null ? [] : [current];
+        var criteria = userId is { } u2 && openSteps.Count > 0 ? await progress.EvaluateStepsAsync(u2, openSteps, ct) : [];
         snapshot.ModuleProgress.TryGetValue(module.Id, out var mp);
 
         var stepDtos = steps.Select(s =>
         {
             var status = snapshot.CompletedSteps.Contains(s.Step.Id) ? StepStatus.Completed
-                : s.Step.Id == current?.Id ? StepStatus.Current : StepStatus.Locked;
+                : isAdmin || s.Step.Id == current?.Id ? StepStatus.Current : StepStatus.Locked;
             var isNew = mp?.CompletedVersion is { } v && s.Step.AddedInVersion > v;
             return new RoadmapStepDto(s.Step.Id, tr.StepTitle(s.Step.Id, s.Step.Title), tr.StepDescription(s.Step.Id, s.Step.Description),
                 s.Step.Order, s.Step.Difficulty.ToString(), s.Step.EstimatedMinutes, s.TopicSlug, tr.TopicName(s.Step.TopicId, s.TopicName),

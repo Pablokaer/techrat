@@ -29,6 +29,7 @@ export const auth = {
     title: "Welcome back",
     subtitle: "Keep your streak alive. Small steps build big developers.",
     passwordUpdated: "Password updated. Sign in with your new password.",
+    accountDeleted: "Your account was deleted. Everything tied to it is gone.",
     forgotPassword: "Forgot password?",
     submit: "Sign in",
     submitting: "Signing in…",

@@ -28,8 +28,9 @@ public static class StepCriteria
 
 public static class RoadmapUnlock
 {
-    public static bool IsUnlocked(IEnumerable<(int MinimumPercent, double ActualPercent)> dependencies) =>
-        dependencies.All(d => d.ActualPercent >= d.MinimumPercent);
+    /// <summary>Administrators review all content, so they never need to meet a roadmap's prerequisites.</summary>
+    public static bool IsUnlocked(IEnumerable<(int MinimumPercent, double ActualPercent)> dependencies, bool isAdmin = false) =>
+        isAdmin || dependencies.All(d => d.ActualPercent >= d.MinimumPercent);
 }
 
 /// <summary>A module's place in a roadmap.</summary>
@@ -162,8 +163,9 @@ public sealed class RoadmapProgressService(IAppDbContext db, XpService xp, Conte
             snapshot.StepsPerModule, snapshot.CompletedStepsPerModule, snapshot.CompletedModules).Percent);
     }
 
-    public async Task<bool> IsUnlockedAsync(Guid userId, Guid roadmapId, CancellationToken ct)
+    public async Task<bool> IsUnlockedAsync(Guid userId, Guid roadmapId, bool isAdmin, CancellationToken ct)
     {
+        if (isAdmin) return true;
         var deps = await db.RoadmapDependencies.Where(d => d.RoadmapId == roadmapId).ToListAsync(ct);
         if (deps.Count == 0) return true;
         var pct = await CompletionPercentAsync(userId, deps.Select(d => d.RequiredRoadmapId), ct);

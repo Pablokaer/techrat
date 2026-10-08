@@ -120,15 +120,15 @@ public sealed class RoadmapsEndpoints : IEndpointModule
     {
         var roadmaps = api.MapGroup("/roadmaps").WithTags("Roadmaps");
         roadmaps.MapGet("/", async (string? category, RoadmapService svc, ICurrentUser me, CancellationToken ct) =>
-            TypedResults.Ok(await svc.ListAsync(me.UserId, category, ct)));
+            TypedResults.Ok(await svc.ListAsync(me.UserId, category, me.IsAdmin, ct)));
         roadmaps.MapGet("/{slug}", async (string slug, RoadmapService svc, ICurrentUser me, CancellationToken ct) =>
-            TypedResults.Ok(await svc.GetAsync(slug, me.UserId, ct)));
+            TypedResults.Ok(await svc.GetAsync(slug, me.UserId, me.IsAdmin, ct)));
         roadmaps.MapGet("/{slug}/resources", async (string slug, StudyResourceService svc, CancellationToken ct) =>
             TypedResults.Ok(await svc.ForRoadmapAsync(slug, ct)))
             .WithSummary("Study resources: general overview reading for the roadmap (books, official docs, courses), in the request language");
         roadmaps.MapPost("/{slug}/start", async (string slug, RoadmapService svc, ICurrentUser me, CancellationToken ct) =>
-            TypedResults.Ok(await svc.StartAsync(me.RequireUserId(), slug, ct))).RequireAuthorization()
-            .WithSummary("Enrol in a roadmap (fails with 403 while prerequisites are not met)");
+            TypedResults.Ok(await svc.StartAsync(me.RequireUserId(), slug, me.IsAdmin, ct))).RequireAuthorization()
+            .WithSummary("Enrol in a roadmap (fails with 403 while prerequisites are not met; administrators are never blocked)");
     }
 }
 
@@ -144,7 +144,7 @@ public sealed class ModulesEndpoints : IEndpointModule
             TypedResults.Ok(await svc.ForModuleAsync(slug, ct)))
             .WithSummary("Study resources: the topics to master in the module and the sources to learn each from");
         modules.MapGet("/{slug}", async (string slug, ModuleService svc, ICurrentUser me, CancellationToken ct) =>
-            TypedResults.Ok(await svc.GetAsync(slug, me.UserId, ct)));
+            TypedResults.Ok(await svc.GetAsync(slug, me.UserId, me.IsAdmin, ct)));
     }
 }
 

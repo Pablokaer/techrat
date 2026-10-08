@@ -35,6 +35,7 @@ public class StepCriteriaTests
         Assert.True(RoadmapUnlock.IsUnlocked([]));
         Assert.True(RoadmapUnlock.IsUnlocked([(50, 50), (30, 90)]));
         Assert.False(RoadmapUnlock.IsUnlocked([(50, 49.9), (30, 90)]));
+        Assert.True(RoadmapUnlock.IsUnlocked([(50, 0), (30, 0)], isAdmin: true)); // administrators bypass prerequisites
     }
 }
 

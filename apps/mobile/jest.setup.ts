@@ -8,3 +8,7 @@ jest.mock("expo-secure-store", () => {
     deleteItemAsync: jest.fn((k: string) => Promise.resolve(void store.delete(k))),
   };
 });
+
+// Tests run in English unless they pick a locale: the machine's own language must not change what they see.
+import { setLocale } from "./src/lib/i18n";
+setLocale("en");

@@ -54,6 +54,8 @@ public sealed class UserProgressChangedHandler(
     public async Task HandleAsync(string payload, CancellationToken ct)
     {
         var evt = JsonSerializer.Deserialize<UserProgressChanged>(payload) ?? throw new InvalidOperationException("Invalid payload");
+        // The account may have been deleted while this message waited: there is nothing left to evaluate or notify.
+        if (!await db.UserProfiles.AnyAsync(u => u.Id == evt.UserId, ct)) return;
         await achievements.EvaluateAsync(evt.UserId, ct);
 
         var rank = await leaderboard.GlobalRankAsync(evt.UserId, ct);

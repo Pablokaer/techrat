@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -54,6 +55,13 @@ export default function RegisterPage() {
         </div>
         <Field id="password" label={t.auth.fields.password} type="password" autoComplete="new-password" error={errors.password} />
         <p className="-mt-3 text-xs text-text-muted">{t.auth.register.passwordHint}</p>
+        <p className="-mt-2 text-xs text-text-muted">
+          {t.legal.consent.before}
+          <Link href="/terms" className="text-primary hover:underline">{t.legal.consent.terms}</Link>
+          {t.legal.consent.and}
+          <Link href="/privacy" className="text-primary hover:underline">{t.legal.consent.privacy}</Link>
+          {t.legal.consent.after}
+        </p>
         <button type="submit" className="btn-primary w-full" disabled={pending}>{pending ? t.auth.register.submitting : t.auth.register.submit}</button>
         <OAuthButtons />
         <AuthFooterLink text={t.auth.register.haveAccount} href="/login" cta={t.auth.register.signIn} />
