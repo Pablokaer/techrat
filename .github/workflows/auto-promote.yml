@@ -1,0 +1,47 @@
+name: Auto-promote dev to main
+
+# When CI passes on a push to dev, open the dev -> main pull request (if there is none) and enable auto-merge on it.
+# GitHub merges it once the required checks (CI + promotion gate) pass, and the merge to main then deploys (deploy.yml).
+# See docs/adr/0025-automatic-dev-to-main-promotion.md.
+#
+# Repository secret: PROMOTE_TOKEN, a fine-grained personal access token limited to this repository with
+# "Contents: read and write" and "Pull requests: read and write". It must not be GITHUB_TOKEN: pull requests and merges
+# made with GITHUB_TOKEN do not trigger other workflows, so the required checks would never run and Deploy would never start.
+# Repository setting: Settings -> General -> "Allow auto-merge" must be on.
+# Manual run: Actions -> Auto-promote dev to main -> Run workflow.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [dev]
+  workflow_dispatch:
+
+concurrency:
+  group: auto-promote
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: Open the dev -> main pull request and enable auto-merge
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main   # trusted code: the script comes from main, not from dev
+      - name: Promote
+        env:
+          GH_TOKEN: ${{ secrets.PROMOTE_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Secret PROMOTE_TOKEN is not set (see the header of this workflow)."
+            exit 1
+          fi
+          python3 -I .github/scripts/auto_promote.py "$REPO"
