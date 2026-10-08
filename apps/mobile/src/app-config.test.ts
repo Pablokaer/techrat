@@ -17,6 +17,13 @@ const plugin = (name: string) => (app.plugins as Plugin[]).find((p) => (Array.is
  * accident: check it before releasing.
  */
 describe("store identity", () => {
+  it("is linked to the Expo project, whose slug EAS requires to match app.json", () => {
+    expect(app.extra.eas.projectId).toBe("850a5f55-9141-45c7-a55b-cb8a586b9e2f");
+    expect(app.owner).toBe("climboulths-team");
+    // The Expo project was created as "pablo-carvalho"; `eas build` fails with a slug mismatch otherwise.
+    expect(app.slug).toBe("pablo-carvalho");
+  });
+
   it("uses the techrat.io package name on both platforms", () => {
     expect(app.android.package).toBe("io.techrat.app");
     expect(app.ios.bundleIdentifier).toBe("io.techrat.app");
