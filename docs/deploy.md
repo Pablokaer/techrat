@@ -74,6 +74,14 @@ the required checks (CI + promotion gate) pass on that PR, and the merge deploys
 
 To pause promotion, disable the workflow in the Actions tab; to promote on demand, run it with *Run workflow*.
 
+#### Keeping dev in sync with main
+
+The promotion merge commit exists only on `main`, so `dev` would always look a few commits behind. After every push to
+`main`, `.github/workflows/sync-dev.yml` runs `.github/scripts/sync_dev.py`, which fast-forwards `dev` to `main` (never
+forced, skipped if `dev` has newer commits; [ADR-0027](adr/0027-sync-dev-after-promotion.md)). One-time setup: the owner
+of `PROMOTE_TOKEN` must be allowed to bypass the "changes must be made through a pull request" rule on `dev`
+(Settings → Rules / Branches → add the account or app to the bypass list).
+
 ### Deploy
 
 Every push to `main` (that is, every dev → main promotion) goes live by itself once CI is green:

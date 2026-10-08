@@ -1,0 +1,42 @@
+name: Sync dev with main
+
+# After a dev -> main promotion lands on main, fast-forward dev to main so the promotion merge commit is on both branches
+# and GitHub stops reporting dev as behind main. See docs/adr/0027-sync-dev-after-promotion.md.
+#
+# Uses PROMOTE_TOKEN (see auto-promote.yml). dev is protected ("changes must be made through a pull request"), so the
+# token's owner must be allowed to bypass that rule (repository ruleset or branch protection bypass list).
+# The push never forces: if dev already has newer commits it is skipped. Pushing to dev starts CI there, and
+# auto-promote then finds dev not ahead of main and stops, so there is no loop.
+# Manual run: Actions -> Sync dev with main -> Run workflow.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: sync-dev
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Fast-forward dev to main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PROMOTE_TOKEN }}
+      - name: Sync
+        env:
+          HAS_TOKEN: ${{ secrets.PROMOTE_TOKEN != '' }}
+        run: |
+          if [ "$HAS_TOKEN" != "true" ]; then
+            echo "::error::Secret PROMOTE_TOKEN is not set (see the header of auto-promote.yml)."
+            exit 1
+          fi
+          python3 -I .github/scripts/sync_dev.py
