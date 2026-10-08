@@ -1,0 +1,546 @@
+[
+  {
+    "id": "tdd-outside-in-double-loop",
+    "topic": "testing",
+    "subtopic": "tdd-outside-in",
+    "difficulty": "Easy",
+    "title": "The outside-in double loop",
+    "question": "In outside-in TDD, which sequence describes the \"double loop\"?",
+    "options": [
+      "Write every unit test for the feature first, then add one acceptance test after all of the units are green",
+      "Write a failing unit test and a failing acceptance test together, and keep both red until the release build",
+      "Write a failing acceptance test first, then run unit-level red-green-refactor cycles until it passes",
+      "Write the acceptance test last, once the units exist, only to confirm the finished pieces are wired correctly"
+    ],
+    "correctIndex": 2,
+    "explanation": "The outer loop is a failing acceptance test that states what the feature must do from the outside. The inner loop is ordinary red-green-refactor on the units needed to satisfy it. When the acceptance test goes green, the feature is done and the next acceptance test starts. Writing it last or keeping tests red until release removes the guidance the outer test provides.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-outside-in-discover-collaborators",
+    "topic": "testing",
+    "subtopic": "tdd-outside-in",
+    "difficulty": "Medium",
+    "title": "Mocking a collaborator that does not exist yet",
+    "question": "Starting from a failing test for `CheckoutController`, a developer writes the test with a mocked `PaymentProcessor` interface that has no implementation yet, and only then creates the interface. What is the main design benefit of working this way?",
+    "options": [
+      "The test shapes the role `CheckoutController` needs, so the interface comes from real usage",
+      "The mock guarantees the future `PaymentProcessor` implementation will behave exactly as the test expects",
+      "The controller can be finished completely before any other class is designed or started by the team",
+      "The unit test also verifies the real payment provider, so integration tests are no longer needed later"
+    ],
+    "correctIndex": 0,
+    "explanation": "In outside-in (mockist) TDD, mocks are a design tool: writing the caller first reveals which messages it needs to send, so the interface is minimal and shaped by its consumer. The mock does not constrain the real implementation, which still needs its own tests, and the real wiring and provider still need integration or acceptance coverage.",
+    "referenceUrl": "https://martinfowler.com/articles/mocksArentStubs.html"
+  },
+  {
+    "id": "tdd-outside-in-stub-query-mock-command",
+    "topic": "testing",
+    "subtopic": "tdd-outside-in",
+    "difficulty": "Medium",
+    "title": "Stub the query, verify the command",
+    "question": "Testing `InvoiceService.issue(order)`, which calls `taxRates.rateFor(country)` to get a number and then `mailer.send(invoice)` to email the customer. How should each collaborator be doubled?",
+    "options": [
+      "Stub `rateFor` with a canned rate, and verify `send` got the expected invoice",
+      "Verify the call to `rateFor`, and stub `send` so the test can assert the invoice total directly",
+      "Use a mock for both calls and assert on the exact order in which the two methods were invoked",
+      "Use the real tax service and real mailer, since a test double is wrong for both collaborators"
+    ],
+    "correctIndex": 0,
+    "explanation": "`rateFor` is a query: it only supplies input, so a stub with a canned value is enough and the test should not care how often it is called. `send` is a command with an outgoing side effect and nothing to read back, so verifying the interaction is the only way to observe the behaviour. Asserting call order or hitting a real mailer adds brittleness or side effects.",
+    "referenceUrl": "https://martinfowler.com/articles/mocksArentStubs.html"
+  },
+  {
+    "id": "tdd-outside-in-fake-repository",
+    "topic": "testing",
+    "subtopic": "tdd-outside-in",
+    "difficulty": "Medium",
+    "title": "Fake repository for state-based tests",
+    "question": "A `TransferService` test saves two accounts, loads them back, moves money and saves again. With a mocked `AccountRepository`, every test needs long `when(...).thenReturn(...)` setup and breaks when the service reads an account one extra time. What fits better?",
+    "options": [
+      "Replace the repository with a stub that always returns the same account object for every id",
+      "Call the production database from each test so the repository is exercised with real SQL",
+      "Use an in-memory fake repository and assert on the accounts' final balances after the transfer",
+      "Add `verifyNoMoreInteractions` to each test, so any extra read is reported as the failure"
+    ],
+    "correctIndex": 2,
+    "explanation": "A fake has real, simplified behaviour (a dictionary behind save and find), so the test only states the starting data and checks the resulting state. How many times the service reads the repository stops mattering. Strict interaction checks would make the brittleness worse, a single canned account cannot model two accounts, and a real database slows the inner TDD loop.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDouble.html"
+  },
+  {
+    "id": "tdd-outside-in-inside-out-risk",
+    "topic": "testing",
+    "subtopic": "tdd-outside-in",
+    "difficulty": "Medium",
+    "title": "The risk of starting inside-out",
+    "question": "A team building a loyalty-points feature starts at the bottom: it TDDs `PointsCalculator`, `TierPolicy` and `PointsRepository` with real objects, and wires the web endpoint last. Which risk is typical of this inside-out approach?",
+    "options": [
+      "Units may be built for needs the outer layer never has, so interfaces are reworked late",
+      "The unit tests cannot assert on results, because real collaborators hide all of the state from the test",
+      "The design cannot use dependency injection, since collaborators are only ever instantiated directly",
+      "Refactoring becomes impossible, because tests that use real objects fail on any internal change"
+    ],
+    "correctIndex": 0,
+    "explanation": "Inside-out (classicist) TDD grows the domain core from real behaviour, which is robust and refactor-friendly, but without an outer test the team guesses what the upper layers will need. Interfaces and features may be over- or under-built and get reworked at the end. Real collaborators make state assertions easy, and nothing prevents dependency injection.",
+    "referenceUrl": "https://martinfowler.com/articles/mocksArentStubs.html"
+  },
+  {
+    "id": "tdd-outside-in-acceptance-vs-unit-scope",
+    "topic": "testing",
+    "subtopic": "tdd-outside-in",
+    "difficulty": "Medium",
+    "title": "What the acceptance test should exercise",
+    "question": "In an outside-in workflow for \"customers can redeem a voucher\", what should the outer acceptance test look like compared with the inner unit tests?",
+    "options": [
+      "It checks private fields of the voucher entity, because only the entity knows if redemption worked",
+      "It drives the feature through the public entry point with real wiring, doubling only external systems",
+      "It mocks every internal class, just like the unit tests do, but with a longer list of expectations, and every test breaks on any refactoring",
+      "It calls each service method in isolation, so a failing acceptance test points to a single class"
+    ],
+    "correctIndex": 1,
+    "explanation": "The acceptance test treats the system as a user or client would, going through the real entry point and the real internal objects, and replaces only what lies outside the boundary (payment provider, email, clock). Unit tests then use doubles to isolate one class. Mocking everything or reading private fields would lose the end-to-end signal that the outer loop exists to give.",
+    "referenceUrl": "https://martinfowler.com/bliki/SubcutaneousTest.html"
+  },
+  {
+    "id": "tdd-outside-in-mock-chains-demeter",
+    "topic": "testing",
+    "subtopic": "tdd-outside-in",
+    "difficulty": "Hard",
+    "title": "A mock that returns a mock that returns a mock",
+    "question": "A unit test needs this setup: `when(order.getCustomer()).thenReturn(customer); when(customer.getAddress()).thenReturn(address); when(address.getCountry()).thenReturn(\"BR\");` to test shipping cost. In mockist TDD, what does this setup most likely signal?",
+    "options": [
+      "The shipping code asks for data through a chain of objects instead of being told what it needs",
+      "The mocking library is too limited, and a deep-stub feature should replace the manual setup",
+      "The `Address` class should be made `final` so that tests cannot configure it so easily",
+      "The test is correct, and every long call chain in production code should be mocked this way"
+    ],
+    "correctIndex": 0,
+    "explanation": "Mockist TDD follows \"Tell, Don't Ask\": objects collaborate by sending messages, not by navigating other objects' internals. A chain of stubbed getters shows the unit knows too much about the structure of its neighbours (Law of Demeter). The cleaner design passes the needed value in, for example `shippingCost(country)`, or moves the question to the object that owns the data. Deep stubs just hide the smell.",
+    "referenceUrl": "https://martinfowler.com/bliki/TellDontAsk.html"
+  },
+  {
+    "id": "tdd-outside-in-own-the-adapter",
+    "topic": "testing",
+    "subtopic": "tdd-outside-in",
+    "difficulty": "Hard",
+    "title": "Do not mock types you do not own",
+    "question": "A `ReportExporter` unit test mocks the AWS SDK's `S3Client` directly, with stubs for five SDK calls and its builder classes. When the SDK is upgraded, many tests break although the exporter behaves the same. Which approach follows the Freeman and Pryce guidance?",
+    "options": [
+      "Mock the SDK's lower-level HTTP client instead, since it changes less often than S3Client",
+      "Keep the mocks and add a base test class that centralizes the shared S3Client setup",
+      "Define a small interface you own, implement it over S3, and mock only that interface",
+      "Pin the SDK version permanently so the mocked calls never change under the tests"
+    ],
+    "correctIndex": 2,
+    "explanation": "\"Don't mock types you don't own\": a mock of a third-party API encodes your guess of its behaviour and ties tests to its shape. Wrapping the SDK in a narrow port, expressed in your domain's terms, gives the exporter a stable collaborator to mock, and the thin adapter is verified separately by an integration test against the real service or a local emulator. Pinning, mocking a lower layer or sharing setup just move the coupling.",
+    "referenceUrl": "https://martinfowler.com/articles/mocksArentStubs.html"
+  },
+  {
+    "id": "tdd-bug-regression-test-meaning",
+    "topic": "testing",
+    "subtopic": "tdd-bug-fixing",
+    "difficulty": "Easy",
+    "title": "What a regression test is",
+    "question": "After fixing a bug where orders of exactly 100 items got no bulk discount, the team adds a test for that case and keeps it in the suite. What is this test called, and what is its purpose?",
+    "options": [
+      "A regression test, which fails if the same defect returns",
+      "A smoke test, which confirms that the application starts and its main page loads",
+      "A load test, which measures how the discount code behaves with many requests",
+      "An exploratory test, which a person runs by hand to look for further defects"
+    ],
+    "correctIndex": 0,
+    "explanation": "A regression test pins down behaviour that was once broken so any future change that brings the bug back turns the build red. Written first as a failing test, it also proves the bug was reproduced. Smoke, load and exploratory tests answer different questions and do not lock in a specific fixed defect.",
+    "referenceUrl": "https://martinfowler.com/bliki/SelfTestingCode.html"
+  },
+  {
+    "id": "tdd-bug-fail-for-right-reason",
+    "topic": "testing",
+    "subtopic": "tdd-bug-fixing",
+    "difficulty": "Medium",
+    "title": "The reproduction test fails, but why?",
+    "question": "A bug report says `Cart.total()` ignores coupons. The new reproduction test fails with `NullPointerException` inside the test's own setup, before reaching the assertion. What should be done before touching production code?",
+    "options": [
+      "Delete the test and verify the bug manually, since automation cannot reproduce this defect",
+      "Wrap the setup in a try/catch so the test reaches the assertion and then goes green",
+      "Fix the setup so the test fails on the coupon assertion with the wrong total, the reported symptom",
+      "Start the fix at once, because any red test already proves that the bug exists"
+    ],
+    "correctIndex": 2,
+    "explanation": "A reproduction test is only evidence when it fails for the reason in the report. A crash in the setup says nothing about coupons, and a fix guided by it could pass without repairing the bug. Fix the test until the red result is the wrong total, then change production code. Swallowing exceptions hides problems, and abandoning the test loses the regression protection.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-bug-triangulate-hardcoded-fix",
+    "topic": "testing",
+    "subtopic": "tdd-bug-fixing",
+    "difficulty": "Medium",
+    "title": "A fix that special-cases the failing input",
+    "question": "A test shows `isLeapYear(1900)` returns true. To make it pass quickly, a developer adds `if (year == 1900) return false;` at the top. The suite is green. What should happen next?",
+    "options": [
+      "Add a comment that 1900 is special and move on to the next ticket",
+      "Add tests for other century years such as 2000 and 2100, then generalize the rule to satisfy them",
+      "Ship it, because the failing test passes and the suite is green again",
+      "Replace the method with a lookup table holding the verified result for every known year, and update it whenever a new year is reported"
+    ],
+    "correctIndex": 1,
+    "explanation": "A hard-coded answer is a legitimate quick green, but TDD does not stop there: more examples (triangulation) force the real rule, divisible by 4 and not by 100 unless also by 400. Tests for 2000 (true) and 2100 (false) expose the special case immediately. Shipping it leaves the bug for every other century, and a lookup table cannot cover all years.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-bug-commit-granularity",
+    "topic": "testing",
+    "subtopic": "tdd-bug-fixing",
+    "difficulty": "Medium",
+    "title": "Committing a fix and its clean-up",
+    "question": "While fixing a bug with TDD, a developer made three changes: the failing test, the minimal fix and an extraction of a helper method that the fix made obvious. How should these be committed?",
+    "options": [
+      "The test with the fix in one commit, and the extraction in a separate commit made on green",
+      "One large commit titled \"fixes and improvements\", so reviewers see the whole story at once",
+      "The failing test alone and pushed, so that continuous integration records the bug as red first",
+      "The extraction first, mixed with the fix, because refactoring always has to precede behaviour changes"
+    ],
+    "correctIndex": 0,
+    "explanation": "Small commits that each do one kind of change are easy to review, bisect and revert. The test and fix belong together (the commit that changes behaviour and proves it), and the refactoring is a behaviour-preserving step taken with all tests green. Pushing a red test breaks the shared build, and mixing refactoring into the fix hides what actually changed behaviour.",
+    "referenceUrl": "https://martinfowler.com/articles/is-tdd-dead/"
+  },
+  {
+    "id": "tdd-bug-lowest-level-regression",
+    "topic": "testing",
+    "subtopic": "tdd-bug-fixing",
+    "difficulty": "Medium",
+    "title": "Where to put the regression test",
+    "question": "Manual QA found that the checkout page shows a total one cent too low. The root cause is a rounding bug in `TaxCalculator.round(amount)`. Where should the regression test go?",
+    "options": [
+      "In a unit test of `TaxCalculator` that uses the amount that triggers the rounding bug",
+      "In an end-to-end browser test that fills the checkout form, since QA found the bug there",
+      "In a manual test script, because rounding problems cannot be asserted by automated tests",
+      "In a test of the checkout page that mocks `TaxCalculator` and returns the corrected value"
+    ],
+    "correctIndex": 0,
+    "explanation": "Put the regression test at the lowest level that can reproduce the root cause: a unit test of the rounding function is fast, deterministic and points straight at the faulty code. A browser test would be slow and fail for many unrelated reasons. Mocking `TaxCalculator` in the page test would skip the buggy code entirely, so it could never fail.",
+    "referenceUrl": "https://martinfowler.com/articles/practical-test-pyramid.html"
+  },
+  {
+    "id": "tdd-bug-nondeterministic-repro",
+    "topic": "testing",
+    "subtopic": "tdd-bug-fixing",
+    "difficulty": "Medium",
+    "title": "Reproducing a bug that depends on time",
+    "question": "Subscriptions expire at midnight UTC, but a bug means users renewing at 23:59:59 lose a day. The developer cannot reproduce it by running a test at the right moment. What is the best way to write the failing test?",
+    "options": [
+      "Schedule the test suite in CI so that it runs only a few seconds before midnight UTC every night, whenever the build server happens to be free",
+      "Change the machine's clock to 23:59:59 before the test and restore it afterwards",
+      "Let the code take its time from an injected clock, and set that clock to 23:59:59 in the test",
+      "Loop the test with `Thread.sleep` and retry until the system clock reaches 23:59:59"
+    ],
+    "correctIndex": 2,
+    "explanation": "Time is hidden input. Passing the clock in (an interface, or `TimeProvider` in .NET) makes the bug reproducible at any moment, instantly and on any machine. Waiting or scheduling makes the test slow and flaky, and changing the machine clock affects other processes and tests running in parallel.",
+    "referenceUrl": "https://martinfowler.com/bliki/UnitTest.html"
+  },
+  {
+    "id": "tdd-bug-found-while-refactoring",
+    "topic": "testing",
+    "subtopic": "tdd-bug-fixing",
+    "difficulty": "Hard",
+    "title": "A second bug appears during refactoring",
+    "question": "Mid-refactoring, with every test green, a developer notices a different bug in the same class: a loop skips the last element. The fix is one line. What does disciplined TDD recommend?",
+    "options": [
+      "Ignore it until the refactoring finishes, then mention it in the pull request text",
+      "Pause the refactoring, write a failing test for the bug, fix it as its own change, and then resume",
+      "Fix it now in the same step; the tests are green, so the change is certainly safe",
+      "Rewrite the whole loop as part of the refactoring, so that the bug disappears as a side effect and delete the old tests"
+    ],
+    "correctIndex": 1,
+    "explanation": "Beck's \"two hats\": when refactoring you change structure only, so green tests prove nothing changed. Fixing a bug is a behaviour change and needs its own red-green cycle. The existing suite is green precisely because no test covers the defect, so a silent fix would be unverified and would blur what the commits changed. Parking the finding on a to-do list is fine, but pretending the bug does not exist is not.",
+    "referenceUrl": "https://martinfowler.com/bliki/BeckDesignRules.html"
+  },
+  {
+    "id": "tdd-bug-old-tests-encode-bug",
+    "topic": "testing",
+    "subtopic": "tdd-bug-fixing",
+    "difficulty": "Hard",
+    "title": "The fix turns three old tests red",
+    "question": "After a correct fix for a rounding bug, three older tests fail because they assert the old, buggy totals. The developer is tempted to delete them. What is the right approach?",
+    "options": [
+      "Check each against the requirement, update the ones that encoded the bug, and say why in the commit",
+      "Delete all three, because tests that fail after a correct fix no longer provide any value",
+      "Revert the fix and work around the bug elsewhere, so that the old tests keep passing and need no review",
+      "Mark the three tests as ignored until someone has time to decide what they should be asserting"
+    ],
+    "correctIndex": 0,
+    "explanation": "A test that fails after a deliberate behaviour change either encoded a real requirement (then the fix is wrong) or encoded the bug (then its expectation must change). Verify against the specification or the business, then update the expectation in the same commit and explain it. Deleting or ignoring tests silently weakens the safety net, and bending the code to protect wrong expectations keeps the defect.",
+    "referenceUrl": "https://martinfowler.com/bliki/SelfTestingCode.html"
+  },
+  {
+    "id": "tdd-legacy-seam-definition",
+    "topic": "testing",
+    "subtopic": "tdd-legacy-seams",
+    "difficulty": "Medium",
+    "title": "What a seam is",
+    "question": "In Michael Feathers' work on legacy code, which description matches a \"seam\"?",
+    "options": [
+      "A spot where behaviour can change without editing code at that spot",
+      "A line in the code where two modules touch, which should be removed to reduce coupling",
+      "A commit boundary where the legacy system was split into separate repositories",
+      "A test that is split into two phases so that it can run in parallel"
+    ],
+    "correctIndex": 0,
+    "explanation": "Feathers defines a seam as a place where you can alter behaviour without editing in that place, and every seam has an enabling point where the choice of behaviour is made. A method call that can be overridden in a subclass or a collaborator passed through the constructor are seams, and they let tests substitute real behaviour. Seams are something to find and use, not something to remove.",
+    "referenceUrl": "https://martinfowler.com/bliki/LegacySeam.html"
+  },
+  {
+    "id": "tdd-legacy-sprout-method",
+    "topic": "testing",
+    "subtopic": "tdd-legacy-seams",
+    "difficulty": "Medium",
+    "title": "Adding a feature to an untestable method",
+    "question": "A 400-line `processOrder()` method has no tests and cannot be instantiated in a harness. You must add address validation inside it. Which Feathers technique lets you write the new logic test-first?",
+    "options": [
+      "Rewrite `processOrder()` from scratch with TDD before adding the address validation",
+      "Paste the validation code into the middle of the method and test it by running the app by hand, without writing any test",
+      "Write the validation as a new method, develop it with TDD, and call it from the old code",
+      "Rename the method and write a new one that wraps the call with extra checks"
+    ],
+    "correctIndex": 2,
+    "explanation": "Sprout Method: put the new behaviour in a new, separately testable method (or class) written test-first, then add one call to it in the legacy code. The risky edit to untested code is a single line. Wrap Method suits behaviour that must happen before or after an existing call, not in the middle of it, and a from-scratch rewrite or hand-edited insertion has no safety net.",
+    "referenceUrl": "https://martinfowler.com/bliki/LegacySeam.html"
+  },
+  {
+    "id": "tdd-legacy-golden-master-nondeterminism",
+    "topic": "testing",
+    "subtopic": "tdd-legacy-seams",
+    "difficulty": "Hard",
+    "title": "A golden master that differs on every run",
+    "question": "A team captures the output of a legacy invoice generator as a golden master and compares new runs against it. Every run fails because each invoice contains the generation timestamp and a random invoice id. What is the best fix?",
+    "options": [
+      "Make the timestamp and id deterministic through a seam, or scrub them from the output before comparing",
+      "Loosen the comparison so that it only checks that the output is not empty and has some lines",
+      "Delete the golden master and replace it with a few hand-picked tests of the totals only",
+      "Regenerate the golden master automatically on each run, so that the comparison always passes"
+    ],
+    "correctIndex": 0,
+    "explanation": "A golden master needs deterministic output. Either inject a fixed clock and id generator via a seam, or normalise the volatile fields (replace them with placeholders) before comparing, so that only meaningful differences remain. Checking for non-empty output or regenerating the master each time removes the test's ability to detect behaviour changes, and a handful of total checks covers far less of the legacy behaviour.",
+    "referenceUrl": "https://michaelfeathers.silvrback.com/"
+  },
+  {
+    "id": "tdd-legacy-wrap-method",
+    "topic": "testing",
+    "subtopic": "tdd-legacy-seams",
+    "difficulty": "Hard",
+    "title": "Audit logging around an existing call",
+    "question": "Legacy `Account.withdraw(amount)` is untested and used everywhere. Every withdrawal must now be audited before it happens. Which approach follows Feathers' Wrap Method?",
+    "options": [
+      "Add the audit call to each of the callers, so that no existing method is modified",
+      "Rename the old method to `withdrawWithoutAudit`, and add a new `withdraw` that audits then delegates to it",
+      "Add the audit call inside the body of `withdraw`, in the middle of the existing logic",
+      "Replace `withdraw` with an event system, so that audit is a subscriber to every withdrawal and rewrite every caller to publish those events"
+    ],
+    "correctIndex": 1,
+    "explanation": "Wrap Method keeps the original signature: the old body is renamed (or extracted) and a new method with the old name does the new work and then calls it. The new behaviour can be tested through a seam without understanding the old code, and every caller gets it automatically. Editing inside the old body or every caller is riskier, and an event system is a much bigger redesign for a small change.",
+    "referenceUrl": "https://martinfowler.com/bliki/LegacySeam.html"
+  },
+  {
+    "id": "tdd-legacy-sprout-class",
+    "topic": "testing",
+    "subtopic": "tdd-legacy-seams",
+    "difficulty": "Hard",
+    "title": "Sprout class instead of sprout method",
+    "question": "You must add a discount calculation to `LegacyBillingScreen`, whose constructor opens a database connection and a printer driver, so the class cannot be built in a test. A sprout method on that class would still be untestable. What should you do?",
+    "options": [
+      "Mock the database connection and printer driver in the test, even though the constructor runs real code",
+      "Put the calculation in a new lightweight class developed with TDD, and call it from the screen",
+      "Make the new method `static` on the screen class so it can be tested, with the constructor still unchanged",
+      "Skip tests for the calculation, because the surrounding class cannot be tested in any case"
+    ],
+    "correctIndex": 1,
+    "explanation": "Sprout Class puts the new logic in a fresh class that is easy to construct, so it can be test-driven even though its host cannot. The legacy class only gains a call (and perhaps a field). A mock cannot stop a constructor that opens real resources, a static method on the same class would drag in the same loading problems and global state, and skipping tests adds untested code to untested code.",
+    "referenceUrl": "https://martinfowler.com/bliki/LegacySeam.html"
+  },
+  {
+    "id": "tdd-legacy-parameterize-constructor-clock",
+    "topic": "testing",
+    "subtopic": "tdd-legacy-seams",
+    "difficulty": "Hard",
+    "title": "Testing a class that reads the system clock",
+    "question": "Legacy `ReportJob` calls `DateTime.UtcNow` in several methods and is created with `new ReportJob()` at 40 call sites. You want to test the month-end logic without editing the 40 call sites. Which step is the safest?",
+    "options": [
+      "Make `UtcNow` a public static field that every test overwrites, and never reset it afterwards",
+      "Run the tests only on the last day of each month, when the real clock gives the required date",
+      "Add a constructor taking a `TimeProvider` and make the old constructor pass the system one",
+      "Change the only constructor to require a clock, and fix all of the 40 call sites at once"
+    ],
+    "correctIndex": 2,
+    "explanation": "Parameterize Constructor: add an overload that accepts the dependency and have the original constructor delegate with the production default. Existing call sites compile and behave unchanged, while tests pass a fake clock through the new seam. Forcing a new parameter means a large untested edit, a shared mutable static leaks between tests, and waiting for real month-end dates is not a test strategy.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/datetime/timeprovider-overview"
+  },
+  {
+    "id": "tdd-legacy-preserve-signatures",
+    "topic": "testing",
+    "subtopic": "tdd-legacy-seams",
+    "difficulty": "Hard",
+    "title": "Safe edits without a test net",
+    "question": "You must break a dependency in a legacy class that has no tests, and you cannot write any test until the dependency is broken. Which practice reduces the risk of the edits themselves?",
+    "options": [
+      "Keep method signatures unchanged, make small mechanical edits, and let the compiler show every affected spot",
+      "Rewrite the class's methods in a new style first, and sort out the dependency afterwards",
+      "Make all of the changes in one large step, so the code is in an inconsistent state for as short a time as possible",
+      "Remove the compiler warnings first, because they point to the code that is most likely to break"
+    ],
+    "correctIndex": 0,
+    "explanation": "Feathers' \"Preserve Signatures\" and \"Lean on the Compiler\" techniques cover exactly this chicken-and-egg problem: copy signatures verbatim, change one thing at a time, and use type checking as a temporary safety net, because in a statically typed language it finds every place your change touches. Rewriting or batching changes together is the opposite, large untested edits, and warnings are not a map of risk.",
+    "referenceUrl": "https://martinfowler.com/bliki/LegacySeam.html"
+  },
+  {
+    "id": "tdd-legacy-static-setter-cost",
+    "topic": "testing",
+    "subtopic": "tdd-legacy-seams",
+    "difficulty": "Expert",
+    "title": "The cost of Introduce Static Setter",
+    "question": "A legacy codebase reads `Config.Instance` (a singleton) in dozens of classes. To get tests running quickly, the team adds a `Config.SetForTesting(config)` method. What is the main long-term cost of this seam?",
+    "options": [
+      "The compiler can no longer inline calls to `Config.Instance`, which slows down every read",
+      "Tests share global mutable state and become order-dependent unless every test resets it",
+      "The singleton can no longer be created lazily, so startup becomes slower in production",
+      "Test code can no longer call `Config` at all, because the setter makes the class `sealed`"
+    ],
+    "correctIndex": 1,
+    "explanation": "Introduce Static Setter is a quick, low-edit seam, but it makes tests mutate process-wide state: one test that forgets to restore it silently changes the next, and parallel test runs can collide. It also leaves production code able to call the setter. It is a stepping stone toward injecting `Config` through constructors, where the dependency becomes explicit and local to each test.",
+    "referenceUrl": "https://martinfowler.com/bliki/LegacySeam.html"
+  },
+  {
+    "id": "tdd-pitfall-slow-feedback-loop",
+    "topic": "testing",
+    "subtopic": "tdd-pitfalls",
+    "difficulty": "Medium",
+    "title": "A TDD loop that takes twelve minutes",
+    "question": "A team's test suite takes 12 minutes because most tests start a database container. Developers now run it only before pushing, and \"TDD\" has turned into writing tests after the code. What is the most useful change?",
+    "options": [
+      "Keep the inner loop on fast in-memory tests, and move database tests to a separate suite run in CI",
+      "Run the full suite in parallel on a bigger machine, and keep the tests as they are",
+      "Skip tests locally and rely on the CI pipeline to report failures after each push",
+      "Replace the database tests with end-to-end tests, which give a more complete signal, at the price of much slower feedback"
+    ],
+    "correctIndex": 0,
+    "explanation": "Red-green-refactor depends on feedback in seconds. Tests for domain logic should run without databases or networks, with a slower, smaller layer of integration tests running separately (in CI and before a push). Faster hardware only shrinks the delay a little, relying on CI alone drops the fast loop entirely, and end-to-end tests are slower still.",
+    "referenceUrl": "https://martinfowler.com/bliki/UnitTest.html"
+  },
+  {
+    "id": "tdd-pitfall-giant-first-test",
+    "topic": "testing",
+    "subtopic": "tdd-pitfalls",
+    "difficulty": "Medium",
+    "title": "A first test that is too big",
+    "question": "A developer starts a \"report export\" feature by writing a 40-line test covering formatting, pagination, filtering and file output at once. Three hours later it is still red and no design has emerged. What does TDD advise?",
+    "options": [
+      "Delete the test and write the code first, then add tests when the feature is finished",
+      "Split the test into many parallel threads so that its assertions run more quickly",
+      "Pick the simplest behaviour from a test list, make that pass, and grow in small steps",
+      "Keep going, because the test describes the whole feature and has to pass in one step"
+    ],
+    "correctIndex": 2,
+    "explanation": "Kent Beck's advice is to keep a list of behaviours and take them one at a time, starting with the simplest, so each red-green cycle lasts minutes and design decisions are made in small, reversible steps. A giant first test gives no feedback until everything works. Dropping the tests loses the discipline entirely, and running assertions in parallel does nothing for the size of the step.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-pitfall-mocks-drift-from-reality",
+    "topic": "testing",
+    "subtopic": "tdd-pitfalls",
+    "difficulty": "Hard",
+    "title": "Green unit tests, broken production",
+    "question": "All unit tests of `RefundService` pass, but in production refunds fail: the real payment API rejects zero-decimal currencies, while the test's mocked `PaymentGateway` always answers success. Which practice addresses this root cause?",
+    "options": [
+      "Test the real gateway adapter against the provider sandbox or a recorded contract, with those currencies",
+      "Make the mocked gateway throw errors at random in every run, so that failure handling is exercised",
+      "Replace the mock with a stub that always returns the same canned response in every test",
+      "Raise the unit tests' coverage target for `RefundService` until all branches are executed"
+    ],
+    "correctIndex": 0,
+    "explanation": "A mock only encodes what you believe the collaborator does. When that belief is wrong, every unit test stays green. The assumptions behind the double need to be verified against the real thing with a contract or integration test for the adapter, which is also what makes mocking at that boundary safe. Random failures, stubs and more coverage do not tell you what the provider really accepts.",
+    "referenceUrl": "https://martinfowler.com/articles/mocksArentStubs.html"
+  },
+  {
+    "id": "tdd-pitfall-coverage-target",
+    "topic": "testing",
+    "subtopic": "tdd-pitfalls",
+    "difficulty": "Hard",
+    "title": "A 100% coverage mandate",
+    "question": "Management requires 100% line coverage. To meet it, some developers write tests that call every method and assert nothing, after the code is done. Why is this not equivalent to TDD, and what does coverage really tell you?",
+    "options": [
+      "Coverage is useless, so teams should delete coverage reports and never measure it again",
+      "Coverage shows which code was run, not whether behaviour is checked, so it can reveal untested code only",
+      "It is equivalent, because executing a line is the same as verifying that its behaviour is right",
+      "Coverage matters only for the exceptions and error paths, so happy paths do not need it, and a team can ignore it everywhere else"
+    ],
+    "correctIndex": 1,
+    "explanation": "Coverage tools record which lines ran during tests; they cannot tell whether any assertion would catch a defect, and a target turns into a number to game (Goodhart's law). Written after the code, assertion-free tests give neither the design feedback nor the safety of test-first work. Low coverage is a useful warning about untested areas, but high coverage proves little, which is why mutation testing is a better check on test strength.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestCoverage.html"
+  },
+  {
+    "id": "tdd-pitfall-test-induced-design-damage",
+    "topic": "testing",
+    "subtopic": "tdd-pitfalls",
+    "difficulty": "Hard",
+    "title": "Test-induced design damage",
+    "question": "A critic argues that TDD causes \"test-induced design damage\": a simple controller gets an interface, a factory and three layers, only so that tests can mock its dependencies. What is the most balanced reading, as discussed by Beck and Fowler?",
+    "options": [
+      "Judge each indirection by whether it also improves production design, and use real collaborators when they are cheap",
+      "The critique is wrong, because every class must have an interface to count as testable",
+      "TDD should be abandoned entirely, because the tests will always damage the design",
+      "The damage only comes from mocking libraries, so switching library removes the problem, and the tests then stay valid whatever the design ends up looking like"
+    ],
+    "correctIndex": 0,
+    "explanation": "In the \"Is TDD Dead?\" conversation, the useful takeaway is that design pressure from tests is a signal, not an order. If an abstraction makes the code simpler or more modular, it is worth having; if it exists only to feed mocks, prefer a faster real collaborator (for example an in-memory database), or test at a higher level. Neither \"always add seams\" nor \"drop TDD\" follows from the critique.",
+    "referenceUrl": "https://martinfowler.com/articles/is-tdd-dead/"
+  },
+  {
+    "id": "tdd-pitfall-spike-then-tdd",
+    "topic": "testing",
+    "subtopic": "tdd-pitfalls",
+    "difficulty": "Hard",
+    "title": "When test-first is a poor fit",
+    "question": "A developer must integrate an undocumented vendor SDK whose behaviour is unclear, and does not know what the tests should assert. Writing tests first has produced only guesses. What is the most sensible approach?",
+    "options": [
+      "Give up testing for this integration, because test-first only works for pure functions",
+      "Wait for the vendor to publish documentation before writing any code at all and then design the whole integration from the documentation",
+      "Do a time-boxed throw-away spike to learn the SDK, then discard it and TDD the real code",
+      "Keep writing assertions based on guesses, and correct them as soon as the SDK disagrees"
+    ],
+    "correctIndex": 2,
+    "explanation": "TDD needs a clear enough idea of the next behaviour to specify it. When you are exploring, a spike gives that knowledge cheaply; Beck himself describes using it, then discarding the spike and rebuilding test-first so the throw-away code does not become production code. TDD works for much more than pure functions, and waiting indefinitely or encoding guesses as tests helps neither learning nor design.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-pitfall-tautological-test",
+    "topic": "testing",
+    "subtopic": "tdd-pitfalls",
+    "difficulty": "Hard",
+    "title": "A test that repeats the production formula",
+    "question": "A test for `Pricing.withTax(price)` computes `expected = price * 1.2` and asserts `withTax(price) == expected`. A developer later changes both formula and test to `price * 1.12` in a single commit. What is wrong with the original test?",
+    "options": [
+      "It mirrors the implementation, so a wrong formula passes; use hand-computed literal examples",
+      "It uses a floating-point number, and tests must only use integers to be reliable and repeatable",
+      "It runs the code under test, but tests must never call the production code directly",
+      "It has only one assertion, and each test must contain at least three assertions"
+    ],
+    "correctIndex": 0,
+    "explanation": "When the expected value is calculated with the same logic as the code, the test passes whatever the logic is, so it can only confirm itself. Use independent oracles such as concrete, hand-calculated cases (`withTax(100) == 120`) taken from the business rule. The problem is not the number type, calling production code or the assertion count.",
+    "referenceUrl": "https://martinfowler.com/bliki/UnitTest.html"
+  },
+  {
+    "id": "tdd-pitfall-nine-dependencies",
+    "topic": "testing",
+    "subtopic": "tdd-pitfalls",
+    "difficulty": "Expert",
+    "title": "Hiding the pain of a nine-dependency class",
+    "question": "Testing `OrderProcessor` needs nine constructor dependencies and 40 lines of setup copied into every test. A teammate proposes an auto-mocking container and a base test class to hide the setup. What is the better response?",
+    "options": [
+      "Treat it as feedback that the class has too many responsibilities, and split it by cohesive groups of dependencies",
+      "Remove the tests for the class, since a class this large is not worth unit testing, and rely on end-to-end tests for everything it does",
+      "Accept the proposal; hiding setup is the standard fix for classes with many dependencies",
+      "Make the dependencies static, so that the constructor no longer lists them at all"
+    ],
+    "correctIndex": 0,
+    "explanation": "Painful setup is the tests reporting a design problem: nine collaborators usually mean several reasons to change (a violation of the Single Responsibility Principle). Hiding it with a container or base class keeps the smell and makes it invisible. Extracting cohesive collaborators (for example pricing, inventory, notification) gives smaller units with a few dependencies each. Static dependencies make testing harder still.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2017/03/03/TDD-Harms-Architecture.html"
+  }
+]

@@ -244,6 +244,22 @@ roadmap("technical-interview-preparation", "Technical Interview Preparation", "C
         ["arrays-strings-hashing", "trees-and-heaps", "graph-basics", "searching-and-sorting", "array-patterns",
          "backtracking-and-dp", "greedy-and-intervals", "system-design-foundations", "design-tradeoffs-and-interviews"])
 
+# Junior job-search tracks: both lean on SOLID and TDD, the two topics juniors are most often asked about and then use
+# every day in their first code reviews.
+roadmap("junior-interview-preparation", "Junior Interview Preparation", "Career", "Intermediate", "target", "SkillTrack",
+        "Land your first developer job: behavioral and technical interviews for juniors, SOLID, TDD and the array and SQL drills interviewers ask first.",
+        ["behavioral-interview", "junior-technical-interview", "arrays-strings-hashing", "array-patterns", "sql-foundations",
+         "tdd-fundamentals", "solid-in-practice", "tdd-in-practice",
+         "testing-essentials?", "design-principles?", "linear-data-structures?", "searching-and-sorting?"],
+        new=True)
+
+roadmap("first-90-days", "Your First 90 Days", "Career", "Intermediate", "map", "SkillTrack",
+        "Start your first job well: onboarding, pull requests, reading unfamiliar code, SOLID and TDD in daily work, and turning feedback into growth.",
+        ["onboarding-and-first-90-days", "pull-requests-for-juniors", "git-collaboration", "testing-essentials",
+         "tdd-fundamentals", "solid-in-practice", "tdd-in-practice",
+         "code-review-and-mentoring?", "test-doubles-and-design?", "design-principles?", "incident-response?"],
+        new=True)
+
 # ---------------------------------------------------------------- best practices
 roadmap("api-security-best-practices", "API Security Best Practices", "Security", "Advanced", "shield", "BestPractices",
         "Secure APIs against the OWASP API Security Top 10: authentication, authorization, input, abuse, transport and monitoring.",

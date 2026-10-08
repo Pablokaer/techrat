@@ -1,0 +1,410 @@
+[
+  {
+    "id": "tdd-cycle-order",
+    "topic": "testing",
+    "subtopic": "tdd-red-green-refactor",
+    "difficulty": "Easy",
+    "title": "Order of the TDD cycle",
+    "question": "Which sequence describes one turn of the test-driven development cycle?",
+    "options": [
+      "Design the full class structure, implement it, then write tests to confirm it works",
+      "Write a failing test, make it pass with minimal code, then clean up the code",
+      "Write the production code, run the whole suite, then fix every test that breaks",
+      "Clean up the existing code, write a new test, then delete the previous tests"
+    ],
+    "correctIndex": 1,
+    "explanation": "The cycle is red (a new test fails), green (the simplest change makes it pass) and refactor (improve the design while every test stays green). Writing tests after the code or designing everything upfront is not TDD, and deleting tests removes the safety net that makes refactoring safe.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-red-must-fail-first",
+    "topic": "testing",
+    "subtopic": "tdd-red-green-refactor",
+    "difficulty": "Easy",
+    "title": "Why watch the test fail first",
+    "question": "A developer writes a test and its implementation together, runs the suite once and sees green. Why does TDD insist on seeing the new test fail before the code is written?",
+    "options": [
+      "A failing run proves the test can detect the missing behaviour, so a later pass actually means something",
+      "It lets the compiler cache the test assembly so that later runs finish faster",
+      "It confirms the production code compiles, which a passing run would not show",
+      "It records a baseline coverage number that the pipeline compares against after every later run on the main branch"
+    ],
+    "correctIndex": 0,
+    "explanation": "A test that has never failed might be unable to fail at all (no assertion, wrong target, always-true condition). Watching it go red for the expected reason, then green after the change, proves the test is connected to the behaviour. Compilation and caching are unrelated, and coverage is not what the red step is for.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-refactor-no-new-behaviour",
+    "topic": "testing",
+    "subtopic": "tdd-red-green-refactor",
+    "difficulty": "Easy",
+    "title": "New behaviour during refactoring",
+    "question": "In the refactor step the tests are green, and a developer adds support for a new discount rule to `Invoice` while tidying it up. What is wrong with this?",
+    "options": [
+      "Nothing, because green tests make any further change to the class automatically safe to make",
+      "The discount rule should have been added before the existing tests were made green",
+      "Refactoring is only allowed on legacy code that no existing test covers yet, since covered code is frozen",
+      "Refactoring changes structure only, so new behaviour needs its own failing test first"
+    ],
+    "correctIndex": 3,
+    "explanation": "Refactoring means improving the structure without changing observable behaviour. A new discount rule is new behaviour, so it starts a new cycle with a failing test. Green tests only protect behaviour that is already specified, and refactoring covered code is exactly where the tests help most.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/12/17/TheCyclesOfTDD.html"
+  },
+  {
+    "id": "tdd-green-simplest-change",
+    "topic": "testing",
+    "subtopic": "tdd-red-green-refactor",
+    "difficulty": "Easy",
+    "title": "Goal of the green step",
+    "question": "A new test is red. What should the developer aim for in the green step?",
+    "options": [
+      "A polished, fully general design that already anticipates the next several tests",
+      "A complete implementation of the whole feature so that no further tests are needed",
+      "The quickest, simplest change that makes the test pass, leaving cleanup for the refactor step",
+      "A change that passes the new test and also rewrites the neighbouring code for clarity"
+    ],
+    "correctIndex": 2,
+    "explanation": "Green is about getting back to a working state fast. Duplication, hard-coded values and awkward names are acceptable for a few minutes because the refactor step, protected by the tests, is where they get cleaned up. Designing ahead or rewriting nearby code mixes two jobs and slows the feedback.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/12/17/TheCyclesOfTDD.html"
+  },
+  {
+    "id": "tdd-three-laws",
+    "topic": "testing",
+    "subtopic": "tdd-red-green-refactor",
+    "difficulty": "Easy",
+    "title": "One of the Three Laws of TDD",
+    "question": "Which statement is one of Uncle Bob's Three Laws of TDD?",
+    "options": [
+      "You may not write a unit test until a reviewer has approved the design of the class under test",
+      "You may not write production code unless it is to make a failing unit test pass",
+      "You may not commit any code unless the suite reports one hundred percent line coverage",
+      "You may not refactor any code unless at least one unit test is currently failing"
+    ],
+    "correctIndex": 1,
+    "explanation": "The three laws are: write no production code except to pass a failing unit test; write no more of a unit test than is sufficient to fail (not compiling counts as failing); and write no more production code than is sufficient to pass the one failing test. They say nothing about design approvals or coverage targets, and refactoring happens on green, not red.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/12/17/TheCyclesOfTDD.html"
+  },
+  {
+    "id": "tdd-red-right-reason",
+    "topic": "testing",
+    "subtopic": "tdd-red-green-refactor",
+    "difficulty": "Medium",
+    "title": "Red for the right reason",
+    "question": "A developer writes this test first and runs it:\n\nvar calc = new ShippingCalculator(rates);\nAssert.Equal(5.00m, calc.Cost(2.0));\n\nIt is red with a NullReferenceException, because `rates` was never initialised in the test. What should happen next?",
+    "options": [
+      "Fix the test setup until it fails on the assertion (expected 5.00, got another value), then write the code",
+      "Accept the red result and start coding, since any failure counts as the red step",
+      "Wrap the call in try/catch so that the test reports the problem as an ordinary assertion failure in the build log",
+      "Make `Cost` return 5.00 right away, because the exception proves the method is missing"
+    ],
+    "correctIndex": 0,
+    "explanation": "The red step must fail for the reason the behaviour is missing, not because of a broken test. A NullReferenceException from setup says nothing about shipping costs, so a later green could be accidental. Fix the setup so the failure message reads expected 5.00 but got something else, and only then write the code.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-refactor-go-red-undo",
+    "topic": "testing",
+    "subtopic": "tdd-red-green-refactor",
+    "difficulty": "Medium",
+    "title": "A test turns red while refactoring",
+    "question": "During the refactor step a developer extracts a method and one test turns red. What is the best response?",
+    "options": [
+      "Edit the failing test's expected value to match the new output and carry on",
+      "Keep refactoring and fix all the failures together once the restructuring is finished",
+      "Mark the failing test as ignored until the refactoring is done, then re-enable it",
+      "Undo the last change to return to green, then retry the refactoring in a smaller step"
+    ],
+    "correctIndex": 3,
+    "explanation": "A refactoring must keep behaviour identical, so a red test means the last step changed behaviour or the step was too big. Reverting to the last green state is cheap and keeps the cause obvious; a smaller step then shows what went wrong. Changing expectations, piling up failures or ignoring tests throws away the safety net.",
+    "referenceUrl": "https://refactoring.com/"
+  },
+  {
+    "id": "tdd-one-failing-test-at-a-time",
+    "topic": "testing",
+    "subtopic": "tdd-red-green-refactor",
+    "difficulty": "Medium",
+    "title": "Eight tests at once",
+    "question": "A developer writes eight tests for a new `PriceCalculator` at once, then writes the whole implementation and runs everything. Several tests fail at the same time. Why is this a problem in TDD?",
+    "options": [
+      "Tests written in a batch cannot share setup code, so the same setup ends up duplicated across the whole test class",
+      "Eight tests are more than a single class should ever have, so the class is probably too large",
+      "Big steps lengthen the feedback loop: with many tests red at once, it is unclear which change fixes which failure",
+      "Tests written ahead of the code go out of date and must be rewritten once the class exists"
+    ],
+    "correctIndex": 2,
+    "explanation": "TDD works in tiny cycles: one failing test, the smallest change to pass it, then cleanup. With a single red test, the next change is obvious and any new failure is caused by the last edit. Eight red tests at once hide that link and bring back long debugging sessions.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-test-list",
+    "topic": "testing",
+    "subtopic": "tdd-test-first-design",
+    "difficulty": "Easy",
+    "title": "Purpose of a test list",
+    "question": "Before writing the first test of a new feature, a developer jots down a short list of behaviours to cover (empty input, one item, invalid item, and so on). What is this list for in TDD?",
+    "options": [
+      "It keeps the remaining ideas visible, so one test is picked at a time without losing the others",
+      "It is a formal specification that must be approved before the first test may be written",
+      "It is the set of tests that must all be written up front and then run together as a batch",
+      "It is the final checklist that the team signs off to prove the feature is fully covered"
+    ],
+    "correctIndex": 0,
+    "explanation": "A test list is a scratch pad: it lets the developer pick the next test, cross items off and add new ideas that appear mid-cycle without derailing the current test. It is not an approval document, a batch to write in advance or a sign-off checklist.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-fake-it",
+    "topic": "testing",
+    "subtopic": "tdd-test-first-design",
+    "difficulty": "Medium",
+    "title": "Fake it till you make it",
+    "question": "A developer writes a first test: Assert.Equal(2, Add(1, 1)). In the 'fake it' approach, what is the green step and why?",
+    "options": [
+      "Implement `a + b` straight away, because a constant would only be copied test data",
+      "Throw NotImplementedException so the test stays red until the full design is clear",
+      "Return the constant 2, which reaches green in seconds while later tests drive the real logic",
+      "Write a parser for arbitrary arithmetic expressions so later tests need no code changes"
+    ],
+    "correctIndex": 2,
+    "explanation": "Faking returns a hard-coded value to get a green bar immediately; the duplication between the constant and the test then pushes you to generalise as more tests arrive. It gives quick feedback and a safe state to refactor from. Leaving the test red, or building a general solution first, defeats the point of small steps.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-triangulation-next-test",
+    "topic": "testing",
+    "subtopic": "tdd-test-first-design",
+    "difficulty": "Medium",
+    "title": "Triangulating with a second test",
+    "question": "A developer is testing `IsLeapYear`. The only test so far is Assert.True(IsLeapYear(2024)) and the implementation is `return true;`. Using triangulation, which test should come next?",
+    "options": [
+      "Assert.True(IsLeapYear(2028)), another leap year to confirm that the result is stable",
+      "Assert.False(IsLeapYear(2023)), an example with a different expected result that the constant cannot satisfy",
+      "A loop that checks every year from 2000 to 2100 against a reference table",
+      "Assert.Throws(() => IsLeapYear(-1)), to cover invalid input and error messages before the main logic exists"
+    ],
+    "correctIndex": 1,
+    "explanation": "Triangulation adds a second example whose expected value differs, so the hard-coded answer fails and forces real logic. Another leap year passes with no code change and teaches nothing, a 100-year loop is a huge step, and invalid input is a different behaviour for a later cycle.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-obvious-implementation",
+    "topic": "testing",
+    "subtopic": "tdd-test-first-design",
+    "difficulty": "Medium",
+    "title": "Obvious implementation",
+    "question": "The test says Assert.Equal(12, new Rectangle(3, 4).Area()). The developer knows the formula and types `return width * height;` directly. What does Kent Beck's TDD say about this?",
+    "options": [
+      "It is wrong: always hard-code the expected value first, so that every formula is later proven by a second and third test",
+      "It is fine only if the formula was first written in a design document that the team reviewed",
+      "It is wrong: production code may be written only after three tests describe the behaviour",
+      "It is fine: when the implementation is obvious, type it, and drop to smaller steps if the bar unexpectedly goes red"
+    ],
+    "correctIndex": 3,
+    "explanation": "Beck describes three gears: fake it, triangulate and obvious implementation. When you can see the right code, typing it is the fastest route. If the test then fails unexpectedly, you shift down to smaller steps. TDD sets no minimum number of tests and does not require design documents.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-name-by-behaviour",
+    "topic": "testing",
+    "subtopic": "tdd-test-first-design",
+    "difficulty": "Medium",
+    "title": "Test names that describe behaviour",
+    "question": "A suite contains a test named `Calculate_CallsRateProvider_Once`. The team wants test names that document behaviour for the next reader. Which rename fits that goal best?",
+    "options": [
+      "`Calculate_InvokesRateProvider_ExactlyOneTime`",
+      "`Calculate_Works_When_Rates_Are_Available`",
+      "`Order_total_includes_tax_for_taxable_items`",
+      "`Test_Calculate_01_RateProviderIsMocked`"
+    ],
+    "correctIndex": 2,
+    "explanation": "A behaviour-oriented name states a business rule the system must obey, so a failing test reads like a broken requirement. The other names still describe how the code works (calls, mocks, numbering) or are too vague to say what correct looks like, so they break on refactoring and explain nothing.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-best-practices"
+  },
+  {
+    "id": "tdd-pick-simplest-first",
+    "topic": "testing",
+    "subtopic": "tdd-test-first-design",
+    "difficulty": "Medium",
+    "title": "Choosing the first test",
+    "question": "A developer starts a `PasswordValidator` with this test list: valid password accepted, empty password rejected, no digit rejected, shorter than 8 characters rejected, no uppercase rejected. Which test is the best first pick?",
+    "options": [
+      "The empty password is rejected: the simplest case, which creates the class and method signature",
+      "The valid password is accepted, because it combines every rule and proves the validator end to end",
+      "The no-uppercase case, because it is the rule most likely to hide a defect in the final design",
+      "The shorter-than-8 case, because length checks are the hardest rule to get right of them all"
+    ],
+    "correctIndex": 0,
+    "explanation": "Start with the simplest, most degenerate case: it gets the class, method and a first real assertion in place with almost no logic. The happy path needs every rule at once, and starting with the hardest rule makes the first step big. Each later test then adds one rule.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-test-pain-design-signal",
+    "topic": "testing",
+    "subtopic": "tdd-test-first-design",
+    "difficulty": "Hard",
+    "title": "Test pain as a design signal",
+    "question": "Writing the first test for `OrderService.Place` requires creating six collaborators, controlling a static `DateTime.Now` call and opening a database connection before one assertion can run. What is TDD telling the developer?",
+    "options": [
+      "The test should be postponed until the whole service exists, so the setup can be copied from the code",
+      "The test is hard to write because the design is: split responsibilities and inject dependencies such as a clock",
+      "Unit-level TDD does not apply to this kind of class, so only slower end-to-end tests should ever drive it",
+      "The setup is normal and should be hidden in a shared base class so that each test stays short"
+    ],
+    "correctIndex": 1,
+    "explanation": "Writing the test first makes you the first client of the API, and pain in the test usually mirrors coupling in the design: too many responsibilities, hidden dependencies, static state. Splitting the class and injecting a clock or repository improves both testability and design. Hiding the setup or postponing the test keeps the problem.",
+    "referenceUrl": "https://martinfowler.com/bliki/BeckDesignRules.html"
+  },
+  {
+    "id": "tdd-triangulate-only-when-unsure",
+    "topic": "testing",
+    "subtopic": "tdd-test-first-design",
+    "difficulty": "Hard",
+    "title": "When triangulation is worth it",
+    "question": "The test is Assert.Equal(30, Price(3, 10)) (quantity 3, unit price 10). The developer already sees the generalisation `return quantity * unitPrice;` and considers first writing `return 30;` plus a second test to triangulate. What is the best move?",
+    "options": [
+      "Always triangulate, so that every implementation is forced by at least two tests with different data",
+      "Return 30 first and keep it until a code reviewer asks for the general form of the formula",
+      "Write the second test only after generalising, so that it fails for a cleaner reason than the first",
+      "Generalise directly: triangulate only when the right abstraction is unclear, not when it is already visible"
+    ],
+    "correctIndex": 3,
+    "explanation": "Triangulation is a tool for when you do not yet see the right generalisation; extra examples help the design emerge. When the abstraction is obvious, removing the duplication between test data and code directly is faster and just as safe. Forcing two tests every time, or waiting for review, adds ceremony without feedback.",
+    "referenceUrl": "https://martinfowler.com/bliki/Yagni.html"
+  },
+  {
+    "id": "tdd-kata-fizzbuzz-first-test",
+    "topic": "testing",
+    "subtopic": "tdd-kata-walkthroughs",
+    "difficulty": "Easy",
+    "title": "FizzBuzz: the first test",
+    "question": "Starting the FizzBuzz kata (multiples of 3 give \"Fizz\", of 5 \"Buzz\", of both \"FizzBuzz\", anything else gives the number itself), which is the best first test?",
+    "options": [
+      "Converting 15 returns \"FizzBuzz\", because it covers every rule of the kata at once",
+      "Printing the numbers 1 to 100 must match the full expected output of the kata",
+      "Converting 1 returns \"1\", the simplest case, which needs no Fizz or Buzz logic",
+      "Converting 3 returns \"Fizz\", because that is the first rule in the kata description"
+    ],
+    "correctIndex": 2,
+    "explanation": "A good first test is the simplest case that still creates the API. Converting 1 needs no special rule, and each later test (2, 3, 5, 15) adds exactly one new behaviour. Starting with 15 or the whole 1 to 100 output means a big first step, and starting with Fizz skips the plain-number rule.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-kata-fizzbuzz-next-test",
+    "topic": "testing",
+    "subtopic": "tdd-kata-walkthroughs",
+    "difficulty": "Medium",
+    "title": "FizzBuzz: choosing the next test",
+    "question": "FizzBuzz tests so far, all green: 1 -> \"1\", 2 -> \"2\", 3 -> \"Fizz\". The code uses `n % 3 == 0` for Fizz. Which test is the best next one?",
+    "options": [
+      "15 -> \"FizzBuzz\", checking the combined rule before Buzz even exists",
+      "6 -> \"Fizz\", another multiple of 3 to double-check the existing rule",
+      "A loop over 1 to 100 compared with the complete expected sequence",
+      "5 -> \"Buzz\": one new rule that currently fails"
+    ],
+    "correctIndex": 3,
+    "explanation": "The next test should fail for exactly one missing rule. 5 -> \"Buzz\" does. Testing 6 passes immediately because the modulo rule is already in place, 15 needs two rules and jumps ahead, and a 1 to 100 loop is a large step that stops pointing at one cause.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-kata-string-calculator-simplest-code",
+    "topic": "testing",
+    "subtopic": "tdd-kata-walkthroughs",
+    "difficulty": "Medium",
+    "title": "String Calculator: simplest passing code",
+    "question": "String Calculator kata. The code is `int Add(string s) { return 0; }`, which passes Assert.Equal(0, Add(\"\")). A new test, Assert.Equal(1, Add(\"1\")), is red. What is the simplest code that makes both tests pass?",
+    "options": [
+      "`if (s == \"\") return 0; return int.Parse(s);`",
+      "`return int.Parse(s);`, which turns the new test green and leaves the old one unchanged",
+      "`return s.Split(',').Select(int.Parse).Sum();`, which already handles lists of numbers",
+      "A parser class supporting custom delimiters, negative-number errors and a limit of 1000"
+    ],
+    "correctIndex": 0,
+    "explanation": "Both tests must pass, so the empty string still has to return 0: int.Parse(\"\") throws. A guard for the empty case plus a parse is the smallest change. The Split and Sum version also fails on the empty string and handles commas that no test asks for yet, and a full parser builds features ahead of the tests.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-kata-roman-refactor-on-green",
+    "topic": "testing",
+    "subtopic": "tdd-kata-walkthroughs",
+    "difficulty": "Medium",
+    "title": "Roman Numerals: what comes next",
+    "question": "Roman Numerals kata, all green: ToRoman(1) is \"I\", ToRoman(2) is \"II\", ToRoman(3) is \"III\", implemented as `if (n == 1) return \"I\"; if (n == 2) return \"II\"; if (n == 3) return \"III\";`. What does the TDD cycle call for now?",
+    "options": [
+      "Write the test for 4 now and clean up the branches at the very end of the kata",
+      "Refactor on green: replace the branches with code that repeats \"I\" n times, then write the test for 4",
+      "Add `if (n == 4)` and `if (n == 5)` branches one by one until the repetition eventually becomes obvious to everyone",
+      "Delete the tests for 2 and 3, since the test for 1 already covers the idea"
+    ],
+    "correctIndex": 1,
+    "explanation": "All tests are green and the code is visibly duplicated, so the refactor step is due. Replacing the branches with a repetition of \"I\" keeps every test green and shrinks the code before the next behaviour (4 is \"IV\") arrives. Postponing cleanup lets duplication pile up, and deleting tests removes protection.",
+    "referenceUrl": "https://refactoring.com/"
+  },
+  {
+    "id": "tdd-kata-bowling-next-test",
+    "topic": "testing",
+    "subtopic": "tdd-kata-walkthroughs",
+    "difficulty": "Medium",
+    "title": "Bowling: the next test",
+    "question": "Bowling kata, all green: a gutter game scores 0 and twenty rolls of 1 score 20. Which test is the best next step?",
+    "options": [
+      "A perfect game of twelve strikes scores 300, which tests the biggest rule first",
+      "A full game copied from a published score sheet, which checks many rules at once",
+      "A roll of 11 pins is rejected, to validate input before scoring grows",
+      "One spare (5, 5, then 3) followed by zeros scores 16: it adds exactly one new rule"
+    ],
+    "correctIndex": 3,
+    "explanation": "The kata grows one scoring rule at a time. A single spare (the 3 after it counts twice, 10 + 3 + 3 = 16) fails for one reason and forces the first change to the scoring loop. A perfect game or a whole real game needs strikes, spares and tenth-frame handling at once, and input validation is a separate behaviour.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2013/05/27/TheTransformationPriorityPremise.html"
+  },
+  {
+    "id": "tdd-kata-prime-factors-next-test",
+    "topic": "testing",
+    "subtopic": "tdd-kata-walkthroughs",
+    "difficulty": "Medium",
+    "title": "Prime Factors: the next test",
+    "question": "Prime Factors kata (Factors(n) returns the list of prime factors), all green: 1 -> [], 2 -> [2], 3 -> [3]. Which test is the best next one?",
+    "options": [
+      "2147483647 -> [2147483647], to check performance on a very large prime",
+      "1001 -> [7, 11, 13], a larger composite that verifies several factors at once",
+      "4 -> [2, 2], the first input that needs the same factor twice",
+      "0 -> an exception, since zero has no prime factors to list"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each test should push the code one small step. 4 -> [2, 2] is the smallest input that the current code cannot handle and leads to dividing the number repeatedly. A huge prime is a performance concern, 1001 needs several divisors at once, and zero is an input-validation concern for later.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2013/05/27/TheTransformationPriorityPremise.html"
+  },
+  {
+    "id": "tdd-kata-stack-forcing-test",
+    "topic": "testing",
+    "subtopic": "tdd-kata-walkthroughs",
+    "difficulty": "Hard",
+    "title": "Stack: the test that forces a collection",
+    "question": "Stack kata: new stack is empty; after Push(1) it is not empty; Push(1) then Pop() returns 1. All pass using a single field `int? top`. Which test forces replacing that field with a real collection?",
+    "options": [
+      "Push(1), Push(2), then Pop() returns 2 and the next Pop() returns 1",
+      "Push(5) then Pop() returns 5, to confirm that the pushed value is kept",
+      "Push(1) then Peek() returns 1 without removing the item from the stack",
+      "Pop() on an empty stack throws, because error cases need their own test"
+    ],
+    "correctIndex": 0,
+    "explanation": "A single field can hold one value only. Two pushes followed by two pops in LIFO order is the first test that a single field cannot satisfy, so it drives the introduction of a list or array. Push(5) and Peek() both pass with the existing field, and the empty-stack error is valid but unrelated to storage.",
+    "referenceUrl": "https://martinfowler.com/bliki/TestDrivenDevelopment.html"
+  },
+  {
+    "id": "tdd-kata-roman-table-refactor",
+    "topic": "testing",
+    "subtopic": "tdd-kata-walkthroughs",
+    "difficulty": "Hard",
+    "title": "Roman Numerals: the enabling refactoring",
+    "question": "Roman Numerals kata: tests for 1 to 10 are green, built from a chain of `if` blocks that append symbols (`if (n >= 10)`, `if (n >= 9)`, and so on). The next tests will be 40, 90 and 400. Which refactoring removes the duplication and makes them nearly free?",
+    "options": [
+      "A precomputed dictionary of all 3999 numerals, looked up by number and checked against the tests",
+      "An ordered table of value and symbol pairs, with subtractive forms such as IV and IX, consumed greedily in a loop",
+      "One class per symbol, each deciding how many times it appears and chained together in a fixed order",
+      "A copy of the whole `if` block for every decade and every hundred, with new symbols and thresholds"
+    ],
+    "correctIndex": 1,
+    "explanation": "Every block does the same thing with different data: while the number is at least a value, append its symbol and subtract. Turning those blocks into data (1000 M, 900 CM, 500 D, 400 CD, ... 4 IV, 1 I) leaves one loop, so 40, 90 and 400 pass with no new code. A 3999-entry dictionary, per-symbol classes or copied blocks add volume instead of removing duplication.",
+    "referenceUrl": "https://refactoring.com/"
+  }
+]

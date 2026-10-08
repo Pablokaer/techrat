@@ -25,7 +25,7 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 
 ### Questions
 
-**2,436** multiple-choice questions: Easy 682 · Medium 842 · Hard 648 · Expert 264.
+**2,636** multiple-choice questions: Easy 731 · Medium 941 · Hard 696 · Expert 268.
 
 <details><summary>Questions per topic</summary>
 
@@ -49,8 +49,8 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | Operating Systems | Computer Science | 6 | 45 |
 | Computer Networking | Computer Science | 9 | 57 |
 | Security | Security | 10 | 65 |
-| Testing & Quality | Engineering | 7 | 46 |
-| Clean Code & Software Design | Engineering | 6 | 37 |
+| Testing & Quality | Engineering | 14 | 102 |
+| Clean Code & Software Design | Engineering | 10 | 69 |
 | Design Patterns | Engineering | 5 | 35 |
 | Software Architecture | Architecture | 9 | 54 |
 | DevOps | Cloud & DevOps | 6 | 45 |
@@ -74,13 +74,14 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | Offensive & Defensive Security | Security | 10 | 50 |
 | API Security | Security | 7 | 35 |
 | Code Review | Engineering | 6 | 37 |
+| Junior Career & Interviews | Career | 14 | 112 |
 | Capstones | Career | 5 | 75 |
 
 </details>
 
 ### Roadmaps
 
-**43** roadmaps built from **140** modules (72 shared by 2+ roadmaps) · 374 module steps.
+**45** roadmaps built from **147** modules (77 shared by 2+ roadmaps) · 399 module steps.
 
 **Recommended for juniors** (top 6): 1. Junior Software Engineer · 2. Computer Science Fundamentals · 3. Git and Collaboration · 4. JavaScript Developer · 5. SQL · 6. Data Structures and Algorithms
 
@@ -125,10 +126,12 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | 37 | Junior Software Engineer | Engenheiro de Software Júnior | Role | Career | Beginner | 19 (4 optional) | 32 | 17 h | 345 | — |
 | 38 | Senior Software Engineer | Engenheiro de Software Sênior | Role | Career | Expert | 18 (1 optional) | 47 | 46 h | 318 | System Design (30%) |
 | 39 | Technical Interview Preparation | Preparação para Entrevistas Técnicas | SkillTrack | Career | Advanced | 9 | 21 | 16 h | 142 | — |
-| 40 | API Security Best Practices | Boas Práticas de Segurança de APIs | BestPractices | Security | Advanced | 3 (1 optional) | 7 | 7 h | 48 | — |
-| 41 | Backend Performance Best Practices | Boas Práticas de Performance no Backend | BestPractices | Engineering | Advanced | 4 (1 optional) | 9 | 8 h | 73 | — |
-| 42 | Code Review Best Practices | Boas Práticas de Code Review | BestPractices | Engineering | Intermediate | 2 (1 optional) | 6 | 6 h | 49 | — |
-| 43 | AWS Best Practices | Boas Práticas na AWS | BestPractices | Cloud & DevOps | Advanced | 4 (1 optional) | 12 | 10 h | 94 | — |
+| 40 | Junior Interview Preparation | Preparação para Entrevistas Júnior | SkillTrack | Career | Intermediate | 12 (4 optional) | 25 | 15 h | 270 | — |
+| 41 | Your First 90 Days | Seus Primeiros 90 Dias | SkillTrack | Career | Intermediate | 11 (4 optional) | 22 | 13 h | 231 | — |
+| 42 | API Security Best Practices | Boas Práticas de Segurança de APIs | BestPractices | Security | Advanced | 3 (1 optional) | 7 | 7 h | 48 | — |
+| 43 | Backend Performance Best Practices | Boas Práticas de Performance no Backend | BestPractices | Engineering | Advanced | 4 (1 optional) | 9 | 8 h | 73 | — |
+| 44 | Code Review Best Practices | Boas Práticas de Code Review | BestPractices | Engineering | Intermediate | 2 (1 optional) | 6 | 6 h | 49 | — |
+| 45 | AWS Best Practices | Boas Práticas na AWS | BestPractices | Cloud & DevOps | Advanced | 4 (1 optional) | 12 | 10 h | 94 | — |
 
 <details><summary>Module catalog</summary>
 
@@ -141,13 +144,13 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | Processes & Memory | Core | 2 | Computer Science Fundamentals, Operating Systems, C++ Developer |
 | Scheduling, System Calls & Synchronization | Context | 3 | Operating Systems |
 | Linux & Shell | Core | 2 | Operating Systems, Cyber Security, DevOps Engineer |
-| Arrays, Strings & Hashing | Core | 3 | Computer Science Fundamentals, Data Structures and Algorithms, Junior Software Engineer, Technical Interview Preparation |
-| Linked Lists, Stacks & Queues | Core | 3 | Data Structures and Algorithms, Junior Software Engineer |
+| Arrays, Strings & Hashing | Core | 3 | Computer Science Fundamentals, Data Structures and Algorithms, Junior Software Engineer, Technical Interview Preparation, Junior Interview Preparation |
+| Linked Lists, Stacks & Queues | Core | 3 | Data Structures and Algorithms, Junior Software Engineer, Junior Interview Preparation |
 | Trees & Heaps | Core | 2 | Data Structures and Algorithms, Technical Interview Preparation |
 | Search Trees, Tries & String Algorithms | Context | 3 | Data Structures and Algorithms |
 | Graphs & Traversal | Core | 2 | Data Structures and Algorithms, Technical Interview Preparation |
-| Searching & Sorting | Core | 2 | Data Structures and Algorithms, Junior Software Engineer, Technical Interview Preparation |
-| Two Pointers & Sliding Window | Core | 2 | Data Structures and Algorithms, Junior Software Engineer, Technical Interview Preparation |
+| Searching & Sorting | Core | 2 | Data Structures and Algorithms, Junior Software Engineer, Technical Interview Preparation, Junior Interview Preparation |
+| Two Pointers & Sliding Window | Core | 2 | Data Structures and Algorithms, Junior Software Engineer, Technical Interview Preparation, Junior Interview Preparation |
 | Matrices & Prefix Sums | Context | 2 | Data Structures and Algorithms |
 | Tree Traversal & Divide and Conquer | Context | 2 | Data Structures and Algorithms |
 | Greedy & Intervals | Core | 2 | Data Structures and Algorithms, Technical Interview Preparation |
@@ -165,7 +168,7 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | Passwords, OAuth & OIDC | Context | 2 | Security Fundamentals |
 | API & Infrastructure Security | Context | 3 | Security Fundamentals |
 | Threat Modeling & Secure Coding | Core | 2 | Security Fundamentals, Cyber Security, Senior Software Engineer |
-| SQL Foundations | Core | 2 | Backend Developer, Full Stack Developer, Database Engineering, SQL, System Design, Data Analyst, AI & Data Scientist, Junior Software Engineer |
+| SQL Foundations | Core | 2 | Backend Developer, Full Stack Developer, Database Engineering, SQL, System Design, Data Analyst, AI & Data Scientist, Junior Software Engineer, Junior Interview Preparation |
 | SQL for Analytics | Core | 2 | Database Engineering, SQL, Data Engineering, Data Analyst, AI & Data Scientist |
 | SQL for Applications | Core | 2 | Backend Developer, .NET Backend Developer, Database Engineering, SQL, Senior Software Engineer |
 | SQL Performance | Core | 2 | Backend Developer, Full Stack Developer, Database Engineering, SQL, Senior Software Engineer, Backend Performance Best Practices |
@@ -207,9 +210,11 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | ASP.NET Core | Context | 2 | .NET Backend Developer |
 | EF Core | Context | 2 | .NET Backend Developer |
 | Hosting & Testing .NET | Context | 2 | .NET Backend Developer |
-| Testing Essentials | Core | 2 | Frontend Developer, Backend Developer, Full Stack Developer, Testing and Quality Engineering, Junior Software Engineer |
-| Test Doubles & Test Design | Context | 2 | Testing and Quality Engineering |
+| Testing Essentials | Core | 2 | Frontend Developer, Backend Developer, Full Stack Developer, Testing and Quality Engineering, Junior Software Engineer, Junior Interview Preparation, Your First 90 Days |
+| Test Doubles & Test Design | Core | 2 | Testing and Quality Engineering, Your First 90 Days |
 | Testing Strategy | Core | 2 | Testing and Quality Engineering, Senior Software Engineer |
+| TDD Fundamentals | Core | 3 | Junior Interview Preparation, Your First 90 Days |
+| TDD in Practice | Core | 4 | Junior Interview Preparation, Your First 90 Days |
 | Performance Testing & Profiling | Core | 2 | Testing and Quality Engineering, Senior Software Engineer, Backend Performance Best Practices |
 | CI/CD | Core | 2 | Full Stack Developer, DevOps Engineer, Junior Software Engineer |
 | Infrastructure as Code | Context | 2 | DevOps Engineer |
@@ -236,16 +241,21 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | Data Pipelines | Context | 3 | Data Engineering |
 | Data Storage & Formats | Context | 2 | Data Engineering |
 | Kafka & Data Quality | Context | 2 | Data Engineering |
-| Design Principles | Context | 3 | Software Architecture |
+| Design Principles | Core | 3 | Software Architecture, Junior Interview Preparation, Your First 90 Days |
+| SOLID in Practice | Core | 4 | Junior Interview Preparation, Your First 90 Days |
 | Design Patterns | Context | 4 | Software Architecture |
 | Layered & Clean Architecture | Context | 2 | Software Architecture |
 | Monoliths, Microservices & DDD | Core | 3 | Software Architecture, Senior Software Engineer |
 | Event-Driven, CQRS & Serverless | Context | 4 | Software Architecture |
 | Git Essentials | Core | 2 | Git and Collaboration, Junior Software Engineer |
-| Git Collaboration | Core | 2 | Git and Collaboration, DevOps Engineer, Junior Software Engineer |
+| Git Collaboration | Core | 2 | Git and Collaboration, DevOps Engineer, Junior Software Engineer, Your First 90 Days |
 | Rewriting & Recovering History | Context | 3 | Git and Collaboration |
-| Code Review & Mentoring | Core | 2 | Git and Collaboration, Senior Software Engineer, Code Review Best Practices |
-| Incidents & Reliability | Core | 2 | Junior Software Engineer, Senior Software Engineer |
+| Code Review & Mentoring | Core | 2 | Git and Collaboration, Senior Software Engineer, Your First 90 Days, Code Review Best Practices |
+| Behavioral Interview | Context | 4 | Junior Interview Preparation |
+| Junior Technical Interview | Context | 3 | Junior Interview Preparation |
+| Onboarding & Your First 90 Days | Context | 4 | Your First 90 Days |
+| Pull Requests for Juniors | Context | 3 | Your First 90 Days |
+| Incidents & Reliability | Core | 2 | Junior Software Engineer, Senior Software Engineer, Your First 90 Days |
 | Statistics Foundations | Core | 4 | Data Analyst, Python for Data Analysis, AI & Data Scientist |
 | Statistical Inference & Experiments | Core | 5 | Data Analyst, AI & Data Scientist |
 | Spreadsheets for Analysis | Context | 6 | Data Analyst |

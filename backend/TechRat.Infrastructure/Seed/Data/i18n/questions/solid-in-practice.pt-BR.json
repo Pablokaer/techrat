@@ -1,0 +1,386 @@
+[
+  {
+    "id": "solid-srp-actor-meaning",
+    "title": "O que significa uma única responsabilidade",
+    "question": "Na formulação mais recente, o Princípio da Responsabilidade Única diz que um módulo deve ter um, e apenas um, motivo para mudar. A que se refere \"motivo para mudar\"?",
+    "options": [
+      "A um método público, de modo que cada classe exponha exatamente uma operação aos chamadores e nada mais",
+      "A uma tabela do banco, de modo que cada classe mapeie uma única tabela do esquema",
+      "A um ator: um grupo de interessados, como financeiro ou RH, que pede mudanças no módulo",
+      "A uma thread de execução, de modo que cada classe nunca compartilhe estado entre threads"
+    ],
+    "explanation": "O princípio trata de quem pede mudanças: um módulo deve responder a um único ator, para que o pedido de um interessado não quebre a funcionalidade de outro. Ele não limita a classe a um método, uma tabela ou uma thread, que são preocupações de design diferentes."
+  },
+  {
+    "id": "solid-srp-shared-helper-actors",
+    "title": "Auxiliar compartilhado entre dois atores",
+    "question": "`Employee` tem `CalculatePay()` (usado pelo financeiro) e `ReportHours()` (usado pelo RH). Ambos chamam um `RegularHours()` privado. O financeiro pede uma nova forma de contar horas extras e, após o deploy, o relatório do RH mostra números diferentes. Qual é a melhor correção?",
+    "options": [
+      "Mover o cálculo de pagamento e o relatório de horas para classes separadas, cada uma com sua própria contagem de horas",
+      "Manter uma classe, tornar `RegularHours()` público e documentar que ele nunca mais pode ser alterado, e confiar na revisão de código para fazer cumprir essa regra",
+      "Adicionar um comentário acima de `RegularHours()` pedindo que consultem o RH antes de qualquer mudança",
+      "Tornar `RegularHours()` protected e criar uma subclasse de `Employee` para o financeiro e outra para o RH"
+    ],
+    "explanation": "Dois atores compartilham código que precisa mudar para um deles, exatamente o acoplamento acidental que o SRP combate. Dar a cada ator sua própria classe (ou colaborador) permite que evoluam de forma independente. Documentação e mudança de visibilidade mantêm o motivo de mudança compartilhado, e a herança continua prendendo ambos à mesma base."
+  },
+  {
+    "id": "solid-srp-extract-method-not-enough",
+    "title": "Métodos privados versus separação real",
+    "question": "`OrderService.Process(order)` valida o pedido, calcula totais, grava no SQL e envia um e-mail de confirmação em 150 linhas. Um colega divide em quatro métodos privados na mesma classe e diz que o SRP agora está atendido. Qual é a avaliação mais precisa?",
+    "options": [
+      "O SRP só se aplica a funções, e cada método privado agora tem uma tarefa, então o princípio está totalmente atendido",
+      "A legibilidade melhorou, mas a classe ainda muda por quatro motivos, então o SRP exige as responsabilidades em colaboradores separados",
+      "Métodos privados contam como unidades separadas para o SRP, então a classe agora tem quatro responsabilidades e quatro razões de existir, e cada um desses motivos deve pertencer a uma equipe diferente",
+      "O SRP não se aplica a classes de serviço, porque serviços devem coordenar muitas tarefas diferentes"
+    ],
+    "explanation": "Extrair métodos é um bom primeiro passo para a legibilidade, mas uma mudança nas regras de validação, no SQL ou no template do e-mail ainda edita a mesma classe, que continua com vários motivos para mudar. O SRP trata da unidade que é modificada em conjunto, aqui a classe. Serviços podem coordenar colaboradores sem ser donos da lógica deles."
+  },
+  {
+    "id": "solid-ocp-tax-rules-collection",
+    "title": "Adicionar regra de imposto sem editar a calculadora",
+    "question": "`TaxCalculator` tem `if (country == \"BR\") ... else if (country == \"DE\") ...`. Um país novo entra a cada trimestre e cada release retesta a classe inteira. Qual design permite adicionar um país sem modificar `TaxCalculator`?",
+    "options": [
+      "Adicionar o próximo `else if` e ampliar os testes unitários existentes para cobrir o novo país",
+      "Mover toda a cadeia de condições para uma classe estática `TaxHelper` que a calculadora chama em cada cálculo",
+      "Trocar a string do país por uma constante para que erros de digitação sejam pegos na compilação",
+      "Definir uma interface `ITaxRule`, implementar uma regra por país e fazer a calculadora usar a regra registrada"
+    ],
+    "explanation": "Com uma `ITaxRule` por país (registrada na DI ou em um dicionário), um novo país vira uma nova classe, e a calculadora já testada fica intacta. Outro ramo, um helper estático ou uma constante ainda obrigam a editar a mesma lógica condicional sempre que surge um país."
+  },
+  {
+    "id": "solid-ocp-decorator-retry-logging",
+    "title": "Adicionar retry e log sem editar o gateway",
+    "question": "`PaymentGateway : IPaymentGateway` é estável e bem testado. A operação agora quer retentativas em timeouts e uma linha de log por chamada. Qual abordagem respeita o Princípio Aberto/Fechado?",
+    "options": [
+      "Criar uma subclasse de `PaymentGateway`, sobrescrever o método de cobrança e copiar os campos do cliente HTTP para ela",
+      "Envolvê-lo em decorators `RetryingGateway` e `LoggingGateway` que implementam `IPaymentGateway` e delegam ao interno",
+      "Editar `PaymentGateway` diretamente, já que um laço de retry e duas linhas de log são pequenos o bastante para serem seguros e fáceis de revisar, sem introduzir nenhuma classe ou interface nova",
+      "Adicionar configurações `EnableRetry` e `EnableLogging` lidas dentro de `PaymentGateway` para ligar o novo comportamento"
+    ],
+    "explanation": "Decorators adicionam comportamento ao redor de uma implementação existente pela mesma interface, então a classe comprovada fica intacta e os chamadores não mudam. A subclasse acopla aos detalhes de implementação, editar a classe reabre código testado, e flags internas fazem a classe crescer a cada nova preocupação."
+  },
+  {
+    "id": "solid-ocp-abstraction-too-early",
+    "title": "Quando introduzir o ponto de extensão",
+    "question": "Um colega adiciona `IShippingStrategy`, uma fábrica e um registro em um app que tem exatamente uma forma de envio e nenhum plano de outra, \"por causa do OCP\". Qual é a orientação melhor?",
+    "options": [
+      "Manter a abstração, porque o OCP exige que toda classe fique atrás de uma interface desde o primeiro commit",
+      "Remover a fábrica e o registro, mas manter uma segunda interface, pois duas camadas de indireção sempre bastam, e o projeto continua flexível para qualquer nova transportadora",
+      "Manter o código simples e introduzir a abstração quando uma segunda variação real mostrar onde está a mudança",
+      "Trocar a estratégia por uma flag de configuração que escolhe entre futuras formas de envio em tempo de execução"
+    ],
+    "explanation": "O OCP não exige abstrações especulativas. Errar o ponto de extensão custa indireção real sem benefício, e o segundo caso concreto mostra o que de fato varia. Uma flag para métodos imaginários também é especulação, e manter interfaces extras por padrão adiciona camadas sem requisito."
+  },
+  {
+    "id": "solid-srp-over-splitting-cohesion",
+    "title": "Dividir classes até nada ser coeso",
+    "question": "Depois de uma \"limpeza de SRP\", `UserService` virou 14 classes como `UserEmailTrimmer`, `UserEmailLowercaser` e `UserEmailFormatChecker`. Uma mudança nas regras de e-mail agora edita cinco arquivos que sempre mudam juntos. O que isso mostra?",
+    "options": [
+      "O SRP trata de motivos para mudar, então o que muda junto deve ficar junto; essa divisão reduziu a coesão",
+      "O SRP foi aplicado corretamente, e a dor vem de não haver um gerador de código para editar os arquivos juntos, o que manteria todos os arquivos sincronizados",
+      "O SRP exige um método por classe, então a equipe deve dividir mais até cada classe ter um único método",
+      "O problema são só os nomes das classes, e renomear com um prefixo `Email` comum eliminaria o acoplamento"
+    ],
+    "explanation": "Uma responsabilidade é definida por quem e o que causa mudança, não pela contagem de métodos. Peças que sempre mudam juntas pertencem juntas, e separá-las causa cirurgia de espingarda. Dividir mais piora, renomear não reduz o número de arquivos editados, e ferramentas tratam o sintoma, não o design."
+  },
+  {
+    "id": "solid-ocp-closure-is-relative",
+    "title": "Fechado contra quais mudanças?",
+    "question": "Um `PricingEngine` aplica uma lista de objetos `IPricingRule`, então novas regras não exigem editar o motor. Um novo requisito diz que as regras devem rodar em ordem de prioridade, e o motor precisa ser editado mesmo assim. Qual é a lição correta?",
+    "options": [
+      "O OCP foi violado, então a equipe deve abandonar os objetos de regra e voltar a um método com condicionais",
+      "O OCP garante que nenhum requisito jamais force uma edição, então a abstração deve ter sido implementada incorretamente",
+      "Nenhum módulo é fechado contra toda mudança; o fechamento mira as mudanças esperadas, e surpresas justificam refinar o design",
+      "O design estava errado, e o motor deveria ter sido criado com ganchos para todo requisito futuro desde o início, para que nenhum requisito jamais forçasse uma edição"
+    ],
+    "explanation": "O OCP é uma escolha estratégica: você fecha o módulo contra as variações vistas ou razoavelmente esperadas, como novas regras, e aceita que outras mudanças exijam edições. Tentar prever tudo adiciona complexidade, abandonar a abstração perde o benefício já obtido, e o OCP nunca promete imunidade total."
+  },
+  {
+    "id": "solid-lsp-definition-meaning",
+    "title": "O que significa substituibilidade",
+    "question": "Qual afirmação descreve melhor o Princípio da Substituição de Liskov?",
+    "options": [
+      "O código escrito contra um tipo base deve continuar correto quando recebe qualquer um dos seus subtipos",
+      "Uma subclasse deve sobrescrever todos os métodos da classe base para nunca depender de comportamento herdado, mesmo nos métodos que já funcionam corretamente",
+      "Uma subclasse não deve declarar nenhum método que ainda não exista na sua classe base",
+      "Uma subclasse deve chamar a implementação base primeiro em cada override antes de acrescentar sua lógica"
+    ],
+    "explanation": "O LSP trata de comportamento: chamadores que dependem do contrato do tipo base não podem ser surpreendidos por um subtipo. Ele não exige sobrescrever tudo, proibir novos métodos ou forçar chamadas à implementação base, que são mecânicas de herança e não substituibilidade."
+  },
+  {
+    "id": "solid-lsp-square-rectangle",
+    "title": "Quadrado que estende Retângulo",
+    "question": "`Square : Rectangle` sobrescreve `Width` e `Height` de modo que definir um define ambos. Um cliente faz `r.Width = 5; r.Height = 4;` e verifica `r.Area == 20`, o que falha quando `r` é um `Square`. Qual é o problema e a melhor correção?",
+    "options": [
+      "`Square` quebra a pós-condição esperada do tipo base, então modele formas como tipos separados ou imutáveis",
+      "O cliente está errado em verificar, então a equipe deve documentar que a área depende do tipo concreto, e o teste nunca deveria ser executado com `Square`",
+      "`Area` deve ser sobrescrita em `Square` para retornar 20, assim a verificação passa para ambas as formas",
+      "`Square` deve checar `is Rectangle` dentro dos setters e pular o acoplamento para retângulos comuns"
+    ],
+    "explanation": "O contrato de Rectangle permite que largura e altura variem independentemente, e Square muda isso silenciosamente, então não é substituível. Formas imutáveis ou tipos separados evitam o contrato quebrado. Culpar o cliente, fixar resultados ou adicionar checagens de tipo mantêm a surpresa em vez de removê-la."
+  },
+  {
+    "id": "solid-lsp-strengthened-precondition",
+    "title": "Subtipo que rejeita mais entradas",
+    "question": "`IDocumentStore.Save(Document d)` aceita qualquer documento. `PdfStore : IDocumentStore` lança `ArgumentException` quando `d.SizeInBytes` passa de 10 MB, e um job em lote que funcionava com outros stores agora quebra. Qual regra do LSP foi violada?",
+    "options": [
+      "Um subtipo deve manter os nomes dos métodos idênticos, e `PdfStore` renomeou as exceções do contrato",
+      "Um subtipo não pode fortalecer pré-condições, e `PdfStore` agora exige mais dos chamadores do que a interface",
+      "Um subtipo só pode enfraquecer pós-condições, e `PdfStore` produziu um resultado que os chamadores não esperavam, então a interface deveria prometer menos",
+      "Um subtipo nunca deve validar entradas, porque apenas o chamador tem permissão para checar argumentos"
+    ],
+    "explanation": "Chamadores escritos contra a interface só conhecem as pré-condições documentadas. Se uma implementação exige mais (um limite de tamanho), pode falhar onde o tipo base tem sucesso. Corrija movendo o limite para o contrato, tratando arquivos grandes internamente ou usando outra abstração. Validar em si é aceitável, e as outras regras não descrevem essa falha."
+  },
+  {
+    "id": "solid-lsp-weakened-postcondition-null",
+    "title": "Cache que retorna null em um miss",
+    "question": "`IUserRepository.GetById(id)` está documentado para retornar um usuário ou lançar `NotFoundException`, e os chamadores usam o resultado sem checar null. `CachedUserRepository` retorna `null` quando o cache falha e a entrada está velha. Por que isso viola Liskov?",
+    "options": [
+      "Ele muda a assinatura do construtor, e subtipos devem sempre manter exatamente o mesmo construtor",
+      "Ele usa `null`, e o LSP proíbe valores de retorno anuláveis em todo método de toda interface",
+      "Ele enfraquece a pós-condição, pois os chamadores foram prometidos um usuário ou uma exceção e agora recebem `null`",
+      "Ele adiciona uma camada de cache, e qualquer subtipo que adiciona um comportamento transversal não é substituível, mesmo quando o cache é invisível para os chamadores"
+    ],
+    "explanation": "Um subtipo pode devolver mais do que a base promete, mas não menos. Os chamadores contam com 'sempre um usuário ou uma exceção', então `null` causa falhas surpreendentes mais adiante. Cache e decoração são aceitáveis quando o contrato é mantido, construtores não fazem parte da substituibilidade, e o null em si não é proibido se o contrato base o permite."
+  },
+  {
+    "id": "solid-isp-client-owned-interface",
+    "title": "Interface pequena moldada pelo cliente",
+    "question": "`OrderService` só precisa avisar o cliente de que o pedido foi enviado, mas depende de `EmailClient`, que expõe `Send`, `SendBulk`, `RenderTemplate` e `ConfigureSmtp`. Os testes precisam criar ou simular tudo isso. Qual mudança segue a Segregação de Interfaces?",
+    "options": [
+      "Definir um `IOrderNotifier` enxuto com um método `Notify(order)` para o serviço, implementado por um adaptador sobre `EmailClient`",
+      "Fazer `OrderService` herdar de `EmailClient` para ter acesso direto apenas aos métodos de envio de que realmente precisa e ignorar o resto",
+      "Marcar os quatro métodos desnecessários de `EmailClient` como obsoletos para que parem de ser usados",
+      "Passar `EmailClient` como `object` e fazer cast para os métodos necessários dentro de `OrderService`"
+    ],
+    "explanation": "O ISP diz que clientes não devem depender de métodos que não usam. Uma interface de papel pequena, desenhada em torno do que `OrderService` precisa, dá a ele uma dependência mínima e fácil de simular. Herdar, marcar métodos como obsoletos ou fazer cast mantêm a dependência na classe grande."
+  },
+  {
+    "id": "solid-isp-evolving-interface-role",
+    "title": "Adicionando capacidade a uma interface muito implementada",
+    "question": "`IDocumentStore` tem doze implementações em vários repositórios. Uma nova funcionalidade precisa de `ArchiveAsync()`, mas apenas dois stores sabem arquivar. Qual abordagem respeita melhor a Segregação de Interfaces?",
+    "options": [
+      "Criar uma interface separada `IArchivableStore` que só os dois stores capazes implementam, e fazer o código de arquivamento depender dela",
+      "Adicionar `ArchiveAsync()` a `IDocumentStore` e fazer os outros dez stores lançarem `NotImplementedException`, para que todos os repositórios possam ser chamados por uma única interface",
+      "Adicionar uma propriedade `SupportsArchive` a `IDocumentStore` e fazer todo chamador checá-la antes de chamar",
+      "Transformar `IDocumentStore` em uma classe abstrata com um `ArchiveAsync()` padrão que não faz nada para todos os stores"
+    ],
+    "explanation": "Uma interface de papel separada permite que o compilador expresse quem pode arquivar, e só o código de arquivamento depende dela. Implementações vazias, flags de capacidade e padrões que não fazem nada obrigam todo implementador e chamador a lidar com um recurso que a maioria não tem, e escondem falhas em tempo de execução."
+  },
+  {
+    "id": "solid-lsp-readonly-list-contract",
+    "title": "Coleção somente leitura atrás de interface mutável",
+    "question": "`Summarise(IList<int> values)` só lê a lista, mas um chamador passa `list.AsReadOnly()`. Uma mudança posterior faz um caminho de código chamar `Add`, e agora ele lança `NotSupportedException` para esse chamador. Qual design é mais honesto quanto à substituibilidade?",
+    "options": [
+      "Documentar em `Summarise` que os chamadores nunca devem passar coleções somente leitura a ela",
+      "Receber `IReadOnlyList<int>` em métodos que só leem, para que um tipo somente leitura nunca precise afirmar que pode ser modificado",
+      "Manter `IList<int>` e capturar `NotSupportedException` em cada ponto de chamada que pode receber um wrapper somente leitura, assim o código que apenas lê permanece inalterado",
+      "Fazer toda implementação de `IList<int>` ignorar `Add` silenciosamente quando for somente leitura"
+    ],
+    "explanation": "Um tipo que afirma ser `IList` promete mutação, então uma implementação somente leitura quebra o contrato. Expor uma abstração somente leitura aos consumidores que só leem mantém a promessa verdadeira e move o erro para a compilação. Capturar exceções, documentar o problema ou ignorar `Add` em silêncio mantêm uma mentira no sistema de tipos."
+  },
+  {
+    "id": "solid-lsp-generics-list-invariance",
+    "title": "Por que List<String> não é um List<Object>",
+    "question": "O Java rejeita `List<Object> objs = new ArrayList<String>();` mesmo `String` sendo um `Object`. Qual raciocínio, ligado à substituição de Liskov, explica a regra?",
+    "options": [
+      "`ArrayList<String>` é uma classe final e por isso não pode ser atribuída a nenhuma variável de outro tipo, e o compilador impõe isso em tempo de compilação",
+      "`List` não tem supertipo comum, então a linguagem trata toda parametrização como não relacionada por design",
+      "Um `List<Object>` mutável aceita qualquer objeto, então `add(42)` por ele colocaria um `Integer` em uma lista de strings",
+      "Os genéricos são apagados em tempo de execução, então o compilador não sabe qual tipo de elemento a lista guarda"
+    ],
+    "explanation": "Se a atribuição fosse permitida, o código que usa a referência `List<Object>` poderia adicionar um `Integer` ao que na verdade é uma lista de strings, quebrando a garantia do tipo original. Por isso tipos genéricos mutáveis são invariantes. Para acesso somente leitura, `List<? extends Object>` é seguro porque nada pode ser adicionado por ele. Apagamento e finalidade não são o motivo."
+  },
+  {
+    "id": "solid-di-service-locator-vs-constructor",
+    "title": "Service locator versus injeção por construtor",
+    "question": "`ReportService` chama `ServiceLocator.Get<IMailer>()` dentro do seu método `Send()`. Um novo teste faz `new ReportService()` e falha com um erro só quando `Send()` executa. O que a injeção por construtor melhora aqui?",
+    "options": [
+      "Expõe a dependência no construtor e falha na construção, então os testes passam um fake e nada fica escondido",
+      "Faz o contêiner resolver objetos mais rápido, já que buscas em tempo de chamada são mais lentas que na construção, embora o contêiner faça o mesmo trabalho nos dois casos",
+      "Permite que `ReportService` troque as implementações de `IMailer` a qualquer momento enquanto atende uma requisição",
+      "Permite que o locator seja um global estático, já que o construtor o esconde do resto do código"
+    ],
+    "explanation": "Com injeção por construtor o objeto não pode existir sem seus colaboradores, a assinatura os documenta, e um teste simplesmente passa um fake. Um locator esconde dependências, move falhas para a chamada e prende o código a um global. Velocidade não é o principal benefício, e trocar implementações no meio da requisição não é o propósito."
+  },
+  {
+    "id": "solid-di-captive-dependency-lifetime",
+    "title": "Singleton guardando um serviço scoped",
+    "question": "No ASP.NET Core, `ReportCache` é registrado como singleton e seu construtor recebe `AppDbContext`, registrado como scoped. Em Development o app falha na inicialização com um erro de validação de escopo. Qual é o problema e a melhor correção?",
+    "options": [
+      "Serviços scoped só podem ser usados em controllers, então `ReportCache` deve ser movido para a pasta dos controllers",
+      "`AppDbContext` também deve virar singleton, para todos os serviços compartilharem o mesmo tempo de vida e o erro sumir, sem que mais nada na aplicação precise mudar",
+      "O singleton capturaria um `AppDbContext` pela vida inteira do app, então registre `ReportCache` como scoped ou crie escopos sob demanda",
+      "Singletons não podem receber parâmetros no construtor, então `AppDbContext` deve ser criado com `new` em `ReportCache`"
+    ],
+    "explanation": "Um serviço de vida mais longa não deve guardar um de vida mais curta: um `DbContext` capturado seria compartilhado entre requisições e threads e sobreviveria ao seu escopo. Registrar o consumidor com um tempo de vida compatível, ou criar um escopo com `IServiceScopeFactory` quando preciso, resolve. Singletons podem ter dependências, e tornar o contexto singleton causaria bugs de concorrência piores."
+  },
+  {
+    "id": "solid-dip-composition-root-placement",
+    "title": "Onde a montagem deve ficar",
+    "question": "Um colega injeta `IServiceProvider` em classes de domínio e chama `GetRequiredService<IMailer>()` sempre que precisa de um colaborador, porque \"ainda está usando o contêiner de DI\". Onde os grafos de objetos devem ser montados em vez disso?",
+    "options": [
+      "Em uma raiz de composição perto do ponto de entrada da aplicação, com as classes apenas recebendo seus colaboradores",
+      "Dentro de cada classe de domínio, que deve construir seus próprios colaboradores a partir do contêiner quando precisar",
+      "Em uma classe `Factory` estática que toda camada chama de qualquer lugar para obter os colaboradores de que precisa",
+      "Na camada de banco de dados, que deve guardar a configuração da montagem para que ela mude sem um deploy, e recarregá-la sempre que alguém a editar"
+    ],
+    "explanation": "Uma raiz de composição é o único lugar que conhece os tipos concretos e os conecta, mantendo o resto do código alheio ao contêiner. Passar `IServiceProvider` por aí é o anti-padrão service locator, esconde dependências e acopla o domínio ao contêiner. Fábricas estáticas e guardar a montagem no banco reintroduzem busca global e complexidade extra."
+  },
+  {
+    "id": "solid-dip-stable-vs-volatile-dependencies",
+    "title": "Quais dependências inverter",
+    "question": "`CheckoutService` usa `List<T>`, `string`, `Math.Round`, uma biblioteca SMTP e uma API web de impostos de terceiros. Um revisor pede para \"inverter todas as dependências\". Quais dependências são as melhores candidatas a uma abstração pertencente ao serviço?",
+    "options": [
+      "Nenhuma delas, porque abstrações só devem ser introduzidas para código que a própria equipe escreveu",
+      "A biblioteca SMTP e a API de impostos, voláteis, externas e caras de testar, e não os tipos estáveis do núcleo",
+      "Todas elas, inclusive `string` e `List<T>`, para que nada na classe se refira a um tipo concreto, de modo que até tipos de valor fiquem atrás de interfaces",
+      "Somente `Math.Round`, porque métodos estáticos são as únicas dependências que não podem ser trocadas em testes"
+    ],
+    "explanation": "O DIP mira detalhes voláteis: sistemas externos, I/O e coisas que mudam ou são difíceis de simular. Tipos padrão estáveis como `string` ou `List<T>` dificilmente mudam e embrulhá-los só adiciona ruído. Bibliotecas e serviços que você não controla são exatamente onde a fronteira compensa, e um estático puro como `Math.Round` não precisa ser trocado."
+  },
+  {
+    "id": "solid-dip-time-provider-clock",
+    "title": "Relógio fixo na lógica de negócio",
+    "question": "`CouponService.IsExpired(coupon)` compara com `DateTime.UtcNow`, e seus testes falham no último dia de cada mês e perto da meia-noite. Qual mudança corrige a instabilidade e aplica a Inversão de Dependência no .NET moderno?",
+    "options": [
+      "Injetar `TimeProvider` e usar `GetUtcNow()`, para que os testes forneçam um horário falso controlável",
+      "Adicionar um `Thread.Sleep` antes de cada asserção para o relógio se estabilizar antes da comparação",
+      "Marcar `IsExpired` como `static` para que ele deixe de depender de qualquer estado de instância do serviço",
+      "Guardar `DateTime.UtcNow` em um campo estático na inicialização da aplicação e reutilizá-lo em toda chamada"
+    ],
+    "explanation": "O relógio do sistema é uma dependência volátil e não determinística. `TimeProvider` é uma abstração da BCL (com um fake disponível para testes), então o serviço depende de uma abstração e os testes controlam o tempo. Dormir não remove a dependência, tornar o método estático a esconde, e um valor guardado na inicialização estaria errado em produção."
+  },
+  {
+    "id": "solid-di-too-many-constructor-params",
+    "title": "Construtor com nove dependências",
+    "question": "O construtor de `CheckoutHandler` recebe nove serviços injetados. Um colega propõe uma única sacola `IServices` (uma classe expondo os nove como propriedades) para o construtor ter um parâmetro. Qual é a melhor leitura da situação?",
+    "options": [
+      "Usar injeção por propriedade em seis deles, para o construtor parecer pequeno enquanto a classe mantém todos os nove",
+      "A sacola `IServices` é o padrão certo, porque mantém a classe pequena e facilita adicionar dependências, já que novos membros nunca alteram o construtor",
+      "A classe provavelmente tem responsabilidades demais, então divida-a em colaboradores coesos em vez de esconder a contagem",
+      "Nove parâmetros são aceitáveis, porque contêineres de DI lidam com eles e o tamanho do construtor é apenas estético"
+    ],
+    "explanation": "Um construtor longo é um sinal de que a classe faz demais, o que também quebra o SRP. Esconder as dependências em uma sacola ou em propriedades mantém o mesmo acoplamento e o torna menos visível. Dividir em colaboradores focados, com poucas dependências cada, corrige a causa, enquanto o contêiner consegue fazer a montagem de qualquer forma."
+  },
+  {
+    "id": "solid-dip-control-flow-vs-source-dependency",
+    "title": "Fluxo de controle versus dependência de código-fonte",
+    "question": "Em tempo de execução, um caso de uso `PlaceOrder` chama o adaptador SQL para salvar dados, mas o DIP diz que o caso de uso não deve depender do código SQL. Como as duas afirmações podem ser verdadeiras?",
+    "options": [
+      "O caso de uso alcança o SQL por reflexão, então não existe referência em tempo de compilação entre os dois projetos",
+      "O caso de uso declara uma interface de saída e o adaptador a implementa, então as dependências apontam contra o fluxo da chamada",
+      "O caso de uso importa o adaptador SQL, mas o DIP só proíbe isso quando o adaptador é escrito em outra linguagem, então a seta de dependência sempre segue o sentido da chamada",
+      "A chamada passa por uma classe estática compartilhada, então nenhum dos lados se refere ao outro pelo nome"
+    ],
+    "explanation": "Inverter uma dependência separa a direção da chamada da direção da referência no código-fonte. O módulo de alto nível é dono da interface, o adaptador de baixo nível a implementa, e a chamada ainda flui até o banco em tempo de execução. Reflexão ou estáticos escondem o acoplamento em vez de invertê-lo, e a linguagem é irrelevante."
+  },
+  {
+    "id": "solid-di-circular-dependency-design",
+    "title": "Dois serviços que precisam um do outro",
+    "question": "`OrderService` recebe `IInventoryService` no construtor e `InventoryService` recebe `IOrderService`. O contêiner lança um erro de dependência circular na inicialização. Qual resolução é a mais sólida no longo prazo?",
+    "options": [
+      "Repensar as responsabilidades: mover o comportamento compartilhado para uma terceira abstração, ou usar um evento, para o ciclo desaparecer",
+      "Trocar um deles para injeção por propriedade para o contêiner conseguir construir ambos e definir a referência depois",
+      "Injetar `Lazy<IOrderService>` em `InventoryService` para o erro parar enquanto as duas classes continuam se chamando, para que o contêiner resolva os dois sem mudanças em outros pontos",
+      "Registrar ambos como singletons para o contêiner criar cada um uma vez e o ciclo não poder mais acontecer"
+    ],
+    "explanation": "Um ciclo significa que as duas classes não são unidades independentes: cada uma precisa da outra para funcionar, então a correção real está no design, por exemplo um terceiro colaborador usado pelas duas ou um evento publicado. Injeção por propriedade e `Lazy<T>` só escondem o ciclo até o runtime, e tempos de vida singleton não removem um laço de dependência."
+  },
+  {
+    "id": "solid-violations-invoice-service",
+    "title": "InvoiceService que faz tudo",
+    "question": "`InvoiceService` tem `Calculate(invoice)`, `SaveToSql(invoice)` e `SendByEmail(invoice)`. As regras de negócio, o esquema do banco e o provedor de e-mail mudam cada um no seu ritmo. Qual princípio é violado e qual é a melhor refatoração?",
+    "options": [
+      "Responsabilidade Única: manter `InvoiceService` para o cálculo e extrair um repositório de faturas e um notificador",
+      "Aberto/Fechado: adicionar uma subclasse de `InvoiceService` para cada um dos três tipos de mudança",
+      "Substituição de Liskov: trocar a classe por um tipo base `Invoice` e criar três subclasses",
+      "Segregação de Interfaces: dividir `InvoiceService` em três interfaces implementadas pela mesma classe, e manter a lógica de cálculo em uma delas"
+    ],
+    "explanation": "Três atores (regras financeiras, DBA/esquema, comunicação) forçam edições na mesma classe, o que é uma violação do SRP. Extraia persistência e notificação para colaboradores e deixe o serviço orquestrá-los. Subclasses ou três interfaces na mesma classe ainda mantêm todos os motivos de mudança em um só lugar, e nenhum contrato de substituição está envolvido."
+  },
+  {
+    "id": "solid-violations-instanceof-chain",
+    "title": "Checagens de tipo em um laço",
+    "question": "Código: `foreach (var s in shapes) { if (s is Circle c) total += Math.PI * c.R * c.R; else if (s is Square q) total += q.Side * q.Side; }`. Um `Triangle` será adicionado no mês que vem. Qual princípio está em risco e qual é a correção?",
+    "options": [
+      "Inversão de Dependência: injetar uma abstração de `Math` para que o laço use outra fórmula",
+      "Aberto/Fechado: colocar um método `Area()` em `Shape` para cada forma calculá-lo e o laço apenas chamá-lo",
+      "Responsabilidade Única: mover o laço para uma classe separada que soma as áreas das formas",
+      "Segregação de Interfaces: dividir `Shape` em `ICircle` e `ISquare` para o laço escolher o que precisa"
+    ],
+    "explanation": "Cada nova forma obriga a editar a cadeia de checagens de tipo, então o código não está fechado contra esse tipo de mudança. Trocar condicionais por polimorfismo permite que cada forma seja dona do seu cálculo, e o laço funciona com qualquer `Shape`. Mover o laço, abstrair `Math` ou dividir as interfaces ainda deixa a cadeia para editar a cada forma."
+  },
+  {
+    "id": "solid-violations-downcast-abstraction",
+    "title": "Cliente que faz downcast de uma abstração",
+    "question": "Código: `void Log(string m, ILogSink sink) { sink.Write(m); if (sink is FileSink f) f.Flush(); }`. Outros sinks (console, rede) são adicionados com frequência. Qual é o problema de design e a melhor correção?",
+    "options": [
+      "`FileSink` deve ser selada, porque criar subclasses dela é o que torna a checagem com `is` necessária",
+      "O operador `is` é o problema, e trocá-lo por um cast com `as` e uma checagem de null resolve",
+      "O cliente precisa conhecer um subtipo concreto, então os sinks não são realmente substituíveis; ponha o flush na abstração",
+      "O método `Log` é curto demais, então deve ser unido a `Write` e o sink deve ser criado dentro dele, e a verificação `is` não seria mais necessária ali"
+    ],
+    "explanation": "Quando um cliente precisa checar um subtipo concreto, a abstração não captura tudo de que o cliente precisa, um cheiro de Liskov/Aberto-Fechado. Cada novo sink com necessidades especiais editaria esse método. Torne o flush parte de `ILogSink` (ou do contrato de `Write`) para que todo sink seja usado da mesma forma. Trocar `is` por `as` faz a mesma checagem, e selar ou unir não resolve."
+  },
+  {
+    "id": "solid-violations-static-config-singleton",
+    "title": "Configurações globais lidas de todo lugar",
+    "question": "Quarenta classes leem `AppConfig.Instance.PaymentUrl`, `AppConfig.Instance.TaxRate` e outros valores de um singleton estático, e os testes precisam editar estado global antes de cada execução. Qual princípio é violado e qual é a melhor refatoração?",
+    "options": [
+      "Inversão de Dependência: fazer cada classe receber um pequeno objeto ou interface de configurações vindo da raiz de composição",
+      "Responsabilidade Única: dividir `AppConfig` em um singleton por configuração para cada um ter um único valor",
+      "Aberto/Fechado: tornar `AppConfig` uma classe abstrata para que subclasses possam sobrescrever os valores",
+      "Substituição de Liskov: fazer o `Instance` do singleton retornar um subtipo nos testes com valores diferentes, para que os testes verifiquem o comportamento com cada configuração"
+    ],
+    "explanation": "As classes dependem diretamente de um global concreto, então a lógica de alto nível fica presa a um detalhe que os testes não conseguem trocar com segurança. Injetar um objeto de configurações enxuto (por exemplo pelo padrão options) torna a dependência explícita e substituível. Um singleton por valor ou uma classe abstrata mantêm o acesso global, e a regra de substituição não é o problema."
+  },
+  {
+    "id": "solid-violations-utility-class-refactoring",
+    "title": "A classe utilitária estática de 25 métodos",
+    "question": "`InvoiceUtils` é uma classe estática com 25 métodos que cobrem contas de impostos, layout de PDF, consultas SQL e formatação de strings. Toda funcionalidade mexe nela e os conflitos de merge são constantes. Qual é o melhor próximo passo?",
+    "options": [
+      "Agrupar os métodos por motivo de mudança e extrair classes coesas, como um calculador de impostos e um renderizador de PDF, aos poucos e com testes",
+      "Renomeá-la para `InvoiceHelper` e ordenar os métodos alfabeticamente para os desenvolvedores os encontrarem",
+      "Dividi-la em 25 classes com um método cada para a próxima mudança sempre tocar um único arquivo",
+      "Marcar todos os métodos como `virtual` e converter a classe em singleton para subclasses poderem substituí-los, para que todo chamador do código possa substituí-los livremente quando necessário"
+    ],
+    "explanation": "Uma classe sacola mistura vários motivos de mudança. Agrupar métodos por ator ou preocupação e extrair classes coesas de forma incremental, com testes, reduz conflitos e esclarece a propriedade. Renomear ou ordenar não muda nada estruturalmente, classes de um método destroem a coesão, e métodos virtual em um singleton adicionam indireção sem separar preocupações."
+  },
+  {
+    "id": "solid-violations-solid-overengineering",
+    "title": "SOLID levado longe demais",
+    "question": "Para imprimir o nome de um usuário, uma base de código tem `IUserNameProvider`, `UserNameProviderFactory`, `IUserNameFormatter` e `UserNameFormatterRegistry`, cada um com exatamente uma implementação, e nenhuma segunda variante apareceu em três anos. Qual é a avaliação mais precisa?",
+    "options": [
+      "Isto é uma violação da inversão de dependência, então a equipe deve adicionar uma segunda camada de interfaces entre eles",
+      "Isto é uma violação da responsabilidade única, então o formatador e o provedor devem ser unidos em uma classe, o que remove a indireção em um único passo",
+      "Essas abstrações não têm ponto de variação real; adicionam indireção e devem ser inlinadas até surgir um segundo caso",
+      "Este é o resultado ideal do SOLID, porque toda classe tem uma única responsabilidade e uma interface correspondente"
+    ],
+    "explanation": "Os princípios SOLID são orientações para gerenciar mudanças, não uma regra para colocar interfaces em todo lugar. Abstrações com uma implementação e sem variação previsível custam legibilidade e navegação sem dar flexibilidade, então simplificá-las (e reintroduzir uma costura quando preciso) é a atitude sólida. Mais camadas pioram, e unir também não é o ponto."
+  },
+  {
+    "id": "solid-violations-poor-mans-di-default-ctor",
+    "title": "Construtor padrão que cria a classe concreta",
+    "question": "Código: `class ReportService { ReportService() : this(new SqlRepo(\"prod\")) {}  ReportService(IRepo r) { ... } }`. Os testes usam o segundo construtor com um fake. A Inversão de Dependência está satisfeita?",
+    "options": [
+      "Não, porque uma classe nunca pode ter mais de um construtor quando depende de uma interface",
+      "Em parte: os testes podem trocar o repositório, mas a classe ainda referencia o `SqlRepo` concreto, então a montagem pertence à raiz de composição",
+      "Sim, completamente, porque a classe expõe um construtor injetável e isso satisfaz o princípio, e o princípio não impõe nenhuma outra exigência sobre de onde a classe obtém seu repositório",
+      "Não, porque `IRepo` deveria ser uma classe abstrata, para o construtor padrão poder ser herdado"
+    ],
+    "explanation": "O segundo construtor dá uma costura, o que ajuda nos testes, mas a classe de alto nível ainda é compilada contra o `SqlRepo` de baixo nível e conhece seus detalhes de conexão. Mover a montagem padrão para uma raiz de composição remove esse conhecimento. Ter vários construtores não é proibido, e uma classe abstrata não ajudaria."
+  },
+  {
+    "id": "solid-violations-refactor-order-legacy",
+    "title": "Refatorando um NotificationService legado com segurança",
+    "question": "`NotificationService.Send(n)` faz switch em `n.Channel`, cria um `SmtpClient` inline, lê `SmsProvider.Instance`, registra logs e tenta de novo em um laço, e não tem testes. A produção depende dele. Qual plano é o mais seguro para chegar a um design SOLID?",
+    "options": [
+      "Fixar o comportamento atual com testes de caracterização, extrair interfaces de canal com implementações injetadas e depois mover retry e log para decorators",
+      "Reescrevê-lo do zero em uma arquitetura hexagonal primeiro e adicionar testes depois que a nova versão for publicada, porque os testes existentes só atrasariam a migração para o novo projeto",
+      "Instalar um contêiner de DI e registrar tudo como singleton, e limpar o corpo da classe depois quando houver tempo",
+      "Dividi-lo em uma classe por método para cada classe ficar minúscula, e depois escrever testes para as peças restantes"
+    ],
+    "explanation": "Sem testes, uma refatoração não consegue mostrar que o comportamento foi preservado, então os testes de caracterização vêm primeiro. Depois, passos pequenos e seguros: extrair uma abstração de canal (OCP), injetá-la (DIP) e mover retry/log transversais para decorators (SRP). Uma reescrita total, um contêiner sem mudança de design ou classes de um método adicionam risco sem rede de segurança."
+  }
+]

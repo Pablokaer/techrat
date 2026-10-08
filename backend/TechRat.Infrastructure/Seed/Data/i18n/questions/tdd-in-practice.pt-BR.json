@@ -1,0 +1,386 @@
+[
+  {
+    "id": "tdd-outside-in-double-loop",
+    "title": "O duplo loop do outside-in",
+    "question": "No TDD outside-in, qual sequência descreve o \"duplo loop\"?",
+    "options": [
+      "Escrever primeiro todos os testes de unidade da funcionalidade e só depois um teste de aceitação, com todas as unidades verdes",
+      "Escrever um teste de unidade e um de aceitação que falham juntos e mantê-los vermelhos até o build da release",
+      "Escrever primeiro um teste de aceitação que falha e rodar ciclos red-green-refactor de unidade até ele passar",
+      "Escrever o teste de aceitação por último, com as unidades prontas, só para confirmar que as peças estão ligadas corretamente"
+    ],
+    "explanation": "O loop externo é um teste de aceitação que falha e declara o que a funcionalidade deve fazer vista de fora. O loop interno é o red-green-refactor comum nas unidades necessárias para satisfazê-lo. Quando o teste de aceitação fica verde, a funcionalidade está pronta e começa o próximo. Escrevê-lo por último ou manter testes vermelhos até a release elimina a orientação que o teste externo dá."
+  },
+  {
+    "id": "tdd-outside-in-discover-collaborators",
+    "title": "Mockando um colaborador que ainda não existe",
+    "question": "Partindo de um teste que falha para `CheckoutController`, uma pessoa escreve o teste com uma interface `PaymentProcessor` mockada, ainda sem implementação, e só depois cria a interface. Qual é o principal benefício de design dessa forma de trabalhar?",
+    "options": [
+      "O teste molda o papel de que `CheckoutController` precisa, então a interface do colaborador nasce do uso real",
+      "O mock garante que a futura implementação de `PaymentProcessor` vai se comportar exatamente como o teste espera",
+      "O controller pode ser terminado por completo antes de qualquer outra classe ser desenhada ou iniciada pela equipe",
+      "O teste de unidade também verifica o provedor de pagamento real, então testes de integração deixam de ser necessários"
+    ],
+    "explanation": "No TDD outside-in (mockista), mocks são uma ferramenta de design: escrever primeiro quem chama revela quais mensagens ele precisa enviar, e assim a interface é mínima e moldada pelo consumidor. O mock não restringe a implementação real, que ainda precisa dos próprios testes, e a ligação real e o provedor ainda precisam de cobertura de integração ou aceitação."
+  },
+  {
+    "id": "tdd-outside-in-stub-query-mock-command",
+    "title": "Stub na consulta, verificação no comando",
+    "question": "Testando `InvoiceService.issue(order)`, que chama `taxRates.rateFor(country)` para obter um número e depois `mailer.send(invoice)` para enviar e-mail ao cliente. Como cada colaborador deve ser substituído por um dublê?",
+    "options": [
+      "Usar stub em `rateFor` com uma alíquota fixa e verificar que `send` recebeu a fatura esperada",
+      "Verificar a chamada a `rateFor` e usar stub em `send`, para o teste conferir o total da fatura diretamente",
+      "Usar mock nas duas chamadas e conferir a ordem exata em que os dois métodos foram invocados",
+      "Usar o serviço de impostos real e o mailer real, pois dublê é errado para os dois colaboradores"
+    ],
+    "explanation": "`rateFor` é uma consulta: só fornece entrada, então um stub com valor fixo basta e o teste não deve se importar com quantas vezes é chamado. `send` é um comando com efeito colateral de saída e nada a ser lido de volta, então verificar a interação é a única forma de observar o comportamento. Conferir a ordem das chamadas ou usar um mailer real traz fragilidade ou efeitos colaterais."
+  },
+  {
+    "id": "tdd-outside-in-fake-repository",
+    "title": "Repositório fake para testes baseados em estado",
+    "question": "Um teste de `TransferService` salva duas contas, carrega de volta, move dinheiro e salva de novo. Com um `AccountRepository` mockado, todo teste precisa de longos `when(...).thenReturn(...)` e quebra quando o serviço lê uma conta uma vez a mais. O que se encaixa melhor?",
+    "options": [
+      "Trocar o repositório por um stub que sempre devolve o mesmo objeto de conta para qualquer id",
+      "Chamar o banco de dados de produção em cada teste para exercitar o repositório com SQL real",
+      "Usar um fake em memória do repositório e conferir os saldos finais após a transferência",
+      "Adicionar `verifyNoMoreInteractions` a cada teste, para que qualquer leitura extra seja reportada como falha"
+    ],
+    "explanation": "Um fake tem comportamento real e simplificado (um dicionário por trás de save e find), então o teste só declara os dados iniciais e confere o estado resultante. Quantas vezes o serviço lê o repositório deixa de importar. Verificações estritas de interação piorariam a fragilidade, uma única conta fixa não modela duas contas, e um banco real deixa lento o loop interno do TDD."
+  },
+  {
+    "id": "tdd-outside-in-inside-out-risk",
+    "title": "O risco de começar de dentro para fora",
+    "question": "Uma equipe construindo uma funcionalidade de pontos de fidelidade começa pela base: faz TDD de `PointsCalculator`, `TierPolicy` e `PointsRepository` com objetos reais e liga o endpoint web por último. Qual risco é típico dessa abordagem inside-out?",
+    "options": [
+      "As unidades podem atender necessidades que a camada externa nunca tem, e as interfaces são refeitas tarde",
+      "Os testes de unidade não conseguem verificar resultados, porque colaboradores reais escondem todo o estado do teste",
+      "O design não pode usar injeção de dependência, já que os colaboradores só são instanciados diretamente",
+      "Refatorar se torna impossível, porque testes com objetos reais falham a qualquer mudança interna"
+    ],
+    "explanation": "O TDD inside-out (classicista) faz crescer o núcleo do domínio a partir de comportamento real, o que é robusto e amigável à refatoração, mas sem um teste externo a equipe adivinha o que as camadas superiores vão precisar. Interfaces e funcionalidades podem sair a mais ou a menos e ser refeitas no fim. Colaboradores reais facilitam asserções de estado, e nada impede a injeção de dependência."
+  },
+  {
+    "id": "tdd-outside-in-acceptance-vs-unit-scope",
+    "title": "O que o teste de aceitação deve exercitar",
+    "question": "Num fluxo outside-in para \"clientes podem resgatar um voucher\", como deve ser o teste de aceitação externo em comparação com os testes de unidade internos?",
+    "options": [
+      "Ele confere campos privados da entidade voucher, porque só a entidade sabe se o resgate funcionou",
+      "Ele aciona a funcionalidade pelo ponto de entrada público com a ligação real, substituindo só sistemas externos",
+      "Ele mocka todas as classes internas, como os testes de unidade, mas com uma lista maior de expectativas, e todo teste quebra a qualquer refatoração",
+      "Ele chama cada método de serviço isoladamente, para que uma falha aponte para uma única classe"
+    ],
+    "explanation": "O teste de aceitação trata o sistema como um usuário ou cliente trataria, passando pelo ponto de entrada real e pelos objetos internos reais, e substitui apenas o que fica fora da fronteira (provedor de pagamento, e-mail, relógio). Os testes de unidade usam dublês para isolar uma classe. Mockar tudo ou ler campos privados perderia o sinal de ponta a ponta que o loop externo existe para dar."
+  },
+  {
+    "id": "tdd-outside-in-mock-chains-demeter",
+    "title": "Um mock que devolve um mock que devolve um mock",
+    "question": "Um teste de unidade precisa deste setup: `when(order.getCustomer()).thenReturn(customer); when(customer.getAddress()).thenReturn(address); when(address.getCountry()).thenReturn(\"BR\");` para testar o custo de frete. No TDD mockista, o que esse setup provavelmente sinaliza?",
+    "options": [
+      "O código de frete pede dados a uma cadeia de objetos em vez de ser avisado do que precisa",
+      "A biblioteca de mocks é limitada demais, e um recurso de deep stub deveria substituir o setup manual",
+      "A classe `Address` deveria ser `final` para que testes não consigam configurá-la tão facilmente",
+      "O teste está correto, e toda cadeia longa de chamadas no código de produção deve ser mockada assim"
+    ],
+    "explanation": "O TDD mockista segue \"Tell, Don't Ask\": objetos colaboram enviando mensagens, não navegando pelos detalhes internos de outros objetos. Uma cadeia de getters com stub mostra que a unidade sabe demais sobre a estrutura dos vizinhos (Lei de Demeter). O design mais limpo recebe o valor necessário, por exemplo `shippingCost(country)`, ou leva a pergunta ao objeto que é dono do dado. Deep stubs só escondem o problema."
+  },
+  {
+    "id": "tdd-outside-in-own-the-adapter",
+    "title": "Não mocke tipos que você não controla",
+    "question": "Um teste de unidade de `ReportExporter` mocka diretamente o `S3Client` do SDK da AWS, com stubs para cinco chamadas do SDK e suas classes builder. Quando o SDK é atualizado, muitos testes quebram embora o exportador se comporte do mesmo jeito. Qual abordagem segue a orientação de Freeman e Pryce?",
+    "options": [
+      "Mockar o cliente HTTP de nível mais baixo do SDK, já que ele muda menos que o S3Client",
+      "Manter os mocks e criar uma classe base de teste que centralize o setup comum do S3Client",
+      "Definir uma interface pequena que você controla, implementá-la sobre o S3 e mockar só essa interface",
+      "Fixar a versão do SDK para sempre, para que as chamadas mockadas nunca mudem sob os testes"
+    ],
+    "explanation": "\"Don't mock types you don't own\": um mock de uma API de terceiros codifica o seu palpite sobre o comportamento dela e prende os testes ao formato dela. Envolver o SDK numa porta estreita, nos termos do seu domínio, dá ao exportador um colaborador estável para mockar, e o adaptador fino é verificado à parte por um teste de integração contra o serviço real ou um emulador local. Fixar versão, mockar uma camada inferior ou compartilhar setup só movem o acoplamento."
+  },
+  {
+    "id": "tdd-bug-regression-test-meaning",
+    "title": "O que é um teste de regressão",
+    "question": "Depois de corrigir um bug em que pedidos com exatamente 100 itens não recebiam o desconto por volume, a equipe adiciona um teste para esse caso e o mantém na suíte. Como esse teste se chama e qual é o seu propósito?",
+    "options": [
+      "Teste de regressão, que falha se o mesmo defeito voltar a ser introduzido",
+      "Teste de fumaça (smoke), que confirma que a aplicação inicia e a página principal carrega",
+      "Teste de carga, que mede como o código de desconto se comporta com muitas requisições",
+      "Teste exploratório, que uma pessoa executa manualmente para procurar outros defeitos"
+    ],
+    "explanation": "Um teste de regressão fixa um comportamento que já esteve quebrado, de modo que qualquer mudança futura que traga o bug de volta deixa o build vermelho. Escrito primeiro como teste que falha, ele também prova que o bug foi reproduzido. Testes de fumaça, de carga e exploratórios respondem a outras perguntas e não travam um defeito específico já corrigido."
+  },
+  {
+    "id": "tdd-bug-fail-for-right-reason",
+    "title": "O teste de reprodução falha, mas por quê?",
+    "question": "Um relato de bug diz que `Cart.total()` ignora cupons. O novo teste de reprodução falha com `NullPointerException` no próprio setup do teste, antes de chegar à asserção. O que deve ser feito antes de mexer no código de produção?",
+    "options": [
+      "Apagar o teste e verificar o bug manualmente, pois a automação não consegue reproduzir esse defeito",
+      "Envolver o setup num try/catch para o teste chegar à asserção e depois ficar verde",
+      "Corrigir o setup para o teste falhar na asserção do cupom com o total errado, o sintoma relatado",
+      "Começar a correção na hora, porque qualquer teste vermelho já prova que o bug existe"
+    ],
+    "explanation": "Um teste de reprodução só é evidência quando falha pelo motivo do relato. Uma falha no setup não diz nada sobre cupons, e uma correção guiada por ela poderia passar sem consertar o bug. Ajuste o teste até o vermelho ser o total errado e só então altere o código de produção. Engolir exceções esconde problemas, e abandonar o teste perde a proteção contra regressão."
+  },
+  {
+    "id": "tdd-bug-triangulate-hardcoded-fix",
+    "title": "Uma correção que trata só a entrada que falhou",
+    "question": "Um teste mostra que `isLeapYear(1900)` retorna true. Para fazê-lo passar rápido, alguém adiciona `if (year == 1900) return false;` no topo. A suíte fica verde. O que deve acontecer em seguida?",
+    "options": [
+      "Adicionar um comentário dizendo que 1900 é especial e seguir para o próximo ticket",
+      "Adicionar testes para outros anos de século, como 2000 e 2100, e generalizar a regra para satisfazê-los",
+      "Publicar, porque o teste que falhava passa e a suíte voltou a ficar verde",
+      "Trocar o método por uma tabela de consulta com o resultado verificado para cada ano conhecido, e atualizá-la sempre que um novo ano for reportado"
+    ],
+    "explanation": "Uma resposta fixa é um verde rápido legítimo, mas o TDD não para aí: mais exemplos (triangulação) forçam a regra real, divisível por 4 e não por 100, a menos que também por 400. Testes para 2000 (true) e 2100 (false) expõem o caso especial de imediato. Publicar assim deixa o bug para todos os outros séculos, e uma tabela de consulta não cobre todos os anos."
+  },
+  {
+    "id": "tdd-bug-commit-granularity",
+    "title": "Commitando a correção e a limpeza",
+    "question": "Ao corrigir um bug com TDD, uma pessoa fez três mudanças: o teste que falha, a correção mínima e a extração de um método auxiliar que a correção deixou óbvia. Como esses itens devem ser commitados?",
+    "options": [
+      "O teste com a correção em um commit, e a extração em outro commit feito com a suíte verde",
+      "Um único commit grande chamado \"correções e melhorias\", para que quem revisa veja a história toda de uma vez",
+      "O teste que falha sozinho e enviado, para que a integração contínua registre o bug como vermelho primeiro",
+      "A extração primeiro, misturada com a correção, porque a refatoração sempre precisa vir antes de mudar comportamento"
+    ],
+    "explanation": "Commits pequenos que fazem um só tipo de mudança são fáceis de revisar, de bisseccionar e de reverter. O teste e a correção ficam juntos (o commit que muda o comportamento e o prova), e a refatoração é um passo que preserva o comportamento, dado com todos os testes verdes. Enviar um teste vermelho quebra o build compartilhado, e misturar refatoração na correção esconde o que realmente mudou o comportamento."
+  },
+  {
+    "id": "tdd-bug-lowest-level-regression",
+    "title": "Onde colocar o teste de regressão",
+    "question": "O QA manual descobriu que a página de checkout mostra um total um centavo menor que o correto. A causa raiz é um bug de arredondamento em `TaxCalculator.round(amount)`. Onde deve ficar o teste de regressão?",
+    "options": [
+      "Num teste de unidade de `TaxCalculator` que usa o valor que dispara o bug de arredondamento",
+      "Num teste end-to-end de navegador que preenche o formulário de checkout, já que o QA achou o bug ali",
+      "Num roteiro de teste manual, porque problemas de arredondamento não podem ser verificados por testes automatizados",
+      "Num teste da página de checkout que mocka `TaxCalculator` e devolve o valor já corrigido"
+    ],
+    "explanation": "Coloque o teste de regressão no nível mais baixo capaz de reproduzir a causa raiz: um teste de unidade da função de arredondamento é rápido, determinístico e aponta direto para o código defeituoso. Um teste de navegador seria lento e falharia por muitos motivos alheios. Mockar `TaxCalculator` no teste da página pularia o código com bug por completo, então ele nunca poderia falhar."
+  },
+  {
+    "id": "tdd-bug-nondeterministic-repro",
+    "title": "Reproduzindo um bug que depende do horário",
+    "question": "Assinaturas expiram à meia-noite UTC, mas um bug faz usuários que renovam às 23:59:59 perderem um dia. A pessoa desenvolvedora não consegue reproduzi-lo rodando um teste no momento certo. Qual é a melhor forma de escrever o teste que falha?",
+    "options": [
+      "Agendar a suíte de testes no CI para rodar apenas alguns segundos antes da meia-noite UTC toda noite, sempre que o servidor de build estiver livre",
+      "Mudar o relógio da máquina para 23:59:59 antes do teste e restaurá-lo depois",
+      "Fazer o código obter a hora de um relógio injetado e configurar esse relógio para 23:59:59 no teste",
+      "Repetir o teste com `Thread.sleep` e tentar de novo até o relógio do sistema chegar a 23:59:59"
+    ],
+    "explanation": "O horário é uma entrada oculta. Receber o relógio de fora (uma interface, ou `TimeProvider` no .NET) torna o bug reproduzível a qualquer momento, na hora e em qualquer máquina. Esperar ou agendar deixa o teste lento e instável, e mudar o relógio da máquina afeta outros processos e testes em paralelo."
+  },
+  {
+    "id": "tdd-bug-found-while-refactoring",
+    "title": "Um segundo bug aparece durante a refatoração",
+    "question": "No meio de uma refatoração, com todos os testes verdes, alguém nota outro bug na mesma classe: um laço pula o último elemento. A correção é uma linha. O que o TDD disciplinado recomenda?",
+    "options": [
+      "Ignorar até a refatoração terminar e depois citar o bug no texto do pull request",
+      "Pausar a refatoração, escrever um teste que falha para o bug, corrigi-lo como mudança própria e retomar",
+      "Corrigir agora no mesmo passo; os testes estão verdes, então a mudança certamente é segura",
+      "Reescrever o laço inteiro como parte da refatoração, para o bug sumir como efeito colateral e apagando os testes antigos"
+    ],
+    "explanation": "Os \"dois chapéus\" de Beck: ao refatorar você muda só a estrutura, então testes verdes provam que nada mudou. Corrigir um bug é mudança de comportamento e precisa do próprio ciclo red-green. A suíte atual está verde justamente porque nenhum teste cobre o defeito, então uma correção silenciosa ficaria sem verificação e confundiria o que os commits mudaram. Anotar o achado numa lista de pendências é aceitável, mas fingir que o bug não existe não é."
+  },
+  {
+    "id": "tdd-bug-old-tests-encode-bug",
+    "title": "A correção deixa três testes antigos vermelhos",
+    "question": "Depois de uma correção certa de um bug de arredondamento, três testes antigos falham porque afirmam os totais antigos, com o bug. A pessoa desenvolvedora está tentada a apagá-los. Qual é a abordagem correta?",
+    "options": [
+      "Conferir cada um com o requisito, atualizar os que codificavam o bug e explicar o motivo no commit",
+      "Apagar os três, porque testes que falham depois de uma correção certa já não têm nenhum valor",
+      "Reverter a correção e contornar o bug em outro lugar, para que os testes antigos continuem passando e não precisem de revisão",
+      "Marcar os três testes como ignorados até alguém ter tempo de decidir o que eles deveriam afirmar"
+    ],
+    "explanation": "Um teste que falha depois de uma mudança deliberada de comportamento ou codificava um requisito real (então a correção está errada) ou codificava o bug (então a expectativa precisa mudar). Verifique com a especificação ou com o negócio, atualize a expectativa no mesmo commit e explique. Apagar ou ignorar testes enfraquece a rede de segurança em silêncio, e entortar o código para proteger expectativas erradas mantém o defeito."
+  },
+  {
+    "id": "tdd-legacy-seam-definition",
+    "title": "O que é um seam",
+    "question": "No trabalho de Michael Feathers sobre código legado, qual descrição corresponde a um \"seam\" (costura)?",
+    "options": [
+      "Um ponto onde o comportamento muda sem que se edite o código naquele ponto",
+      "Uma linha no código onde dois módulos se tocam, que deve ser removida para reduzir o acoplamento",
+      "Uma fronteira de commit onde o sistema legado foi dividido em repositórios separados",
+      "Um teste dividido em duas fases para poder rodar em paralelo"
+    ],
+    "explanation": "Feathers define seam como um lugar onde você pode alterar o comportamento sem editar naquele lugar, e todo seam tem um ponto de habilitação onde se escolhe o comportamento. Uma chamada de método que pode ser sobrescrita numa subclasse ou um colaborador passado pelo construtor são seams, e permitem que testes substituam comportamento real. Seams são algo a encontrar e usar, não a remover."
+  },
+  {
+    "id": "tdd-legacy-sprout-method",
+    "title": "Adicionando uma funcionalidade a um método intestável",
+    "question": "Um método `processOrder()` de 400 linhas não tem testes e não pode ser instanciado num harness. Você precisa adicionar validação de endereço dentro dele. Qual técnica de Feathers permite escrever a nova lógica começando pelo teste?",
+    "options": [
+      "Reescrever `processOrder()` do zero com TDD antes de adicionar a validação de endereço",
+      "Colar o código de validação no meio do método e testá-lo rodando a aplicação manualmente, sem escrever nenhum teste",
+      "Escrever a validação como um novo método, desenvolvê-lo com TDD e chamá-lo a partir do código antigo",
+      "Renomear o método e escrever um novo que envolve a chamada com verificações extras"
+    ],
+    "explanation": "Sprout Method: coloque o novo comportamento num método (ou classe) novo, testável à parte e escrito primeiro pelo teste, e depois adicione uma única chamada a ele no código legado. A edição arriscada no código sem testes é uma só linha. Wrap Method serve para comportamento que deve ocorrer antes ou depois de uma chamada existente, não no meio dela, e uma reescrita do zero ou uma inserção manual não têm rede de segurança."
+  },
+  {
+    "id": "tdd-legacy-golden-master-nondeterminism",
+    "title": "Um golden master que difere a cada execução",
+    "question": "Uma equipe captura a saída de um gerador de faturas legado como golden master e compara novas execuções com ele. Toda execução falha porque cada fatura contém o horário de geração e um id aleatório. Qual é a melhor correção?",
+    "options": [
+      "Tornar horário e id determinísticos por um seam, ou removê-los da saída antes de comparar",
+      "Afrouxar a comparação para só verificar que a saída não está vazia e tem algumas linhas",
+      "Apagar o golden master e trocá-lo por alguns testes escolhidos a dedo só com os totais",
+      "Regenerar o golden master automaticamente a cada execução, para a comparação sempre passar"
+    ],
+    "explanation": "Um golden master precisa de saída determinística. Ou se injeta um relógio e um gerador de ids fixos por um seam, ou se normalizam os campos voláteis (trocando-os por marcadores) antes de comparar, de modo que só sobrem diferenças relevantes. Verificar saída não vazia ou regenerar o master a cada vez elimina a capacidade do teste de detectar mudanças de comportamento, e algumas verificações de total cobrem bem menos do comportamento legado."
+  },
+  {
+    "id": "tdd-legacy-wrap-method",
+    "title": "Auditoria em torno de uma chamada existente",
+    "question": "O método legado `Account.withdraw(amount)` não tem testes e é usado em todo lugar. Agora todo saque precisa ser auditado antes de acontecer. Qual abordagem segue o Wrap Method de Feathers?",
+    "options": [
+      "Adicionar a chamada de auditoria em cada um dos chamadores, para que nenhum método existente seja modificado",
+      "Renomear o método antigo para `withdrawWithoutAudit` e criar um novo `withdraw` que audita e depois delega a ele",
+      "Adicionar a chamada de auditoria dentro do corpo de `withdraw`, no meio da lógica existente",
+      "Trocar `withdraw` por um sistema de eventos, para que a auditoria seja assinante de todo saque e reescrever cada chamador para publicar esses eventos"
+    ],
+    "explanation": "Wrap Method mantém a assinatura original: o corpo antigo é renomeado (ou extraído) e um novo método com o nome antigo faz o trabalho novo e depois o chama. O novo comportamento pode ser testado por um seam sem entender o código antigo, e todos os chamadores o recebem automaticamente. Editar o corpo antigo ou cada chamador é mais arriscado, e um sistema de eventos é um redesenho bem maior para uma mudança pequena."
+  },
+  {
+    "id": "tdd-legacy-sprout-class",
+    "title": "Sprout class em vez de sprout method",
+    "question": "Você precisa adicionar um cálculo de desconto a `LegacyBillingScreen`, cujo construtor abre uma conexão com o banco e um driver de impressora, então a classe não pode ser criada num teste. Um sprout method nessa classe continuaria intestável. O que fazer?",
+    "options": [
+      "Mockar a conexão com o banco e o driver da impressora no teste, mesmo com o construtor rodando código real",
+      "Colocar o cálculo numa nova classe leve, desenvolvida com TDD, e chamá-la a partir da tela",
+      "Tornar o novo método `static` na classe da tela para poder testá-lo, com o construtor ainda inalterado",
+      "Pular os testes do cálculo, porque a classe ao redor não pode ser testada de qualquer maneira"
+    ],
+    "explanation": "Sprout Class coloca a nova lógica numa classe nova e fácil de construir, que pode ser guiada por testes mesmo que a hospedeira não possa. A classe legada só ganha uma chamada (e talvez um campo). Um mock não impede um construtor que abre recursos reais, um método estático na mesma classe traria os mesmos problemas de carga e estado global, e pular testes soma código sem teste a código sem teste."
+  },
+  {
+    "id": "tdd-legacy-parameterize-constructor-clock",
+    "title": "Testando uma classe que lê o relógio do sistema",
+    "question": "O `ReportJob` legado chama `DateTime.UtcNow` em vários métodos e é criado com `new ReportJob()` em 40 lugares. Você quer testar a lógica de fim de mês sem editar os 40 pontos de chamada. Qual passo é o mais seguro?",
+    "options": [
+      "Tornar `UtcNow` um campo estático público que todo teste sobrescreve, sem nunca restaurá-lo depois",
+      "Rodar os testes apenas no último dia de cada mês, quando o relógio real dá a data necessária",
+      "Adicionar um construtor que recebe um `TimeProvider` e fazer o construtor antigo passar o do sistema",
+      "Mudar o único construtor para exigir um relógio e corrigir os 40 pontos de chamada de uma vez"
+    ],
+    "explanation": "Parameterize Constructor: adicione uma sobrecarga que aceita a dependência e faça o construtor original delegar com o padrão de produção. Os pontos de chamada existentes compilam e se comportam como antes, enquanto os testes passam um relógio falso pelo novo seam. Forçar um novo parâmetro é uma grande edição sem testes, um estático mutável compartilhado vaza entre testes, e esperar datas reais de fim de mês não é estratégia de teste."
+  },
+  {
+    "id": "tdd-legacy-preserve-signatures",
+    "title": "Edições seguras sem rede de testes",
+    "question": "Você precisa quebrar uma dependência numa classe legada sem testes, e não consegue escrever nenhum teste até a dependência ser quebrada. Qual prática reduz o risco das próprias edições?",
+    "options": [
+      "Manter assinaturas inalteradas, fazer pequenas edições mecânicas e deixar o compilador mostrar os pontos afetados",
+      "Reescrever primeiro os métodos da classe num novo estilo e resolver a dependência depois",
+      "Fazer todas as mudanças num único passo grande, para o código ficar inconsistente pelo menor tempo possível",
+      "Remover primeiro os avisos do compilador, porque eles apontam o código com maior chance de quebrar"
+    ],
+    "explanation": "As técnicas \"Preserve Signatures\" e \"Lean on the Compiler\" de Feathers tratam exatamente esse problema do ovo e da galinha: copie assinaturas literalmente, mude uma coisa por vez e use a checagem de tipos como rede de segurança temporária, porque numa linguagem estaticamente tipada ela encontra todos os pontos que a mudança toca. Reescrever ou agrupar mudanças é o oposto, grandes edições sem testes, e avisos não são um mapa de risco."
+  },
+  {
+    "id": "tdd-legacy-static-setter-cost",
+    "title": "O custo do Introduce Static Setter",
+    "question": "Uma base de código legada lê `Config.Instance` (um singleton) em dezenas de classes. Para rodar testes rapidamente, a equipe adiciona um método `Config.SetForTesting(config)`. Qual é o principal custo de longo prazo desse seam?",
+    "options": [
+      "O compilador não consegue mais fazer inline das chamadas a `Config.Instance`, o que deixa cada leitura mais lenta",
+      "Testes compartilham estado global mutável e passam a depender da ordem, a menos que todo teste o restaure",
+      "O singleton não pode mais ser criado de forma preguiçosa, então a inicialização fica mais lenta em produção",
+      "O código de teste não pode mais chamar `Config`, porque o setter torna a classe `sealed`"
+    ],
+    "explanation": "Introduce Static Setter é um seam rápido e de poucas edições, mas faz os testes mudarem estado global do processo: um teste que esquece de restaurá-lo altera o seguinte em silêncio, e execuções de teste em paralelo podem colidir. Ele também deixa o código de produção apto a chamar o setter. É um degrau rumo a injetar `Config` pelos construtores, onde a dependência fica explícita e local a cada teste."
+  },
+  {
+    "id": "tdd-pitfall-slow-feedback-loop",
+    "title": "Um loop de TDD que leva doze minutos",
+    "question": "A suíte de testes de uma equipe leva 12 minutos porque a maioria dos testes sobe um contêiner de banco de dados. As pessoas agora só a rodam antes de dar push, e o \"TDD\" virou escrever testes depois do código. Qual é a mudança mais útil?",
+    "options": [
+      "Manter o loop interno em testes rápidos em memória e mover os testes de banco para uma suíte separada no CI",
+      "Rodar a suíte completa em paralelo numa máquina maior e manter os testes como estão",
+      "Pular os testes localmente e confiar no pipeline de CI para reportar falhas após cada push",
+      "Trocar os testes de banco por testes end-to-end, que dão um sinal mais completo, ao custo de um feedback bem mais lento"
+    ],
+    "explanation": "O red-green-refactor depende de feedback em segundos. Testes de lógica de domínio devem rodar sem banco ou rede, com uma camada menor e mais lenta de testes de integração rodando à parte (no CI e antes do push). Hardware mais rápido só diminui um pouco a espera, confiar só no CI elimina o loop rápido, e testes end-to-end são ainda mais lentos."
+  },
+  {
+    "id": "tdd-pitfall-giant-first-test",
+    "title": "Um primeiro teste grande demais",
+    "question": "Uma pessoa começa uma funcionalidade de \"exportação de relatório\" escrevendo um teste de 40 linhas que cobre formatação, paginação, filtros e saída em arquivo ao mesmo tempo. Três horas depois ele ainda está vermelho e nenhum design surgiu. O que o TDD aconselha?",
+    "options": [
+      "Apagar o teste e escrever o código primeiro, adicionando testes quando a funcionalidade terminar",
+      "Dividir o teste em várias threads paralelas para que suas asserções rodem mais rápido",
+      "Escolher o comportamento mais simples de uma lista de testes, fazê-lo passar e crescer em passos pequenos",
+      "Continuar, porque o teste descreve a funcionalidade inteira e precisa passar de uma só vez"
+    ],
+    "explanation": "O conselho de Kent Beck é manter uma lista de comportamentos e tratá-los um de cada vez, começando pelo mais simples, para que cada ciclo red-green dure minutos e as decisões de design sejam tomadas em passos pequenos e reversíveis. Um primeiro teste gigante não dá feedback até tudo funcionar. Abandonar os testes perde a disciplina por completo, e rodar asserções em paralelo nada faz pelo tamanho do passo."
+  },
+  {
+    "id": "tdd-pitfall-mocks-drift-from-reality",
+    "title": "Testes de unidade verdes, produção quebrada",
+    "question": "Todos os testes de unidade de `RefundService` passam, mas em produção os reembolsos falham: a API de pagamento real rejeita moedas sem casas decimais, enquanto o `PaymentGateway` mockado do teste sempre responde com sucesso. Qual prática ataca essa causa raiz?",
+    "options": [
+      "Testar o adaptador real do gateway contra o sandbox do provedor ou um contrato gravado, com essas moedas",
+      "Fazer o gateway mockado lançar erros aleatórios, para exercitar o tratamento de falhas do serviço",
+      "Trocar o mock por um stub que sempre devolve a mesma resposta fixa em todos os testes",
+      "Aumentar a meta de cobertura dos testes de unidade de `RefundService` até todos os ramos serem executados"
+    ],
+    "explanation": "Um mock só codifica o que você acredita que o colaborador faz. Quando essa crença está errada, todo teste de unidade continua verde. As suposições por trás do dublê precisam ser verificadas contra o real, com um teste de contrato ou integração do adaptador, e é isso que torna seguro mockar nessa fronteira. Falhas aleatórias, stubs e mais cobertura não dizem o que o provedor realmente aceita."
+  },
+  {
+    "id": "tdd-pitfall-coverage-target",
+    "title": "Uma exigência de 100% de cobertura",
+    "question": "A gerência exige 100% de cobertura de linhas. Para cumpri-la, algumas pessoas escrevem, depois do código pronto, testes que chamam todos os métodos e não afirmam nada. Por que isso não equivale a TDD, e o que a cobertura realmente informa?",
+    "options": [
+      "A cobertura é inútil, então as equipes deveriam apagar os relatórios e nunca mais medi-la",
+      "A cobertura mostra qual código foi executado, não se o comportamento é verificado, então só revela código sem teste",
+      "É equivalente, porque executar uma linha é o mesmo que verificar que seu comportamento está certo",
+      "A cobertura importa só para exceções e caminhos de erro, então os caminhos felizes não precisam dela, e a equipe pode ignorá-la em todo o resto"
+    ],
+    "explanation": "Ferramentas de cobertura registram quais linhas rodaram durante os testes; não sabem se alguma asserção pegaria um defeito, e uma meta vira um número a ser manipulado (lei de Goodhart). Escritos depois do código, testes sem asserção não dão o feedback de design nem a segurança do trabalho test-first. Cobertura baixa é um alerta útil sobre áreas sem teste, mas cobertura alta prova pouco, e por isso o teste de mutação é uma verificação melhor da força dos testes."
+  },
+  {
+    "id": "tdd-pitfall-test-induced-design-damage",
+    "title": "Dano de design induzido por testes",
+    "question": "Uma crítica afirma que o TDD causa \"test-induced design damage\": um controller simples ganha uma interface, uma factory e três camadas, só para que os testes possam mockar suas dependências. Qual é a leitura mais equilibrada, como discutido por Beck e Fowler?",
+    "options": [
+      "Avaliar cada indireção pelo quanto ela também melhora o design de produção e usar colaboradores reais quando forem baratos",
+      "A crítica está errada, porque toda classe precisa de uma interface para ser considerada testável",
+      "O TDD deveria ser abandonado por completo, porque os testes sempre vão prejudicar o design",
+      "O dano vem só das bibliotecas de mock, então trocar de biblioteca elimina o problema, e os testes então continuam válidos seja qual for o design final"
+    ],
+    "explanation": "Na conversa \"Is TDD Dead?\", o aprendizado útil é que a pressão de design vinda dos testes é um sinal, não uma ordem. Se uma abstração deixa o código mais simples ou modular, vale tê-la; se existe só para alimentar mocks, prefira um colaborador real e rápido (por exemplo um banco em memória) ou teste num nível mais alto. Nem \"sempre adicionar seams\" nem \"abandonar o TDD\" decorrem da crítica."
+  },
+  {
+    "id": "tdd-pitfall-spike-then-tdd",
+    "title": "Quando o test-first não é uma boa escolha",
+    "question": "Uma pessoa precisa integrar um SDK de fornecedor sem documentação, cujo comportamento não está claro, e não sabe o que os testes deveriam afirmar. Escrever testes primeiro só produziu palpites. Qual é a abordagem mais sensata?",
+    "options": [
+      "Desistir de testar essa integração, porque o test-first só funciona para funções puras",
+      "Esperar o fornecedor publicar a documentação antes de escrever qualquer código e só então projetar toda a integração a partir da documentação",
+      "Fazer um spike descartável com tempo limitado para aprender o SDK, depois descartá-lo e fazer o código real com TDD",
+      "Continuar escrevendo asserções baseadas em palpites e corrigi-las assim que o SDK discordar"
+    ],
+    "explanation": "O TDD precisa de uma ideia clara o bastante do próximo comportamento para especificá-lo. Quando se está explorando, um spike dá esse conhecimento a baixo custo; o próprio Beck descreve usá-lo, descartá-lo e reconstruir com test-first para que o código descartável não vire código de produção. O TDD serve para muito mais que funções puras, e esperar indefinidamente ou codificar palpites como testes não ajuda nem o aprendizado nem o design."
+  },
+  {
+    "id": "tdd-pitfall-tautological-test",
+    "title": "Um teste que repete a fórmula de produção",
+    "question": "Um teste de `Pricing.withTax(price)` calcula `expected = price * 1.2` e afirma `withTax(price) == expected`. Depois alguém muda a fórmula e o teste para `price * 1.12` num único commit. O que há de errado com o teste original?",
+    "options": [
+      "Ele espelha a implementação, então uma fórmula errada passa; use exemplos literais calculados à mão",
+      "Ele usa um número de ponto flutuante, e testes só podem usar inteiros para serem confiáveis e repetíveis",
+      "Ele executa o código testado, mas testes nunca devem chamar o código de produção diretamente",
+      "Ele tem uma só asserção, e cada teste precisa conter pelo menos três asserções"
+    ],
+    "explanation": "Quando o valor esperado é calculado com a mesma lógica do código, o teste passa seja qual for a lógica, então só consegue confirmar a si mesmo. Use oráculos independentes, como casos concretos calculados à mão (`withTax(100) == 120`) tirados da regra de negócio. O problema não é o tipo numérico, chamar o código de produção ou a quantidade de asserções."
+  },
+  {
+    "id": "tdd-pitfall-nine-dependencies",
+    "title": "Escondendo a dor de uma classe com nove dependências",
+    "question": "Testar `OrderProcessor` exige nove dependências no construtor e 40 linhas de setup copiadas em cada teste. Alguém da equipe propõe um contêiner de auto-mock e uma classe base de teste para esconder o setup. Qual é a melhor resposta?",
+    "options": [
+      "Tratar como feedback de que a classe tem responsabilidades demais e dividi-la por grupos coesos de dependências",
+      "Remover os testes da classe, já que uma classe tão grande não vale testes de unidade, e confiar em testes end-to-end para tudo o que ela faz",
+      "Aceitar a proposta; esconder o setup é a correção padrão para classes com muitas dependências",
+      "Tornar as dependências estáticas, para que o construtor nem as liste mais"
+    ],
+    "explanation": "Um setup doloroso é o teste relatando um problema de design: nove colaboradores normalmente significam vários motivos para mudar (uma violação do Princípio da Responsabilidade Única). Escondê-lo com um contêiner ou classe base mantém o problema e o torna invisível. Extrair colaboradores coesos (por exemplo preços, estoque, notificação) dá unidades menores com poucas dependências cada. Dependências estáticas dificultam ainda mais o teste."
+  }
+]
