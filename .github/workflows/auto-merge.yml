@@ -1,0 +1,41 @@
+name: Auto-merge pull requests
+
+# Turns on auto-merge (merge commit) for every pull request opened in this repository, so it merges by itself once the
+# required checks pass. Skipped for drafts, forks and PRs labelled `no-auto-merge` (add the label to opt out).
+# See docs/adr/0026-auto-merge-and-no-strict-dev.md.
+#
+# Uses the PROMOTE_TOKEN secret (same token as auto-promote.yml), never GITHUB_TOKEN: a merge made with GITHUB_TOKEN does
+# not trigger other workflows, so CI would not run on dev and the dev -> main promotion would never start. Until the secret
+# exists this workflow only warns and the pull request is merged by hand.
+# Repository setting: Settings -> General -> "Allow auto-merge" must be on.
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  enable:
+    name: Enable auto-merge
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}   # trusted code: the script comes from the base branch, not from the PR
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.PROMOTE_TOKEN }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          DRAFT: ${{ github.event.pull_request.draft }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::Secret PROMOTE_TOKEN is not set: auto-merge was not enabled; merge this pull request by hand."
+            exit 0
+          fi
+          python3 -I .github/scripts/auto_merge.py "$REPO" "$NUMBER" "$DRAFT" "$HEAD_REPO" "$LABELS"
