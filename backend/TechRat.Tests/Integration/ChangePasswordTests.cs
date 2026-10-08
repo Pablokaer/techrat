@@ -174,5 +174,6 @@ public class ChangePasswordTests(TechRatFactory api)
             Queue.Enqueue(email);
             return Task.CompletedTask;
         }
+        public Task SendAccountDeletedAsync(string email, CancellationToken ct) => Task.CompletedTask;
     }
 }

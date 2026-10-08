@@ -88,10 +88,11 @@ public sealed class LeaderboardService(IAppDbContext db, ICacheService cache, Ti
         var cached = await cache.GetOrCreateAsync(CacheKeys.Leaderboard(scope.ToString(), topicSlug, p, size), Ttl,
             async c => await LoadPageAsync(scope, topicId, periodStart, p, size, c), ct);
         var (rows, total) = (cached.Rows, cached.Total);
-        // A page may be cached for 30 s: learners who opted out meanwhile disappear at once (coming back takes the TTL).
+        // A page may be cached for 30 s: learners who opted out or deleted their account meanwhile disappear at once
+        // (coming back takes the TTL). Only profiles that still exist and take part stay.
         var ids = rows.Select(r => r.UserId).ToList();
-        var hidden = await db.UserProfiles.AsNoTracking().Where(u => ids.Contains(u.Id) && !u.ShowOnLeaderboard).Select(u => u.Id).ToListAsync(ct);
-        if (hidden.Count > 0) rows = rows.Where(r => !hidden.Contains(r.UserId)).ToList();
+        var visible = await db.UserProfiles.AsNoTracking().Where(u => ids.Contains(u.Id) && u.ShowOnLeaderboard).Select(u => u.Id).ToListAsync(ct);
+        if (visible.Count != rows.Count) rows = rows.Where(r => visible.Contains(r.UserId)).ToList();
 
         long? prevScore = null; var prevRank = 0;
         if (p > 1 && rows.Count > 0)

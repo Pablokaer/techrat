@@ -73,3 +73,59 @@ describe("BearerSession.changePassword", () => {
     expect(JSON.parse((await storage.get("techrat.tokens"))!).accessToken).toBe("AT");
   });
 });
+
+describe("BearerSession.deleteAccount", () => {
+  const tokens = { tokenType: "Bearer", accessToken: "AT", refreshToken: "RT", expiresIn: 1800 };
+
+  async function signedIn(handler: (req: Request) => Response | Promise<Response>) {
+    const fetchMock = vi.fn(async (req: Request) => {
+      if (req.url.endsWith("/auth/login")) return json(tokens);
+      if (req.url.endsWith("/users/me")) return json({ id: "u1" });
+      return handler(req);
+    });
+    const storage = new MemoryTokenStorage();
+    const session = new BearerSession("https://api.test", storage, fetchMock as unknown as typeof fetch);
+    await session.login("a@b.io", "Passw0rdX");
+    return { session, storage, fetchMock };
+  }
+
+  it("sends the password with DELETE /account and signs the session out when the account is gone", async () => {
+    const { session, storage, fetchMock } = await signedIn(async (req) => {
+      expect(req.method).toBe("DELETE");
+      expect(req.headers.get("Authorization")).toBe("Bearer AT");
+      expect(await req.json()).toEqual({ password: "Passw0rdX", confirmation: null });
+      return new Response(null, { status: 204 });
+    });
+    const changes: boolean[] = [];
+    session.onChange((signedIn) => changes.push(signedIn));
+
+    await session.deleteAccount("Passw0rdX", null);
+
+    expect(fetchMock.mock.calls.some(([r]) => r.url.endsWith("/api/v1/account") && r.method === "DELETE")).toBe(true);
+    expect(await storage.get("techrat.tokens")).toBeNull();
+    expect(session.isSignedIn).toBe(false);
+    expect(changes).toEqual([false]);
+  });
+
+  it("sends the typed username for accounts without a password", async () => {
+    const { session } = await signedIn(async (req) => {
+      expect(await req.json()).toEqual({ password: null, confirmation: "alex" });
+      return new Response(null, { status: 204 });
+    });
+    await session.deleteAccount(null, "alex");
+    expect(session.isSignedIn).toBe(false);
+  });
+
+  it("keeps the session and reports field errors when the API refuses", async () => {
+    const { session, storage } = await signedIn(() => json({ title: "Invalid", errors: { password: ["The current password is incorrect."] } }, 400));
+    await expect(session.deleteAccount("wrong", null)).rejects.toMatchObject({ status: 400, errors: { password: ["The current password is incorrect."] } });
+    expect(JSON.parse((await storage.get("techrat.tokens"))!).accessToken).toBe("AT");
+    expect(session.isSignedIn).toBe(true);
+  });
+
+  it("keeps the session when the last administrator is refused", async () => {
+    const { session } = await signedIn(() => json({ title: "Conflict", detail: "You are the last administrator." }, 409));
+    await expect(session.deleteAccount("Passw0rdX", null)).rejects.toMatchObject({ status: 409, detail: "You are the last administrator." });
+    expect(session.isSignedIn).toBe(true);
+  });
+});

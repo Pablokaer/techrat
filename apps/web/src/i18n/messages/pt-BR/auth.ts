@@ -30,6 +30,7 @@ export const auth: Messages["auth"] = {
     title: "Bem-vindo de volta",
     subtitle: "Mantenha sua sequência. Pequenos passos formam grandes desenvolvedores.",
     passwordUpdated: "Senha atualizada. Entre com sua nova senha.",
+    accountDeleted: "Sua conta foi excluída. Tudo o que estava ligado a ela foi apagado.",
     forgotPassword: "Esqueceu a senha?",
     submit: "Entrar",
     submitting: "Entrando…",

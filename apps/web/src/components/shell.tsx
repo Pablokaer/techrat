@@ -16,6 +16,7 @@ import { API_BASE_URL, api, logout, unwrap } from "@/lib/api";
 import { qk, useMe, useNotifications, useSearch } from "@/lib/queries";
 import { searchHref } from "@/lib/routes";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { LegalLinks } from "@/components/legal-links";
 import { TopicIcon } from "./icons";
 
 const NAV = [
@@ -334,7 +335,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar me={me} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar me={me} />
-        <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 pb-28 pt-6 md:px-6 lg:pb-12">{children}</main>
+        <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 pt-6 md:px-6">{children}</main>
+        {/* pb-28 keeps the links above the bottom navigation on phones. */}
+        <footer className="mx-auto w-full max-w-7xl px-4 pb-28 pt-8 md:px-6 lg:pb-8">
+          <LegalLinks className="text-text-muted" />
+        </footer>
       </div>
       <MobileNav />
     </div>

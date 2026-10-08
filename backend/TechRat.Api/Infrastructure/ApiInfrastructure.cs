@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.SignalR;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;
 using TechRat.Application.Common;
+using TechRat.Application.Identity;
 
 namespace TechRat.Api.Infrastructure;
 
@@ -87,6 +89,28 @@ public sealed class RedisHealthCheck(IConfiguration config, IDistributedCache ca
             // Redis is an optimisation (cache); PostgreSQL remains the source of truth, so report degraded.
             return HealthCheckResult.Degraded("Redis unreachable", ex);
         }
+    }
+}
+
+/// <summary>
+/// Bearer access tokens are stateless, so on their own they would keep working until they expire after the account
+/// was deleted. This treats a request whose account no longer exists as signed out. The answer is cached for a couple
+/// of minutes (one lookup per user, not per request) and evicted when the account is deleted, so the cut-off is
+/// immediate on every instance that shares the cache. See ADR-0023.
+/// </summary>
+public sealed class AccountExistsMiddleware(RequestDelegate next)
+{
+    private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(2);
+
+    public async Task InvokeAsync(HttpContext ctx, ICacheService cache, UserManager<ApplicationUser> users)
+    {
+        if (ctx.User.Identity?.IsAuthenticated == true && Guid.TryParse(ctx.User.FindFirstValue(ClaimTypes.NameIdentifier), out var id))
+        {
+            var exists = await cache.GetOrCreateAsync(CacheKeys.AccountExists(id), Ttl,
+                async _ => await users.FindByIdAsync(id.ToString()) is not null, ctx.RequestAborted);
+            if (!exists) ctx.User = new ClaimsPrincipal(new ClaimsIdentity());
+        }
+        await next(ctx);
     }
 }
 

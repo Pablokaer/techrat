@@ -5,11 +5,13 @@ import { colors, radii, spacing } from "@techrat/theme";
 import { AppText } from "./AppText";
 
 /** Tappable row with leading icon, title/subtitle and a trailing slot. */
-export function ListRow({ icon, title, subtitle, trailing, onPress, accessibilityLabel, accessibilityHint }: {
+export function ListRow({ icon, title, subtitle, trailing, tone = "default", onPress, accessibilityLabel, accessibilityHint }: {
   icon?: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle?: string;
   trailing?: ReactNode;
+  /** "danger" marks destructive rows (red icon and title), such as deleting the account. */
+  tone?: "default" | "danger";
   onPress?: () => void;
   accessibilityLabel?: string;
   accessibilityHint?: string;
@@ -24,12 +26,12 @@ export function ListRow({ icon, title, subtitle, trailing, onPress, accessibilit
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
       {icon && (
-        <View style={styles.icon}>
-          <Ionicons name={icon} size={20} color={colors.primary} />
+        <View style={[styles.icon, tone === "danger" && styles.iconDanger]}>
+          <Ionicons name={icon} size={20} color={tone === "danger" ? colors.error : colors.primary} />
         </View>
       )}
       <View style={styles.body}>
-        <AppText variant="subheading" numberOfLines={1}>{title}</AppText>
+        <AppText variant="subheading" tone={tone === "danger" ? "error" : "default"} numberOfLines={1}>{title}</AppText>
         {subtitle && <AppText variant="caption" tone="secondary" numberOfLines={2}>{subtitle}</AppText>}
       </View>
       {trailing}
@@ -42,5 +44,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.md, minHeight: 56 },
   pressed: { opacity: 0.7 },
   icon: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.primaryMuted, alignItems: "center", justifyContent: "center" },
+  iconDanger: { backgroundColor: colors.card },
   body: { flex: 1, gap: 2 },
 });

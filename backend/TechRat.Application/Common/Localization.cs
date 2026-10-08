@@ -45,6 +45,8 @@ public static class Text
         public const string CurrentPasswordRequired = "auth.currentPasswordRequired";
         public const string CurrentPasswordIncorrect = "auth.currentPasswordIncorrect";
         public const string NewPasswordSameAsCurrent = "auth.newPasswordSameAsCurrent";
+        public const string AccountDeleteConfirmation = "auth.accountDelete.confirmation";
+        public const string AccountDeleteLastAdmin = "auth.accountDelete.lastAdmin";
         public const string UsernameTaken = "auth.usernameTaken";
         public const string EmailTaken = "auth.emailTaken";
         public const string BioTooLong = "profile.bioTooLong";
@@ -80,6 +82,8 @@ public static class Text
         public const string EmailResetCodeBody = "email.resetCode.body";
         public const string EmailPasswordChangedSubject = "email.passwordChanged.subject";
         public const string EmailPasswordChangedBody = "email.passwordChanged.body";
+        public const string EmailAccountDeletedSubject = "email.accountDeleted.subject";
+        public const string EmailAccountDeletedBody = "email.accountDeleted.body";
         public const string EmailTestSubject = "email.test.subject";
         public const string EmailTestBody = "email.test.body";
         public const string EmailNotConfigured = "email.notConfigured";
@@ -147,6 +151,8 @@ public static class Text
         [Keys.CurrentPasswordRequired] = "Enter your current password.",
         [Keys.CurrentPasswordIncorrect] = "The current password is incorrect.",
         [Keys.NewPasswordSameAsCurrent] = "The new password must be different from the current one.",
+        [Keys.AccountDeleteConfirmation] = "Type your username to confirm that you want to delete your account.",
+        [Keys.AccountDeleteLastAdmin] = "You are the last administrator, so this account cannot be deleted. Make another account an administrator first.",
         [Keys.UsernameTaken] = "This username is taken.",
         [Keys.EmailTaken] = "An account with this email already exists.",
         [Keys.BioTooLong] = "Bio must have at most 280 characters.",
@@ -182,6 +188,8 @@ public static class Text
         [Keys.EmailResetCodeBody] = "<p>Your reset code is:</p><pre>{0}</pre>",
         [Keys.EmailPasswordChangedSubject] = "Your TechRat password was changed",
         [Keys.EmailPasswordChangedBody] = "<p>The password of your TechRat account was changed on {0} (UTC), and your other sessions were signed out.</p><p>If this wasn't you, <a href=\"{1}\">reset your password</a> right away.</p>",
+        [Keys.EmailAccountDeletedSubject] = "Your TechRat account was deleted",
+        [Keys.EmailAccountDeletedBody] = "<p>Your TechRat account and the data tied to it (profile, progress, XP, achievements and photo) were deleted on {0} (UTC). Your sessions were signed out.</p><p>If this wasn&#39;t you, contact us using the address in our <a href=\"{1}\">privacy policy</a>.</p>",
         [Keys.EmailTestSubject] = "TechRat SMTP test",
         [Keys.EmailTestBody] = "<p>This is a test email from TechRat.</p><p>If you can read it, email delivery works ({0}:{1}, {2}).</p>",
         [Keys.EmailNotConfigured] = "SMTP is not configured. Set Smtp__Host (and the other Smtp__ settings) and restart the API.",
@@ -235,6 +243,8 @@ public static class Text
         [Keys.CurrentPasswordRequired] = "Digite sua senha atual.",
         [Keys.CurrentPasswordIncorrect] = "A senha atual está incorreta.",
         [Keys.NewPasswordSameAsCurrent] = "A nova senha deve ser diferente da atual.",
+        [Keys.AccountDeleteConfirmation] = "Digite seu nome de usuário para confirmar que deseja excluir sua conta.",
+        [Keys.AccountDeleteLastAdmin] = "Você é o último administrador, então esta conta não pode ser excluída. Torne outra conta administradora primeiro.",
         [Keys.UsernameTaken] = "Este nome de usuário já está em uso.",
         [Keys.EmailTaken] = "Já existe uma conta com este e-mail.",
         [Keys.BioTooLong] = "A bio deve ter no máximo 280 caracteres.",
@@ -270,6 +280,8 @@ public static class Text
         [Keys.EmailResetCodeBody] = "<p>Seu código de redefinição é:</p><pre>{0}</pre>",
         [Keys.EmailPasswordChangedSubject] = "Sua senha do TechRat foi alterada",
         [Keys.EmailPasswordChangedBody] = "<p>A senha da sua conta TechRat foi alterada em {0} (UTC), e suas outras sessões foram encerradas.</p><p>Se não foi você, <a href=\"{1}\">redefina sua senha</a> agora mesmo.</p>",
+        [Keys.EmailAccountDeletedSubject] = "Sua conta TechRat foi excluída",
+        [Keys.EmailAccountDeletedBody] = "<p>Sua conta TechRat e os dados ligados a ela (perfil, progresso, XP, conquistas e foto) foram excluídos em {0} (UTC). Suas sessões foram encerradas.</p><p>Se não foi você, entre em contato pelo endereço indicado em nossa <a href=\"{1}\">política de privacidade</a>.</p>",
         [Keys.EmailTestSubject] = "Teste de SMTP do TechRat",
         [Keys.EmailTestBody] = "<p>Este é um e-mail de teste do TechRat.</p><p>Se você está lendo, o envio de e-mails funciona ({0}:{1}, {2}).</p>",
         [Keys.EmailNotConfigured] = "O SMTP não está configurado. Defina Smtp__Host (e as demais configurações Smtp__) e reinicie a API.",
