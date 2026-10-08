@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { formatNumber, percent } from "@/lib/format";
 import { useMe, useProfile } from "@/lib/queries";
 import { AppText, Avatar, Button, Card, Divider, ErrorState, ListRow, LoadingState, ProgressBar, Screen, SectionHeader, StatCard, TierDot } from "@/components/ui";
+import { AppVersion } from "@/components/domain/AppVersion";
 import { AvatarPicker } from "@/components/domain/AvatarPicker";
 import { LevelSummary } from "@/components/domain/LevelSummary";
 import { TopicIcon } from "@/components/domain/TopicIcon";
@@ -76,6 +77,7 @@ export default function ProfileScreen() {
       </View>
 
       <Button label="Sign out" variant="danger" icon="log-out-outline" onPress={() => void signOut()} />
+      <AppVersion />
     </Screen>
   );
 }
