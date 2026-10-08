@@ -7,6 +7,7 @@ import { BarChart3, BookOpen, Code2, KeyRound, Trophy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api, unwrap } from "@/lib/api";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { LegalLinks } from "@/components/legal-links";
 import { useT } from "@/i18n";
 import type { Messages } from "@/i18n/messages";
 
@@ -60,6 +61,7 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
           <h1 className="text-center text-3xl font-bold tracking-tight lg:text-left">{title}</h1>
           <p className="mt-2 text-center text-text-secondary lg:text-left">{subtitle}</p>
           <div className="mt-8">{children}</div>
+          <LegalLinks className="mt-10 justify-center lg:justify-start" />
         </div>
       </main>
     </div>

@@ -3,6 +3,7 @@ import { render } from "@testing-library/react";
 import type { ReactElement } from "react";
 import type { PracticeSession, UserSummary } from "@techrat/types";
 import { Providers } from "@/components/providers";
+import type { Locale } from "@/i18n/config";
 import { qk } from "@/lib/queries";
 
 export const me: UserSummary = {
@@ -27,11 +28,12 @@ export function makeSession(count = 2): PracticeSession {
 
 /**
  * Renders inside the real app providers with the signed-in user pre-cached (no network).
- * `seed` pre-fills other queries (e.g. `client.setQueryData(qk.roadmap(slug), data)`) before the first render.
+ * `seed` pre-fills other queries (e.g. `client.setQueryData(qk.roadmap(slug), data)`) before the first render;
+ * `options.locale` renders in that language (the server picks it from the cookie or Accept-Language on the web).
  */
-export function renderApp(ui: ReactElement, seed?: (client: QueryClient) => void) {
+export function renderApp(ui: ReactElement, seed?: (client: QueryClient) => void, options: { locale?: Locale } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   client.setQueryData(qk.me, me);
   seed?.(client);
-  return { client, ...render(<Providers client={client}>{ui}</Providers>) };
+  return { client, ...render(<Providers client={client} initialLocale={options.locale}>{ui}</Providers>) };
 }

@@ -17,6 +17,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { AvatarEditor } from "@/components/avatar-editor";
 import { ChangePasswordCard } from "@/components/change-password";
 import { LeaderboardPrivacy } from "@/components/leaderboard-privacy";
+import { DeleteAccountCard } from "@/components/delete-account";
 import { useT, useValidationTranslator } from "@/i18n";
 
 export default function SettingsPage() {
@@ -79,6 +80,9 @@ function SettingsForm({ me }: { me: UserSummary }) {
           </Card>
           <Card className="p-6">
             <LeaderboardPrivacy />
+          </Card>
+          <Card className="border-error/40 p-6">
+            <DeleteAccountCard />
           </Card>
         </div>
         <div className="space-y-4">

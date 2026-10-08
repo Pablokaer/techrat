@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ArrowRight, BarChart3, BookOpen, BrainCircuit, Code2, Map as MapIcon, Server, Trophy } from "lucide-react";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { LegalLinks } from "@/components/legal-links";
 import { useT } from "@/i18n";
 import { useMe } from "@/lib/queries";
 
@@ -81,6 +82,9 @@ export default function Landing() {
           ))}
         </section>
       </main>
+      <footer className="mx-auto max-w-6xl border-t border-border-subtle px-5 py-6">
+        <LegalLinks withDelete className="justify-center sm:justify-start" />
+      </footer>
     </div>
   );
 }

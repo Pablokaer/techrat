@@ -1,4 +1,4 @@
-import { resolveApiUrl } from "./config";
+import { DELETE_ACCOUNT_URL, PRIVACY_URL, TERMS_URL, resolveWebUrl, resolveApiUrl } from "./config";
 
 describe("resolveApiUrl in development", () => {
   it("uses the emulator alias for the host machine on Android when nothing is configured", () => {
@@ -32,5 +32,22 @@ describe("resolveApiUrl in a release build", () => {
 
   it("refuses a value that is not a URL at all", () => {
     expect(() => resolveApiUrl("techrat.io", "android", false)).toThrow(/https/);
+  });
+});
+
+describe("resolveWebUrl", () => {
+  it("lets EXPO_PUBLIC_WEB_URL win, without a trailing slash", () => {
+    expect(resolveWebUrl("http://localhost:3000/", "https://techrat.io")).toBe("http://localhost:3000");
+  });
+
+  it("falls back to the API URL, which is served behind the web origin in production", () => {
+    expect(resolveWebUrl(undefined, "https://techrat.io")).toBe("https://techrat.io");
+    expect(resolveWebUrl("  ", "https://techrat.io/")).toBe("https://techrat.io");
+  });
+
+  it("exposes the public legal and account pages", () => {
+    expect(PRIVACY_URL).toMatch(/\/privacy$/);
+    expect(TERMS_URL).toMatch(/\/terms$/);
+    expect(DELETE_ACCOUNT_URL).toMatch(/\/account\/delete$/);
   });
 });

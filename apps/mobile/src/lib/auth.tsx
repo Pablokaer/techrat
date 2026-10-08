@@ -13,6 +13,11 @@ interface AuthValue {
   signOut(): Promise<void>;
   /** Changes (or sets, with no current password) the password; other sessions are signed out, this one keeps going. */
   changePassword(currentPassword: string | null, newPassword: string): Promise<void>;
+  /**
+   * Permanently deletes the account. Accounts with a password send it; accounts without one send their own username
+   * as confirmation. On success the session drops its tokens, so the route guard returns the app to the login screen.
+   */
+  deleteAccount(password: string | null, confirmation: string | null): Promise<void>;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -53,7 +58,11 @@ export function AuthProvider({ session, children }: { session: BearerSession; ch
   const changePassword = useCallback((currentPassword: string | null, newPassword: string) =>
     session.changePassword(currentPassword, newPassword), [session]);
 
-  const value = useMemo(() => ({ status, signIn, register, signOut, changePassword }), [status, signIn, register, signOut, changePassword]);
+  const deleteAccount = useCallback((password: string | null, confirmation: string | null) =>
+    session.deleteAccount(password, confirmation), [session]);
+
+  const value = useMemo(() => ({ status, signIn, register, signOut, changePassword, deleteAccount }),
+    [status, signIn, register, signOut, changePassword, deleteAccount]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

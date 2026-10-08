@@ -25,3 +25,21 @@ export function resolveApiUrl(envUrl: string | undefined, os: string, dev: boole
 
 // Must be referenced literally so Expo inlines it at build time.
 export const API_URL = resolveApiUrl(process.env.EXPO_PUBLIC_API_URL, Platform.OS);
+
+/**
+ * Resolves the public website base URL, used for the privacy policy, terms and account-deletion pages.
+ *
+ * EXPO_PUBLIC_WEB_URL wins (in development point it at the web dev server, e.g. http://localhost:3000, because the
+ * API port does not serve pages). Otherwise the API URL is used: in production the API is served behind the same
+ * origin as the site (https://techrat.io), so no extra setting is needed for release builds.
+ */
+export function resolveWebUrl(envUrl: string | undefined, apiUrl: string): string {
+  return (envUrl?.trim() || apiUrl).replace(/\/+$/, "");
+}
+
+// Must be referenced literally so Expo inlines it at build time.
+export const WEB_URL = resolveWebUrl(process.env.EXPO_PUBLIC_WEB_URL, API_URL);
+/** Public pages Google Play requires to be reachable (privacy policy, account deletion) plus the terms. */
+export const PRIVACY_URL = `${WEB_URL}/privacy`;
+export const TERMS_URL = `${WEB_URL}/terms`;
+export const DELETE_ACCOUNT_URL = `${WEB_URL}/account/delete`;
