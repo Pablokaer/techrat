@@ -17,6 +17,12 @@ All development follows test-driven development:
   - Seed content: `python3 scripts/seed-src/validate_questions.py` must report 0 errors; seed scripts: `python3 -m unittest discover -s scripts/seed-src -p "test_*.py"`.
 - Before finishing, run the affected suites plus `npm run typecheck` and `npm run lint`, and report the real results.
 
+## Git workflow
+
+- **One branch per change, always from `dev`** (`git fetch && git checkout -b <type>/<name> origin/dev`). Never commit to `dev` or `main`, and never add an unrelated commit to a branch that already has a PR: a new piece of work gets a new branch and its own PR into `dev`.
+- **A branch lives only until its PR is merged.** GitHub deletes the remote branch on merge; delete the local one too (`git branch -d <name>`). Do not reuse a merged branch.
+- `dev` reaches `main` through the automatic promotion PR (ADR-0025), never by hand.
+
 ## Documentation
 
 Everything must be properly documented, in the same change as the code:

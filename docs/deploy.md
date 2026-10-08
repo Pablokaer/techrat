@@ -39,6 +39,9 @@ Internet ─► Apache :80/:443 (Let's Encrypt via certbot)
 feature branch ─PR─► dev ─(CI green, merged)─► PR dev ─► main ─(CI + promotion gate)─► merge ─► Deploy
 ```
 
+Every change lives in its own short-lived branch cut from `dev`, with one pull request into `dev`; the repository
+deletes the branch when the PR is merged (Settings → General → *Automatically delete head branches*, already on).
+
 Nothing is pushed straight to `dev` or `main`: both are protected and only change through pull requests
 ([ADR-0021](adr/0021-dev-to-main-promotion-gate.md)). A PR into `dev` needs the CI checks; a PR into `main` must come
 from `dev` (check *Promotion gate*) and pass CI again. Use a merge commit when promoting dev to main. Protection is
@@ -48,6 +51,21 @@ configured in GitHub (Settings → Branches), reproduced by:
 gh api -X PUT repos/Pablokaer/techrat/branches/dev/protection --input deploy/protection-dev.json
 gh api -X PUT repos/Pablokaer/techrat/branches/main/protection --input deploy/protection-main.json
 ```
+
+### Automatic promotion (dev → main)
+
+Nobody opens the dev → main pull request by hand ([ADR-0025](adr/0025-automatic-dev-to-main-promotion.md)). When CI
+passes on a push to `dev`, `.github/workflows/auto-promote.yml` runs `.github/scripts/auto_promote.py`: if `dev` is ahead
+of `main` it opens the PR (or reuses the open one) and enables **auto-merge with a merge commit**. GitHub merges it once
+the required checks (CI + promotion gate) pass on that PR, and the merge deploys. One-time setup:
+
+1. Settings → General → Pull Requests → enable **Allow auto-merge**
+   (`gh api -X PATCH repos/Pablokaer/techrat -f allow_auto_merge=true`).
+2. Create a fine-grained personal access token for this repository (Contents and Pull requests: read and write) and
+   store it as the repository secret `PROMOTE_TOKEN` (`gh secret set PROMOTE_TOKEN`). `GITHUB_TOKEN` cannot be used:
+   what it creates or merges does not trigger other workflows, so the checks and Deploy would never run.
+
+To pause promotion, disable the workflow in the Actions tab; to promote on demand, run it with *Run workflow*.
 
 ### Deploy
 
