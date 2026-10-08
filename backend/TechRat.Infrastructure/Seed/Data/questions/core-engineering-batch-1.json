@@ -1,0 +1,682 @@
+[
+  {
+    "id": "cc-naming-intention-revealing",
+    "topic": "clean-code",
+    "subtopic": "clean-code",
+    "difficulty": "Easy",
+    "title": "Intention-revealing method names",
+    "question": "A method is named `Process(data)`, and callers keep opening its body to learn what it does. Which change best improves readability?",
+    "options": [
+      "Add a comment above every call site that restates, in plain words, what the method does there",
+      "Rename it to say what it does in domain terms, such as `ApproveRefund(request)`",
+      "Keep the short name and describe the behaviour on a separate wiki page for newcomers",
+      "Prefix it with the team's initials so it is easy to search for"
+    ],
+    "correctIndex": 1,
+    "explanation": "Names are the main documentation of code: a name that states the intent in domain language lets readers understand a call site without opening the body. Comments at call sites and wiki pages drift out of date, and a prefix adds noise without saying what the method does.",
+    "referenceUrl": "https://martinfowler.com/bliki/TwoHardThings.html"
+  },
+  {
+    "id": "cc-guard-clauses-flatten-nesting",
+    "topic": "clean-code",
+    "subtopic": "clean-code",
+    "difficulty": "Easy",
+    "title": "Flattening nested preconditions",
+    "question": "A function wraps its real work in four nested `if` blocks that each check a precondition (user exists, is active, has a cart, cart is not empty), so the main logic sits deep inside. Which refactoring flattens it?",
+    "options": [
+      "Extract every nested `if` into its own validator class so each precondition has a dedicated, separately testable object",
+      "Turn the nested `if` statements into nested ternary expressions so the function becomes shorter",
+      "Add a comment before each `if` that explains which precondition it is checking",
+      "Replace the nesting with guard clauses that return or throw early, leaving the main logic at the top level"
+    ],
+    "correctIndex": 3,
+    "explanation": "Guard clauses deal with the exceptional cases first and exit, so the normal path reads straight down without indentation. Extracting validator classes or squeezing the checks into ternaries adds structure or density without flattening anything, and comments leave the shape of the code unchanged.",
+    "referenceUrl": "https://refactoring.com/catalog/replaceNestedConditionalWithGuardClauses.html"
+  },
+  {
+    "id": "cc-delete-dead-code",
+    "topic": "clean-code",
+    "subtopic": "clean-code",
+    "difficulty": "Easy",
+    "title": "What to do with commented-out code",
+    "question": "A module contains a 60-line block of commented-out code and two private methods nothing calls. A developer wants to keep them 'just in case'. What is the better practice?",
+    "options": [
+      "Delete them: version control keeps the history, and dead code only misleads readers and slows searches",
+      "Keep them but add a `// TODO: remove` comment with the date, so the decision is visible to everybody on the team",
+      "Move them into a separate `Legacy` folder in the same project so the module itself stays shorter",
+      "Keep the commented block but delete the unused methods, since comments never affect the program"
+    ],
+    "correctIndex": 0,
+    "explanation": "Dead code costs attention: readers must figure out whether it matters, searches return noise and refactorings must keep it compiling. Source control already remembers the old version, so deleting is safe and reversible. Dated TODOs and a `Legacy` folder keep the clutter, and commented code misleads just as much as unused methods.",
+    "referenceUrl": "https://refactoring.com/catalog/removeDeadCode.html"
+  },
+  {
+    "id": "cc-extract-function-levels-of-abstraction",
+    "topic": "clean-code",
+    "subtopic": "refactoring",
+    "difficulty": "Medium",
+    "title": "Mixed levels of abstraction",
+    "question": "A 120-line `ImportOrders()` method mixes high-level steps (read file, validate, save) with low-level detail such as splitting CSV lines and parsing dates inline. Which refactoring most improves it?",
+    "options": [
+      "Move all 120 lines into a nested function, which keeps the code identical but hides it from callers",
+      "Add a blank line and a comment banner before each block so the sections stand out visually",
+      "Extract the low-level blocks into named functions so the method reads as a short sequence of steps",
+      "Inline the helper functions that already exist so that everything happens in one place again"
+    ],
+    "correctIndex": 2,
+    "explanation": "Extract Function gives each block a name that states its purpose, so `ImportOrders()` shows the flow at one level of abstraction and the details live in functions that can be read and tested alone. A nested copy, comment banners or inlining the existing helpers leave the method as long and as mixed as before.",
+    "referenceUrl": "https://refactoring.com/catalog/extractFunction.html"
+  },
+  {
+    "id": "cc-strangler-fig-migration",
+    "topic": "clean-code",
+    "subtopic": "refactoring",
+    "difficulty": "Medium",
+    "title": "Replacing a legacy module safely",
+    "question": "A team must replace a large legacy billing module that is in production, and there is no safe way to rewrite it in one release. Which approach migrates it with the least risk?",
+    "options": [
+      "Freeze feature work, rewrite the whole module on a long-lived branch and switch everyone over in a single cut-over weekend",
+      "Run both implementations and let each customer choose which billing engine they prefer to use",
+      "Patch the legacy module until its test coverage reaches 100 percent, then replace all of it at once",
+      "Strangler fig: route one capability at a time through a facade to new code, retiring legacy paths as each one is proven"
+    ],
+    "correctIndex": 3,
+    "explanation": "The strangler fig approach grows the replacement around the old system: a facade sends each capability to old or new code, so every step is small, releasable and reversible, and the legacy code shrinks until it can be removed. A big-bang rewrite concentrates all the risk in one cut-over, customer choice pushes an internal decision onto users, and high coverage does not make a one-shot replacement safer.",
+    "referenceUrl": "https://martinfowler.com/bliki/StranglerFigApplication.html"
+  },
+  {
+    "id": "cc-characterization-tests-legacy",
+    "topic": "clean-code",
+    "subtopic": "refactoring",
+    "difficulty": "Hard",
+    "title": "Tests before touching untested legacy code",
+    "question": "A critical pricing function has no tests, no documentation, and nobody is sure of every rule it applies. You must refactor it. What should the team do first?",
+    "options": [
+      "Rewrite the function from the written business requirements and replace the old one once the new one looks right to the reviewers",
+      "Write characterization tests that record what the code does today for many inputs, then refactor while keeping them green",
+      "Start refactoring in small steps and rely on code review to catch any change in behaviour that slips through",
+      "Write tests from the requirements document and fix the code until every test passes, even if outputs change"
+    ],
+    "correctIndex": 1,
+    "explanation": "Characterization tests pin down actual current behaviour, including quirks, so that a refactoring can be checked against it and unintended changes show up at once. Rewriting from requirements or fixing code to match a document can change behaviour customers depend on, and review alone is a weak guard when nobody knows all the rules.",
+    "referenceUrl": "https://michaelfeathers.silvrback.com/characterization-testing"
+  },
+  {
+    "id": "cc-connascence-position-to-name",
+    "topic": "clean-code",
+    "subtopic": "coupling-cohesion",
+    "difficulty": "Hard",
+    "title": "Weakening connascence of position",
+    "question": "`CreateInvoice(string, string, decimal, decimal, bool, DateTime)` is called from 40 files, and reordering or inserting a parameter silently breaks callers whose types happen to match. Which change moves this coupling to a weaker form of connascence?",
+    "options": [
+      "Rename the parameters to be more descriptive, which is enough to stop callers from misordering arguments",
+      "Add overloads for every combination of parameters so the compiler always picks the intended one",
+      "Take a named request object so callers depend on field names instead of argument order",
+      "Make the method thread-safe so that the order in which callers invoke it can no longer matter"
+    ],
+    "correctIndex": 2,
+    "explanation": "Connascence of position means every caller must agree on argument order, a strong form that the compiler cannot check when types match. A named object turns it into connascence of name, which is weaker because a rename is easy to find and fix across callers. Parameter names do not exist at most call sites, overloads multiply the positions, and thread safety is about timing, not order of arguments.",
+    "referenceUrl": "https://connascence.io/"
+  },
+  {
+    "id": "cc-aggregate-eventual-consistency",
+    "topic": "clean-code",
+    "subtopic": "domain-modeling",
+    "difficulty": "Expert",
+    "title": "Consistency across aggregate boundaries",
+    "question": "When a `Customer` is deactivated, their open `Order`s must be cancelled, and the business accepts that this may take a few seconds. `Customer` and `Order` are separate aggregates. Which design is most appropriate?",
+    "options": [
+      "Change one aggregate per transaction: reference the customer by id and cancel orders in reaction to a `CustomerDeactivated` event",
+      "Merge `Customer` and `Order` into one large aggregate so that a single transaction always covers both of them",
+      "Let `Customer` hold direct references to its orders and modify them inside its own deactivation method, all within a single transaction",
+      "Use a distributed two-phase commit over both tables so that the cancellation is always immediate and atomic"
+    ],
+    "correctIndex": 0,
+    "explanation": "Aggregates are consistency boundaries: each transaction should change a single aggregate, and other aggregates are referenced by identity and updated through domain events, accepting eventual consistency where the business allows it. Merging them creates a huge aggregate with heavy contention, direct references let one aggregate change another's state, and a distributed commit adds cost and coupling for a guarantee nobody needs.",
+    "referenceUrl": "https://martinfowler.com/bliki/DDD_Aggregate.html"
+  },
+  {
+    "id": "dp-iterator-hide-collection-structure",
+    "topic": "design-patterns",
+    "subtopic": "behavioral",
+    "difficulty": "Easy",
+    "title": "Traversing without knowing the structure",
+    "question": "A `Playlist` stores its songs in an internal tree, and several clients loop over it by reaching into the tree's nodes, so any change to the structure breaks all of them. Which pattern lets clients traverse the songs without knowing how they are stored?",
+    "options": [
+      "Memento",
+      "Interpreter",
+      "Iterator",
+      "Flyweight"
+    ],
+    "correctIndex": 2,
+    "explanation": "Iterator gives clients a standard way to walk through the elements one by one (such as `IEnumerable<T>` or `Iterator<E>`) while the collection keeps its internal structure private, so the tree can change without touching the clients. Memento saves and restores state, Interpreter evaluates a grammar, and Flyweight shares fine-grained objects.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/iterator"
+  },
+  {
+    "id": "dp-null-object-guest-customer",
+    "topic": "design-patterns",
+    "subtopic": "behavioral",
+    "difficulty": "Easy",
+    "title": "Replacing scattered null checks",
+    "question": "After every lookup the code does `if (customer == null) { name = \"guest\"; discount = 0; }` in a dozen places. Which pattern replaces those checks with an object that has safe default behaviour?",
+    "options": [
+      "Null Object (Special Case): return a `GuestCustomer` whose members already provide the guest defaults",
+      "Decorator: wrap each lookup result in an object that logs a warning whenever the value is missing",
+      "Proxy: return a stand-in that loads the real customer the first time one of its methods is called",
+      "Singleton: keep one shared `Customer` instance that every caller reuses when no match is found in the lookup"
+    ],
+    "correctIndex": 0,
+    "explanation": "A Null Object (also called a Special Case) is a real object that implements the same interface with neutral behaviour, so callers treat a missing customer like any other and the null checks disappear into one class. A decorator only adds behaviour to an existing object, a proxy still needs a real target, and a shared singleton would carry state between unrelated callers.",
+    "referenceUrl": "https://refactoring.com/catalog/introduceSpecialCase.html"
+  },
+  {
+    "id": "dp-bridge-two-dimensions",
+    "topic": "design-patterns",
+    "subtopic": "structural",
+    "difficulty": "Medium",
+    "title": "Avoiding a class explosion across two dimensions",
+    "question": "A drawing app has `Circle` and `Square`, each drawn in `Vector` and `Raster` styles, and the team created `VectorCircle`, `RasterCircle`, `VectorSquare` and `RasterSquare`. Adding `Triangle` and a third renderer would add five more classes. Which pattern keeps the two dimensions independent?",
+    "options": [
+      "Decorator: wrap each shape in a renderer decorator so that the classes can be stacked together at runtime",
+      "Bridge: shapes hold a reference to a renderer interface, so shapes and renderers vary separately",
+      "Adapter: give each shape an adapter that converts its calls to whichever renderer happens to be installed",
+      "Composite: build a tree of shapes in which every node carries its own copy of the rendering code"
+    ],
+    "correctIndex": 1,
+    "explanation": "Bridge splits an abstraction (shapes) from its implementation (renderers) into two hierarchies connected by composition, so adding a shape or a renderer is one new class instead of a product of both. Decorator adds behaviour to one object, Adapter makes incompatible interfaces work together, and Composite models part-whole trees, none of which separates two independent axes of variation.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/bridge"
+  },
+  {
+    "id": "dp-data-mapper-versus-active-record",
+    "topic": "design-patterns",
+    "subtopic": "data-access",
+    "difficulty": "Medium",
+    "title": "Separating domain rules from persistence",
+    "question": "A domain `Invoice` class contains tax rules and also `Save()` and `Find()` methods that run SQL. Testing the tax rules needs a database, and the schema cannot change without editing the class. Which pattern separates the two concerns?",
+    "options": [
+      "Active Record: keep the persistence methods on `Invoice` and add an in-memory variant of `Save()` for use in tests",
+      "Identity Map: cache every loaded `Invoice` by id so that the database is touched far less often during tests",
+      "Lazy Load: defer reading the invoice lines until a rule asks for them, which keeps most of the tests away from the database",
+      "Data Mapper: a separate mapper moves data between `Invoice` and the database, so the domain class knows nothing about SQL"
+    ],
+    "correctIndex": 3,
+    "explanation": "The class described is an Active Record: it mixes business rules with its own persistence. A Data Mapper keeps the domain object plain and puts the mapping to tables in a separate class, so the rules can be tested without a database and the schema can evolve independently. An in-memory variant, an identity map or lazy loading leave the coupling in place.",
+    "referenceUrl": "https://martinfowler.com/eaaCatalog/dataMapper.html"
+  },
+  {
+    "id": "dp-template-method-hook-step",
+    "topic": "design-patterns",
+    "subtopic": "mediator-template",
+    "difficulty": "Medium",
+    "title": "Optional steps in a Template Method",
+    "question": "A base class `Importer` runs read, validate, transform and write, and subclasses must override all four steps. Most importers need no custom validation, yet each copies an empty override. What is the standard refinement of Template Method?",
+    "options": [
+      "Make validation a hook: give it a default empty implementation that subclasses may override but need not",
+      "Make `Run()` virtual so that every subclass can drop validation by rewriting the whole sequence itself",
+      "Move validation into a static helper that the base class calls only if a subclass registers it first",
+      "Declare validation `abstract` in the base class so that every subclass is forced to consider it explicitly"
+    ],
+    "correctIndex": 0,
+    "explanation": "A hook is an optional step with a default (often empty) implementation in the base class: subclasses override it when they need to and ignore it otherwise, while the fixed skeleton in `Run()` stays intact. Letting subclasses rewrite `Run()` loses the shared algorithm, a registration helper adds machinery for no benefit, and making the step abstract is exactly what causes the empty copies.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/template-method"
+  },
+  {
+    "id": "dp-decorator-order-retry-cache",
+    "topic": "design-patterns",
+    "subtopic": "structural",
+    "difficulty": "Hard",
+    "title": "Why decorator order matters",
+    "question": "A `PriceService` is wrapped in three decorators: `Caching`, `Retrying` and `Logging`. After a refactor that reversed the stacking order, failed calls started being cached for minutes, and retries stopped helping. What explains this?",
+    "options": [
+      "Decorators run in parallel threads, so reversing them made the cache and the retry race for the same result",
+      "Decorators must be applied alphabetically, and reversing the order broke the interface contract between them",
+      "Each decorator only sees what the one beneath it returns, so a cache placed outside a retry can store an error or an empty fallback and keep serving it",
+      "Retrying only works as the outermost decorator, because inner layers cannot catch exceptions thrown by the real service"
+    ],
+    "correctIndex": 2,
+    "explanation": "Decorators nest like function calls: the outermost one receives the call first and delegates inward. Placing the cache outside the retry (or letting a failure be cached as a normal result) changes what gets stored and when retries happen, so order is a design decision, not a detail. They run in the caller's thread, have no alphabetical rule, and any layer can catch what the layer below throws.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/decorator"
+  },
+  {
+    "id": "dp-identity-map-duplicate-instances",
+    "topic": "design-patterns",
+    "subtopic": "data-access",
+    "difficulty": "Hard",
+    "title": "Two in-memory copies of the same row",
+    "question": "Within one request, code loads `Customer` 42 through two different repositories and gets two separate objects. One is edited and saved, then the other is edited and saved, overwriting the first change. Which pattern prevents two in-memory copies of the same row in a session?",
+    "options": [
+      "Unit of Work: commit both edits in one transaction so that the second save merges with the first one",
+      "Singleton: make `Customer` a singleton so that only one customer can ever be loaded at a time in the process",
+      "Lazy Load: load the customer only when it is first read so that it can never be loaded twice in a single request",
+      "Identity Map: keep a per-session map from id to loaded object and return the existing instance for the same row"
+    ],
+    "correctIndex": 3,
+    "explanation": "An Identity Map ensures each database row is loaded into at most one object per session: a second load of the same id returns the instance already in memory, so edits go to one object. A unit of work coordinates writes but does not merge divergent copies, a singleton would break every other customer, and lazy loading delays loading rather than deduplicating it.",
+    "referenceUrl": "https://martinfowler.com/eaaCatalog/identityMap.html"
+  },
+  {
+    "id": "dp-optimistic-offline-lock-lost-update",
+    "topic": "design-patterns",
+    "subtopic": "data-access",
+    "difficulty": "Expert",
+    "title": "Detecting conflicting edits without long locks",
+    "question": "Two clerks open the same `Order` form, both change it and save, and the second save silently overwrites the first. Holding database locks while a person edits is not acceptable. Which approach detects the conflict without long locks?",
+    "options": [
+      "Pessimistic lock: lock the row when the form opens and release it only when the clerk saves or the session ends",
+      "Optimistic offline lock: store a version, update `WHERE id = @id AND version = @v`, and report a conflict when no row is updated",
+      "Raise the transaction isolation level to Serializable so that the database detects the conflict between the two saves by itself",
+      "Make saving faster so that the window in which two clerks can overlap becomes too small to matter in practice at all"
+    ],
+    "correctIndex": 1,
+    "explanation": "The two edits happen in different business transactions with human think time in between, so database isolation and transactions cannot see the conflict. A version column checked at write time lets the second save discover that the row changed since it was read, and the application can reject it or ask the clerk to merge. A pessimistic lock is the long lock the question excludes, and a faster save only shrinks the window.",
+    "referenceUrl": "https://martinfowler.com/eaaCatalog/optimisticOfflineLock.html"
+  },
+  {
+    "id": "os-load-average-uninterruptible-io",
+    "topic": "operating-systems",
+    "subtopic": "scheduling",
+    "difficulty": "Easy",
+    "title": "Reading a high load average",
+    "question": "A server shows a load average of 40 on 8 cores, yet CPU utilisation is only 10 percent and the disks are slow. What does the high load average most likely reflect on Linux?",
+    "options": [
+      "Forty processes are in the run queue waiting for one of the 8 cores, so the CPU is saturated even though utilisation reads low",
+      "The load average measures network traffic, so 40 means the network interface is close to saturation",
+      "The kernel counts only sleeping tasks, so a high value means most processes are idle and healthy",
+      "Linux also counts tasks in uninterruptible sleep, usually waiting on I/O, so tasks stuck on slow disks inflate it"
+    ],
+    "correctIndex": 3,
+    "explanation": "On Linux the load average counts runnable tasks plus tasks in uninterruptible sleep (state D), which are typically blocked on disk or network file systems. With 10 percent CPU and slow disks, the load comes from tasks waiting on I/O, not from CPU contention. It is not a measure of network traffic, and it does not count idle sleepers.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man1/uptime.1.html"
+  },
+  {
+    "id": "os-dma-device-to-memory",
+    "topic": "operating-systems",
+    "subtopic": "system-calls-io",
+    "difficulty": "Easy",
+    "title": "Why devices use DMA",
+    "question": "A network card receives a burst of large packets. Why do modern systems use DMA for this instead of having the CPU copy every byte from the device?",
+    "options": [
+      "DMA lets the device bypass the kernel entirely, so applications read packets without making any system call at all",
+      "DMA lets the device write directly into main memory and signal completion, leaving the CPU free for other work",
+      "DMA compresses packets in hardware so fewer bytes have to travel across the memory bus to the application",
+      "DMA makes the CPU poll the card faster by keeping the card's registers cached in the processor's L1 cache"
+    ],
+    "correctIndex": 1,
+    "explanation": "With DMA the driver gives the device a buffer address, and the device transfers data to or from memory by itself and raises an interrupt when done, so the CPU is not tied up copying bytes. The kernel still manages the buffers and applications still use system calls, nothing is compressed, and device registers are not cached like ordinary memory.",
+    "referenceUrl": "https://docs.kernel.org/core-api/dma-api-howto.html"
+  },
+  {
+    "id": "os-page-cache-scan-pollution",
+    "topic": "operating-systems",
+    "subtopic": "memory-management",
+    "difficulty": "Medium",
+    "title": "A one-time scan evicting hot pages",
+    "question": "A service's hot working set is well cached, but a nightly job reads a 200 GB file once from start to end, and afterwards the service is slow while its pages are faulted back in. Why does this happen, and what mitigates it?",
+    "options": [
+      "A sequential read always flushes the CPU caches, and only buying a processor with a larger L3 cache can prevent the slowdown",
+      "The file system journals every page that is read, and turning off the journal removes the extra I/O that causes the stall",
+      "The one-pass scan pushes hot pages out of the page cache, and active/inactive lists make pages prove reuse before they are protected",
+      "Read-ahead copies the whole file into swap, so the fix is to switch off swap entirely on the machine and restart the service"
+    ],
+    "correctIndex": 2,
+    "explanation": "File data is cached in the page cache, which competes with the service's pages for RAM. A single pass over a huge file can evict pages that were useful, so the kernel keeps active and inactive lists and promotes a page only after it is touched again, which protects hot pages from one-time scans. CPU caches, journals and swap are not the cause.",
+    "referenceUrl": "https://docs.kernel.org/admin-guide/mm/concepts.html"
+  },
+  {
+    "id": "os-mmap-random-access-large-file",
+    "topic": "operating-systems",
+    "subtopic": "system-calls-io",
+    "difficulty": "Medium",
+    "title": "Random access to a large read-only file",
+    "question": "A process needs random access to many small regions of a 50 GB read-only file. Calling `lseek` and `read` for each region costs a system call and a copy every time. What does `mmap` offer here?",
+    "options": [
+      "It maps the file into the address space, so pages are faulted in on demand from the page cache and read like memory without a copy per access",
+      "It loads the whole 50 GB into RAM at once, so every later access is guaranteed to be served from memory",
+      "It bypasses the page cache and reads straight from the disk, which avoids ever seeing stale cached data",
+      "It turns each access into a batch of system calls so the kernel can merge adjacent reads into a single larger one"
+    ],
+    "correctIndex": 0,
+    "explanation": "`mmap` ties a range of the file to virtual addresses: touching an address triggers a page fault that brings in just that page from the page cache, and later accesses are plain memory reads with no system call or extra copy. It does not read everything up front, does not bypass the cache, and does not add system calls.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man2/mmap.2.html"
+  },
+  {
+    "id": "os-ipc-shared-memory-large-data",
+    "topic": "operating-systems",
+    "subtopic": "processes-threads",
+    "difficulty": "Medium",
+    "title": "Choosing IPC for large shared data",
+    "question": "Two processes must exchange a 2 GB matrix, and the receiver reads it many times. Sending it through a pipe copies the data through the kernel. Which IPC mechanism fits better?",
+    "options": [
+      "A pipe with a larger buffer, because pipes avoid copies once the buffer is bigger than the message being sent",
+      "POSIX shared memory (`shm_open` plus `mmap`), which maps the same pages into both processes, with a semaphore or similar for synchronisation",
+      "One signal per element, since signals are delivered without any involvement from the kernel at all",
+      "A Unix domain socket, because sockets always share the sender's memory pages with the receiving process"
+    ],
+    "correctIndex": 1,
+    "explanation": "Pipes and sockets copy data into and out of kernel buffers, which is costly for gigabytes read repeatedly. Shared memory maps the same physical pages into both address spaces so no copy is needed, but the processes must coordinate access themselves, for example with a semaphore. A bigger pipe buffer still copies, signals carry no payload, and sockets also copy.",
+    "referenceUrl": "https://man7.org/linux/man-pages/man7/shm_overview.7.html"
+  },
+  {
+    "id": "os-thp-compaction-latency-stalls",
+    "topic": "operating-systems",
+    "subtopic": "memory-management",
+    "difficulty": "Hard",
+    "title": "Transparent huge pages and latency stalls",
+    "question": "A latency-sensitive database on Linux shows occasional stalls of several milliseconds, and memory compaction and `khugepaged` activity coincide with them. The vendor recommends changing the transparent huge pages setting. Why can THP hurt here?",
+    "options": [
+      "Huge pages make the TLB larger, which slows address translation for databases that use a lot of memory",
+      "THP forces every page to be written to swap first, so the stalls come from disk I/O during compaction of the memory",
+      "Huge pages are not supported for anonymous memory, so the kernel emulates them in software on every access",
+      "Finding or compacting contiguous 2 MB pages, or splitting them later, can stall threads, so such databases often disable THP or use `madvise` mode"
+    ],
+    "correctIndex": 3,
+    "explanation": "Transparent huge pages reduce TLB misses, but obtaining a free contiguous 2 MB region may require compaction and page migration, and huge pages may be split or collapsed in the background, all of which can add latency spikes that matter to a tail-latency-sensitive database. Settings such as `madvise` or `never` avoid that. Huge pages do not slow translation, are not swapped first, and are supported for anonymous memory.",
+    "referenceUrl": "https://docs.kernel.org/admin-guide/mm/transhuge.html"
+  },
+  {
+    "id": "os-numa-remote-memory-pinning",
+    "topic": "operating-systems",
+    "subtopic": "scheduling",
+    "difficulty": "Hard",
+    "title": "NUMA effects on a two-socket server",
+    "question": "A service on a two-socket server scales poorly past 16 threads. Profiling shows high memory latency and threads migrating between sockets, while their data stays on the first socket. What is the likely cause and remedy?",
+    "options": [
+      "NUMA effects: threads read remote memory across the interconnect, so keep threads and their memory on one node using affinity or a NUMA policy",
+      "Hyper-threading contention: disabling simultaneous multithreading removes the remote latency entirely on both sockets",
+      "Page faults: pre-touching all the memory from one thread makes every later access local for all the other threads",
+      "TLB shootdowns: switching to smaller pages cuts the cross-socket traffic that is slowing the memory accesses"
+    ],
+    "correctIndex": 0,
+    "explanation": "On a NUMA machine each socket has local memory that is faster to reach than memory attached to the other socket. Threads that migrate away from their data pay the cross-socket latency on each access, so binding threads and allocations to a node (taskset or `numactl`, `mbind`) restores locality. Hyper-threading, first-touch by one thread and smaller pages do not make remote memory local.",
+    "referenceUrl": "https://docs.kernel.org/admin-guide/mm/numa_memory_policy.html"
+  },
+  {
+    "id": "os-rcu-grace-period-readers",
+    "topic": "operating-systems",
+    "subtopic": "synchronization",
+    "difficulty": "Expert",
+    "title": "Lock-free readers with RCU",
+    "question": "A kernel subsystem is read-mostly: thousands of readers per second traverse a linked list, updates are rare, and reader locks cause cache-line bouncing. How does RCU let readers proceed without locks, and when can a removed element be freed?",
+    "options": [
+      "Readers take a reference count on every element, and an element is freed as soon as the first reader's count reaches zero",
+      "Updaters block all readers with one global lock for the duration of the update, then free the removed element immediately afterwards",
+      "Updaters publish the new version atomically, and the old element is freed only after a grace period, once no reader that could still see it is running",
+      "Readers always work on a private copy of the whole list, so a removed element can be freed the moment it is unlinked"
+    ],
+    "correctIndex": 2,
+    "explanation": "RCU lets readers run without locks or atomic operations inside read-side critical sections. An updater unlinks the element by atomically publishing a new pointer, but an existing reader may still hold the old one, so the element's memory is reclaimed only after a grace period, when every reader that started before the unlink has finished. The other options describe reference counting, a global lock, or copying the list, which RCU avoids.",
+    "referenceUrl": "https://docs.kernel.org/RCU/whatisRCU.html"
+  },
+  {
+    "id": "java-char-addition-before-concat",
+    "topic": "java",
+    "subtopic": "language-basics",
+    "difficulty": "Easy",
+    "title": "Adding chars before concatenating",
+    "question": "What does `System.out.println('a' + 'b' + \"c\");` print?",
+    "options": [
+      "`195c`, because the two `char`s are added as numbers first and the sum is then concatenated with the string",
+      "`abc`, because the `+` operator concatenates characters whenever one of the operands is a string, regardless of the order",
+      "`a98c`, because only the second `char` is promoted to an `int` when the string appears",
+      "Nothing, because adding two `char` values is a compile-time error in Java"
+    ],
+    "correctIndex": 0,
+    "explanation": "Operators of the same precedence are evaluated left to right, so `'a' + 'b'` is computed first. Neither operand is a string yet, so both `char`s are promoted to `int` and added (97 + 98 = 195), and only then is the result concatenated with `\"c\"`. Adding two `char`s is legal, which is why this common puzzle compiles.",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.18"
+  },
+  {
+    "id": "java-optional-orelse-eager-argument",
+    "topic": "java",
+    "subtopic": "language-basics",
+    "difficulty": "Easy",
+    "title": "Optional.orElse evaluates its argument eagerly",
+    "question": "`User user = repo.find(id).orElse(createDefaultUser());` creates the default user, which is expensive and writes to a database. What happens when the `Optional` already holds a user?",
+    "options": [
+      "It does not run, because `orElse` evaluates its argument only when the `Optional` is empty at that point",
+      "It runs only if `createDefaultUser` is declared `static`, since static methods are always evaluated lazily by the JVM",
+      "`createDefaultUser()` still runs, because the argument is evaluated eagerly; use `orElseGet(this::createDefaultUser)` to run it only when empty",
+      "It runs later on a background thread, so its result is ignored but the side effect still happens eventually"
+    ],
+    "correctIndex": 2,
+    "explanation": "Java evaluates method arguments before the call, so `createDefaultUser()` executes whether or not the `Optional` has a value, and its side effects happen every time. `orElseGet` takes a `Supplier`, which is invoked only when the `Optional` is empty. Nothing makes `orElse` lazy, `static` has no effect on evaluation order, and no background thread is involved.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Optional.html"
+  },
+  {
+    "id": "java-parallel-stream-common-pool-blocking",
+    "topic": "java",
+    "subtopic": "streams",
+    "difficulty": "Medium",
+    "title": "Blocking calls inside parallel streams",
+    "question": "A team replaces a `for` loop that calls a slow remote service with `list.parallelStream().map(this::callService)`. Under load, unrelated parallel streams elsewhere in the application slow down too. Why?",
+    "options": [
+      "Each parallel stream creates one new thread per element, which exhausts the operating system's thread limit under load",
+      "`parallelStream` serialises the whole pipeline whenever `map` is given a method reference instead of a lambda",
+      "Streams cache the first result of `map`, so every later stream waits on the same lock to read it",
+      "Parallel streams share the common ForkJoinPool, so blocking calls occupy its few worker threads for everyone"
+    ],
+    "correctIndex": 3,
+    "explanation": "By default, parallel streams run on the shared common pool, whose size is about one less than the number of cores. Tasks that block on network calls hold those workers idle, so every other parallel stream in the JVM queues behind them. Blocking work belongs on a dedicated executor. Streams do not create a thread per element, serialise on method references or cache `map` results.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/collections/streams/parallelism.html"
+  },
+  {
+    "id": "java-hashmap-mutable-key-lost-entry",
+    "topic": "java",
+    "subtopic": "generics-collections",
+    "difficulty": "Medium",
+    "title": "A HashMap entry that cannot be found",
+    "question": "A `HashMap<Key, String>` returns `null` for a key object that was inserted earlier, after other code changed a field that `Key.hashCode()` uses. Why?",
+    "options": [
+      "`HashMap` compares keys with `==` after insertion, and the mutation changes the reference held by the object",
+      "The entry sits in the bucket for the old hash code, and the changed hash now points to a different bucket",
+      "The map removes an entry automatically when the result of its key's `equals` method changes",
+      "Keys become read-only once inserted into the map, so the mutation silently failed to take effect"
+    ],
+    "correctIndex": 1,
+    "explanation": "`HashMap` places an entry in a bucket chosen from the key's hash code at insertion time. If a field used by `hashCode()` changes afterwards, a lookup computes a different hash and searches the wrong bucket, so the entry is still stored but unreachable. Keys used in hash-based collections should be immutable or at least never change in ways that affect `hashCode()` and `equals()`.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/HashMap.html"
+  },
+  {
+    "id": "java-virtual-threads-blocking-requests",
+    "topic": "java",
+    "subtopic": "concurrency-java",
+    "difficulty": "Medium",
+    "title": "Raising concurrency for blocking requests",
+    "question": "A service uses a fixed pool of 200 platform threads, and each request blocks about 500 ms on database and HTTP calls, so throughput is capped. On Java 21, which change raises concurrency with the least code change?",
+    "options": [
+      "Put the virtual threads in a fixed pool of 200 to match the old size and keep resource use predictable",
+      "Mark the blocking methods `synchronized` so the JVM can schedule them more efficiently across carrier threads",
+      "Run each request on its own virtual thread, for example with `Executors.newVirtualThreadPerTaskExecutor()`",
+      "Raise the pool to 100,000 platform threads, since each one costs very little memory to keep around"
+    ],
+    "correctIndex": 2,
+    "explanation": "Virtual threads are cheap enough to create one per task, and when they block on I/O the JVM unmounts them from the carrier thread so other virtual threads can run. That fits code that spends its time waiting. Pooling them recreates the old cap, `synchronized` can pin a virtual thread to its carrier, and 100,000 platform threads each reserve a stack and strain the operating system.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/core/virtual-threads.html"
+  },
+  {
+    "id": "java-threadlocal-pooled-threads-leak",
+    "topic": "java",
+    "subtopic": "concurrency-java",
+    "difficulty": "Hard",
+    "title": "ThreadLocal on pooled threads",
+    "question": "A web filter stores a per-request user context in a `ThreadLocal` and never clears it. Under load, users occasionally see another user's data, and memory slowly grows. What is wrong?",
+    "options": [
+      "Pool threads are reused, so the value outlives the request and leaks into the next one; call `remove()` in a `finally` block",
+      "`ThreadLocal` values are shared across every thread in the pool, so each write overwrites the others unless `synchronized` is used",
+      "The garbage collector clears `ThreadLocal` values after each request, so the filter must set them again on every call",
+      "`ThreadLocal` is only safe on virtual threads, so the container must be switched to them to isolate the requests"
+    ],
+    "correctIndex": 0,
+    "explanation": "A `ThreadLocal` value lives as long as its thread, and a servlet container reuses its pooled threads for many requests. If the filter never calls `remove()`, the previous request's context is still there when the thread picks up the next one, which exposes stale data and keeps objects reachable. Values are per thread, not shared, and the garbage collector does not clear them while the thread is alive.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/ThreadLocal.html"
+  },
+  {
+    "id": "java-completablefuture-completionexception",
+    "topic": "java",
+    "subtopic": "exceptions-java",
+    "difficulty": "Hard",
+    "title": "What exceptionally receives in a chain",
+    "question": "In `supplyAsync(() -> parse(input)).thenApply(this::enrich).exceptionally(e -> handle(e))`, `parse` throws an `IllegalArgumentException`. What does the lambda given to `exceptionally` receive?",
+    "options": [
+      "The original `IllegalArgumentException`, since `exceptionally` always unwraps the cause before it calls the function",
+      "A `CompletionException` that wraps the original, so inspect `e.getCause()` when checking the type",
+      "An `ExecutionException`, because exceptions in asynchronous stages are reported just as `Future.get()` reports them",
+      "`null`, because exceptions in dependent stages are swallowed unless `handle` is used instead of `exceptionally`"
+    ],
+    "correctIndex": 1,
+    "explanation": "When a stage fails, `CompletableFuture` completes its dependent stages exceptionally with a `CompletionException` whose cause is the original exception, and `exceptionally` hands that wrapper to the function. Code that tests `e instanceof IllegalArgumentException` therefore never matches, and `e.getCause()` should be inspected. `ExecutionException` comes from `get()`, and no exception is silently swallowed.",
+    "referenceUrl": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/CompletableFuture.html"
+  },
+  {
+    "id": "java-double-checked-locking-volatile",
+    "topic": "java",
+    "subtopic": "concurrency-java",
+    "difficulty": "Expert",
+    "title": "Double-checked locking without volatile",
+    "question": "A lazy singleton uses double-checked locking: `if (inst == null) { synchronized (LOCK) { if (inst == null) inst = new Holder(); } } return inst;`, and `inst` is a plain (non-volatile) field. What can go wrong under the Java Memory Model?",
+    "options": [
+      "The `synchronized` block can deadlock, because two threads may both enter the inner check at exactly the same time",
+      "`new Holder()` may run twice, because the outer null check is not atomic with the assignment that follows it",
+      "The JVM rejects the code at class load time unless the `inst` field is declared `final` in the class",
+      "Another thread may see a non-null `inst` before the fields of `Holder` are visible, because the unsynchronised read has no happens-before edge"
+    ],
+    "correctIndex": 3,
+    "explanation": "The first check reads `inst` without synchronisation, and without `volatile` there is no guarantee that the write of the reference is ordered after the writes that initialise `Holder`. A reader can therefore observe a non-null reference to a partially constructed object. Declaring `inst` as `volatile`, or using the initialisation-on-demand holder idiom, fixes it. The inner check prevents a second construction, a synchronized block admits one thread at a time, and no class-loading rule requires `final`.",
+    "referenceUrl": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html"
+  },
+  {
+    "id": "devops-graceful-shutdown-sigterm",
+    "topic": "devops",
+    "subtopic": "linux-shell",
+    "difficulty": "Easy",
+    "title": "Graceful shutdown on container stop",
+    "question": "During a deployment, `docker stop` kills a container's main process after its grace period, and in-flight requests are dropped. The app never reacts when the platform asks it to stop. What is the correct fix?",
+    "options": [
+      "Raise the grace period to a huge value so the process never gets `SIGKILL`, since the app cannot react to the stop request anyway, and leave the code unchanged",
+      "Handle `SIGTERM` in the app to finish in-flight work and exit cleanly, and make sure the app itself, not a shell wrapper, receives the signal",
+      "Replace `SIGTERM` with `SIGKILL` in the stop command so that the container always ends immediately and cleanly",
+      "Catch `SIGKILL` in the application and run the cleanup there, because it is the first signal the platform sends"
+    ],
+    "correctIndex": 1,
+    "explanation": "`docker stop` sends `SIGTERM` to the container's main process and, if it has not exited when the grace period ends, sends `SIGKILL`, which cannot be caught. A well-behaved service handles `SIGTERM` by stopping new work, finishing what is in flight and exiting, and it must be the process receiving the signal (for example by using exec form rather than a wrapper shell). A longer grace period only delays the kill, and `SIGKILL` cannot run any cleanup.",
+    "referenceUrl": "https://docs.docker.com/reference/cli/docker/container/stop/"
+  },
+  {
+    "id": "devops-idempotent-provisioning",
+    "topic": "devops",
+    "subtopic": "iac",
+    "difficulty": "Easy",
+    "title": "Idempotent configuration",
+    "question": "A provisioning script runs `useradd deploy` and appends a line to a config file, so on the second run it fails and duplicates the line. Which property should configuration management aim for, and what does it mean?",
+    "options": [
+      "Atomicity: the script either completes entirely or has no effect at all, so that running it twice is never needed",
+      "Determinism: the script produces byte-identical output on every run, so a second run can be skipped by comparing a stored checksum of the result",
+      "Immutability: servers are replaced instead of being changed, so the script never has to run on a machine twice",
+      "Idempotence: repeated runs converge to the same desired state, such as 'user exists' and 'line present', without errors or duplicates"
+    ],
+    "correctIndex": 3,
+    "explanation": "An idempotent operation can be applied many times with the same result as applying it once, so tools describe the desired state ('user present', 'line present') and only change what differs. That makes reruns safe after partial failures and lets the same code correct drift. Atomicity, determinism and immutability are different properties and do not by themselves make a rerun harmless.",
+    "referenceUrl": "https://docs.ansible.com/ansible/latest/reference_appendices/glossary.html"
+  },
+  {
+    "id": "devops-flaky-test-quarantine",
+    "topic": "devops",
+    "subtopic": "ci-cd",
+    "difficulty": "Medium",
+    "title": "Handling a flaky test",
+    "question": "A test fails in about 3 percent of runs with no code change, and engineers have started re-running pipelines until they turn green. What is the best approach?",
+    "options": [
+      "Quarantine it so it stops blocking merges, track it as a defect with an owner, and fix the cause, such as shared state or timing",
+      "Add an automatic retry of three attempts to the whole pipeline so that failures caused by nondeterminism are hidden from developers",
+      "Delete the test, since a test that sometimes fails gives no reliable information and the lost coverage is small",
+      "Raise every timeout tenfold, since flakiness is nearly always caused by tests being cut short too early"
+    ],
+    "correctIndex": 0,
+    "explanation": "A flaky test teaches people to ignore red builds, which hides real failures. Quarantining it removes the damage to the pipeline while keeping it visible, and treating it as a defect with an owner leads to the real cause, often shared state, ordering, time or concurrency. Blanket retries and bigger timeouts mask the symptom, and deleting the test discards the coverage it was meant to give.",
+    "referenceUrl": "https://martinfowler.com/articles/nonDeterminism.html"
+  },
+  {
+    "id": "devops-env-var-secrets-exposure",
+    "topic": "devops",
+    "subtopic": "configuration-secrets",
+    "difficulty": "Medium",
+    "title": "Secrets in environment variables",
+    "question": "A team passes a database password to a container as an environment variable. A security review flags it even though the image contains no secret. Which risk does it point to, and what is a stronger option?",
+    "options": [
+      "Environment variables are stored unencrypted in the image layers, so the password is always visible to everyone who pulls the image",
+      "Environment variables are limited to 256 characters, so long passwords get silently truncated when the container starts",
+      "Environment variables are inherited by child processes and often exposed in crash dumps, debug pages and `docker inspect`; mount the secret as a file from a secret store",
+      "Environment variables can only be read by the root user inside the container, so the application itself cannot use them"
+    ],
+    "correctIndex": 2,
+    "explanation": "The secret is not in the image, but environment variables are widely visible at run time: child processes inherit them, frameworks may print them in error pages or dumps, and tools such as `docker inspect` show them to anyone with access to the container metadata. Delivering secrets as files (or fetching them from a secret manager) with tight permissions narrows exposure. The other claims about layers, length and root-only access are not true.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html"
+  },
+  {
+    "id": "devops-docker-build-secret-layers",
+    "topic": "devops",
+    "subtopic": "configuration-secrets",
+    "difficulty": "Medium",
+    "title": "Secrets baked into image layers",
+    "question": "A Dockerfile declares `ARG NPM_TOKEN` and uses it during `npm ci` to fetch private packages, and the image is later pushed to a registry. Why is this risky, and what is the better approach?",
+    "options": [
+      "Nothing is stored, since `ARG` values exist only during the build and are discarded afterwards without a trace",
+      "Use `ENV NPM_TOKEN` instead of `ARG`, because environment variables are encrypted inside the finished image",
+      "Delete the token with a later `RUN rm` line, which removes it from every earlier layer of the image",
+      "Build args and copied files can be recovered from the image's layers and history, so use BuildKit secret mounts (`--mount=type=secret`) that are not stored in the image"
+    ],
+    "correctIndex": 3,
+    "explanation": "Build arguments are recorded in the image history, and anything written to a layer stays in that layer even if a later instruction deletes it, so a token used this way can be extracted by anyone who can pull the image. BuildKit secret mounts expose the secret to a single `RUN` step without writing it into any layer. `ENV` is stored in plain text, and a later `rm` only hides the file in the final filesystem view.",
+    "referenceUrl": "https://docs.docker.com/build/building/secrets/"
+  },
+  {
+    "id": "devops-terraform-configuration-drift",
+    "topic": "devops",
+    "subtopic": "iac",
+    "difficulty": "Hard",
+    "title": "Handling configuration drift",
+    "question": "After an engineer edits a security group in the cloud console, the next `terraform plan` shows an unexpected change that would revert it. What is this, and how should the team handle it?",
+    "options": [
+      "State corruption: delete the state file and run `terraform apply` so that it is regenerated from what exists in the cloud",
+      "Configuration drift: real infrastructure differs from the code and state, so decide whether to codify the change or let `apply` restore it, and restrict console edits",
+      "A provider bug: pin an older provider version until the difference disappears from the plan output",
+      "Normal behaviour: `terraform plan` ignores changes made outside Terraform until the next `apply` actually runs"
+    ],
+    "correctIndex": 1,
+    "explanation": "Terraform refreshes its view of real resources when planning, so manual changes show up as differences between what the code declares and what exists. The team must decide which side is right: update the code (or import the change) to keep it, or apply to restore the declared state, and reduce console access to prevent repeats. Deleting state loses the resource mapping, the plan is not hiding changes, and a provider downgrade does not address a real difference.",
+    "referenceUrl": "https://developer.hashicorp.com/terraform/language/state"
+  },
+  {
+    "id": "devops-gitops-pull-reconciliation",
+    "topic": "devops",
+    "subtopic": "deployment-strategies",
+    "difficulty": "Hard",
+    "title": "What an in-cluster GitOps agent changes",
+    "question": "A team pushes manifests to a cluster from CI with admin credentials, and the cluster drifts when people run `kubectl edit`. They consider GitOps with an in-cluster agent such as Argo CD. What does that change?",
+    "options": [
+      "CI still pushes to the cluster as before, but the manifests are also stored in Git as a backup copy of what was deployed",
+      "The agent rebuilds container images from source on every commit, which replaces the build stage that CI performs today",
+      "An agent in the cluster pulls the desired state from Git and keeps reconciling the cluster to it, so CI needs no cluster credentials and drift is detected",
+      "Git becomes the live runtime store, so changes made with `kubectl edit` are written back to the repository automatically"
+    ],
+    "correctIndex": 2,
+    "explanation": "In GitOps the repository is the source of truth for the desired state, and an agent running in the cluster pulls it and continuously reconciles the live state to match, so CI no longer holds cluster admin credentials and manual edits show up as drift that can be reverted. It does not push from CI, build images, or write cluster edits back to Git.",
+    "referenceUrl": "https://argo-cd.readthedocs.io/en/stable/"
+  },
+  {
+    "id": "devops-ddl-lock-queue-outage",
+    "topic": "devops",
+    "subtopic": "deployment-strategies",
+    "difficulty": "Expert",
+    "title": "A quick ALTER TABLE that stalls the API",
+    "question": "A release runs `ALTER TABLE orders ADD COLUMN note text` on PostgreSQL at peak time. The statement itself needs only a brief lock, yet the API stalls for a minute. A long-running analytics transaction had been reading `orders`. What happened, and how can it be prevented?",
+    "options": [
+      "The ALTER queued behind the long transaction for its `ACCESS EXCLUSIVE` lock, and new queries queued behind the ALTER; set a short `lock_timeout` and retry",
+      "The ALTER rewrote the whole table because of the new column, so the lock lasted for the entire rewrite; always add columns with a default value to avoid it",
+      "The ALTER deadlocked with the analytics query and PostgreSQL aborted both after a minute; running it inside a transaction avoids this",
+      "PostgreSQL pauses all connections while any DDL runs, so DDL can only ever be scheduled outside peak hours"
+    ],
+    "correctIndex": 0,
+    "explanation": "`ALTER TABLE` needs an `ACCESS EXCLUSIVE` lock, which conflicts with the analytics transaction's lock, so the ALTER waits. Because lock requests are queued in order, every later query on `orders` waits behind the pending ALTER, and the table appears frozen. A short `lock_timeout` makes the ALTER give up quickly so it can be retried, and long transactions should be avoided. Adding a nullable column does not rewrite the table, and deadlocks are detected within seconds.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/explicit-locking.html"
+  }
+]

@@ -1,0 +1,482 @@
+[
+  {
+    "id": "cc-naming-intention-revealing",
+    "title": "Nomes de métodos que revelam a intenção",
+    "question": "Um método se chama `Process(data)` e quem o chama precisa abrir o corpo para saber o que ele faz. Qual mudança melhora mais a legibilidade?",
+    "options": [
+      "Adicionar um comentário em cada chamada que repete, em linguagem simples, o que o método faz ali",
+      "Renomeá-lo para dizer o que faz em termos do domínio, como `ApproveRefund(request)`",
+      "Manter o nome curto e descrever o comportamento em uma página separada da wiki para os novatos",
+      "Prefixá-lo com as iniciais do time para facilitar a busca"
+    ],
+    "explanation": "Nomes são a principal documentação do código: um nome que declara a intenção na linguagem do domínio permite entender a chamada sem abrir o corpo. Comentários nas chamadas e páginas de wiki ficam desatualizados, e um prefixo adiciona ruído sem dizer o que o método faz."
+  },
+  {
+    "id": "cc-guard-clauses-flatten-nesting",
+    "title": "Achatando pré-condições aninhadas",
+    "question": "Uma função envolve seu trabalho real em quatro blocos `if` aninhados que checam uma pré-condição cada (usuário existe, está ativo, tem carrinho, carrinho não está vazio), então a lógica principal fica bem no fundo. Qual refatoração a achata?",
+    "options": [
+      "Extrair cada `if` aninhado para uma classe validadora própria, para cada pré-condição ter um objeto dedicado e testável separadamente",
+      "Transformar os `if` aninhados em expressões ternárias aninhadas para a função ficar mais curta",
+      "Adicionar um comentário antes de cada `if` explicando qual pré-condição ele está checando",
+      "Trocar o aninhamento por cláusulas de guarda que retornam ou lançam exceção cedo, deixando a lógica principal no nível de cima"
+    ],
+    "explanation": "Cláusulas de guarda tratam os casos excepcionais primeiro e saem, então o caminho normal se lê de cima a baixo sem indentação. Extrair classes validadoras ou espremer as checagens em ternários adiciona estrutura ou densidade sem achatar nada, e comentários deixam o formato do código igual."
+  },
+  {
+    "id": "cc-delete-dead-code",
+    "title": "O que fazer com código comentado",
+    "question": "Um módulo contém um bloco de 60 linhas de código comentado e dois métodos privados que ninguém chama. Um desenvolvedor quer mantê-los 'só por precaução'. Qual é a melhor prática?",
+    "options": [
+      "Apagá-los: o controle de versão guarda o histórico, e código morto só confunde quem lê e atrapalha as buscas",
+      "Mantê-los, mas com um comentário `// TODO: remove` e a data, para a decisão ficar visível a todos no time inteiro",
+      "Movê-los para uma pasta `Legacy` no mesmo projeto, para o próprio módulo ficar mais curto",
+      "Manter o bloco comentado, mas apagar os métodos sem uso, já que comentários não afetam o programa"
+    ],
+    "explanation": "Código morto custa atenção: quem lê precisa descobrir se ele importa, as buscas retornam ruído e as refatorações precisam mantê-lo compilando. O controle de versão já lembra da versão antiga, então apagar é seguro e reversível. TODOs datados e uma pasta `Legacy` mantêm a bagunça, e código comentado confunde tanto quanto métodos sem uso."
+  },
+  {
+    "id": "cc-extract-function-levels-of-abstraction",
+    "title": "Níveis de abstração misturados",
+    "question": "Um método `ImportOrders()` de 120 linhas mistura passos de alto nível (ler arquivo, validar, salvar) com detalhes de baixo nível, como dividir linhas de CSV e interpretar datas no meio do código. Qual refatoração mais o melhora?",
+    "options": [
+      "Mover as 120 linhas para uma função aninhada, o que mantém o código idêntico, mas o esconde dos chamadores",
+      "Adicionar uma linha em branco e um banner de comentário antes de cada bloco para as seções se destacarem visualmente",
+      "Extrair os blocos de baixo nível para funções nomeadas, para o método se ler como uma sequência curta de passos",
+      "Inlinar os auxiliares que já existem para tudo voltar a acontecer em um só lugar"
+    ],
+    "explanation": "Extract Function dá a cada bloco um nome que declara seu propósito, então `ImportOrders()` mostra o fluxo em um único nível de abstração e os detalhes ficam em funções que podem ser lidas e testadas separadamente. Uma cópia aninhada, banners de comentário ou inlinar os auxiliares existentes deixam o método tão longo e misturado quanto antes."
+  },
+  {
+    "id": "cc-strangler-fig-migration",
+    "title": "Substituindo um módulo legado com segurança",
+    "question": "Um time precisa substituir um grande módulo de cobrança legado que está em produção, e não há como reescrevê-lo com segurança em uma única release. Qual abordagem o migra com o menor risco?",
+    "options": [
+      "Congelar o trabalho em funcionalidades, reescrever o módulo inteiro em um branch longo e trocar tudo em um único fim de semana de virada, sem passos intermediários",
+      "Executar as duas implementações e deixar cada cliente escolher qual motor de cobrança prefere usar",
+      "Remendar o módulo legado até a cobertura de testes chegar a 100 por cento e depois trocar tudo de uma vez",
+      "Strangler fig: rotear uma capacidade por vez por uma fachada para o código novo, aposentando os caminhos legados conforme cada um é comprovado"
+    ],
+    "explanation": "A abordagem strangler fig faz a substituição crescer ao redor do sistema antigo: uma fachada envia cada capacidade ao código antigo ou ao novo, então cada passo é pequeno, liberável e reversível, e o legado encolhe até poder ser removido. Uma reescrita big-bang concentra todo o risco em uma única virada, a escolha do cliente empurra uma decisão interna para os usuários, e cobertura alta não torna segura uma troca de uma só vez."
+  },
+  {
+    "id": "cc-characterization-tests-legacy",
+    "title": "Testes antes de mexer em código legado sem testes",
+    "question": "Uma função crítica de precificação não tem testes nem documentação, e ninguém tem certeza de todas as regras que ela aplica. Você precisa refatorá-la. O que o time deve fazer primeiro?",
+    "options": [
+      "Reescrever a função a partir dos requisitos de negócio escritos e trocar a antiga quando a nova parecer certa",
+      "Escrever testes de caracterização que registram o que o código faz hoje para muitas entradas e refatorar mantendo-os verdes",
+      "Começar a refatorar em passos pequenos e contar com a revisão de código para pegar qualquer mudança de comportamento que passe",
+      "Escrever testes a partir do documento de requisitos e corrigir o código até todos passarem, mesmo que as saídas mudem"
+    ],
+    "explanation": "Testes de caracterização fixam o comportamento atual real, inclusive as esquisitices, para a refatoração ser conferida contra ele e mudanças não intencionais aparecerem na hora. Reescrever a partir dos requisitos ou corrigir o código para bater com um documento pode alterar comportamento de que os clientes dependem, e a revisão sozinha é uma proteção fraca quando ninguém conhece todas as regras."
+  },
+  {
+    "id": "cc-connascence-position-to-name",
+    "title": "Enfraquecendo a connascence de posição",
+    "question": "`CreateInvoice(string, string, decimal, decimal, bool, DateTime)` é chamado em 40 arquivos, e reordenar ou inserir um parâmetro quebra silenciosamente chamadores cujos tipos coincidem. Qual mudança leva esse acoplamento a uma forma mais fraca de connascence?",
+    "options": [
+      "Renomear os parâmetros para nomes mais descritivos, o que basta para impedir que chamadores errem a ordem dos argumentos na prática",
+      "Adicionar sobrecargas para cada combinação de parâmetros, para o compilador sempre escolher a pretendida",
+      "Receber um objeto de requisição nomeado, para os chamadores dependerem dos nomes dos campos e não da ordem dos argumentos",
+      "Tornar o método thread-safe, para a ordem em que os chamadores o invocam deixar de importar"
+    ],
+    "explanation": "Connascence de posição significa que todo chamador precisa concordar com a ordem dos argumentos, uma forma forte que o compilador não consegue checar quando os tipos coincidem. Um objeto nomeado a transforma em connascence de nome, mais fraca porque um renomeio é fácil de encontrar e corrigir nos chamadores. Nomes de parâmetros não aparecem na maioria das chamadas, sobrecargas multiplicam as posições, e thread safety trata de tempo e não da ordem dos argumentos."
+  },
+  {
+    "id": "cc-aggregate-eventual-consistency",
+    "title": "Consistência entre fronteiras de agregados",
+    "question": "Quando um `Customer` é desativado, seus `Order`s em aberto devem ser cancelados, e o negócio aceita que isso leve alguns segundos. `Customer` e `Order` são agregados separados. Qual desenho é o mais adequado?",
+    "options": [
+      "Alterar um agregado por transação: referenciar o cliente por id e cancelar os pedidos em reação a um evento `CustomerDeactivated`",
+      "Unir `Customer` e `Order` em um único agregado grande, para uma só transação sempre cobrir os dois",
+      "Deixar `Customer` manter referências diretas aos seus pedidos e modificá-los dentro do próprio método de desativação, tudo em uma única transação",
+      "Usar um commit de duas fases distribuído sobre as duas tabelas, para o cancelamento ser sempre imediato e atômico"
+    ],
+    "explanation": "Agregados são fronteiras de consistência: cada transação deve alterar um único agregado, e os outros são referenciados por identidade e atualizados por eventos de domínio, aceitando consistência eventual onde o negócio permite. Uni-los cria um agregado enorme com muita contenção, referências diretas deixam um agregado mudar o estado de outro, e um commit distribuído acrescenta custo e acoplamento por uma garantia de que ninguém precisa."
+  },
+  {
+    "id": "dp-iterator-hide-collection-structure",
+    "title": "Percorrendo sem conhecer a estrutura",
+    "question": "Uma `Playlist` guarda suas músicas em uma árvore interna, e vários clientes a percorrem acessando os nós da árvore, então qualquer mudança na estrutura quebra todos eles. Qual padrão permite que os clientes percorram as músicas sem saber como elas estão armazenadas?",
+    "options": [
+      "Memento",
+      "Interpreter",
+      "Iterator",
+      "Flyweight"
+    ],
+    "explanation": "O Iterator dá aos clientes uma forma padrão de percorrer os elementos um a um (como `IEnumerable<T>` ou `Iterator<E>`) enquanto a coleção mantém sua estrutura interna privada, então a árvore pode mudar sem tocar nos clientes. O Memento salva e restaura estado, o Interpreter avalia uma gramática, e o Flyweight compartilha objetos pequenos."
+  },
+  {
+    "id": "dp-null-object-guest-customer",
+    "title": "Substituindo checagens de nulo espalhadas",
+    "question": "Depois de cada busca o código faz `if (customer == null) { name = \"guest\"; discount = 0; }` em uma dúzia de lugares. Qual padrão troca essas checagens por um objeto com comportamento padrão seguro?",
+    "options": [
+      "Null Object (Special Case): retornar um `GuestCustomer` cujos membros já fornecem os padrões de visitante",
+      "Decorator: envolver cada resultado da busca em um objeto que registra um aviso sempre que o valor está ausente",
+      "Proxy: retornar um substituto que carrega o cliente real na primeira vez que um de seus métodos é chamado",
+      "Singleton: manter uma única instância compartilhada de `Customer` que todos os chamadores reutilizam quando nada é encontrado"
+    ],
+    "explanation": "Um Null Object (também chamado de Special Case) é um objeto real que implementa a mesma interface com comportamento neutro, então os chamadores tratam um cliente ausente como qualquer outro e as checagens de nulo desaparecem em uma única classe. Um decorator só acrescenta comportamento a um objeto existente, um proxy ainda precisa de um alvo real, e um singleton compartilhado carregaria estado entre chamadores sem relação."
+  },
+  {
+    "id": "dp-bridge-two-dimensions",
+    "title": "Evitando uma explosão de classes em duas dimensões",
+    "question": "Um app de desenho tem `Circle` e `Square`, cada um desenhado nos estilos `Vector` e `Raster`, e o time criou `VectorCircle`, `RasterCircle`, `VectorSquare` e `RasterSquare`. Adicionar `Triangle` e um terceiro renderizador criaria cinco classes a mais. Qual padrão mantém as duas dimensões independentes?",
+    "options": [
+      "Decorator: envolver cada forma em um decorator de renderização para as classes poderem ser empilhadas em tempo de execução e combinadas livremente",
+      "Bridge: as formas guardam uma referência para uma interface de renderizador, então formas e renderizadores variam separadamente",
+      "Adapter: dar a cada forma um adaptador que converte suas chamadas para o renderizador que estiver instalado",
+      "Composite: montar uma árvore de formas em que cada nó carrega sua própria cópia do código de renderização"
+    ],
+    "explanation": "O Bridge separa uma abstração (as formas) de sua implementação (os renderizadores) em duas hierarquias ligadas por composição, então adicionar uma forma ou um renderizador é uma classe nova em vez de um produto das duas. O Decorator acrescenta comportamento a um objeto, o Adapter faz interfaces incompatíveis trabalharem juntas, e o Composite modela árvores parte-todo, e nenhum deles separa dois eixos independentes de variação."
+  },
+  {
+    "id": "dp-data-mapper-versus-active-record",
+    "title": "Separando regras de domínio da persistência",
+    "question": "Uma classe de domínio `Invoice` contém regras de imposto e também métodos `Save()` e `Find()` que executam SQL. Testar as regras de imposto exige um banco de dados, e o schema não pode mudar sem editar a classe. Qual padrão separa as duas responsabilidades?",
+    "options": [
+      "Active Record: manter os métodos de persistência em `Invoice` e adicionar uma variante em memória do `Save()` para uso nos testes",
+      "Identity Map: guardar em cache cada `Invoice` carregada por id para o banco ser acessado bem menos durante os testes",
+      "Lazy Load: adiar a leitura das linhas da fatura até uma regra pedi-las, o que mantém a maioria dos testes longe do banco",
+      "Data Mapper: um mapper separado move os dados entre `Invoice` e o banco, então a classe de domínio não sabe nada de SQL"
+    ],
+    "explanation": "A classe descrita é um Active Record: ela mistura regras de negócio com a própria persistência. Um Data Mapper mantém o objeto de domínio simples e coloca o mapeamento para as tabelas em uma classe separada, então as regras podem ser testadas sem banco e o schema pode evoluir de forma independente. Uma variante em memória, um identity map ou o lazy loading mantêm o acoplamento."
+  },
+  {
+    "id": "dp-template-method-hook-step",
+    "title": "Passos opcionais em um Template Method",
+    "question": "Uma classe base `Importer` executa ler, validar, transformar e gravar, e as subclasses precisam sobrescrever os quatro passos. A maioria dos importadores não precisa de validação própria, mas cada um copia uma sobrescrita vazia. Qual é o refinamento padrão do Template Method?",
+    "options": [
+      "Transformar a validação em um hook: dar a ela uma implementação padrão vazia que as subclasses podem sobrescrever, mas não precisam",
+      "Tornar `Run()` virtual para cada subclasse poder abandonar a validação reescrevendo ela mesma a sequência inteira",
+      "Mover a validação para um auxiliar estático que a classe base chama só se uma subclasse o registrar antes",
+      "Declarar a validação como `abstract` na classe base para toda subclasse ser obrigada a considerá-la, mesmo que não precise de validação"
+    ],
+    "explanation": "Um hook é um passo opcional com uma implementação padrão (muitas vezes vazia) na classe base: as subclasses o sobrescrevem quando precisam e o ignoram caso contrário, enquanto o esqueleto fixo em `Run()` permanece intacto. Deixar as subclasses reescreverem `Run()` perde o algoritmo compartilhado, um auxiliar de registro acrescenta mecanismo sem benefício, e tornar o passo abstrato é exatamente o que causa as cópias vazias."
+  },
+  {
+    "id": "dp-decorator-order-retry-cache",
+    "title": "Por que a ordem dos decorators importa",
+    "question": "Um `PriceService` é envolvido por três decorators: `Caching`, `Retrying` e `Logging`. Depois de uma refatoração que inverteu a ordem de empilhamento, chamadas que falhavam passaram a ser guardadas em cache por minutos, e as tentativas deixaram de ajudar. O que explica isso?",
+    "options": [
+      "Decorators rodam em threads paralelas, então inverter a ordem fez o cache e o retry disputarem o mesmo resultado",
+      "Decorators precisam ser aplicados em ordem alfabética, e inverter a ordem quebrou o contrato de interface entre eles",
+      "Cada decorator só enxerga o que o de baixo retorna, então um cache colocado por fora de um retry pode guardar um erro ou um valor vazio de contingência e continuar servindo-o",
+      "O retry só funciona como o decorator mais externo, porque as camadas internas não conseguem capturar exceções lançadas pelo serviço real"
+    ],
+    "explanation": "Decorators se aninham como chamadas de função: o mais externo recebe a chamada primeiro e delega para dentro. Colocar o cache por fora do retry (ou deixar uma falha ser guardada como resultado normal) muda o que é armazenado e quando as tentativas acontecem, então a ordem é uma decisão de design e não um detalhe. Eles rodam na thread do chamador, não há regra alfabética, e qualquer camada pode capturar o que a de baixo lança."
+  },
+  {
+    "id": "dp-identity-map-duplicate-instances",
+    "title": "Duas cópias em memória da mesma linha",
+    "question": "Dentro de uma requisição, o código carrega o `Customer` 42 por dois repositórios diferentes e recebe dois objetos separados. Um é editado e salvo, depois o outro é editado e salvo, sobrescrevendo a primeira alteração. Qual padrão impede duas cópias em memória da mesma linha em uma sessão?",
+    "options": [
+      "Unit of Work: confirmar as duas edições em uma transação para o segundo salvamento se mesclar com o primeiro",
+      "Singleton: tornar `Customer` um singleton para só um cliente poder ser carregado por vez no processo",
+      "Lazy Load: carregar o cliente só quando ele for lido pela primeira vez para nunca ser carregado duas vezes na requisição",
+      "Identity Map: manter um mapa por sessão de id para objeto carregado e retornar a instância existente para a mesma linha"
+    ],
+    "explanation": "Um Identity Map garante que cada linha do banco seja carregada em no máximo um objeto por sessão: um segundo carregamento do mesmo id devolve a instância que já está em memória, então as edições vão para um único objeto. Uma unit of work coordena gravações mas não mescla cópias divergentes, um singleton quebraria todos os outros clientes, e o lazy loading atrasa o carregamento em vez de eliminar duplicatas."
+  },
+  {
+    "id": "dp-optimistic-offline-lock-lost-update",
+    "title": "Detectando edições conflitantes sem locks longos",
+    "question": "Dois atendentes abrem o mesmo formulário de `Order`, ambos alteram e salvam, e o segundo salvamento sobrescreve o primeiro silenciosamente. Manter locks no banco enquanto uma pessoa edita não é aceitável. Qual abordagem detecta o conflito sem locks longos?",
+    "options": [
+      "Lock pessimista: travar a linha quando o formulário abre e liberá-la só quando o atendente salva ou a sessão termina",
+      "Optimistic offline lock: guardar uma versão, atualizar `WHERE id = @id AND version = @v` e reportar conflito quando nenhuma linha for atualizada",
+      "Subir o nível de isolamento da transação para Serializable para o banco detectar sozinho o conflito entre os dois salvamentos",
+      "Tornar o salvamento mais rápido para a janela em que dois atendentes podem se sobrepor ficar pequena demais para importar na prática, sem nenhum mecanismo de detecção"
+    ],
+    "explanation": "As duas edições acontecem em transações de negócio diferentes, com tempo de reflexão humana no meio, então o isolamento e as transações do banco não enxergam o conflito. Uma coluna de versão verificada na gravação deixa o segundo salvamento descobrir que a linha mudou desde a leitura, e a aplicação pode rejeitá-lo ou pedir ao atendente que mescle. Um lock pessimista é exatamente o lock longo que a pergunta exclui, e um salvamento mais rápido só reduz a janela."
+  },
+  {
+    "id": "os-load-average-uninterruptible-io",
+    "title": "Lendo um load average alto",
+    "question": "Um servidor mostra load average de 40 em 8 núcleos, mas a utilização de CPU é de apenas 10 por cento e os discos estão lentos. O que o load average alto provavelmente reflete no Linux?",
+    "options": [
+      "Quarenta processos estão na fila de execução esperando um dos 8 núcleos, então a CPU está saturada mesmo com a utilização baixa",
+      "O load average mede tráfego de rede, então 40 significa que a interface de rede está perto da saturação",
+      "O kernel conta apenas tarefas dormindo, então um valor alto significa que a maioria dos processos está ociosa e saudável",
+      "O Linux também conta tarefas em sono ininterruptível, geralmente esperando E/S, então tarefas presas em discos lentos o inflam"
+    ],
+    "explanation": "No Linux o load average conta tarefas executáveis mais tarefas em sono ininterruptível (estado D), que normalmente estão bloqueadas em disco ou em sistemas de arquivos de rede. Com 10 por cento de CPU e discos lentos, a carga vem de tarefas esperando E/S e não de disputa por CPU. Ele não mede tráfego de rede e não conta quem dorme ocioso."
+  },
+  {
+    "id": "os-dma-device-to-memory",
+    "title": "Por que dispositivos usam DMA",
+    "question": "Uma placa de rede recebe uma rajada de pacotes grandes. Por que os sistemas modernos usam DMA para isso em vez de a CPU copiar cada byte do dispositivo?",
+    "options": [
+      "O DMA deixa o dispositivo contornar o kernel por completo, então as aplicações leem pacotes sem fazer nenhuma chamada de sistema",
+      "O DMA deixa o dispositivo escrever direto na memória principal e sinalizar a conclusão, liberando a CPU para outras tarefas",
+      "O DMA comprime os pacotes em hardware para menos bytes precisarem atravessar o barramento de memória até a aplicação",
+      "O DMA faz a CPU consultar a placa mais rápido ao manter os registradores da placa no cache L1 do processador"
+    ],
+    "explanation": "Com DMA, o driver entrega ao dispositivo o endereço de um buffer, e o dispositivo transfere dados de ou para a memória sozinho e gera uma interrupção ao terminar, então a CPU não fica presa copiando bytes. O kernel continua gerenciando os buffers e as aplicações continuam usando chamadas de sistema, nada é comprimido, e registradores de dispositivo não são cacheados como memória comum."
+  },
+  {
+    "id": "os-page-cache-scan-pollution",
+    "title": "Uma varredura única expulsando páginas quentes",
+    "question": "O conjunto de trabalho quente de um serviço está bem em cache, mas um job noturno lê um arquivo de 200 GB uma única vez, do início ao fim, e depois disso o serviço fica lento enquanto suas páginas voltam à memória. Por que isso acontece e o que mitiga?",
+    "options": [
+      "Uma leitura sequencial sempre descarrega os caches da CPU, e só comprar um processador com um cache L3 maior evita a lentidão",
+      "O sistema de arquivos registra no journal cada página lida, e desligar o journal remove a E/S extra que causa a travada",
+      "A varredura de uma passada empurra páginas quentes para fora do page cache, e listas ativa/inativa fazem as páginas provarem reuso antes de serem protegidas",
+      "O read-ahead copia o arquivo inteiro para o swap, então a correção é desligar o swap por completo na máquina"
+    ],
+    "explanation": "Os dados de arquivos ficam no page cache, que disputa a RAM com as páginas do serviço. Uma única passada por um arquivo enorme pode expulsar páginas que eram úteis, então o kernel mantém listas ativa e inativa e promove uma página só depois de ela ser tocada de novo, o que protege páginas quentes de varreduras únicas. Caches da CPU, journals e swap não são a causa."
+  },
+  {
+    "id": "os-mmap-random-access-large-file",
+    "title": "Acesso aleatório a um arquivo grande somente leitura",
+    "question": "Um processo precisa de acesso aleatório a muitas regiões pequenas de um arquivo de 50 GB somente leitura. Chamar `lseek` e `read` para cada região custa uma chamada de sistema e uma cópia a cada vez. O que o `mmap` oferece aqui?",
+    "options": [
+      "Ele mapeia o arquivo no espaço de endereçamento, então as páginas entram sob demanda a partir do page cache e são lidas como memória, sem uma cópia por acesso",
+      "Ele carrega os 50 GB inteiros na RAM de uma vez, então todo acesso posterior é garantidamente atendido pela memória",
+      "Ele ignora o page cache e lê direto do disco, o que evita ver dados desatualizados em cache",
+      "Ele transforma cada acesso em um lote de chamadas de sistema para o kernel juntar leituras adjacentes em uma única maior"
+    ],
+    "explanation": "O `mmap` liga uma faixa do arquivo a endereços virtuais: tocar em um endereço dispara uma falta de página que traz só aquela página do page cache, e os acessos seguintes são leituras de memória comuns, sem chamada de sistema nem cópia extra. Ele não lê tudo de antemão, não ignora o cache e não adiciona chamadas de sistema."
+  },
+  {
+    "id": "os-ipc-shared-memory-large-data",
+    "title": "Escolhendo IPC para dados grandes compartilhados",
+    "question": "Dois processos precisam trocar uma matriz de 2 GB, e o receptor a lê muitas vezes. Enviá-la por um pipe copia os dados pelo kernel. Qual mecanismo de IPC se encaixa melhor?",
+    "options": [
+      "Um pipe com um buffer maior, porque pipes evitam cópias quando o buffer é maior que a mensagem enviada",
+      "Memória compartilhada POSIX (`shm_open` mais `mmap`), que mapeia as mesmas páginas nos dois processos, com um semáforo ou similar para sincronização",
+      "Um sinal por elemento, já que sinais são entregues sem nenhuma participação do kernel",
+      "Um socket de domínio Unix, porque sockets sempre compartilham as páginas de memória do remetente com o processo receptor"
+    ],
+    "explanation": "Pipes e sockets copiam dados para dentro e para fora de buffers do kernel, o que é caro para gigabytes lidos repetidamente. A memória compartilhada mapeia as mesmas páginas físicas nos dois espaços de endereçamento, então nenhuma cópia é necessária, mas os processos precisam coordenar o acesso por conta própria, por exemplo com um semáforo. Um buffer de pipe maior ainda copia, sinais não carregam dados, e sockets também copiam."
+  },
+  {
+    "id": "os-thp-compaction-latency-stalls",
+    "title": "Transparent huge pages e travadas de latência",
+    "question": "Um banco de dados sensível à latência no Linux mostra travadas ocasionais de vários milissegundos, e a atividade de compactação de memória e do `khugepaged` coincide com elas. O fornecedor recomenda mudar a configuração de transparent huge pages. Por que o THP pode prejudicar aqui?",
+    "options": [
+      "Páginas grandes aumentam a TLB, o que deixa a tradução de endereços mais lenta em bancos que usam muita memória",
+      "O THP obriga cada página a ser gravada no swap antes, então as travadas vêm de E/S de disco durante a compactação da memória",
+      "Páginas grandes não são suportadas para memória anônima, então o kernel as emula em software a cada acesso",
+      "Encontrar ou compactar páginas contíguas de 2 MB, ou dividi-las depois, pode travar threads, então esses bancos costumam desativar o THP ou usar o modo `madvise`"
+    ],
+    "explanation": "Transparent huge pages reduzem as falhas de TLB, mas obter uma região contígua livre de 2 MB pode exigir compactação e migração de páginas, e páginas grandes podem ser divididas ou reunidas em segundo plano, o que pode causar picos de latência que importam para um banco sensível à latência de cauda. Configurações como `madvise` ou `never` evitam isso. Páginas grandes não atrasam a tradução, não passam antes pelo swap e são suportadas para memória anônima."
+  },
+  {
+    "id": "os-numa-remote-memory-pinning",
+    "title": "Efeitos de NUMA em um servidor de dois sockets",
+    "question": "Um serviço em um servidor de dois sockets escala mal acima de 16 threads. O profiling mostra alta latência de memória e threads migrando entre sockets, enquanto seus dados ficam no primeiro socket. Qual é a causa provável e o remédio?",
+    "options": [
+      "Efeitos de NUMA: as threads leem memória remota pela interconexão, então mantenha threads e sua memória em um nó usando afinidade ou uma política NUMA",
+      "Contenção de hyper-threading: desativar o multithreading simultâneo remove por completo a latência remota nos dois sockets",
+      "Page faults: tocar toda a memória antecipadamente a partir de uma thread torna todo acesso posterior local para as outras threads",
+      "TLB shootdowns: trocar para páginas menores reduz o tráfego entre sockets que está atrasando os acessos à memória"
+    ],
+    "explanation": "Em uma máquina NUMA, cada socket tem memória local, mais rápida de alcançar que a memória ligada ao outro socket. Threads que migram para longe de seus dados pagam a latência entre sockets a cada acesso, então vincular threads e alocações a um nó (taskset ou `numactl`, `mbind`) restaura a localidade. Hyper-threading, o primeiro toque por uma thread e páginas menores não tornam a memória remota local."
+  },
+  {
+    "id": "os-rcu-grace-period-readers",
+    "title": "Leitores sem lock com RCU",
+    "question": "Um subsistema do kernel é majoritariamente de leitura: milhares de leitores por segundo percorrem uma lista encadeada, as atualizações são raras, e locks de leitura causam disputa de linhas de cache. Como o RCU deixa os leitores avançarem sem locks, e quando um elemento removido pode ser liberado?",
+    "options": [
+      "Os leitores incrementam uma contagem de referências em cada elemento, e um elemento é liberado assim que a contagem do primeiro leitor chega a zero",
+      "Os atualizadores bloqueiam todos os leitores com um lock global durante a atualização e depois liberam o elemento removido imediatamente",
+      "Os atualizadores publicam a nova versão atomicamente, e o elemento antigo só é liberado após um período de graça, quando nenhum leitor que ainda poderia vê-lo está em execução",
+      "Os leitores sempre trabalham em uma cópia privada da lista inteira, então um elemento removido pode ser liberado no momento em que é desligado da lista"
+    ],
+    "explanation": "O RCU deixa os leitores rodarem sem locks nem operações atômicas dentro de seções críticas de leitura. Um atualizador desliga o elemento publicando atomicamente um novo ponteiro, mas um leitor existente ainda pode segurar o antigo, então a memória do elemento só é recuperada após um período de graça, quando todo leitor que começou antes da remoção terminou. As outras opções descrevem contagem de referências, um lock global ou a cópia da lista, que o RCU evita."
+  },
+  {
+    "id": "java-char-addition-before-concat",
+    "title": "Somando chars antes de concatenar",
+    "question": "O que `System.out.println('a' + 'b' + \"c\");` imprime?",
+    "options": [
+      "`195c`, porque os dois `char`s são somados como números primeiro e a soma é então concatenada com a string",
+      "`abc`, porque o operador `+` concatena caracteres sempre que um dos operandos é uma string, independentemente da ordem",
+      "`a98c`, porque só o segundo `char` é promovido a `int` quando a string aparece",
+      "Nada, porque somar dois valores `char` é um erro de compilação em Java"
+    ],
+    "explanation": "Operadores de mesma precedência são avaliados da esquerda para a direita, então `'a' + 'b'` é calculado primeiro. Nenhum operando é uma string ainda, então os dois `char`s são promovidos a `int` e somados (97 + 98 = 195), e só depois o resultado é concatenado com `\"c\"`. Somar dois `char`s é válido, e por isso esse enigma comum compila."
+  },
+  {
+    "id": "java-optional-orelse-eager-argument",
+    "title": "Optional.orElse avalia o argumento de forma antecipada",
+    "question": "`User user = repo.find(id).orElse(createDefaultUser());` cria o usuário padrão, o que é caro e grava em um banco de dados. O que acontece quando o `Optional` já contém um usuário?",
+    "options": [
+      "Ele não executa, porque o `orElse` avalia seu argumento apenas quando o `Optional` está vazio nesse ponto",
+      "Ele só executa se `createDefaultUser` for declarado `static`, já que métodos estáticos são sempre avaliados de forma preguiçosa pela JVM",
+      "`createDefaultUser()` ainda executa, porque o argumento é avaliado de forma antecipada; use `orElseGet(this::createDefaultUser)` para executá-lo só quando vazio",
+      "Ele executa depois em uma thread de segundo plano, então o resultado é ignorado, mas o efeito colateral ainda acontece eventualmente"
+    ],
+    "explanation": "O Java avalia os argumentos de um método antes da chamada, então `createDefaultUser()` executa quer o `Optional` tenha valor ou não, e seus efeitos colaterais acontecem toda vez. O `orElseGet` recebe um `Supplier`, que só é invocado quando o `Optional` está vazio. Nada torna o `orElse` preguiçoso, `static` não afeta a ordem de avaliação e nenhuma thread de segundo plano está envolvida."
+  },
+  {
+    "id": "java-parallel-stream-common-pool-blocking",
+    "title": "Chamadas bloqueantes em streams paralelos",
+    "question": "Um time troca um `for` que chama um serviço remoto lento por `list.parallelStream().map(this::callService)`. Sob carga, outros streams paralelos sem relação na aplicação também ficam lentos. Por quê?",
+    "options": [
+      "Cada stream paralelo cria uma nova thread por elemento, o que esgota o limite de threads do sistema operacional sob carga pesada de requisições",
+      "O `parallelStream` serializa todo o pipeline sempre que o `map` recebe uma referência de método em vez de uma lambda",
+      "Os streams guardam em cache o primeiro resultado do `map`, então todo stream posterior espera no mesmo lock para lê-lo",
+      "Streams paralelos compartilham o ForkJoinPool comum, então chamadas bloqueantes ocupam seus poucos threads de trabalho para todo mundo"
+    ],
+    "explanation": "Por padrão, streams paralelos rodam no pool comum compartilhado, cujo tamanho é cerca de um a menos que o número de núcleos. Tarefas que bloqueiam em chamadas de rede mantêm esses workers parados, então todos os outros streams paralelos da JVM ficam na fila atrás delas. Trabalho bloqueante pertence a um executor dedicado. Streams não criam uma thread por elemento, não serializam em referências de método nem guardam resultados do `map` em cache."
+  },
+  {
+    "id": "java-hashmap-mutable-key-lost-entry",
+    "title": "Uma entrada de HashMap que não é encontrada",
+    "question": "Um `HashMap<Key, String>` retorna `null` para um objeto chave inserido antes, depois que outro código alterou um campo usado pelo `Key.hashCode()`. Por quê?",
+    "options": [
+      "O `HashMap` compara as chaves com `==` depois da inserção, e a mutação muda a referência mantida pelo objeto",
+      "A entrada está no bucket do hash code antigo, e o hash alterado agora aponta para um bucket diferente",
+      "O mapa remove uma entrada automaticamente quando o resultado do método `equals` da chave muda",
+      "As chaves ficam somente leitura depois de inseridas no mapa, então a mutação falhou silenciosamente sem efeito"
+    ],
+    "explanation": "O `HashMap` coloca uma entrada em um bucket escolhido a partir do hash code da chave no momento da inserção. Se um campo usado pelo `hashCode()` muda depois, a busca calcula outro hash e procura no bucket errado, então a entrada continua armazenada, mas inalcançável. Chaves usadas em coleções baseadas em hash devem ser imutáveis, ou ao menos nunca mudar de forma que afete `hashCode()` e `equals()`."
+  },
+  {
+    "id": "java-virtual-threads-blocking-requests",
+    "title": "Aumentando a concorrência de requisições bloqueantes",
+    "question": "Um serviço usa um pool fixo de 200 threads de plataforma, e cada requisição bloqueia cerca de 500 ms em chamadas de banco e HTTP, então a vazão fica limitada. No Java 21, qual mudança aumenta a concorrência com o menor esforço de código?",
+    "options": [
+      "Colocar as virtual threads em um pool fixo de 200 para igualar o tamanho antigo e manter o uso de recursos previsível",
+      "Marcar os métodos bloqueantes como `synchronized` para a JVM escaloná-los com mais eficiência entre as threads portadoras",
+      "Executar cada requisição em sua própria virtual thread, por exemplo com `Executors.newVirtualThreadPerTaskExecutor()`",
+      "Aumentar o pool para 100.000 threads de plataforma, já que cada uma custa muito pouca memória para manter"
+    ],
+    "explanation": "Virtual threads são baratas o bastante para criar uma por tarefa, e quando bloqueiam em E/S a JVM as desmonta da thread portadora para outras virtual threads rodarem. Isso combina com código que passa o tempo esperando. Colocá-las em pool recria o limite antigo, o `synchronized` pode fixar uma virtual thread à sua portadora, e 100.000 threads de plataforma reservam cada uma uma pilha e sobrecarregam o sistema operacional."
+  },
+  {
+    "id": "java-threadlocal-pooled-threads-leak",
+    "title": "ThreadLocal em threads de um pool",
+    "question": "Um filtro web guarda o contexto do usuário da requisição em um `ThreadLocal` e nunca o limpa. Sob carga, usuários ocasionalmente veem dados de outro usuário, e a memória cresce devagar. O que está errado?",
+    "options": [
+      "As threads do pool são reutilizadas, então o valor sobrevive à requisição e vaza para a seguinte; chame `remove()` em um bloco `finally`",
+      "Os valores de `ThreadLocal` são compartilhados entre todas as threads do pool, então cada escrita sobrescreve as outras, a menos que se use `synchronized`",
+      "O coletor de lixo limpa os valores de `ThreadLocal` após cada requisição, então o filtro precisa defini-los de novo a cada chamada",
+      "O `ThreadLocal` só é seguro em virtual threads, então o container precisa ser trocado para elas para isolar as requisições"
+    ],
+    "explanation": "Um valor de `ThreadLocal` vive tanto quanto sua thread, e um container de servlets reutiliza suas threads do pool para muitas requisições. Se o filtro nunca chama `remove()`, o contexto da requisição anterior ainda está lá quando a thread pega a próxima, o que expõe dados antigos e mantém objetos alcançáveis. Os valores são por thread, não compartilhados, e o coletor de lixo não os limpa enquanto a thread está viva."
+  },
+  {
+    "id": "java-completablefuture-completionexception",
+    "title": "O que o exceptionally recebe em uma cadeia",
+    "question": "Em `supplyAsync(() -> parse(input)).thenApply(this::enrich).exceptionally(e -> handle(e))`, o `parse` lança uma `IllegalArgumentException`. O que a lambda passada ao `exceptionally` recebe?",
+    "options": [
+      "A `IllegalArgumentException` original, já que o `exceptionally` sempre desembrulha a causa antes de chamar a função",
+      "Uma `CompletionException` que envolve a original, então inspecione `e.getCause()` ao checar o tipo",
+      "Uma `ExecutionException`, porque exceções em estágios assíncronos são reportadas exatamente como o `Future.get()` as reporta",
+      "`null`, porque exceções em estágios dependentes são engolidas, a menos que se use `handle` em vez de `exceptionally`"
+    ],
+    "explanation": "Quando um estágio falha, o `CompletableFuture` completa seus estágios dependentes de forma excepcional com uma `CompletionException` cuja causa é a exceção original, e o `exceptionally` entrega esse invólucro à função. Código que testa `e instanceof IllegalArgumentException` nunca casa, e deve-se inspecionar `e.getCause()`. A `ExecutionException` vem do `get()`, e nenhuma exceção é engolida silenciosamente."
+  },
+  {
+    "id": "java-double-checked-locking-volatile",
+    "title": "Double-checked locking sem volatile",
+    "question": "Um singleton preguiçoso usa double-checked locking: `if (inst == null) { synchronized (LOCK) { if (inst == null) inst = new Holder(); } } return inst;`, e `inst` é um campo simples (não volatile). O que pode dar errado sob o Modelo de Memória do Java?",
+    "options": [
+      "O bloco `synchronized` pode entrar em deadlock, porque duas threads podem entrar na verificação interna exatamente ao mesmo tempo",
+      "O `new Holder()` pode executar duas vezes, porque a verificação de nulo externa não é atômica com a atribuição que vem depois",
+      "A JVM rejeita o código no carregamento da classe, a menos que o campo `inst` seja declarado `final` na classe",
+      "Outra thread pode ver um `inst` não nulo antes de os campos de `Holder` estarem visíveis, porque a leitura não sincronizada não tem aresta happens-before"
+    ],
+    "explanation": "A primeira verificação lê `inst` sem sincronização, e sem `volatile` não há garantia de que a escrita da referência seja ordenada depois das escritas que inicializam `Holder`. Um leitor pode então observar uma referência não nula para um objeto parcialmente construído. Declarar `inst` como `volatile`, ou usar o idioma holder de inicialização sob demanda, resolve. A verificação interna impede uma segunda construção, um bloco synchronized admite uma thread por vez, e nenhuma regra de carregamento de classe exige `final`."
+  },
+  {
+    "id": "devops-graceful-shutdown-sigterm",
+    "title": "Encerramento gracioso ao parar um container",
+    "question": "Durante um deploy, o `docker stop` mata o processo principal de um container após o período de tolerância, e requisições em andamento são perdidas. A aplicação nunca reage quando a plataforma pede que ela pare. Qual é a correção certa?",
+    "options": [
+      "Aumentar o período de tolerância para um valor enorme para o processo nunca receber `SIGKILL`, já que a aplicação não reage ao pedido de parada e sem alterar o código da aplicação",
+      "Tratar o `SIGTERM` na aplicação para terminar o trabalho em andamento e sair limpo, e garantir que a própria aplicação, e não um shell intermediário, receba o sinal",
+      "Trocar `SIGTERM` por `SIGKILL` no comando de parada para o container sempre terminar imediatamente e de forma limpa",
+      "Capturar o `SIGKILL` na aplicação e executar a limpeza ali, porque é o primeiro sinal que a plataforma envia"
+    ],
+    "explanation": "O `docker stop` envia `SIGTERM` ao processo principal do container e, se ele não tiver saído quando o período de tolerância acabar, envia `SIGKILL`, que não pode ser capturado. Um serviço bem comportado trata o `SIGTERM` parando de aceitar trabalho novo, terminando o que está em andamento e saindo, e precisa ser o processo que recebe o sinal (por exemplo, usando a forma exec em vez de um shell intermediário). Um período maior só atrasa a morte, e o `SIGKILL` não permite executar nenhuma limpeza."
+  },
+  {
+    "id": "devops-idempotent-provisioning",
+    "title": "Configuração idempotente",
+    "question": "Um script de provisionamento executa `useradd deploy` e acrescenta uma linha a um arquivo de configuração, então na segunda execução ele falha e duplica a linha. Que propriedade o gerenciamento de configuração deve buscar e o que ela significa?",
+    "options": [
+      "Atomicidade: o script ou termina por inteiro ou não tem efeito algum, então rodá-lo duas vezes nunca é necessário",
+      "Determinismo: o script produz uma saída idêntica byte a byte a cada execução, então uma segunda execução pode ser pulada comparando um checksum",
+      "Imutabilidade: servidores são substituídos em vez de alterados, então o script nunca precisa rodar duas vezes em uma máquina",
+      "Idempotência: execuções repetidas convergem para o mesmo estado desejado, como 'usuário existe' e 'linha presente', sem erros nem duplicatas"
+    ],
+    "explanation": "Uma operação idempotente pode ser aplicada várias vezes com o mesmo resultado de aplicá-la uma vez, então as ferramentas descrevem o estado desejado ('usuário presente', 'linha presente') e só alteram o que difere. Isso torna as reexecuções seguras após falhas parciais e permite que o mesmo código corrija desvios. Atomicidade, determinismo e imutabilidade são propriedades diferentes e, por si só, não tornam uma reexecução inofensiva."
+  },
+  {
+    "id": "devops-flaky-test-quarantine",
+    "title": "Lidando com um teste instável",
+    "question": "Um teste falha em cerca de 3 por cento das execuções sem mudança no código, e as pessoas passaram a reexecutar pipelines até ficarem verdes. Qual é a melhor abordagem?",
+    "options": [
+      "Colocá-lo em quarentena para deixar de bloquear merges, registrá-lo como defeito com um responsável e corrigir a causa, como estado compartilhado ou tempo",
+      "Adicionar uma repetição automática de três tentativas a todo o pipeline para as falhas causadas por não determinismo ficarem escondidas dos desenvolvedores",
+      "Apagar o teste, já que um teste que às vezes falha não dá informação confiável e a cobertura perdida é pequena",
+      "Aumentar todos os timeouts dez vezes, já que a instabilidade quase sempre vem de testes cortados cedo demais"
+    ],
+    "explanation": "Um teste instável ensina as pessoas a ignorarem builds vermelhos, o que esconde falhas reais. Colocá-lo em quarentena tira o dano do pipeline mantendo-o visível, e tratá-lo como defeito com um responsável leva à causa real, muitas vezes estado compartilhado, ordem, tempo ou concorrência. Repetições gerais e timeouts maiores mascaram o sintoma, e apagar o teste descarta a cobertura que ele deveria dar."
+  },
+  {
+    "id": "devops-env-var-secrets-exposure",
+    "title": "Segredos em variáveis de ambiente",
+    "question": "Um time passa a senha do banco a um container como variável de ambiente. Uma revisão de segurança aponta o problema, mesmo a imagem não contendo nenhum segredo. A qual risco isso se refere e qual é uma opção mais forte?",
+    "options": [
+      "Variáveis de ambiente ficam armazenadas sem criptografia nas camadas da imagem, então a senha é sempre visível a quem baixar a imagem",
+      "Variáveis de ambiente são limitadas a 256 caracteres, então senhas longas são truncadas silenciosamente quando o container inicia",
+      "Variáveis de ambiente são herdadas por processos filhos e muitas vezes aparecem em dumps de falha, páginas de depuração e no `docker inspect`; monte o segredo como arquivo a partir de um cofre de segredos",
+      "Variáveis de ambiente só podem ser lidas pelo usuário root dentro do container, então a própria aplicação não consegue usá-las"
+    ],
+    "explanation": "O segredo não está na imagem, mas as variáveis de ambiente são amplamente visíveis em tempo de execução: processos filhos as herdam, frameworks podem imprimi-las em páginas de erro ou dumps, e ferramentas como o `docker inspect` as mostram a quem tem acesso aos metadados do container. Entregar segredos como arquivos (ou buscá-los em um gerenciador de segredos) com permissões restritas reduz a exposição. As outras afirmações sobre camadas, tamanho e acesso só de root não são verdadeiras."
+  },
+  {
+    "id": "devops-docker-build-secret-layers",
+    "title": "Segredos embutidos nas camadas da imagem",
+    "question": "Um Dockerfile declara `ARG NPM_TOKEN` e o usa durante o `npm ci` para baixar pacotes privados, e a imagem depois é enviada a um registry. Por que isso é arriscado e qual é a melhor abordagem?",
+    "options": [
+      "Nada fica armazenado, já que os valores de `ARG` existem só durante o build e depois são descartados sem deixar rastro",
+      "Use `ENV NPM_TOKEN` em vez de `ARG`, porque variáveis de ambiente são criptografadas dentro da imagem pronta",
+      "Apague o token com uma linha `RUN rm` posterior, o que o remove de todas as camadas anteriores da imagem",
+      "Build args e arquivos copiados podem ser recuperados das camadas e do histórico da imagem, então use secret mounts do BuildKit (`--mount=type=secret`), que não ficam armazenados na imagem"
+    ],
+    "explanation": "Argumentos de build ficam registrados no histórico da imagem, e tudo que é gravado em uma camada permanece nela mesmo se uma instrução posterior apagar, então um token usado assim pode ser extraído por quem consegue baixar a imagem. Os secret mounts do BuildKit expõem o segredo a um único passo `RUN` sem gravá-lo em nenhuma camada. O `ENV` fica em texto puro, e um `rm` posterior só esconde o arquivo na visão final do sistema de arquivos."
+  },
+  {
+    "id": "devops-terraform-configuration-drift",
+    "title": "Lidando com drift de configuração",
+    "question": "Depois que um engenheiro edita um security group no console da nuvem, o próximo `terraform plan` mostra uma mudança inesperada que a reverteria. O que é isso e como o time deve lidar com a situação?",
+    "options": [
+      "Corrupção do state: apague o arquivo de state e rode `terraform apply` para ele ser regenerado a partir do que existe na nuvem",
+      "Drift de configuração: a infraestrutura real difere do código e do state, então decida se vai codificar a mudança ou deixar o `apply` restaurar, e restrinja as edições no console",
+      "Um bug do provider: fixe uma versão mais antiga do provider até a diferença sumir da saída do plan",
+      "Comportamento normal: o `terraform plan` ignora mudanças feitas fora do Terraform até o próximo `apply` realmente rodar"
+    ],
+    "explanation": "O Terraform atualiza sua visão dos recursos reais ao planejar, então mudanças manuais aparecem como diferenças entre o que o código declara e o que existe. O time precisa decidir qual lado está certo: atualizar o código (ou importar a mudança) para mantê-la, ou aplicar para restaurar o estado declarado, e reduzir o acesso ao console para evitar repetições. Apagar o state perde o mapeamento dos recursos, o plan não esconde mudanças, e um downgrade do provider não resolve uma diferença real."
+  },
+  {
+    "id": "devops-gitops-pull-reconciliation",
+    "title": "O que um agente GitOps no cluster muda",
+    "question": "Um time envia manifestos ao cluster pelo CI com credenciais de administrador, e o cluster sofre drift quando pessoas rodam `kubectl edit`. Eles consideram GitOps com um agente dentro do cluster, como o Argo CD. O que isso muda?",
+    "options": [
+      "O CI continua enviando ao cluster como antes, mas os manifestos também ficam no Git como cópia de segurança do que foi implantado em cada ambiente",
+      "O agente recompila as imagens de container a partir do código a cada commit, o que substitui a etapa de build que o CI faz hoje",
+      "Um agente no cluster puxa o estado desejado do Git e continua reconciliando o cluster com ele, então o CI não precisa de credenciais do cluster e o drift é detectado",
+      "O Git passa a ser o armazenamento vivo em tempo de execução, então mudanças feitas com `kubectl edit` são gravadas de volta no repositório automaticamente"
+    ],
+    "explanation": "No GitOps, o repositório é a fonte da verdade do estado desejado, e um agente rodando no cluster o puxa e reconcilia continuamente o estado real para coincidir com ele, então o CI deixa de guardar credenciais de administrador do cluster e edições manuais aparecem como drift que pode ser revertido. Ele não envia pelo CI, não compila imagens e não grava de volta no Git as edições do cluster."
+  },
+  {
+    "id": "devops-ddl-lock-queue-outage",
+    "title": "Um ALTER TABLE rápido que trava a API",
+    "question": "Uma release executa `ALTER TABLE orders ADD COLUMN note text` no PostgreSQL em horário de pico. O comando em si precisa de um lock breve, mas a API trava por um minuto. Uma transação de analytics de longa duração estava lendo `orders`. O que aconteceu e como evitar?",
+    "options": [
+      "O ALTER ficou na fila atrás da transação longa pelo seu lock `ACCESS EXCLUSIVE`, e as novas consultas ficaram na fila atrás do ALTER; defina um `lock_timeout` curto e tente de novo",
+      "O ALTER reescreveu a tabela inteira por causa da nova coluna, então o lock durou toda a reescrita; sempre adicione colunas com um valor padrão",
+      "O ALTER entrou em deadlock com a consulta de analytics e o PostgreSQL abortou os dois após um minuto; rodá-lo dentro de uma transação evita isso",
+      "O PostgreSQL pausa todas as conexões enquanto qualquer DDL roda, então DDL só pode ser agendado fora do horário de pico"
+    ],
+    "explanation": "O `ALTER TABLE` precisa de um lock `ACCESS EXCLUSIVE`, que conflita com o lock da transação de analytics, então o ALTER espera. Como os pedidos de lock são enfileirados em ordem, toda consulta posterior em `orders` espera atrás do ALTER pendente, e a tabela parece congelada. Um `lock_timeout` curto faz o ALTER desistir rápido para poder ser repetido, e transações longas devem ser evitadas. Adicionar uma coluna anulável não reescreve a tabela, e deadlocks são detectados em segundos."
+  }
+]
