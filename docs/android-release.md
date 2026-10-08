@@ -81,7 +81,7 @@ eas build --platform android --profile production
 2. **Upload the first `.aab` by hand** to *Testing → Internal testing → Create new release*. Play only learns about the
    app, its package name and its signing from a manual first upload; later releases can be automated with
    `eas submit` and a service-account key (see "Automating later").
-3. **Store listing:** short and full description, the icon `apps/mobile/store/play-store-icon-512.png` (512x512),
+3. **Store listing:** title, short and full description in English and Portuguese are ready in `apps/mobile/store/listing/{en-US,pt-BR}.json` (a test keeps them inside the Play limits: 30 / 80 / 4000 characters; add pt-BR as a translation of the listing in the console), the icon `apps/mobile/store/play-store-icon-512.png` (512x512),
    the feature graphic `apps/mobile/store/feature-graphic-1024x500.png` (a **placeholder**: replace it with real
    artwork if you want) and **at least two phone screenshots** (not in the repository: take them from a build).
    Regenerate icons and graphics with `npm run assets:android -w @techrat/mobile`.
@@ -89,7 +89,7 @@ eas build --platform android --profile production
    * **Privacy policy:** `https://techrat.io/privacy`.
    * **App access:** the app needs an account, so give reviewers a **test account** under *Instructions for
      reviewers*: register a dedicated account in production (for example `play-review@...`, a normal learner, never an
-     administrator), give its email and password in the form and keep it working while reviews are open.
+     administrator), give its email and password in the form (the ready-made text is `reviewerInstructions` in the listing files: replace `{REVIEW_EMAIL}` and `{REVIEW_PASSWORD}`) and keep it working while reviews are open.
    * **Data safety:** copy the answers from [`docs/play-store/data-safety.md`](play-store/data-safety.md).
    * **Account deletion** (Data safety → "Data deletion"): in the app *Profile → Delete account*, and the web link
      `https://techrat.io/account/delete`, which works without the app.
@@ -141,3 +141,19 @@ Add an environment with required reviewers before enabling it: a release should 
   `apps/web` or `apps/desktop` to `.easignore`.
 * **`expo-doctor` complains about patch versions:** run `npx expo install --check` in `apps/mobile` and commit the
   lockfile.
+
+## Owner checklist (what is left before the first upload)
+
+Everything the repository can do for the release is done and verified (typecheck, lint, 110 mobile tests, `expo-doctor` 21/21,
+production config, Android bundle export). What remains needs you:
+
+- [ ] Resolve every `TODO(owner)` / `TODO(legal)` in `apps/web/src/lib/legal.ts` and the privacy/terms messages, have them
+      reviewed, then set `LEGAL.draft` to `false`. Deploy the web app so `/privacy`, `/terms` and `/account/delete` are live.
+- [ ] Confirm `https://techrat.io` serves the API (register, login, refresh) and sends email.
+- [ ] Create the Expo account, then `eas login` and `eas init` (commit the `projectId`).
+- [ ] `eas build --platform android --profile preview`, install the APK on a real phone and walk through register, practice,
+      profile photo, change password and delete account.
+- [ ] Create the Play Developer account (a personal one needs the 12 testers / 14 days closed test: start it first).
+- [ ] Register the review account in production and fill `reviewerInstructions`.
+- [ ] Take at least two phone screenshots from the preview build; optionally replace the placeholder feature graphic.
+- [ ] `eas build --platform android --profile production`, upload the `.aab` to Internal testing, fill the App content forms.
