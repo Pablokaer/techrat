@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
@@ -27,6 +28,9 @@ public sealed record ForgotPasswordRequest(string Email);
 public sealed record ResetPasswordRequest(string Email, string ResetCode, string NewPassword);
 /// <param name="CurrentPassword">Required when the account has a password; omitted to set the first one (external sign-in).</param>
 public sealed record ChangePasswordRequest(string? CurrentPassword, string? NewPassword);
+/// <param name="Password">Required when the account has a password.</param>
+/// <param name="Confirmation">Required when it has none (external sign-in): the account's own username, typed by the owner.</param>
+public sealed record DeleteAccountRequest(string? Password, string? Confirmation);
 /// <param name="HasPassword">False for accounts created through an external provider: clients offer "set a password".</param>
 public sealed record PasswordStatusDto(bool HasPassword);
 public sealed record AuthProviderDto(string Name, string DisplayName, bool Enabled, bool Featured);
@@ -86,6 +90,16 @@ public sealed class IdentityEndpoints : IEndpointModule
             .WithDescription("Checks the current password on the server (failures count towards lockout) and applies the sign-up rules. " +
                              "Every other session is signed out. The calling session continues: a cookie session gets a renewed cookie " +
                              "(204), a bearer session gets new tokens (200). The owner is emailed.");
+
+        var account = api.MapGroup("/account").WithTags("Identity");
+
+        account.MapDelete("", DeleteAccountAsync).RequireAuthorization().RequireRateLimiting("auth")
+            .Produces(StatusCodes.Status204NoContent)
+            .WithSummary("Permanently delete the signed-in account and its data")
+            .WithDescription("Requires the current password (failures count towards lockout) or, for accounts without a password, " +
+                             "the username typed as confirmation. Deletes the credentials, profile, photo, progress, XP, achievements, " +
+                             "notifications and every session; all tokens stop working at once and the owner is emailed. The last " +
+                             "administrator cannot delete the account (409). This cannot be undone.");
 
         auth.MapGet("/providers", (IConfiguration config) =>
         {
@@ -234,6 +248,71 @@ public sealed class IdentityEndpoints : IEndpointModule
         if (http.Request.Headers.Authorization.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             return TypedResults.SignIn(await signIn.CreateUserPrincipalAsync(user), authenticationScheme: IdentityConstants.BearerScheme);
         await signIn.RefreshSignInAsync(user);
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Deleting the account removes the Identity user; the learner profile and everything that hangs off it (attempts,
+    /// sessions, XP, progress, achievements, notifications, photo) go with it through the database cascades, in one
+    /// statement, so there is no half-deleted state. See ADR-0023.
+    /// </summary>
+    private static async Task<Results<NoContent, ValidationProblem, ProblemHttpResult>> DeleteAccountAsync(
+        [FromBody] DeleteAccountRequest request, UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, ICurrentUser current,
+        ICacheService cache, IAccountEmailSender email, ILoggerFactory loggers, CancellationToken ct)
+    {
+        static ValidationProblem Invalid(string field, string key) =>
+            TypedResults.ValidationProblem(new Dictionary<string, string[]> { [field] = [Text.Get(key)] });
+
+        var user = await RequireAccountAsync(users, current);
+
+        // Re-authenticate: a stolen session or an unlocked phone must not be enough to destroy an account.
+        if (await users.HasPasswordAsync(user))
+        {
+            if (string.IsNullOrEmpty(request.Password)) return Invalid("password", Text.Keys.CurrentPasswordRequired);
+            if (await users.IsLockedOutAsync(user)) return Invalid("password", Text.Keys.LockedOut);
+            if (!await users.CheckPasswordAsync(user, request.Password))
+            {
+                // Same as changing the password: wrong guesses lock the account like failed logins do.
+                await users.AccessFailedAsync(user);
+                return Invalid("password", Text.Keys.CurrentPasswordIncorrect);
+            }
+        }
+        else if (!string.Equals(request.Confirmation?.Trim(), user.UserName, StringComparison.OrdinalIgnoreCase))
+        {
+            // No password to prove (external sign-in): typing the username is a deliberate, explicit confirmation.
+            return Invalid("confirmation", Text.Keys.AccountDeleteConfirmation);
+        }
+
+        // The platform must always have someone who can administer it.
+        if (await users.IsInRoleAsync(user, Roles.Admin) && (await users.GetUsersInRoleAsync(Roles.Admin)).Count <= 1)
+            return TypedResults.Problem(Text.Get(Text.Keys.AccountDeleteLastAdmin), statusCode: StatusCodes.Status409Conflict,
+                title: Text.Get(Text.Keys.ProblemConflict));
+
+        var address = user.Email;
+        var id = user.Id;
+        var deleted = await users.DeleteAsync(user);
+        if (!deleted.Succeeded)
+            throw new InvalidOperationException("Account deletion failed: " + string.Join("; ", deleted.Errors.Select(e => e.Code)));
+
+        // Tokens: refresh tokens die with the user (their security stamp can no longer be validated); access tokens are
+        // stateless, so evicting the cached "account exists" answer makes the next request of any device fail at once.
+        await cache.RemoveAsync(CacheKeys.AccountExists(id), ct);
+        await signIn.SignOutAsync();
+
+        var log = loggers.CreateLogger("TechRat.Identity");
+        log.LogInformation("Account deleted {UserId}", id);
+        if (!string.IsNullOrWhiteSpace(address))
+        {
+            try
+            {
+                await email.SendAccountDeletedAsync(address, ct);
+            }
+            catch (EmailDeliveryException)
+            {
+                // The deletion already happened and cannot be undone: a lost notice is only logged (no address in the log).
+                log.LogWarning("Account deletion notice could not be delivered for {UserId}", id);
+            }
+        }
         return TypedResults.NoContent();
     }
 

@@ -156,6 +156,7 @@ app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseCors();
 app.UseAuthentication();
+app.UseMiddleware<AccountExistsMiddleware>();
 app.UseAuthorization();
 app.UseRateLimiter();
 
