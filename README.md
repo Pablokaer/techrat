@@ -293,6 +293,23 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 
 ---
 
+## Tech stack
+
+| Layer | Technology | Why (ADR) |
+|---|---|---|
+| API | ASP.NET Core 10, EF Core 10 (Npgsql, snake_case naming), ASP.NET Core Identity, SignalR, OpenAPI + Scalar docs | Modular monolith (0001), business rules on the server (0007) |
+| Data | PostgreSQL 17 as the source of truth (including profile photos and Data Protection keys); Redis 7 as a cache only | 0002, 0003, 0017 |
+| Background work | Transactional outbox processed by a `BackgroundService`; email via MailKit (Mailpit in development) | 0009 |
+| Observability | OpenTelemetry (ASP.NET Core, HTTP, runtime, Npgsql) over OTLP, health checks, rate limiting | |
+| Web | Next.js 16, React 19, Tailwind CSS 4, TanStack Query, Recharts | 0004 |
+| Mobile | Expo SDK 57 / React Native 0.86 (expo-router, SecureStore), built with EAS | 0005 |
+| Desktop | Tauri 2 around the web static export | 0006 |
+| Shared packages | `@techrat/types` (generated from OpenAPI), `api` (openapi-fetch), `auth`, `validation` (zod), `theme`, `ui` | |
+| Auth | Cookie (web) and bearer + refresh tokens (mobile, desktop) | 0008 |
+| i18n | English and Brazilian Portuguese across UI, content and server messages | 0011 |
+| Tests | xUnit + Testcontainers (backend), Vitest + Testing Library (web, packages, mobile), Playwright (end to end) | |
+| Delivery | Docker Compose, GitHub Actions CI, continuous deployment to a VPS behind Apache, `dev` → `main` promotion gate | 0013, 0021 |
+
 ## Architecture
 
 ```
@@ -310,7 +327,10 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
           PostgreSQL 17 (source of truth)          Redis 7 (cache only)
 ```
 
-* **Backend:** a modular monolith. `Domain` holds the entities and pure rules, `Application` the use cases, `Infrastructure` EF Core, Redis, the outbox, email and seed, `Modules` the HTTP endpoints and `Api` the host. All business rules live in the backend (ADR-0007).
+* **Backend:** a modular monolith. `Domain` holds the entities and pure rules, `Application` the use cases, `Infrastructure` EF Core, Redis, the outbox, email and seed, `Modules` the HTTP endpoints and `Api` the host. All business rules live in the backend (ADR-0007). Dependencies point inwards: `Domain` knows nothing, `Application` depends on `Domain` and on abstractions (`IAppDbContext`, `ICacheService`, `ICurrentUser`) that `Infrastructure` and `Modules` implement. Each feature area is an `IEndpointModule` mapped under `/api/v1`.
+* **Clients:** web, mobile and desktop hold no business rules. They render what the API returns (unlock state, step status, XP) and call it through the typed client generated from the OpenAPI document (`npm run generate:api`), so a contract change fails the type check in every client.
+* **Data and caching:** PostgreSQL is the only store of truth; Redis only caches (the catalog, leaderboards) and the API works without it. Content (topics, questions, roadmaps, achievements and their pt-BR translations) is seeded from JSON at startup and is idempotent.
+* **Delivery:** CI builds with warnings as errors and runs every suite; merges to `main` deploy to the VPS over a restricted SSH key, and `dev` is promoted to `main` through a gate (ADR-0013, ADR-0021).
 * **Answer flow:** grading, the attempt, the XP ledger, user and topic progress, the streak and roadmap steps are written in **one transaction**. Achievements, the rank snapshot and realtime notifications go through a **transactional outbox** (ADR-0009).
 * **Auth:** ASP.NET Core Identity. The web app uses an HttpOnly cookie. Mobile and desktop use bearer and refresh tokens (ADR-0008).
 * **Roadmaps and modules (ADR-0012):** roadmaps are ordered compositions of reusable catalog modules. Progress is stored per module step, so knowledge proven in one roadmap counts in every roadmap containing the same module, and XP is paid once. **Administrators bypass the gates:** every roadmap is unlocked (prerequisites are not required to start one) and every uncompleted module and step is open, so content can be reviewed without completing what comes before it. Learners are unaffected.
