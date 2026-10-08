@@ -533,6 +533,8 @@ CI (`.github/workflows/ci.yml`) runs the backend build (warnings as errors) and 
 
 ## Next steps
 
+Operations, delivery and scaling work that is still open (rollback on demand, backups, a staged plan for more traffic) is tracked in [docs/future-work.md](docs/future-work.md).
+
 1. Content: add CodeOutput and Debugging question types; let admins edit Portuguese translations.
 2. Wire OAuth starting with GitHub, then Google, Microsoft and Apple.
 3. Azure deployment: Container Apps for the API and web, PostgreSQL Flexible Server, Azure Cache for Redis, Key Vault with Managed Identity, and Application Insights via OTLP. Add a deploy workflow with environment approvals.
