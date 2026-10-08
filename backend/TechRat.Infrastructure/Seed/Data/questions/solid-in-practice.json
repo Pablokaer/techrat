@@ -1,0 +1,546 @@
+[
+  {
+    "id": "solid-srp-actor-meaning",
+    "topic": "clean-code",
+    "subtopic": "solid-srp-ocp",
+    "difficulty": "Easy",
+    "title": "What a single responsibility means",
+    "question": "In its later wording, the Single Responsibility Principle says a module should have one, and only one, reason to change. What does \"reason to change\" refer to?",
+    "options": [
+      "One public method, so that each class exposes exactly one operation to its callers and nothing more",
+      "One database table, so that each class maps to a single table in the schema",
+      "One actor: a group of stakeholders, such as finance or HR, who request changes to the module",
+      "One thread of execution, so that each class never shares state between threads"
+    ],
+    "correctIndex": 2,
+    "explanation": "The principle is about who asks for changes: a module should answer to a single actor, so one stakeholder's request does not break another's feature. It does not limit a class to one method, one table or one thread, which are different design concerns.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+  },
+  {
+    "id": "solid-srp-shared-helper-actors",
+    "topic": "clean-code",
+    "subtopic": "solid-srp-ocp",
+    "difficulty": "Medium",
+    "title": "Shared helper serving two actors",
+    "question": "`Employee` has `CalculatePay()` (used by finance) and `ReportHours()` (used by HR). Both call a private `RegularHours()`. Finance asks for a new way to count overtime, and after the release HR's report shows different numbers. What is the best fix?",
+    "options": [
+      "Move pay calculation and hour reporting into separate classes, each owning its own hour-counting logic",
+      "Keep one class, make `RegularHours()` public and document that it must never be changed again, and rely on code review to enforce that rule",
+      "Add a comment above `RegularHours()` asking developers to check with HR before every change",
+      "Make `RegularHours()` protected and subclass `Employee` once for finance and once for HR"
+    ],
+    "correctIndex": 0,
+    "explanation": "Two actors share code that has to change for one of them, which is exactly the accidental coupling SRP warns about. Giving each actor its own class (or collaborator) lets them evolve independently. Documentation and visibility changes leave the shared reason to change in place, and subclassing keeps both actors tied to the same base.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+  },
+  {
+    "id": "solid-srp-extract-method-not-enough",
+    "topic": "clean-code",
+    "subtopic": "solid-srp-ocp",
+    "difficulty": "Medium",
+    "title": "Private methods versus real separation",
+    "question": "`OrderService.Process(order)` validates the order, computes totals, writes to SQL and sends a confirmation email in 150 lines. A teammate splits it into four private methods in the same class and says SRP is now satisfied. What is the most accurate assessment?",
+    "options": [
+      "SRP only applies to functions, and each private method now has one job, so the principle is fully satisfied",
+      "Readability improved, but the class still changes for four reasons, so SRP needs the concerns in separate collaborators",
+      "Private methods count as separate units for SRP, so the class now has four responsibilities and four reasons to exist, and each of those reasons must be owned by a different team",
+      "SRP does not apply to service classes, because services are expected to coordinate many different tasks"
+    ],
+    "correctIndex": 1,
+    "explanation": "Extracting methods is a good first step for readability, but a change to validation rules, SQL or the email template still edits the same class, so it still has several reasons to change. SRP is about the unit that gets modified together, which here is the class. Services can coordinate collaborators without owning their logic.",
+    "referenceUrl": "https://refactoring.guru/smells/divergent-change"
+  },
+  {
+    "id": "solid-ocp-tax-rules-collection",
+    "topic": "clean-code",
+    "subtopic": "solid-srp-ocp",
+    "difficulty": "Medium",
+    "title": "Adding a tax rule without editing the calculator",
+    "question": "`TaxCalculator` has `if (country == \"BR\") ... else if (country == \"DE\") ...`. A new country is added every quarter and each release re-tests the whole class. Which design lets a new country be added without modifying `TaxCalculator`?",
+    "options": [
+      "Add the next `else if` branch and extend the existing unit tests to cover the new country",
+      "Move the whole chain of conditions into a static `TaxHelper` class that the calculator calls for every computation",
+      "Replace the country string with a constant so that typos in the comparison are caught at build time",
+      "Define an `ITaxRule` interface, implement one rule per country and have the calculator use the registered rule"
+    ],
+    "correctIndex": 3,
+    "explanation": "With one `ITaxRule` per country (registered in DI or a lookup), a new country is a new class, and the tested calculator stays untouched. Another branch, a static helper or a constant still force edits to the same conditional logic whenever a country appears.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/05/12/TheOpenClosedPrinciple.html"
+  },
+  {
+    "id": "solid-ocp-decorator-retry-logging",
+    "topic": "clean-code",
+    "subtopic": "solid-srp-ocp",
+    "difficulty": "Medium",
+    "title": "Adding retry and logging without editing the gateway",
+    "question": "`PaymentGateway : IPaymentGateway` is stable and well tested. Operations now want retries on timeouts and a log line per call. Which approach honours the Open/Closed Principle?",
+    "options": [
+      "Subclass `PaymentGateway`, override the charge method and copy the HTTP client fields into the subclass",
+      "Wrap it in `RetryingGateway` and `LoggingGateway` decorators that implement `IPaymentGateway` and delegate to the inner one",
+      "Edit `PaymentGateway` directly, since a retry loop and two log statements are small enough to be safe and easy to review, without introducing any new class or interface",
+      "Add `EnableRetry` and `EnableLogging` settings read inside `PaymentGateway` to toggle the new behaviour"
+    ],
+    "correctIndex": 1,
+    "explanation": "Decorators add behaviour around an existing implementation through the same interface, so the proven class is left unmodified and callers do not change. Subclassing couples to implementation details, editing the class reopens tested code, and internal toggles keep growing the class with every new concern.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/05/12/TheOpenClosedPrinciple.html"
+  },
+  {
+    "id": "solid-ocp-abstraction-too-early",
+    "topic": "clean-code",
+    "subtopic": "solid-srp-ocp",
+    "difficulty": "Medium",
+    "title": "When to introduce the extension point",
+    "question": "A teammate adds `IShippingStrategy`, a factory and a registry for an app that has exactly one shipping method and no plans for another, \"because of OCP\". What is the better guidance?",
+    "options": [
+      "Keep the abstraction, because OCP requires every class to be hidden behind an interface from the first commit",
+      "Remove the factory and registry but keep a second interface, since two layers of indirection are always enough, and the design stays flexible for any new carrier",
+      "Keep the simple code, and introduce the abstraction when a second real variation shows where the change happens",
+      "Replace the strategy with a configuration flag that selects between future shipping methods at runtime"
+    ],
+    "correctIndex": 2,
+    "explanation": "OCP does not demand speculative abstractions. The cost of guessing the wrong extension point is real indirection with no benefit, and the second concrete case shows what actually varies. A flag for imaginary methods is also speculation, and keeping extra interfaces by default adds layers without a requirement.",
+    "referenceUrl": "https://martinfowler.com/bliki/Yagni.html"
+  },
+  {
+    "id": "solid-srp-over-splitting-cohesion",
+    "topic": "clean-code",
+    "subtopic": "solid-srp-ocp",
+    "difficulty": "Hard",
+    "title": "Splitting classes until nothing is cohesive",
+    "question": "After a \"SRP cleanup\", `UserService` became 14 classes such as `UserEmailTrimmer`, `UserEmailLowercaser` and `UserEmailFormatChecker`. A change to email rules now edits five files that always change together. What does this show?",
+    "options": [
+      "SRP is about reasons to change, so code that changes together should stay together; this split lowered cohesion",
+      "SRP was applied correctly, and the pain comes from not having a code generator to edit the files together, which would keep every file in sync",
+      "SRP requires one method per class, so the team should split further until every class has a single method",
+      "The problem is only the class names, and renaming them to a common `Email` prefix would remove the coupling"
+    ],
+    "correctIndex": 0,
+    "explanation": "A responsibility is defined by who and what causes change, not by method count. Pieces that always change together belong together, and separating them causes shotgun surgery. More splitting makes it worse, renaming does not reduce the number of edited files, and tooling treats the symptom rather than the design.",
+    "referenceUrl": "https://refactoring.guru/smells/divergent-change"
+  },
+  {
+    "id": "solid-ocp-closure-is-relative",
+    "topic": "clean-code",
+    "subtopic": "solid-srp-ocp",
+    "difficulty": "Hard",
+    "title": "Closed against which changes?",
+    "question": "A `PricingEngine` applies a list of `IPricingRule` objects, so new rules need no engine edits. A new requirement says rules must run in a priority order, and the engine must be edited anyway. What is the accurate lesson?",
+    "options": [
+      "OCP was violated, so the team should stop using rule objects and go back to one method with conditionals",
+      "OCP guarantees that no requirement can ever force an edit, so the abstraction must have been implemented incorrectly",
+      "No module is closed against every change; closure targets the kinds of change expected, and surprises justify refining the design",
+      "The design was wrong, and the engine should have been built with hooks for every future requirement from the start, so that no requirement would ever force an edit"
+    ],
+    "correctIndex": 2,
+    "explanation": "OCP is a strategic choice: you close a module against the variations you have seen or can reasonably expect, such as new rules, and accept that other changes will need edits. Trying to predict everything adds complexity, abandoning the abstraction loses the benefit already gained, and OCP never promises total immunity.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/05/12/TheOpenClosedPrinciple.html"
+  },
+  {
+    "id": "solid-lsp-definition-meaning",
+    "topic": "clean-code",
+    "subtopic": "solid-lsp-isp",
+    "difficulty": "Easy",
+    "title": "What substitutability means",
+    "question": "Which statement best describes the Liskov Substitution Principle?",
+    "options": [
+      "Code written against a base type must keep behaving correctly when it is given any of its subtypes",
+      "A subclass must override every method of its base class so it never relies on inherited behaviour, even for methods that already work correctly",
+      "A subclass must not declare any method that does not already exist in its base class",
+      "A subclass must call the base implementation first in each override before adding its own logic"
+    ],
+    "correctIndex": 0,
+    "explanation": "LSP is about behaviour: callers that rely on the base type's contract must not be surprised by a subtype. It does not require overriding everything, forbid new methods, or force calls to the base implementation, which are inheritance mechanics rather than substitutability.",
+    "referenceUrl": "https://martinfowler.com/bliki/RoleInterface.html"
+  },
+  {
+    "id": "solid-lsp-square-rectangle",
+    "topic": "clean-code",
+    "subtopic": "solid-lsp-isp",
+    "difficulty": "Medium",
+    "title": "Square that extends Rectangle",
+    "question": "`Square : Rectangle` overrides `Width` and `Height` so that setting either sets both. A client does `r.Width = 5; r.Height = 4;` and asserts `r.Area == 20`, which fails when `r` is a `Square`. What is the issue and best fix?",
+    "options": [
+      "`Square` breaks the base type's expected postcondition, so model shapes as separate or immutable types",
+      "The client is wrong to assert, so the team should document that area depends on the concrete type, and the test should never be run against `Square`",
+      "`Area` should be overridden in `Square` to return 20, so the assertion passes for both shapes",
+      "`Square` should check `is Rectangle` inside the setters and skip the coupling for plain rectangles"
+    ],
+    "correctIndex": 0,
+    "explanation": "Rectangle's contract lets width and height vary independently, and Square silently changes that, so it is not substitutable. Immutable shapes or separate types avoid the broken contract. Blaming the client, hardcoding results or adding type checks keep the surprise instead of removing it.",
+    "referenceUrl": "https://martinfowler.com/bliki/RoleInterface.html"
+  },
+  {
+    "id": "solid-lsp-strengthened-precondition",
+    "topic": "clean-code",
+    "subtopic": "solid-lsp-isp",
+    "difficulty": "Medium",
+    "title": "Subtype that rejects more input",
+    "question": "`IDocumentStore.Save(Document d)` accepts any document. `PdfStore : IDocumentStore` throws `ArgumentException` when `d.SizeInBytes` exceeds 10 MB, and a batch job that worked with other stores now crashes. Which LSP rule is broken?",
+    "options": [
+      "A subtype must keep method names identical, and `PdfStore` renamed the contract's exceptions",
+      "A subtype may not strengthen preconditions, and `PdfStore` now demands more from callers than the interface does",
+      "A subtype may only weaken postconditions, and `PdfStore` produced a result the callers did not expect, so the interface should promise less",
+      "A subtype must never validate input, because only the caller is allowed to check arguments"
+    ],
+    "correctIndex": 1,
+    "explanation": "Callers coded against the interface only know the documented preconditions. If an implementation demands more (a size limit), it can fail where the base type succeeds. Fix it by lowering the limit into the contract, handling large files internally, or using a different abstraction. Validation itself is fine, and the other rules do not describe this failure.",
+    "referenceUrl": "https://martinfowler.com/bliki/RoleInterface.html"
+  },
+  {
+    "id": "solid-lsp-weakened-postcondition-null",
+    "topic": "clean-code",
+    "subtopic": "solid-lsp-isp",
+    "difficulty": "Medium",
+    "title": "Cache that returns null on a miss",
+    "question": "`IUserRepository.GetById(id)` is documented to return a user or throw `NotFoundException`, and callers use the result without null checks. `CachedUserRepository` returns `null` when the cache misses and the entry is stale. Why is this a Liskov violation?",
+    "options": [
+      "It changes the constructor signature, and subtypes must always keep the exact same constructor",
+      "It uses `null`, and LSP bans nullable return values in every method of every interface",
+      "It weakens the postcondition, because callers were promised a user or an exception and now get `null`",
+      "It adds a caching layer, and any subtype that adds a cross-cutting behaviour is not substitutable, even when the cache is invisible to callers"
+    ],
+    "correctIndex": 2,
+    "explanation": "A subtype may return more than the base promises, but not less. Callers rely on 'always a user or an exception', so `null` leads to surprise failures further away. Caching and decorating are fine when the contract is kept, constructors are not part of substitutability, and null itself is not banned if the base contract allows it.",
+    "referenceUrl": "https://martinfowler.com/bliki/RoleInterface.html"
+  },
+  {
+    "id": "solid-isp-client-owned-interface",
+    "topic": "clean-code",
+    "subtopic": "solid-lsp-isp",
+    "difficulty": "Medium",
+    "title": "Small interface shaped by the client",
+    "question": "`OrderService` only needs to tell the customer that an order shipped, but it depends on `EmailClient`, which exposes `Send`, `SendBulk`, `RenderTemplate` and `ConfigureSmtp`. Tests must stub or construct all of that. Which change follows Interface Segregation?",
+    "options": [
+      "Define a narrow `IOrderNotifier` with one `Notify(order)` method for the service, implemented by an adapter over `EmailClient`",
+      "Make `OrderService` inherit from `EmailClient` so that it gets direct access to just the sending methods it actually needs and ignores the rest",
+      "Mark the four unneeded `EmailClient` methods as obsolete so that developers stop using them",
+      "Pass `EmailClient` as an `object` and cast it to the needed methods inside `OrderService`"
+    ],
+    "correctIndex": 0,
+    "explanation": "ISP says clients should not depend on methods they do not use. A small role interface designed around what `OrderService` needs gives it a minimal, easy-to-fake dependency. Inheriting, marking methods obsolete or casting keep the dependency on the big class.",
+    "referenceUrl": "https://martinfowler.com/bliki/RoleInterface.html"
+  },
+  {
+    "id": "solid-isp-evolving-interface-role",
+    "topic": "clean-code",
+    "subtopic": "solid-lsp-isp",
+    "difficulty": "Medium",
+    "title": "Adding a capability to a widely implemented interface",
+    "question": "`IDocumentStore` has twelve implementations across several repositories. A new feature needs `ArchiveAsync()`, but only two stores can archive. Which approach best respects Interface Segregation?",
+    "options": [
+      "Create a separate `IArchivableStore` interface that only the two capable stores implement, and have archiving code depend on it",
+      "Add `ArchiveAsync()` to `IDocumentStore` and make the ten other stores throw `NotImplementedException`, so that every store can be called through one interface",
+      "Add a `SupportsArchive` property to `IDocumentStore` and make every caller check it before calling",
+      "Turn `IDocumentStore` into an abstract class with a default no-op `ArchiveAsync()` for all stores"
+    ],
+    "correctIndex": 0,
+    "explanation": "A separate role interface lets the compiler express who can archive, and only archiving code depends on it. Stub implementations, capability flags and no-op defaults force every implementer and caller to deal with a feature most of them do not have, and they hide failures at runtime.",
+    "referenceUrl": "https://martinfowler.com/bliki/RoleInterface.html"
+  },
+  {
+    "id": "solid-lsp-readonly-list-contract",
+    "topic": "clean-code",
+    "subtopic": "solid-lsp-isp",
+    "difficulty": "Hard",
+    "title": "Read-only collection behind a mutable interface",
+    "question": "`Summarise(IList<int> values)` only reads the list, but a caller passes `list.AsReadOnly()`. A later change makes one code path call `Add`, and it now throws `NotSupportedException` for that caller. Which design is the most honest about substitutability?",
+    "options": [
+      "Document on `Summarise` that callers must never pass read-only collections to it",
+      "Take `IReadOnlyList<int>` in methods that only read, so a read-only type never has to claim it can be modified",
+      "Keep `IList<int>` and catch `NotSupportedException` at each call site that may receive a read-only wrapper, so the code that only reads stays unchanged",
+      "Make every `IList<int>` implementation silently ignore `Add` when it is read-only"
+    ],
+    "correctIndex": 1,
+    "explanation": "A type that claims to be `IList` promises mutation, so a read-only implementation breaks the contract. Exposing a read-only abstraction to read-only consumers keeps the promise true and moves the error to compile time. Catching exceptions, documenting around the problem, or silently ignoring `Add` all keep a lie in the type system.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/standard/generics/covariance-and-contravariance"
+  },
+  {
+    "id": "solid-lsp-generics-list-invariance",
+    "topic": "clean-code",
+    "subtopic": "solid-lsp-isp",
+    "difficulty": "Hard",
+    "title": "Why List<String> is not a List<Object>",
+    "question": "Java rejects `List<Object> objs = new ArrayList<String>();` even though `String` is an `Object`. Which reasoning, tied to Liskov substitution, explains the rule?",
+    "options": [
+      "`ArrayList<String>` is a final class and therefore cannot be assigned to any variable of another type, and the compiler enforces this at compile time",
+      "`List` has no common supertype, so the language treats every parameterisation as unrelated by design",
+      "A mutable `List<Object>` accepts any object, so `add(42)` through it would put an `Integer` in a list of strings",
+      "Generics are erased at runtime, so the compiler cannot know which element type the list holds"
+    ],
+    "correctIndex": 2,
+    "explanation": "If the assignment were allowed, code using the `List<Object>` reference could add an `Integer` to what is really a list of strings, breaking the guarantee of the original type. So mutable generic types are invariant. For read-only access `List<? extends Object>` is safe because nothing can be added through it. Erasure and finality are not the reason.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/java/generics/subtyping.html"
+  },
+  {
+    "id": "solid-di-service-locator-vs-constructor",
+    "topic": "clean-code",
+    "subtopic": "solid-dip-di",
+    "difficulty": "Medium",
+    "title": "Service locator versus constructor injection",
+    "question": "`ReportService` calls `ServiceLocator.Get<IMailer>()` inside its `Send()` method. A new test builds `new ReportService()` and fails with an error only when `Send()` runs. What does constructor injection improve here?",
+    "options": [
+      "It exposes the dependency in the constructor and fails at construction, so tests pass a fake and nothing is hidden",
+      "It makes the container resolve objects faster, since lookups at call time are slower than lookups at construction, even though the container does the same work in both cases",
+      "It lets `ReportService` change `IMailer` implementations at any moment while it is running a request",
+      "It lets the locator be a static global, since the constructor then hides it from the rest of the code"
+    ],
+    "correctIndex": 0,
+    "explanation": "With constructor injection the object cannot exist without its collaborators, the signature documents them, and a test simply passes a fake. A locator hides dependencies, moves failures to the call and ties code to a global. Speed is not the main benefit, and swapping implementations mid-request is not what it is for.",
+    "referenceUrl": "https://martinfowler.com/articles/injection.html"
+  },
+  {
+    "id": "solid-di-captive-dependency-lifetime",
+    "topic": "clean-code",
+    "subtopic": "solid-dip-di",
+    "difficulty": "Medium",
+    "title": "Singleton holding a scoped service",
+    "question": "In ASP.NET Core, `ReportCache` is registered as a singleton and its constructor takes `AppDbContext`, registered as scoped. In Development the app fails on startup with a scope validation error. What is the problem and the best fix?",
+    "options": [
+      "Scoped services may only be used in controllers, so `ReportCache` must be moved into the controllers folder",
+      "`AppDbContext` should be made a singleton too, so every service shares the same lifetime and the error is gone, with nothing else in the application needing to change",
+      "The singleton would capture one `AppDbContext` for the app's lifetime, so register `ReportCache` as scoped or create scopes on demand",
+      "Singletons cannot take constructor parameters, so `AppDbContext` should be created with `new` in `ReportCache`"
+    ],
+    "correctIndex": 2,
+    "explanation": "A longer-lived service must not hold a shorter-lived one: a captured `DbContext` would be shared across requests and threads and outlive its scope. Registering the consumer with a compatible lifetime, or creating a scope with `IServiceScopeFactory` when needed, resolves it. Singletons can take dependencies, and making the context a singleton would cause worse concurrency bugs.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection-guidelines"
+  },
+  {
+    "id": "solid-dip-composition-root-placement",
+    "topic": "clean-code",
+    "subtopic": "solid-dip-di",
+    "difficulty": "Hard",
+    "title": "Where wiring belongs",
+    "question": "A teammate injects `IServiceProvider` into domain classes and calls `GetRequiredService<IMailer>()` wherever a collaborator is needed, because \"it is still using the DI container\". Where should object graphs be assembled instead?",
+    "options": [
+      "In one composition root near the application's entry point, with classes only receiving their collaborators",
+      "Inside each domain class, which should build its own collaborators from the container when it needs them",
+      "In a static `Factory` class that every layer calls from anywhere to obtain the collaborators it needs",
+      "In the database layer, which should store the wiring configuration so that it can change without a deploy, and reload it whenever someone edits it"
+    ],
+    "correctIndex": 0,
+    "explanation": "A composition root is the one place that knows concrete types and wires them together, keeping the rest of the code ignorant of the container. Passing `IServiceProvider` around is the service-locator anti-pattern, hides dependencies, and couples domain code to the container. Static factories and storing wiring in a database reintroduce global lookup and extra complexity.",
+    "referenceUrl": "https://martinfowler.com/articles/injection.html"
+  },
+  {
+    "id": "solid-dip-stable-vs-volatile-dependencies",
+    "topic": "clean-code",
+    "subtopic": "solid-dip-di",
+    "difficulty": "Hard",
+    "title": "Which dependencies to invert",
+    "question": "`CheckoutService` uses `List<T>`, `string`, `Math.Round`, an SMTP library and a third-party tax web API. A reviewer asks the team to \"invert all dependencies\". Which dependencies are the best candidates for an abstraction owned by the service?",
+    "options": [
+      "None of them, because abstractions should only be introduced for code that the team itself wrote",
+      "The SMTP library and the tax API, which are volatile, external and costly to test, not the stable core types",
+      "Every one of them, including `string` and `List<T>`, so nothing in the class refers to a concrete type, so that even value types hide behind interfaces",
+      "Only `Math.Round`, because static methods are the only dependencies that cannot be replaced in tests"
+    ],
+    "correctIndex": 1,
+    "explanation": "DIP targets volatile details: external systems, I/O, and things that change or are hard to fake. Stable standard types such as `string` or `List<T>` are unlikely to change and wrapping them only adds noise. Libraries and services you do not own are exactly where the boundary pays off, and a pure static like `Math.Round` needs no replacing.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles"
+  },
+  {
+    "id": "solid-dip-time-provider-clock",
+    "topic": "clean-code",
+    "subtopic": "solid-dip-di",
+    "difficulty": "Hard",
+    "title": "Hard-wired clock in business logic",
+    "question": "`CouponService.IsExpired(coupon)` compares against `DateTime.UtcNow`, and its tests fail on the last day of each month and around midnight. Which change both fixes the flakiness and applies Dependency Inversion in modern .NET?",
+    "options": [
+      "Inject `TimeProvider` and use `GetUtcNow()`, so tests can supply a controllable fake time",
+      "Add a `Thread.Sleep` before each assertion so the clock has settled before the comparison runs",
+      "Mark `IsExpired` as `static` so that it no longer depends on any instance state of the service",
+      "Cache `DateTime.UtcNow` in a static field when the application starts and reuse it for every call"
+    ],
+    "correctIndex": 0,
+    "explanation": "The system clock is a volatile, non-deterministic dependency. `TimeProvider` is an abstraction in the BCL (with a fake available for tests), so the service depends on an abstraction and tests control time. Sleeping does not remove the dependency, making the method static hides it, and a cached start-time value would be wrong in production.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/api/system.timeprovider"
+  },
+  {
+    "id": "solid-di-too-many-constructor-params",
+    "topic": "clean-code",
+    "subtopic": "solid-dip-di",
+    "difficulty": "Hard",
+    "title": "Constructor with nine dependencies",
+    "question": "`CheckoutHandler`'s constructor takes nine injected services. A teammate proposes a single `IServices` bag (a class exposing all nine as properties) so the constructor has one parameter. What is the better reading of the situation?",
+    "options": [
+      "Use property injection for six of them, so the constructor looks small while the class keeps all nine",
+      "The `IServices` bag is the right pattern, because it keeps the class small and makes dependencies easy to add, since new members never change the constructor",
+      "The class likely has too many responsibilities, so split it into cohesive collaborators instead of hiding the count",
+      "Nine parameters are fine, because DI containers handle them and the constructor length is purely cosmetic"
+    ],
+    "correctIndex": 2,
+    "explanation": "A long constructor is a signal that the class does too much, which also breaks SRP. Hiding the dependencies in a bag or in properties keeps the same coupling and makes it less visible. Splitting into focused collaborators with few dependencies each fixes the cause, while the container can handle the wiring either way.",
+    "referenceUrl": "https://martinfowler.com/articles/injection.html"
+  },
+  {
+    "id": "solid-dip-control-flow-vs-source-dependency",
+    "topic": "clean-code",
+    "subtopic": "solid-dip-di",
+    "difficulty": "Hard",
+    "title": "Control flow versus source-code dependency",
+    "question": "At runtime a `PlaceOrder` use case calls the SQL adapter to save data, yet DIP says the use case must not depend on the SQL code. How can both statements be true?",
+    "options": [
+      "The use case reaches SQL through reflection, so no compile-time reference exists between the two projects",
+      "The use case declares an output interface and the adapter implements it, so source dependencies point against the call flow",
+      "The use case imports the SQL adapter, but DIP only forbids that when the adapter is written in another language, so the dependency arrow always follows the direction of the call",
+      "The call goes through a shared static class, so neither side refers to the other by name"
+    ],
+    "correctIndex": 1,
+    "explanation": "Inverting a dependency separates the direction of the call from the direction of the source reference. The high-level module owns the interface, the low-level adapter implements it, and the call still flows to the database at runtime. Reflection or statics hide the coupling rather than inverting it, and language is irrelevant.",
+    "referenceUrl": "https://martinfowler.com/bliki/InversionOfControl.html"
+  },
+  {
+    "id": "solid-di-circular-dependency-design",
+    "topic": "clean-code",
+    "subtopic": "solid-dip-di",
+    "difficulty": "Expert",
+    "title": "Two services that need each other",
+    "question": "`OrderService` takes `IInventoryService` in its constructor and `InventoryService` takes `IOrderService`. The container throws a circular dependency error at startup. Which resolution is the soundest long-term?",
+    "options": [
+      "Rethink the responsibilities: move the shared behaviour into a third abstraction, or use an event, so the cycle disappears",
+      "Switch one of them to property injection so the container can build both objects and set the reference afterwards",
+      "Inject `Lazy<IOrderService>` into `InventoryService` so the error stops while both classes keep calling each other, so the container can resolve both without changes elsewhere",
+      "Register both as singletons so the container creates each one once and the cycle can no longer happen"
+    ],
+    "correctIndex": 0,
+    "explanation": "A cycle means the two classes are not independent units: each needs the other to function, so the real fix is in the design, for example a third collaborator both use or a published event. Property injection and `Lazy<T>` only hide the cycle until runtime, and singleton lifetimes do not remove a dependency loop.",
+    "referenceUrl": "https://martinfowler.com/articles/injection.html"
+  },
+  {
+    "id": "solid-violations-invoice-service",
+    "topic": "clean-code",
+    "subtopic": "solid-violations",
+    "difficulty": "Medium",
+    "title": "InvoiceService that does everything",
+    "question": "`InvoiceService` has `Calculate(invoice)`, `SaveToSql(invoice)` and `SendByEmail(invoice)`. Business rules, the database schema and the email provider each change on their own schedule. Which principle is violated and what is the best refactoring?",
+    "options": [
+      "Single Responsibility: keep `InvoiceService` for calculation and extract an invoice repository and a notifier",
+      "Open/Closed: add a subclass of `InvoiceService` for each of the three kinds of change",
+      "Liskov Substitution: replace the class with a base `Invoice` type and make three subclasses",
+      "Interface Segregation: split `InvoiceService` into three interfaces implemented by the same class, and keep the calculation logic in one of them"
+    ],
+    "correctIndex": 0,
+    "explanation": "Three actors (finance rules, DBA/schema, communications) force edits to the same class, which is an SRP violation. Extract persistence and notification into collaborators and let the service orchestrate them. Subclasses or three interfaces on the same class still keep all reasons to change in one place, and no substitution contract is involved.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+  },
+  {
+    "id": "solid-violations-instanceof-chain",
+    "topic": "clean-code",
+    "subtopic": "solid-violations",
+    "difficulty": "Medium",
+    "title": "Type checks in a loop",
+    "question": "Code: `foreach (var s in shapes) { if (s is Circle c) total += Math.PI * c.R * c.R; else if (s is Square q) total += q.Side * q.Side; }`. A `Triangle` is added next month. Which principle is at risk and what is the fix?",
+    "options": [
+      "Dependency Inversion: inject a `Math` abstraction so that the loop can use a different formula",
+      "Open/Closed: put an `Area()` method on `Shape` so each shape computes it and the loop calls it",
+      "Single Responsibility: move the loop into a separate class that sums areas for the shapes",
+      "Interface Segregation: split `Shape` into `ICircle` and `ISquare` so the loop can pick what it needs"
+    ],
+    "correctIndex": 1,
+    "explanation": "Each new shape forces an edit to the type-check chain, so the code is not closed against that kind of change. Replacing conditionals with polymorphism lets each shape own its calculation, and the loop works with any `Shape`. Moving the loop, abstracting `Math` or splitting the interfaces still leave the chain to edit for every shape.",
+    "referenceUrl": "https://refactoring.guru/replace-conditional-with-polymorphism"
+  },
+  {
+    "id": "solid-violations-downcast-abstraction",
+    "topic": "clean-code",
+    "subtopic": "solid-violations",
+    "difficulty": "Hard",
+    "title": "Client that downcasts an abstraction",
+    "question": "Code: `void Log(string m, ILogSink sink) { sink.Write(m); if (sink is FileSink f) f.Flush(); }`. Other sinks (console, network) are added regularly. What is the design problem and best fix?",
+    "options": [
+      "`FileSink` must be sealed, because subclassing it is what makes the `is` check necessary",
+      "The `is` operator is the problem, and replacing it with an `as` cast and a null check solves it",
+      "The client must know a concrete subtype, so the sinks are not truly substitutable; put flush behaviour in the abstraction",
+      "The `Log` method is too short, so it should be merged with `Write` and the sink should be created inside it, and the `is` check would no longer be needed there"
+    ],
+    "correctIndex": 2,
+    "explanation": "When a client has to check for a concrete subtype, the abstraction does not capture everything the client needs, which is a Liskov/Open-Closed smell. Each new sink with special needs would edit this method. Make flushing part of `ILogSink` (or part of `Write`'s contract) so every sink is used the same way. Replacing `is` with `as` does the same check, and sealing or merging does not address it.",
+    "referenceUrl": "https://martinfowler.com/bliki/RoleInterface.html"
+  },
+  {
+    "id": "solid-violations-static-config-singleton",
+    "topic": "clean-code",
+    "subtopic": "solid-violations",
+    "difficulty": "Hard",
+    "title": "Global settings read from everywhere",
+    "question": "Forty classes read `AppConfig.Instance.PaymentUrl`, `AppConfig.Instance.TaxRate` and other values from a static singleton, and tests must edit global state before each run. Which principle is violated and what is the best refactoring?",
+    "options": [
+      "Dependency Inversion: have each class receive a small settings object or interface from the composition root",
+      "Single Responsibility: split `AppConfig` into one singleton per setting so each has a single value",
+      "Open/Closed: make `AppConfig` an abstract class so that subclasses can override the values",
+      "Liskov Substitution: make the singleton's `Instance` return a subtype in tests with different values, so tests can verify the behaviour with each setting"
+    ],
+    "correctIndex": 0,
+    "explanation": "The classes depend directly on a concrete global, so high-level logic is tied to a detail that tests cannot swap safely. Injecting a narrow settings object (for example via the options pattern) makes the dependency explicit and replaceable. One singleton per value or an abstract class keeps the global access, and the substitution rule is not the issue.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection"
+  },
+  {
+    "id": "solid-violations-utility-class-refactoring",
+    "topic": "clean-code",
+    "subtopic": "solid-violations",
+    "difficulty": "Hard",
+    "title": "The 25-method static utility class",
+    "question": "`InvoiceUtils` is a static class with 25 methods covering tax maths, PDF layout, SQL queries and string formatting. Every feature touches it and merge conflicts are constant. What is the best next step?",
+    "options": [
+      "Group methods by reason to change and extract cohesive classes, such as a tax calculator and a PDF renderer, step by step with tests",
+      "Rename it to `InvoiceHelper` and sort the methods alphabetically so that developers can find them",
+      "Split it into 25 classes with one method each so the next change always touches a single file",
+      "Mark all methods as `virtual` and convert the class to a singleton so subclasses can replace them, so that every caller in the codebase can replace them freely when needed"
+    ],
+    "correctIndex": 0,
+    "explanation": "A grab-bag class mixes several reasons to change. Grouping methods by actor or concern and extracting cohesive classes incrementally, with tests, reduces conflicts and clarifies ownership. A rename or sorting changes nothing structurally, one-method classes destroy cohesion, and virtual methods on a singleton add indirection without separating concerns.",
+    "referenceUrl": "https://refactoring.guru/smells/divergent-change"
+  },
+  {
+    "id": "solid-violations-solid-overengineering",
+    "topic": "clean-code",
+    "subtopic": "solid-violations",
+    "difficulty": "Hard",
+    "title": "SOLID taken too far",
+    "question": "To print a user's name, a codebase has `IUserNameProvider`, `UserNameProviderFactory`, `IUserNameFormatter` and `UserNameFormatterRegistry`, each with exactly one implementation, and no second variant has appeared in three years. What is the most accurate assessment?",
+    "options": [
+      "This is a dependency inversion violation, so the team should add a second layer of interfaces between them",
+      "This is a single-responsibility violation, so the formatter and the provider should be merged into one class, which removes the indirection in one step",
+      "These abstractions have no real variation point; they add indirection and should be inlined until a second case appears",
+      "This is the ideal result of SOLID, because every class has a single responsibility and a matching interface"
+    ],
+    "correctIndex": 2,
+    "explanation": "SOLID principles are guidance to manage change, not a rule to add interfaces everywhere. Abstractions with one implementation and no foreseeable variation cost readability and navigation without giving flexibility, so simplifying them (and reintroducing a seam when needed) is the sound move. More layers worsen it, and merging is not the point either.",
+    "referenceUrl": "https://martinfowler.com/bliki/Yagni.html"
+  },
+  {
+    "id": "solid-violations-poor-mans-di-default-ctor",
+    "topic": "clean-code",
+    "subtopic": "solid-violations",
+    "difficulty": "Hard",
+    "title": "Default constructor that news up the concrete class",
+    "question": "Code: `class ReportService { ReportService() : this(new SqlRepo(\"prod\")) {}  ReportService(IRepo r) { ... } }`. Tests use the second constructor with a fake. Is Dependency Inversion satisfied?",
+    "options": [
+      "No, because a class may never have more than one constructor when it depends on an interface",
+      "Partly: tests can swap the repository, but the class still references the concrete `SqlRepo`, so wiring belongs in a composition root",
+      "Yes, completely, because the class exposes an injectable constructor and that satisfies the principle, and the principle imposes no further requirement on where the class gets its repository",
+      "No, because `IRepo` should be an abstract class, so that the default constructor can be inherited"
+    ],
+    "correctIndex": 1,
+    "explanation": "The second constructor gives a seam, which helps testing, but the high-level class is still compiled against the low-level `SqlRepo` and knows its connection details. Moving the default wiring to a composition root removes that knowledge. Having multiple constructors is not forbidden, and an abstract class would not help.",
+    "referenceUrl": "https://martinfowler.com/articles/injection.html"
+  },
+  {
+    "id": "solid-violations-refactor-order-legacy",
+    "topic": "clean-code",
+    "subtopic": "solid-violations",
+    "difficulty": "Expert",
+    "title": "Refactoring a legacy NotificationService safely",
+    "question": "`NotificationService.Send(n)` switches on `n.Channel`, builds an `SmtpClient` inline, reads `SmsProvider.Instance`, logs and retries in a loop, and has no tests. Production depends on it. Which plan is the safest way to reach a SOLID design?",
+    "options": [
+      "Pin current behaviour with characterisation tests, extract channel interfaces with injected implementations, then move retry and logging into decorators",
+      "Rewrite it from scratch in a hexagonal architecture first and add tests after the new version is deployed, because the existing tests would only slow down the migration to the new design",
+      "Install a DI container and register everything as singletons, and clean up the class body later when time allows",
+      "Split it into one class per method so each class is tiny, then write tests for the pieces that remain"
+    ],
+    "correctIndex": 0,
+    "explanation": "Without tests a refactor cannot show behaviour is preserved, so characterisation tests come first. Then small safe steps: extract a channel abstraction (OCP), inject it (DIP), and move cross-cutting retry/logging into decorators (SRP). A big-bang rewrite, a container with no design change, or one-method classes add risk without a safety net.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/05/10/WhenToMock.html"
+  }
+]

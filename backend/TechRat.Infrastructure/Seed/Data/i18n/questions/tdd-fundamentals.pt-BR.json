@@ -1,0 +1,290 @@
+[
+  {
+    "id": "tdd-cycle-order",
+    "title": "Ordem do ciclo de TDD",
+    "question": "Qual sequência descreve uma volta do ciclo de desenvolvimento orientado a testes?",
+    "options": [
+      "Projetar toda a estrutura de classes, implementá-la e só então escrever testes para confirmar que funciona",
+      "Escrever um teste que falha, fazê-lo passar com o mínimo de código e depois limpar o código",
+      "Escrever o código de produção, rodar a suíte inteira e depois corrigir cada teste que quebrar",
+      "Limpar o código existente, escrever um teste novo e depois apagar os testes anteriores"
+    ],
+    "explanation": "O ciclo é vermelho (um teste novo falha), verde (a mudança mais simples o faz passar) e refatorar (melhorar o design com todos os testes verdes). Escrever testes depois do código ou projetar tudo antes não é TDD, e apagar testes remove a rede de segurança que torna a refatoração segura."
+  },
+  {
+    "id": "tdd-red-must-fail-first",
+    "title": "Por que ver o teste falhar primeiro",
+    "question": "Uma pessoa escreve um teste e sua implementação juntos, roda a suíte uma vez e vê tudo verde. Por que o TDD insiste em ver o teste novo falhar antes de escrever o código?",
+    "options": [
+      "Uma execução vermelha prova que o teste detecta o comportamento ausente, então passar depois realmente significa algo",
+      "Ela permite que o compilador faça cache do assembly de testes para que as próximas execuções terminem mais rápido",
+      "Ela confirma que o código de produção compila, o que uma execução verde não mostraria",
+      "Ela registra um número de cobertura de base que o pipeline compara depois a cada execução futura na branch principal"
+    ],
+    "explanation": "Um teste que nunca falhou pode ser incapaz de falhar (sem assert, alvo errado, condição sempre verdadeira). Vê-lo ficar vermelho pelo motivo esperado e depois verde após a mudança prova que ele está ligado ao comportamento. Compilação e cache não têm relação, e cobertura não é o objetivo do passo vermelho."
+  },
+  {
+    "id": "tdd-refactor-no-new-behaviour",
+    "title": "Comportamento novo durante a refatoração",
+    "question": "No passo de refatorar, os testes estão verdes e uma pessoa adiciona suporte a uma nova regra de desconto em `Invoice` enquanto arruma o código. O que há de errado nisso?",
+    "options": [
+      "Nada, pois testes verdes tornam qualquer mudança seguinte automaticamente segura de fazer",
+      "A regra de desconto deveria ter sido adicionada antes de os testes existentes ficarem verdes",
+      "Refatorar só é permitido em código legado que nenhum teste existente cobre, pois o código coberto fica congelado",
+      "Refatorar muda só a estrutura, então comportamento novo precisa de seu próprio teste falhando antes"
+    ],
+    "explanation": "Refatorar é melhorar a estrutura sem mudar o comportamento observável. Uma nova regra de desconto é comportamento novo, então inicia um novo ciclo com um teste falhando. Testes verdes só protegem o comportamento que já está especificado, e refatorar código coberto é exatamente onde os testes mais ajudam."
+  },
+  {
+    "id": "tdd-green-simplest-change",
+    "title": "Objetivo do passo verde",
+    "question": "Um teste novo está vermelho. O que a pessoa desenvolvedora deve buscar no passo verde?",
+    "options": [
+      "Um design polido e totalmente genérico que já antecipe os próximos testes",
+      "Uma implementação completa da funcionalidade inteira, para que nenhum outro teste seja necessário",
+      "A mudança mais rápida e simples que faz o teste passar, deixando a limpeza para o passo de refatorar",
+      "Uma mudança que passa o teste novo e ainda reescreve o código vizinho para ficar mais claro"
+    ],
+    "explanation": "Verde é voltar rápido a um estado funcionando. Duplicação, valores fixos e nomes ruins são aceitáveis por alguns minutos, porque o passo de refatorar, protegido pelos testes, é onde eles são limpos. Projetar à frente ou reescrever código vizinho mistura duas tarefas e atrasa o feedback."
+  },
+  {
+    "id": "tdd-three-laws",
+    "title": "Uma das Três Leis do TDD",
+    "question": "Qual afirmação é uma das Três Leis do TDD de Uncle Bob?",
+    "options": [
+      "Você não pode escrever um teste de unidade até que uma revisão aprove o design da classe testada",
+      "Você não pode escrever código de produção, a não ser para fazer passar um teste de unidade que falha",
+      "Você não pode fazer commit de nenhum código a menos que a suíte informe cem por cento de cobertura de linhas",
+      "Você não pode refatorar nenhum código a menos que ao menos um teste de unidade esteja falhando agora"
+    ],
+    "explanation": "As três leis são: não escreva código de produção exceto para passar um teste de unidade que falha; não escreva mais de um teste do que o suficiente para falhar (não compilar conta como falhar); e não escreva mais código de produção do que o suficiente para passar aquele teste que falha. Elas não falam de aprovação de design nem de metas de cobertura, e a refatoração acontece no verde, não no vermelho."
+  },
+  {
+    "id": "tdd-red-right-reason",
+    "title": "Vermelho pelo motivo certo",
+    "question": "Uma pessoa escreve este teste primeiro e o executa:\n\nvar calc = new ShippingCalculator(rates);\nAssert.Equal(5.00m, calc.Cost(2.0));\n\nEle fica vermelho com uma NullReferenceException, porque `rates` nunca foi inicializado no teste. O que deve acontecer em seguida?",
+    "options": [
+      "Corrigir a preparação do teste até ele falhar no assert (esperado 5.00, obtido outro valor) e só então escrever o código",
+      "Aceitar o resultado vermelho e começar a codificar, já que qualquer falha conta como o passo vermelho",
+      "Envolver a chamada em try/catch para que o teste reporte o problema como uma falha de assert comum no log do build",
+      "Fazer `Cost` retornar 5.00 de imediato, porque a exceção prova que o método não existe"
+    ],
+    "explanation": "O passo vermelho deve falhar porque o comportamento não existe, não porque o teste está quebrado. Uma NullReferenceException vinda da preparação não diz nada sobre custos de frete, então um verde posterior poderia ser acidental. Corrija a preparação para que a mensagem diga esperado 5.00 mas obtido outro valor, e só então escreva o código."
+  },
+  {
+    "id": "tdd-refactor-go-red-undo",
+    "title": "Um teste fica vermelho ao refatorar",
+    "question": "Durante o passo de refatorar, uma pessoa extrai um método e um teste fica vermelho. Qual é a melhor resposta?",
+    "options": [
+      "Editar o valor esperado do teste que falha para bater com a nova saída do código e seguir em frente",
+      "Continuar refatorando e corrigir todas as falhas juntas quando a reestruturação terminar",
+      "Marcar o teste que falha como ignorado até a refatoração acabar e depois reativá-lo",
+      "Desfazer a última mudança para voltar ao verde e tentar a refatoração de novo em um passo menor"
+    ],
+    "explanation": "Uma refatoração precisa manter o comportamento idêntico, então um teste vermelho significa que o último passo mudou o comportamento ou era grande demais. Voltar ao último estado verde é barato e deixa a causa óbvia; um passo menor mostra o que deu errado. Mudar expectativas, acumular falhas ou ignorar testes joga fora a rede de segurança."
+  },
+  {
+    "id": "tdd-one-failing-test-at-a-time",
+    "title": "Oito testes de uma vez",
+    "question": "Uma pessoa escreve oito testes para um novo `PriceCalculator` de uma vez, depois escreve a implementação inteira e roda tudo. Vários testes falham ao mesmo tempo. Por que isso é um problema no TDD?",
+    "options": [
+      "Testes escritos em lote não podem compartilhar código de preparação, então a mesma preparação acaba duplicada pela classe de testes inteira",
+      "Oito testes são mais do que uma única classe deveria ter, então a classe provavelmente é grande demais",
+      "Passos grandes alongam o ciclo de feedback: com muitos testes vermelhos juntos, não fica claro qual mudança corrige qual falha",
+      "Testes escritos antes do código ficam desatualizados e precisam ser reescritos quando a classe existir"
+    ],
+    "explanation": "O TDD trabalha em ciclos minúsculos: um teste falhando, a menor mudança para passá-lo e depois a limpeza. Com um único teste vermelho, a próxima mudança é óbvia e qualquer falha nova vem da última edição. Oito testes vermelhos de uma vez escondem essa ligação e trazem de volta longas sessões de depuração."
+  },
+  {
+    "id": "tdd-test-list",
+    "title": "Para que serve uma lista de testes",
+    "question": "Antes de escrever o primeiro teste de uma funcionalidade nova, uma pessoa anota uma lista curta de comportamentos a cobrir (entrada vazia, um item, item inválido e assim por diante). Para que serve essa lista no TDD?",
+    "options": [
+      "Ela mantém as ideias restantes visíveis, para escolher um teste por vez sem perder os outros",
+      "É uma especificação formal que precisa ser aprovada antes de o primeiro teste poder ser escrito",
+      "É o conjunto de testes que devem ser todos escritos de antemão e depois executados em lote",
+      "É a lista final que o time assina para provar que a funcionalidade está totalmente coberta"
+    ],
+    "explanation": "Uma lista de testes é um rascunho: permite escolher o próximo teste, riscar itens e anotar ideias novas que surgem no meio do ciclo sem atrapalhar o teste atual. Ela não é um documento de aprovação, um lote a escrever antecipadamente nem uma lista de aceite."
+  },
+  {
+    "id": "tdd-fake-it",
+    "title": "Finja até conseguir",
+    "question": "Uma pessoa escreve um primeiro teste: Assert.Equal(2, Add(1, 1)). Na abordagem 'fake it' (fingir), qual é o passo verde e por quê?",
+    "options": [
+      "Implementar `a + b` de imediato, porque uma constante seria apenas dado de teste copiado",
+      "Lançar NotImplementedException para o teste continuar vermelho até o design completo estar claro",
+      "Retornar a constante 2, que chega ao verde em segundos enquanto os testes seguintes guiam a lógica real",
+      "Escrever um parser de expressões aritméticas arbitrárias para que os próximos testes não exijam mudanças"
+    ],
+    "explanation": "Fingir é retornar um valor fixo para obter a barra verde na hora; a duplicação entre a constante e o teste então empurra para generalizar conforme chegam mais testes. Isso dá feedback rápido e um estado seguro para refatorar. Deixar o teste vermelho ou construir uma solução geral antes contraria o objetivo dos passos pequenos."
+  },
+  {
+    "id": "tdd-triangulation-next-test",
+    "title": "Triangulando com um segundo teste",
+    "question": "Uma pessoa está testando `IsLeapYear`. O único teste até agora é Assert.True(IsLeapYear(2024)) e a implementação é `return true;`. Usando triangulação, qual teste deve vir a seguir?",
+    "options": [
+      "Assert.True(IsLeapYear(2028)), outro ano bissexto para confirmar que o resultado é estável",
+      "Assert.False(IsLeapYear(2023)), um exemplo com resultado esperado diferente que a constante não consegue satisfazer",
+      "Um laço que verifica todos os anos de 2000 a 2100 contra uma tabela de referência",
+      "Assert.Throws(() => IsLeapYear(-1)), para cobrir entrada inválida e mensagens de erro antes de a lógica principal existir"
+    ],
+    "explanation": "A triangulação adiciona um segundo exemplo com valor esperado diferente, para que a resposta fixa falhe e force lógica de verdade. Outro ano bissexto passa sem mudar o código e não ensina nada, um laço de 100 anos é um passo enorme, e entrada inválida é outro comportamento para um ciclo futuro."
+  },
+  {
+    "id": "tdd-obvious-implementation",
+    "title": "Implementação óbvia",
+    "question": "O teste diz Assert.Equal(12, new Rectangle(3, 4).Area()). A pessoa conhece a fórmula e digita `return width * height;` diretamente. O que o TDD de Kent Beck diz sobre isso?",
+    "options": [
+      "Está errado: sempre fixe o valor esperado primeiro, para que toda fórmula seja provada depois por um segundo e um terceiro teste",
+      "Está certo apenas se a fórmula antes tiver sido escrita em um documento de design revisado pelo time",
+      "Está errado: o código de produção só pode ser escrito depois que três testes descreverem o comportamento",
+      "Está certo: quando a implementação é óbvia, digite-a, e passe a passos menores se a barra ficar vermelha inesperadamente"
+    ],
+    "explanation": "Beck descreve três marchas: fingir, triangular e implementação óbvia. Quando você enxerga o código certo, digitá-lo é o caminho mais rápido. Se o teste falhar inesperadamente, você reduz para passos menores. O TDD não define um número mínimo de testes nem exige documentos de design."
+  },
+  {
+    "id": "tdd-name-by-behaviour",
+    "title": "Nomes de teste que descrevem comportamento",
+    "question": "Uma suíte contém um teste chamado `Calculate_CallsRateProvider_Once`. O time quer nomes de teste que documentem o comportamento para quem ler depois. Qual renomeação atende melhor a esse objetivo?",
+    "options": [
+      "`Calculate_InvokesRateProvider_ExactlyOneTime`",
+      "`Calculate_Works_When_Rates_Are_Available`",
+      "`Order_total_includes_tax_for_taxable_items`",
+      "`Test_Calculate_01_RateProviderIsMocked`"
+    ],
+    "explanation": "Um nome orientado a comportamento declara uma regra de negócio que o sistema deve cumprir, então um teste falhando se lê como um requisito quebrado. Os outros nomes ainda descrevem como o código funciona (chamadas, mocks, numeração) ou são vagos demais para dizer o que é o correto, então quebram em refatorações e não explicam nada."
+  },
+  {
+    "id": "tdd-pick-simplest-first",
+    "title": "Escolhendo o primeiro teste",
+    "question": "Uma pessoa começa um `PasswordValidator` com esta lista de testes: senha válida aceita, senha vazia rejeitada, sem dígito rejeitada, menor que 8 caracteres rejeitada, sem maiúscula rejeitada. Qual teste é a melhor primeira escolha?",
+    "options": [
+      "A senha vazia é rejeitada: o caso mais simples, que cria a classe e a assinatura do método",
+      "A senha válida é aceita, porque combina todas as regras e prova o validador de ponta a ponta",
+      "O caso sem maiúscula, porque é a regra com maior chance de esconder um defeito no design final",
+      "O caso menor que 8, porque verificações de tamanho são a regra mais difícil de acertar de todas"
+    ],
+    "explanation": "Comece pelo caso mais simples e degenerado: ele coloca no lugar a classe, o método e um primeiro assert real com quase nenhuma lógica. O caminho feliz exige todas as regras de uma vez, e começar pela regra mais difícil torna o primeiro passo grande. Cada teste seguinte adiciona uma regra."
+  },
+  {
+    "id": "tdd-test-pain-design-signal",
+    "title": "Dor no teste como sinal de design",
+    "question": "Escrever o primeiro teste de `OrderService.Place` exige criar seis colaboradores, controlar uma chamada estática a `DateTime.Now` e abrir uma conexão com o banco antes de qualquer assert. O que o TDD está dizendo à pessoa desenvolvedora?",
+    "options": [
+      "O teste deve ser adiado até o serviço inteiro existir, para copiar a preparação do próprio código",
+      "O teste é difícil de escrever porque o design é: dividir responsabilidades e injetar dependências, como um relógio",
+      "O TDD em nível de unidade não se aplica a esse tipo de classe, então só testes de ponta a ponta, mais lentos, devem guiá-la",
+      "A preparação é normal e deve ser escondida em uma classe base compartilhada para cada teste ficar curto"
+    ],
+    "explanation": "Escrever o teste primeiro faz de você o primeiro cliente da API, e a dor no teste costuma espelhar acoplamento no design: responsabilidades demais, dependências ocultas, estado estático. Dividir a classe e injetar um relógio ou repositório melhora testabilidade e design. Esconder a preparação ou adiar o teste mantém o problema."
+  },
+  {
+    "id": "tdd-triangulate-only-when-unsure",
+    "title": "Quando vale triangular",
+    "question": "O teste é Assert.Equal(30, Price(3, 10)) (quantidade 3, preço unitário 10). A pessoa já enxerga a generalização `return quantity * unitPrice;` e pensa em escrever antes `return 30;` mais um segundo teste para triangular. Qual é a melhor jogada?",
+    "options": [
+      "Sempre triangular, para que toda implementação seja forçada por pelo menos dois testes com dados diferentes",
+      "Retornar 30 primeiro e mantê-lo até a revisão de código pedir a forma geral da fórmula",
+      "Escrever o segundo teste só depois de generalizar, para que ele falhe por um motivo mais limpo que o primeiro",
+      "Generalizar direto: triangule apenas quando a abstração certa não está clara, não quando já está visível"
+    ],
+    "explanation": "A triangulação é uma ferramenta para quando você ainda não enxerga a generalização certa; exemplos extras ajudam o design a emergir. Quando a abstração é óbvia, remover direto a duplicação entre dado de teste e código é mais rápido e igualmente seguro. Forçar dois testes sempre, ou esperar a revisão, adiciona cerimônia sem feedback."
+  },
+  {
+    "id": "tdd-kata-fizzbuzz-first-test",
+    "title": "FizzBuzz: o primeiro teste",
+    "question": "Ao começar o kata FizzBuzz (múltiplos de 3 dão \"Fizz\", de 5 dão \"Buzz\", de ambos \"FizzBuzz\", e o resto devolve o próprio número), qual é o melhor primeiro teste?",
+    "options": [
+      "Converter 15 retorna \"FizzBuzz\", porque cobre todas as regras do kata de uma só vez e testa o caso mais completo",
+      "Imprimir os números de 1 a 100 deve bater com a saída esperada completa do kata",
+      "Converter 1 retorna \"1\", o caso mais simples, que não precisa de lógica de Fizz nem de Buzz",
+      "Converter 3 retorna \"Fizz\", porque essa é a primeira regra na descrição do kata"
+    ],
+    "explanation": "Um bom primeiro teste é o caso mais simples que ainda cria a API. Converter 1 não precisa de regra especial, e cada teste seguinte (2, 3, 5, 15) adiciona exatamente um comportamento novo. Começar por 15 ou pela saída de 1 a 100 é um primeiro passo grande, e começar por Fizz pula a regra do número simples."
+  },
+  {
+    "id": "tdd-kata-fizzbuzz-next-test",
+    "title": "FizzBuzz: escolhendo o próximo teste",
+    "question": "Testes de FizzBuzz até agora, todos verdes: 1 -> \"1\", 2 -> \"2\", 3 -> \"Fizz\". O código usa `n % 3 == 0` para Fizz. Qual é o melhor próximo teste?",
+    "options": [
+      "15 -> \"FizzBuzz\", verificando a regra combinada antes de o Buzz sequer existir",
+      "6 -> \"Fizz\", outro múltiplo de 3 para conferir de novo a regra existente",
+      "Um laço de 1 a 100 comparado com a sequência esperada completa",
+      "5 -> \"Buzz\": uma regra nova que hoje falha"
+    ],
+    "explanation": "O próximo teste deve falhar por exatamente uma regra ausente. 5 -> \"Buzz\" faz isso. Testar 6 passa na hora porque a regra do módulo já existe, 15 precisa de duas regras e salta etapas, e um laço de 1 a 100 é um passo grande que deixa de apontar para uma causa só."
+  },
+  {
+    "id": "tdd-kata-string-calculator-simplest-code",
+    "title": "String Calculator: código mais simples que passa",
+    "question": "Kata String Calculator. O código é `int Add(string s) { return 0; }`, que passa em Assert.Equal(0, Add(\"\")). Um novo teste, Assert.Equal(1, Add(\"1\")), está vermelho. Qual é o código mais simples que faz os dois testes passarem?",
+    "options": [
+      "`if (s == \"\") return 0; return int.Parse(s);`",
+      "`return int.Parse(s);`, que deixa o teste novo verde e mantém o antigo inalterado",
+      "`return s.Split(',').Select(int.Parse).Sum();`, que já trata listas de números",
+      "Uma classe de parser com delimitadores personalizados, erros para negativos e um limite de 1000"
+    ],
+    "explanation": "Os dois testes precisam passar, então a string vazia ainda deve retornar 0: int.Parse(\"\") lança exceção. Uma guarda para o caso vazio mais um parse é a menor mudança. A versão com Split e Sum também falha na string vazia e trata vírgulas que nenhum teste pede ainda, e um parser completo constrói funcionalidades à frente dos testes."
+  },
+  {
+    "id": "tdd-kata-roman-refactor-on-green",
+    "title": "Números Romanos: o que vem agora",
+    "question": "Kata Números Romanos, tudo verde: ToRoman(1) é \"I\", ToRoman(2) é \"II\", ToRoman(3) é \"III\", implementados como `if (n == 1) return \"I\"; if (n == 2) return \"II\"; if (n == 3) return \"III\";`. O que o ciclo de TDD pede agora?",
+    "options": [
+      "Escrever já o teste do 4 e deixar a limpeza dos ramos duplicados para o fim do kata",
+      "Refatorar no verde: trocar os ramos por código que repete \"I\" n vezes e depois escrever o teste do 4",
+      "Adicionar ramos `if (n == 4)` e `if (n == 5)` um a um até a repetição acabar ficando óbvia para todo o time",
+      "Apagar os testes do 2 e do 3, já que o teste do 1 cobre a ideia"
+    ],
+    "explanation": "Todos os testes estão verdes e o código está visivelmente duplicado, então é hora do passo de refatorar. Trocar os ramos por uma repetição de \"I\" mantém todos os testes verdes e encolhe o código antes de o próximo comportamento (4 é \"IV\") chegar. Adiar a limpeza deixa a duplicação se acumular, e apagar testes remove proteção."
+  },
+  {
+    "id": "tdd-kata-bowling-next-test",
+    "title": "Boliche: o próximo teste",
+    "question": "Kata Boliche (Bowling), tudo verde: um jogo só de canaletas marca 0 e vinte jogadas de 1 marcam 20. Qual é o melhor próximo teste?",
+    "options": [
+      "Um jogo perfeito de doze strikes marca 300, testando primeiro a regra de maior pontuação",
+      "Um jogo completo copiado de uma súmula publicada, que verifica muitas regras de uma vez",
+      "Uma jogada de 11 pinos é rejeitada, para validar a entrada antes de a pontuação crescer",
+      "Um spare (5, 5 e depois 3) seguido de zeros marca 16: adiciona exatamente uma regra nova"
+    ],
+    "explanation": "O kata cresce uma regra de pontuação por vez. Um único spare (o 3 depois dele conta duas vezes, 10 + 3 + 3 = 16) falha por um só motivo e força a primeira mudança no laço de pontuação. Um jogo perfeito ou um jogo real inteiro exige strikes, spares e o décimo frame de uma vez, e validação de entrada é outro comportamento."
+  },
+  {
+    "id": "tdd-kata-prime-factors-next-test",
+    "title": "Fatores Primos: o próximo teste",
+    "question": "Kata Fatores Primos (Factors(n) retorna a lista de fatores primos), tudo verde: 1 -> [], 2 -> [2], 3 -> [3]. Qual é o melhor próximo teste?",
+    "options": [
+      "2147483647 -> [2147483647], para verificar o desempenho com um primo muito grande",
+      "1001 -> [7, 11, 13], um composto maior que verifica vários fatores de uma vez",
+      "4 -> [2, 2], a primeira entrada que precisa do mesmo fator duas vezes",
+      "0 -> uma exceção, já que zero não tem fatores primos para listar"
+    ],
+    "explanation": "Cada teste deve empurrar o código um pequeno passo. 4 -> [2, 2] é a menor entrada que o código atual não trata e leva a dividir o número repetidamente. Um primo gigante é uma preocupação de desempenho, 1001 exige vários divisores de uma vez, e zero é uma questão de validação de entrada para depois."
+  },
+  {
+    "id": "tdd-kata-stack-forcing-test",
+    "title": "Pilha: o teste que força uma coleção",
+    "question": "Kata Pilha (Stack): pilha nova está vazia; após Push(1) não está vazia; Push(1) e depois Pop() retorna 1. Todos passam usando um único campo `int? top`. Qual teste força a troca desse campo por uma coleção de verdade?",
+    "options": [
+      "Push(1), Push(2), depois Pop() retorna 2 e o Pop() seguinte retorna 1",
+      "Push(5) e depois Pop() retorna 5, para confirmar que o valor empilhado é mantido",
+      "Push(1) e depois Peek() retorna 1 sem remover o item da pilha",
+      "Pop() em uma pilha vazia lança exceção, porque casos de erro precisam de teste próprio"
+    ],
+    "explanation": "Um único campo guarda só um valor. Dois pushes seguidos de dois pops em ordem LIFO é o primeiro teste que um único campo não satisfaz, então ele conduz à introdução de uma lista ou array. Push(5) e Peek() passam com o campo existente, e o erro de pilha vazia é válido, mas não tem relação com o armazenamento."
+  },
+  {
+    "id": "tdd-kata-roman-table-refactor",
+    "title": "Números Romanos: a refatoração que habilita",
+    "question": "Kata Números Romanos: os testes de 1 a 10 estão verdes, feitos com uma cadeia de blocos `if` que acrescentam símbolos (`if (n >= 10)`, `if (n >= 9)` e assim por diante). Os próximos testes serão 40, 90 e 400. Qual refatoração elimina a duplicação e os torna quase gratuitos?",
+    "options": [
+      "Um dicionário pré-computado com todos os 3999 numerais, consultado pelo número e conferido contra os testes",
+      "Uma tabela ordenada de pares valor e símbolo, com formas subtrativas como IV e IX, consumida de forma gulosa em um laço",
+      "Uma classe por símbolo, cada uma decidindo quantas vezes ele aparece e encadeadas em uma ordem fixa",
+      "Uma cópia do bloco `if` inteiro para cada dezena e cada centena, com novos símbolos e limites"
+    ],
+    "explanation": "Cada bloco faz a mesma coisa com dados diferentes: enquanto o número for pelo menos um valor, acrescente o símbolo e subtraia. Transformar esses blocos em dados (1000 M, 900 CM, 500 D, 400 CD, ... 4 IV, 1 I) deixa um só laço, então 40, 90 e 400 passam sem código novo. Um dicionário de 3999 entradas, classes por símbolo ou blocos copiados aumentam o volume em vez de remover a duplicação."
+  }
+]

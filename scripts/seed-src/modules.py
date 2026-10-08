@@ -497,7 +497,7 @@ module("testing-essentials", "Testing Essentials", ENG, "Beginner", "flask-conic
 module("test-doubles-and-design", "Test Doubles & Test Design", ENG, "Intermediate", "flask-conical",
        "Isolate code with mocks, stubs and fakes, and design boundary, negative and regression tests.",
        ["testing/test-doubles", "testing/test-design"],
-       requires=["testing-essentials"],
+       kind="Core", requires=["testing-essentials"],
        pt=("Dublês de Teste e Design de Testes", "Isole código com mocks, stubs e fakes, e projete testes de limite, negativos e de regressão."))
 
 module("testing-strategy", "Testing Strategy", ENG, "Advanced", "flask-conical",
@@ -505,6 +505,18 @@ module("testing-strategy", "Testing Strategy", ENG, "Advanced", "flask-conical",
        ["testing/tdd-pyramid", "testing/advanced-testing"],
        kind="Core",
        pt=("Estratégia de Testes", "TDD e a pirâmide de testes, além de testes de propriedade, mutação e contrato."))
+
+module("tdd-fundamentals", "TDD Fundamentals", ENG, "Beginner", "flask-conical",
+       "Learn the red-green-refactor cycle, write tests first in small steps and practise it on classic katas.",
+       ["testing/tdd-red-green-refactor", "testing/tdd-test-first-design", "testing/tdd-kata-walkthroughs"],
+       kind="Core", requires=["testing-essentials"],
+       pt=("Fundamentos de TDD", "Aprenda o ciclo vermelho-verde-refatorar, escreva testes primeiro em passos pequenos e pratique em katas clássicos."))
+
+module("tdd-in-practice", "TDD in Practice", ENG, "Intermediate", "flask-conical",
+       "Use TDD outside-in with test doubles, fix bugs and refactor safely, tame legacy code and avoid the common pitfalls.",
+       ["testing/tdd-outside-in", "testing/tdd-bug-fixing", "testing/tdd-legacy-seams", "testing/tdd-pitfalls"],
+       kind="Core", requires=["tdd-fundamentals"],
+       pt=("TDD na Prática", "Use TDD de fora para dentro com dublês de teste, corrija bugs e refatore com segurança, domine código legado e evite as armadilhas comuns."))
 
 module("performance-testing-and-profiling", "Performance Testing & Profiling", ENG, "Advanced", "gauge",
        "Load and stress test systems, then profile and benchmark code to find the bottleneck.",
@@ -670,7 +682,14 @@ module("streaming-and-data-quality", "Kafka & Data Quality", AI, "Advanced", "wo
 module("design-principles", "Design Principles", ENG, "Intermediate", "sparkles",
        "SOLID, coupling and cohesion, and DRY, KISS and YAGNI.",
        ["clean-code/solid", "clean-code/coupling-cohesion", "clean-code/principles"],
+       kind="Core",
        pt=("Princípios de Design", "SOLID, acoplamento e coesão, e DRY, KISS e YAGNI."))
+
+module("solid-in-practice", "SOLID in Practice", ENG, "Intermediate", "layers",
+       "Apply the five SOLID principles to real code: spot violations, refactor them and explain the trade-offs in an interview.",
+       ["clean-code/solid-srp-ocp", "clean-code/solid-lsp-isp", "clean-code/solid-dip-di", "clean-code/solid-violations"],
+       kind="Core", requires=["design-principles"],
+       pt=("SOLID na Prática", "Aplique os cinco princípios SOLID em código real: identifique violações, refatore-as e explique os trade-offs em uma entrevista."))
 
 module("design-patterns", "Design Patterns", ENG, "Intermediate", "puzzle",
        "Creational, structural and behavioral patterns, plus repository and unit of work for data access.",
@@ -719,6 +738,28 @@ module("code-review-and-mentoring", "Code Review & Mentoring", CAREER, "Intermed
        ["engineering-leadership/code-review", "engineering-leadership/mentoring"],
        kind="Core",
        pt=("Code Review e Mentoria", "Dê e receba code reviews úteis e ajude colegas de equipe a crescer."))
+
+module("behavioral-interview", "Behavioral Interview", CAREER, "Beginner", "users",
+       "Answer behavioral questions with the STAR method, talk about mistakes honestly and handle offers and negotiation.",
+       ["junior-career/star-method", "junior-career/common-behavioral-questions", "junior-career/mistakes-and-not-knowing",
+        "junior-career/offers-and-negotiation"],
+       pt=("Entrevista Comportamental", "Responda perguntas comportamentais com o método STAR, fale sobre erros com honestidade e lide com ofertas e negociação."))
+
+module("junior-technical-interview", "Junior Technical Interview", CAREER, "Beginner", "target",
+       "The OOP, web and database questions juniors get asked, and how to think aloud while you code.",
+       ["junior-career/junior-oop-concepts", "junior-career/junior-web-db-concepts", "junior-career/live-coding-communication"],
+       pt=("Entrevista Técnica Júnior", "As perguntas de OOP, web e banco de dados que juniores recebem, e como pensar em voz alta enquanto você programa."))
+
+module("onboarding-and-first-90-days", "Onboarding & Your First 90 Days", CAREER, "Beginner", "map",
+       "Onboard well, read an unfamiliar codebase, ask for help at the right time and turn feedback into a growth plan.",
+       ["junior-career/onboarding-first-weeks", "junior-career/reading-codebases", "junior-career/asking-for-help",
+        "junior-career/feedback-and-growth"],
+       pt=("Onboarding e Seus Primeiros 90 Dias", "Faça um bom onboarding, leia uma base de código desconhecida, peça ajuda na hora certa e transforme feedback em um plano de crescimento."))
+
+module("pull-requests-for-juniors", "Pull Requests for Juniors", CAREER, "Beginner", "git-pull-request",
+       "Open small, clear pull requests, take review feedback well and review your teammates' code with confidence.",
+       ["junior-career/small-pull-requests", "junior-career/receiving-review-feedback", "junior-career/reviewing-as-a-junior"],
+       pt=("Pull Requests para Juniores", "Abra pull requests pequenos e claros, receba o feedback da revisão com maturidade e revise o código dos colegas com confiança."))
 
 module("incident-response", "Incidents & Reliability", CAREER, "Intermediate", "users",
        "Handle incidents calmly, learn from them and build reliability practices into the team.",
