@@ -95,6 +95,13 @@ public sealed class IdentityEmailSender(IOptions<SmtpOptions> options, IConfigur
         return SendAsync(email, Text.Get(Text.Keys.EmailPasswordChangedSubject), Text.Get(Text.Keys.EmailPasswordChangedBody, when, resetLink), ct);
     }
 
+    public Task SendAccountDeletedAsync(string email, CancellationToken ct)
+    {
+        var privacyUrl = $"{(config["App:PublicWebUrl"] ?? "http://localhost:3000").TrimEnd('/')}/privacy";
+        var when = clock.GetUtcNow().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+        return SendAsync(email, Text.Get(Text.Keys.EmailAccountDeletedSubject), Text.Get(Text.Keys.EmailAccountDeletedBody, when, privacyUrl), ct);
+    }
+
     public Task SendTestAsync(string to, CancellationToken ct) =>
         SendAsync(to, Text.Get(Text.Keys.EmailTestSubject), Text.Get(Text.Keys.EmailTestBody, _o.Host, _o.Port, _o.SocketOptions()), ct);
 

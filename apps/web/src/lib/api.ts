@@ -48,6 +48,16 @@ export async function changePassword(currentPassword: string | null, newPassword
   await unwrap(api.POST("/api/v1/auth/change-password", { body: { currentPassword, newPassword } }));
 }
 
+/**
+ * Permanently deletes the signed-in account. Accounts with a password send it; accounts without one (external
+ * sign-in) send their username as `confirmation`. The server clears the session cookie on success; on the desktop the
+ * bearer session drops its stored tokens. Failures throw an ApiError (400 field errors, 409 last admin, 429).
+ */
+export async function deleteAccount(password: string | null, confirmation: string | null) {
+  if (bearerSession) return bearerSession.deleteAccount(password, confirmation);
+  await unwrap(api.DELETE("/api/v1/account", { body: { password, confirmation } }));
+}
+
 export function hubUrl() {
   return `${API_BASE_URL}/hubs/notifications`;
 }

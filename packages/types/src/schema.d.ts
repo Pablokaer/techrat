@@ -1242,6 +1242,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Permanently delete the signed-in account and its data
+         * @description Requires the current password (failures count towards lockout) or, for accounts without a password, the username typed as confirmation. Deletes the credentials, profile, photo, progress, XP, achievements, notifications and every session; all tokens stop working at once and the owner is emailed. The last administrator cannot delete the account (409). This cannot be undone.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DeleteAccountRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/modules": {
         parameters: {
             query?: never;
@@ -2693,6 +2743,10 @@ export interface components {
             recentAchievements: components["schemas"]["AchievementDto"][];
             /** Format: int32 */
             unreadNotifications: number;
+        };
+        DeleteAccountRequest: {
+            password: null | string;
+            confirmation: null | string;
         };
         /** @enum {unknown} */
         Difficulty: "Easy" | "Medium" | "Hard" | "Expert";

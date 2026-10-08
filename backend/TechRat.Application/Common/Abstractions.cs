@@ -66,6 +66,12 @@ public interface IAccountEmailSender
 {
     /// <summary>Tells the owner their password changed, with a way out if it wasn't them. Throws <see cref="EmailDeliveryException"/>.</summary>
     Task SendPasswordChangedAsync(string email, CancellationToken ct);
+
+    /// <summary>
+    /// Confirms to the former owner that their account and data were deleted. Sent after the deletion, to the address
+    /// captured before it, and never stored. Throws <see cref="EmailDeliveryException"/>.
+    /// </summary>
+    Task SendAccountDeletedAsync(string email, CancellationToken ct);
 }
 
 /// <summary>Sends a test email so admins can check the SMTP settings of a deployment.</summary>
@@ -95,4 +101,6 @@ public static class CacheKeys
     public static string Translations(string locale) => $"catalog:translations:{locale}:v2";
     public static string Leaderboard(string scope, string? topic, int page, int pageSize) =>
         $"leaderboard:{scope}:{topic ?? "all"}:{page}:{pageSize}";
+    /// <summary>Whether an account still exists. Cached briefly and evicted on deletion, so tokens of deleted accounts stop working at once.</summary>
+    public static string AccountExists(Guid userId) => $"account:exists:{userId:N}";
 }

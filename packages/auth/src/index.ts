@@ -83,6 +83,16 @@ export class BearerSession {
     await this.save(parseTokenResponse(result as unknown as AccessTokenResponse));
   }
 
+  /**
+   * Permanently deletes the signed-in account. Pass the current password, or (for accounts without one) the username
+   * typed as confirmation. On success every token is dropped and listeners see a sign-out; when the API refuses
+   * (wrong password, last administrator) the session is kept and an ApiError is thrown.
+   */
+  async deleteAccount(password: string | null, confirmation: string | null): Promise<void> {
+    await unwrap(this.api.DELETE("/api/v1/account", { body: { password, confirmation } }));
+    await this.save(null);
+  }
+
   async getAccessToken(): Promise<string | null> {
     if (needsRefresh(this.tokens)) await this.refresh();
     return this.tokens?.accessToken ?? null;

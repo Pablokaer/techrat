@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import { cookies, headers } from "next/headers";
 import { Providers } from "@/components/providers";
-import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale, matchLocale, parseAcceptLanguage, type Locale } from "@/i18n/config";
+import { DEFAULT_LOCALE } from "@/i18n/config";
+import { requestLocale } from "@/i18n/server";
 import { buildMetadata } from "@/lib/site-metadata";
 import "./globals.css";
 
@@ -12,13 +12,6 @@ const mono = localFont({ src: "./fonts/JetBrainsMono-Variable.woff2", variable: 
 
 // The desktop build is a static export: there is no request to read, so the client detects the locale itself.
 const isDesktop = process.env.BUILD_TARGET === "desktop";
-
-/** Web: the saved choice (cookie), else the browser's Accept-Language. */
-async function requestLocale(): Promise<Locale> {
-  const saved = (await cookies()).get(LOCALE_COOKIE)?.value;
-  if (isLocale(saved)) return saved;
-  return matchLocale(parseAcceptLanguage((await headers()).get("accept-language")));
-}
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata(isDesktop ? DEFAULT_LOCALE : await requestLocale());

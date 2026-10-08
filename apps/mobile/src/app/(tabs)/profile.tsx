@@ -4,15 +4,21 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { colors, radii, spacing } from "@techrat/theme";
 import type { Achievement } from "@techrat/types";
 import { useAuth } from "@/lib/auth";
+import { PRIVACY_URL, TERMS_URL } from "@/lib/config";
+import { useT } from "@/lib/i18n";
+import { openReference } from "@/lib/links";
 import { formatNumber, percent } from "@/lib/format";
 import { useMe, useProfile } from "@/lib/queries";
 import { AppText, Avatar, Button, Card, Divider, ErrorState, ListRow, LoadingState, ProgressBar, Screen, SectionHeader, StatCard, TierDot } from "@/components/ui";
+import { AppVersion } from "@/components/domain/AppVersion";
 import { AvatarPicker } from "@/components/domain/AvatarPicker";
 import { LevelSummary } from "@/components/domain/LevelSummary";
 import { TopicIcon } from "@/components/domain/TopicIcon";
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const t = useT().profile;
+  const legal = useT().legal;
   const { signOut } = useAuth();
   const me = useMe();
   const profile = useProfile(me.data?.username);
@@ -50,6 +56,11 @@ export default function ProfileScreen() {
         <ListRow icon="trophy-outline" title="Leaderboard" subtitle={user.showOnLeaderboard ? `Global rank #${user.globalRank}` : "You are hidden from the leaderboards"} onPress={() => router.push("/leaderboard")} />
         <ListRow icon="key-outline" title="Password" subtitle="Change your password" onPress={() => router.push("/change-password")} />
       </Card>
+      <Card style={styles.list}>
+        <ListRow icon="document-text-outline" title={t.privacyTitle} subtitle={t.privacySubtitle} onPress={() => void openReference(PRIVACY_URL)} accessibilityHint={legal.openHint} />
+        <ListRow icon="reader-outline" title={t.termsTitle} subtitle={t.termsSubtitle} onPress={() => void openReference(TERMS_URL)} accessibilityHint={legal.openHint} />
+        <ListRow icon="trash-outline" tone="danger" title={t.deleteAccountTitle} subtitle={t.deleteAccountSubtitle} onPress={() => router.push("/delete-account")} />
+      </Card>
 
       <SectionHeader title="Topic levels" />
       <Card style={styles.list}>
@@ -76,6 +87,7 @@ export default function ProfileScreen() {
       </View>
 
       <Button label="Sign out" variant="danger" icon="log-out-outline" onPress={() => void signOut()} />
+      <AppVersion />
     </Screen>
   );
 }
