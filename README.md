@@ -310,7 +310,7 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 * **Backend:** a modular monolith. `Domain` holds the entities and pure rules, `Application` the use cases, `Infrastructure` EF Core, Redis, the outbox, email and seed, `Modules` the HTTP endpoints and `Api` the host. All business rules live in the backend (ADR-0007).
 * **Answer flow:** grading, the attempt, the XP ledger, user and topic progress, the streak and roadmap steps are written in **one transaction**. Achievements, the rank snapshot and realtime notifications go through a **transactional outbox** (ADR-0009).
 * **Auth:** ASP.NET Core Identity. The web app uses an HttpOnly cookie. Mobile and desktop use bearer and refresh tokens (ADR-0008).
-* **Roadmaps and modules (ADR-0012):** roadmaps are ordered compositions of reusable catalog modules. Progress is stored per module step, so knowledge proven in one roadmap counts in every roadmap containing the same module, and XP is paid once.
+* **Roadmaps and modules (ADR-0012):** roadmaps are ordered compositions of reusable catalog modules. Progress is stored per module step, so knowledge proven in one roadmap counts in every roadmap containing the same module, and XP is paid once. **Administrators bypass the gates:** every roadmap is unlocked (prerequisites are not required to start one) and every uncompleted module and step is open, so content can be reviewed without completing what comes before it. Learners are unaffected.
 
 ```
 Topic ─┬─ Subtopic (scope) ◄── ModuleStep ──┐            each scope belongs to exactly one module

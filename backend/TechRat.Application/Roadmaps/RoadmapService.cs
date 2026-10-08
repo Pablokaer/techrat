@@ -70,7 +70,7 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
 
     private static List<RoadmapLink> Links(CatalogRow r) => r.Links.Select(l => new RoadmapLink(r.Id, l.ModuleId, l.Order, l.IsRequired)).ToList();
 
-    public async Task<IReadOnlyList<RoadmapSummaryDto>> ListAsync(Guid? userId, string? category, CancellationToken ct)
+    public async Task<IReadOnlyList<RoadmapSummaryDto>> ListAsync(Guid? userId, string? category, bool isAdmin, CancellationToken ct)
     {
         var rows = await CatalogAsync(ct);
         var tr = await localizer.LoadAsync(ct);
@@ -80,7 +80,7 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
                 || string.Equals(tr.RoadmapCategory(r.Id, r.Category), category, StringComparison.OrdinalIgnoreCase)).ToList();
 
         Dictionary<Guid, RoadmapUserStateDto> states = [];
-        if (userId is { } uid) states = await UserStatesAsync(uid, rows, ct);
+        if (userId is { } uid) states = await UserStatesAsync(uid, rows, isAdmin, ct);
         return rows.Select(r => ToSummary(r, states.GetValueOrDefault(r.Id), tr)).ToList();
     }
 
@@ -88,7 +88,7 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
         new(r.Id, r.Slug, tr.RoadmapName(r.Id, r.Name), tr.RoadmapDescription(r.Id, r.Description), tr.RoadmapCategory(r.Id, r.Category),
             r.Difficulty.ToString(), r.EstimatedHours, r.StepsCount, r.Links.Count, r.Icon, r.XpReward, r.Prerequisites, state, r.JuniorRank);
 
-    private async Task<Dictionary<Guid, RoadmapUserStateDto>> UserStatesAsync(Guid userId, List<CatalogRow> rows, CancellationToken ct)
+    private async Task<Dictionary<Guid, RoadmapUserStateDto>> UserStatesAsync(Guid userId, List<CatalogRow> rows, bool isAdmin, CancellationToken ct)
     {
         var started = await db.UserRoadmapProgress.AsNoTracking().Where(p => p.UserId == userId).ToListAsync(ct);
         var ids = rows.Select(r => r.Id).ToList();
@@ -108,13 +108,13 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
             var p = started.FirstOrDefault(x => x.RoadmapId == r.Id);
             var rLinks = Links(r);
             var (done, _, pct) = RoadmapComposition.Progress(rLinks, snapshot.StepsPerModule, snapshot.CompletedStepsPerModule, completedModules);
-            var unlocked = RoadmapUnlock.IsUnlocked(deps.Where(d => d.RoadmapId == r.Id).Select(d => (d.MinimumPercent, Percent(d.RequiredRoadmapId))));
+            var unlocked = RoadmapUnlock.IsUnlocked(deps.Where(d => d.RoadmapId == r.Id).Select(d => (d.MinimumPercent, Percent(d.RequiredRoadmapId))), isAdmin);
             return new RoadmapUserStateDto(unlocked, p is not null, p?.CompletedAt is not null, done, pct, p?.LastActivityAt,
                 rLinks.Count(l => completedModules.Contains(l.ModuleId)), done);
         });
     }
 
-    public async Task<RoadmapDetailDto> GetAsync(string slug, Guid? userId, CancellationToken ct)
+    public async Task<RoadmapDetailDto> GetAsync(string slug, Guid? userId, bool isAdmin, CancellationToken ct)
     {
         var catalog = (await CatalogAsync(ct)).FirstOrDefault(r => r.Slug == slug) ?? throw new NotFoundException("Roadmap", slug);
         var tr = await localizer.LoadAsync(ct);
@@ -149,13 +149,17 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
             snapshot = await progress.SnapshotAsync(uid, moduleIds, track: false, ct);
             userProgress = await db.UserRoadmapProgress.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == uid && p.RoadmapId == catalog.Id, ct);
             depPercents = await progress.CompletionPercentAsync(uid, deps.Select(d => d.RequiredRoadmapId), ct);
-            state = (await UserStatesAsync(uid, [catalog], ct))[catalog.Id];
+            state = (await UserStatesAsync(uid, [catalog], isAdmin, ct))[catalog.Id];
         }
 
         var completedModules = snapshot.CompletedModules;
-        var open = RoadmapComposition.OpenModules(links, completedModules, snapshot.StartedModules).ToHashSet();
-        var currentSteps = open.Select(m => RoadmapComposition.CurrentStep(steps.Where(s => s.Step.ModuleId == m).Select(s => s.Step), snapshot.CompletedSteps))
-            .Where(s => s is not null).Select(s => s!).ToList();
+        // Administrators review everything: every uncompleted module and step is open, whatever came before it.
+        var open = (isAdmin ? links.Select(l => l.ModuleId).Where(m => !completedModules.Contains(m))
+            : RoadmapComposition.OpenModules(links, completedModules, snapshot.StartedModules)).ToHashSet();
+        var currentSteps = isAdmin
+            ? steps.Select(s => s.Step).Where(s => !snapshot.CompletedSteps.Contains(s.Id)).ToList()
+            : open.Select(m => RoadmapComposition.CurrentStep(steps.Where(s => s.Step.ModuleId == m).Select(s => s.Step), snapshot.CompletedSteps))
+                .Where(s => s is not null).Select(s => s!).ToList();
         var criteria = userId is { } u2 ? await progress.EvaluateStepsAsync(u2, currentSteps, ct) : [];
         var currentIds = currentSteps.Select(s => s.Id).ToHashSet();
 
@@ -193,11 +197,11 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
     }
 
     /// <summary>Enrols the user. Shared modules already done elsewhere count immediately (and satisfied steps complete).</summary>
-    public async Task<RoadmapDetailDto> StartAsync(Guid userId, string slug, CancellationToken ct)
+    public async Task<RoadmapDetailDto> StartAsync(Guid userId, string slug, bool isAdmin, CancellationToken ct)
     {
         var roadmap = await db.Roadmaps.FirstOrDefaultAsync(r => r.Slug == slug && r.IsPublished, ct)
             ?? throw new NotFoundException("Roadmap", slug);
-        if (!await progress.IsUnlockedAsync(userId, roadmap.Id, ct))
+        if (!await progress.IsUnlockedAsync(userId, roadmap.Id, isAdmin, ct))
             throw new ForbiddenException(Text.Get(Text.Keys.RoadmapLocked));
 
         var existing = await db.UserRoadmapProgress.FirstOrDefaultAsync(p => p.UserId == userId && p.RoadmapId == roadmap.Id, ct);
@@ -212,6 +216,6 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
             if (done.Count > 0) db.Enqueue(OutboxEvents.UserProgressChanged, new UserProgressChanged(userId, null, "roadmap"), clock.GetUtcNow());
             await db.SaveChangesAsync(ct);
         }
-        return await GetAsync(slug, userId, ct);
+        return await GetAsync(slug, userId, isAdmin, ct);
     }
 }

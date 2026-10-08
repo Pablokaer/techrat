@@ -360,6 +360,39 @@ public class RoadmapTests(TechRatFactory api)
         Assert.NotEmpty(detail.Prerequisites);
     }
 
+    private async Task<HttpClient> AdminAsync()
+    {
+        var admin = api.CreateClient();
+        await TechRatFactory.LoginAsync(admin, TechRatFactory.AdminEmail, TechRatFactory.AdminPassword);
+        return admin;
+    }
+
+    [Fact]
+    public async Task Admin_sees_every_roadmap_unlocked_and_can_start_one_with_unmet_prerequisites()
+    {
+        var admin = await AdminAsync();
+        var list = (await admin.GetFromJsonAsync<List<RoadmapSummaryDto>>("/api/v1/roadmaps", TechRatFactory.Json))!;
+        Assert.NotEmpty(list);
+        Assert.All(list, r => Assert.True(r.Progress!.IsUnlocked, r.Slug));
+
+        var detail = await admin.GetFromJsonAsync<RoadmapDetailDto>("/api/v1/roadmaps/system-design", TechRatFactory.Json);
+        Assert.True(detail!.Summary.Progress!.IsUnlocked);
+        Assert.Equal(HttpStatusCode.OK, (await admin.PostAsync("/api/v1/roadmaps/system-design/start", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_has_every_module_and_step_open_without_completing_the_previous_ones()
+    {
+        var admin = await AdminAsync();
+        var roadmap = (await admin.GetFromJsonAsync<RoadmapDetailDto>("/api/v1/roadmaps/git-and-collaboration", TechRatFactory.Json))!;
+        Assert.True(roadmap.Modules.Count > 0);
+        Assert.DoesNotContain(roadmap.Modules, m => m.Status == ModuleStatus.Locked);
+        Assert.DoesNotContain(roadmap.Modules.SelectMany(m => m.Steps), s => s.Status == StepStatus.Locked);
+
+        var module = (await admin.GetFromJsonAsync<ModuleDetailDto>($"/api/v1/modules/{roadmap.Modules[0].ModuleSlug}", TechRatFactory.Json))!;
+        Assert.DoesNotContain(module.Steps, s => s.Status == StepStatus.Locked);
+    }
+
     [Fact]
     public async Task Step_completes_only_after_criteria_and_unlocks_next_step()
     {
