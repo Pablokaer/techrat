@@ -25,7 +25,7 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 
 ### Questions
 
-**2,396** multiple-choice questions: Easy 671 · Medium 828 · Hard 638 · Expert 259.
+**2,436** multiple-choice questions: Easy 682 · Medium 842 · Hard 648 · Expert 264.
 
 <details><summary>Questions per topic</summary>
 
@@ -44,16 +44,16 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | Frontend Engineering | Engineering | 9 | 54 |
 | React | Frameworks | 11 | 66 |
 | Python | Languages | 10 | 74 |
-| Java | Languages | 9 | 59 |
+| Java | Languages | 9 | 67 |
 | Git | Tools | 7 | 54 |
-| Operating Systems | Computer Science | 6 | 37 |
+| Operating Systems | Computer Science | 6 | 45 |
 | Computer Networking | Computer Science | 9 | 57 |
 | Security | Security | 10 | 65 |
 | Testing & Quality | Engineering | 7 | 46 |
-| Clean Code & Software Design | Engineering | 6 | 29 |
-| Design Patterns | Engineering | 5 | 27 |
+| Clean Code & Software Design | Engineering | 6 | 37 |
+| Design Patterns | Engineering | 5 | 35 |
 | Software Architecture | Architecture | 9 | 54 |
-| DevOps | Cloud & DevOps | 6 | 37 |
+| DevOps | Cloud & DevOps | 6 | 45 |
 | Docker | Cloud & DevOps | 7 | 42 |
 | Kubernetes | Cloud & DevOps | 8 | 50 |
 | Cloud Engineering | Cloud & DevOps | 9 | 54 |
@@ -86,32 +86,32 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 
 | # | Roadmap | Português | Type | Category | Difficulty | Modules | Steps | Estimate | Questions | Prerequisites |
 |---:|---|---|---|---|---|---:|---:|---:|---:|---|
-| 1 | Computer Science Fundamentals | Fundamentos de Ciência da Computação | SkillTrack | Computer Science | Beginner | 6 | 16 | 9 h | 116 | — |
+| 1 | Computer Science Fundamentals | Fundamentos de Ciência da Computação | SkillTrack | Computer Science | Beginner | 6 | 16 | 9 h | 119 | — |
 | 2 | Data Structures and Algorithms | Estruturas de Dados e Algoritmos | SkillTrack | Computer Science | Intermediate | 12 | 29 | 22 h | 187 | Computer Science Fundamentals (50%) |
-| 3 | Operating Systems | Sistemas Operacionais | SkillTrack | Computer Science | Intermediate | 4 | 9 | 8 h | 55 | — |
+| 3 | Operating Systems | Sistemas Operacionais | SkillTrack | Computer Science | Intermediate | 4 | 9 | 8 h | 64 | — |
 | 4 | Computer Networking | Redes de Computadores | SkillTrack | Computer Science | Intermediate | 4 | 9 | 6 h | 57 | — |
 | 5 | Git and Collaboration | Git e Colaboração | SkillTrack | Tools | Beginner | 4 | 9 | 6 h | 66 | — |
 | 6 | C# Developer | Desenvolvedor C# | Language | Languages | Intermediate | 5 | 12 | 10 h | 79 | — |
 | 7 | Python Developer | Desenvolvedor Python | Language | Languages | Beginner | 3 | 10 | 7 h | 74 | — |
-| 8 | Java Developer | Desenvolvedor Java | Language | Languages | Intermediate | 2 | 9 | 8 h | 59 | — |
+| 8 | Java Developer | Desenvolvedor Java | Language | Languages | Intermediate | 2 | 9 | 8 h | 67 | — |
 | 9 | JavaScript Developer | Desenvolvedor JavaScript | Language | Languages | Beginner | 3 | 9 | 6 h | 72 | — |
 | 10 | TypeScript Developer | Desenvolvedor TypeScript | Language | Languages | Intermediate | 3 | 7 | 5 h | 42 | JavaScript Developer (50%) |
-| 11 | C++ Developer | Desenvolvedor C++ | Language | Languages | Intermediate | 6 (1 optional) | 13 | 10 h | 88 | — |
+| 11 | C++ Developer | Desenvolvedor C++ | Language | Languages | Intermediate | 6 (1 optional) | 13 | 10 h | 91 | — |
 | 12 | Frontend Developer | Desenvolvedor Frontend | Role | Web Development | Intermediate | 9 | 19 | 12 h | 121 | — |
 | 13 | React Developer | Desenvolvedor React | SkillTrack | Web Development | Intermediate | 5 | 12 | 9 h | 72 | JavaScript Developer (50%) |
 | 14 | Backend Developer | Desenvolvedor Backend | Role | Web Development | Intermediate | 16 (4 optional) | 25 | 17 h | 269 | — |
 | 15 | .NET Backend Developer | Desenvolvedor Backend .NET | Role | Web Development | Intermediate | 7 | 15 | 12 h | 93 | C# Developer (50%) |
-| 16 | Full Stack Developer | Desenvolvedor Full Stack | Role | Web Development | Intermediate | 12 (3 optional) | 19 | 12 h | 213 | JavaScript Developer (30%) |
+| 16 | Full Stack Developer | Desenvolvedor Full Stack | Role | Web Development | Intermediate | 12 (3 optional) | 19 | 12 h | 214 | JavaScript Developer (30%) |
 | 17 | Database Engineering | Engenharia de Bancos de Dados | SkillTrack | Data | Intermediate | 5 | 11 | 9 h | 80 | — |
 | 18 | SQL | SQL | SkillTrack | Data | Beginner | 4 | 8 | 6 h | 62 | — |
-| 19 | System Design | System Design | SkillTrack | Architecture | Advanced | 11 | 28 | 26 h | 184 | Data Structures and Algorithms (30%), Backend Developer (30%) |
-| 20 | Software Architecture | Arquitetura de Software | SkillTrack | Architecture | Advanced | 5 | 16 | 15 h | 96 | — |
+| 19 | System Design | System Design | SkillTrack | Architecture | Advanced | 11 | 28 | 26 h | 186 | Data Structures and Algorithms (30%), Backend Developer (30%) |
+| 20 | Software Architecture | Arquitetura de Software | SkillTrack | Architecture | Advanced | 5 | 16 | 15 h | 104 | — |
 | 21 | Testing and Quality Engineering | Engenharia de Testes e Qualidade | SkillTrack | Engineering | Intermediate | 4 | 8 | 6 h | 52 | — |
 | 22 | Security Fundamentals | Fundamentos de Segurança | SkillTrack | Security | Intermediate | 5 | 11 | 9 h | 71 | — |
-| 23 | Cyber Security | Cibersegurança | Role | Security | Intermediate | 11 (1 optional) | 27 | 23 h | 169 | — |
+| 23 | Cyber Security | Cibersegurança | Role | Security | Intermediate | 11 (1 optional) | 27 | 23 h | 170 | — |
 | 24 | Docker | Docker | SkillTrack | Cloud & DevOps | Beginner | 3 | 7 | 5 h | 42 | — |
 | 25 | Kubernetes | Kubernetes | SkillTrack | Cloud & DevOps | Advanced | 3 | 8 | 8 h | 50 | Docker (50%) |
-| 26 | DevOps Engineer | Engenheiro DevOps | Role | Cloud & DevOps | Intermediate | 11 (3 optional) | 16 | 11 h | 178 | — |
+| 26 | DevOps Engineer | Engenheiro DevOps | Role | Cloud & DevOps | Intermediate | 11 (3 optional) | 16 | 11 h | 186 | — |
 | 27 | Cloud Engineering | Engenharia de Cloud | Role | Cloud & DevOps | Intermediate | 6 (2 optional) | 10 | 7 h | 110 | — |
 | 28 | Azure Developer | Desenvolvedor Azure | SkillTrack | Cloud & DevOps | Intermediate | 2 | 6 | 4 h | 36 | Cloud Engineering (30%) |
 | 29 | AWS Fundamentals | Fundamentos de AWS | SkillTrack | Cloud & DevOps | Beginner | 4 (1 optional) | 7 | 4 h | 72 | — |
@@ -122,8 +122,8 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | 34 | Python for Data Analysis | Python para Análise de Dados | SkillTrack | AI & Data | Beginner | 4 | 17 | 10 h | 107 | — |
 | 35 | AI & Data Scientist | Cientista de Dados e IA | Role | AI & Data | Advanced | 13 (4 optional) | 29 | 23 h | 236 | Python for Data Analysis (30%) |
 | 36 | AI-Assisted Development (Claude Code) | Desenvolvimento Assistido por IA (Claude Code) | SkillTrack | AI & Data | Intermediate | 4 | 17 | 16 h | 102 | — |
-| 37 | Junior Software Engineer | Engenheiro de Software Júnior | Role | Career | Beginner | 19 (4 optional) | 32 | 17 h | 344 | — |
-| 38 | Senior Software Engineer | Engenheiro de Software Sênior | Role | Career | Expert | 18 (1 optional) | 47 | 46 h | 316 | System Design (30%) |
+| 37 | Junior Software Engineer | Engenheiro de Software Júnior | Role | Career | Beginner | 19 (4 optional) | 32 | 17 h | 345 | — |
+| 38 | Senior Software Engineer | Engenheiro de Software Sênior | Role | Career | Expert | 18 (1 optional) | 47 | 46 h | 318 | System Design (30%) |
 | 39 | Technical Interview Preparation | Preparação para Entrevistas Técnicas | SkillTrack | Career | Advanced | 9 | 21 | 16 h | 142 | — |
 | 40 | API Security Best Practices | Boas Práticas de Segurança de APIs | BestPractices | Security | Advanced | 3 (1 optional) | 7 | 7 h | 48 | — |
 | 41 | Backend Performance Best Practices | Boas Práticas de Performance no Backend | BestPractices | Engineering | Advanced | 4 (1 optional) | 9 | 8 h | 73 | — |
@@ -373,6 +373,7 @@ If you build behind a TLS-inspecting corporate proxy, set `EXTRA_CA_CERT=/path/t
 | `Gamification__*` | API | XP values, level curve, step criteria, daily challenge (see `appsettings.json`) |
 | `RateLimiting__AuthPerMinute` / `RateLimiting__AnswersPerMinute` / `RateLimiting__UploadsPerMinute` | API | Rate limits per user or IP (uploads default to 10/min; Compose: `AUTH_RATE_LIMIT_PER_MINUTE`) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | API | Enables OTLP export of traces and metrics |
+| `PUBLIC_WEB_URL` | web (runtime), API | Public origin (e.g. `https://techrat.io`). The web app uses it as `metadataBase` so link previews (Open Graph / Twitter card, image `app/opengraph-image.png`) carry absolute URLs; defaults to `https://techrat.io` |
 | `API_INTERNAL_URL` | web (build) | Backend URL the Next.js proxy forwards to |
 | `NEXT_PUBLIC_AUTH_MODE`, `NEXT_PUBLIC_API_URL` | desktop build | `bearer` mode and API URL for the static export |
 | `EXPO_PUBLIC_API_URL` | mobile | API URL for the Expo app |

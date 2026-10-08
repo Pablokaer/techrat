@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
 import { Providers } from "@/components/providers";
 import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale, matchLocale, parseAcceptLanguage, type Locale } from "@/i18n/config";
+import { buildMetadata } from "@/lib/site-metadata";
 import "./globals.css";
 
 // Self-hosted (OFL) so builds work offline, in CI, behind proxies and inside the Tauri desktop app.
@@ -19,20 +20,8 @@ async function requestLocale(): Promise<Locale> {
   return matchLocale(parseAcceptLanguage((await headers()).get("accept-language")));
 }
 
-const META: Record<Locale, { title: string; description: string }> = {
-  en: {
-    title: "TechRat — Learn. Practice. Level Up.",
-    description: "A gamified learning platform for tomorrow's builders: questions, roadmaps, XP, levels and rankings for every tech career.",
-  },
-  "pt-BR": {
-    title: "TechRat — Aprenda. Pratique. Suba de nível.",
-    description: "Uma plataforma gamificada de aprendizado para quem vai construir o futuro: questões, roadmaps, XP, níveis e rankings para todas as carreiras de tecnologia.",
-  },
-};
-
 export async function generateMetadata(): Promise<Metadata> {
-  const meta = META[isDesktop ? DEFAULT_LOCALE : await requestLocale()];
-  return { title: { default: meta.title, template: "%s · TechRat" }, description: meta.description, applicationName: "TechRat" };
+  return buildMetadata(isDesktop ? DEFAULT_LOCALE : await requestLocale());
 }
 
 export const viewport: Viewport = { themeColor: "#000000", colorScheme: "dark" };
