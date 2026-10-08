@@ -21,6 +21,7 @@ All development follows test-driven development:
 
 - **One branch per change, always from `dev`** (`git fetch && git checkout -b <type>/<name> origin/dev`). Never commit to `dev` or `main`, and never add an unrelated commit to a branch that already has a PR: a new piece of work gets a new branch and its own PR into `dev`.
 - **A branch lives only until its PR is merged.** GitHub deletes the remote branch on merge; delete the local one too (`git branch -d <name>`). Do not reuse a merged branch.
+- **Auto-merge is on for every PR** (`.github/workflows/auto-merge.yml`, ADR-0026): a PR merges itself when CI is green. Open it as a draft, or add the `no-auto-merge` label, when it still needs review or more commits. Open PRs with `--base dev`.
 - `dev` reaches `main` through the automatic promotion PR (ADR-0025), never by hand.
 
 ## Documentation

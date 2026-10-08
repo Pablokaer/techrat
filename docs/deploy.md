@@ -52,6 +52,13 @@ gh api -X PUT repos/Pablokaer/techrat/branches/dev/protection --input deploy/pro
 gh api -X PUT repos/Pablokaer/techrat/branches/main/protection --input deploy/protection-main.json
 ```
 
+### Auto-merge on every pull request
+
+Every pull request opened in the repository gets auto-merge (merge commit) from `.github/workflows/auto-merge.yml`
+([ADR-0026](adr/0026-auto-merge-and-no-strict-dev.md)), so it merges by itself once its checks pass, and `dev` no longer
+requires branches to be up to date. Opt out with a draft pull request or the `no-auto-merge` label. It needs the same
+setup as the promotion below (**Allow auto-merge** and the `PROMOTE_TOKEN` secret); without the secret it only warns.
+
 ### Automatic promotion (dev → main)
 
 Nobody opens the dev → main pull request by hand ([ADR-0025](adr/0025-automatic-dev-to-main-promotion.md)). When CI

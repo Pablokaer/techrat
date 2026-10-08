@@ -13,7 +13,7 @@ live.
 - **Two long-lived branches.** `dev` is the integration branch, `main` is production.
   `feature branch ─PR─► dev ─PR─► main ─► Deploy`.
 - **Pull requests only, never direct pushes**, on both branches (branch protection, enforced for admins as well).
-  No force pushes, no deletion, conversations must be resolved, PRs into dev must be up to date with dev (not required on main: a merge-commit promotion makes main ahead of dev, which would otherwise force a back-merge every time).
+  No force pushes, no deletion, conversations must be resolved, PRs into dev must be up to date with dev (relaxed by ADR-0026; not required on main: a merge-commit promotion makes main ahead of dev, which would otherwise force a back-merge every time).
 - **dev:** the four CI jobs (backend, frontend, end-to-end, docker images) must pass on the PR. CI also runs on every
   push to dev, so the merged result is validated again.
 - **main:** the same CI checks plus the `Promotion gate (main accepts only dev)` check
