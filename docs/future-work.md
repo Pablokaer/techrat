@@ -14,14 +14,25 @@ measured capacity numbers**, so the stages below are triggered by signals, not b
 
 ## 1. Open items (do these first)
 
-### 1.1 Automatic dev → main promotion is not live yet
+### 1.1 Automatic promotion and sync: live, with follow-ups
 
-[ADR-0025](adr/0025-automatic-dev-to-main-promotion.md) is written, but the automation only works after two
-settings that belong to the repository owner (details in [deploy.md](deploy.md#automatic-promotion-dev--main)):
+Set up on 2026-10-08: **Allow auto-merge** is on, the `PROMOTE_TOKEN` secret exists and the first
+`Sync dev with main` run went green (`dev` and `main` at the same commit). Open:
 
-- [ ] Enable **Allow auto-merge** (Settings → General).
-- [ ] Create the `PROMOTE_TOKEN` secret (fine-grained PAT, this repository only, Contents + Pull requests read/write).
-- [ ] Merge the PR that adds the workflow, then watch the first promotion end to end (PR opened, checks, merge, Deploy).
+- [ ] **Watch one full promotion end to end** (PR opened by `auto-promote.yml`, checks, merge, Deploy, sync). The run
+  after the secret was added found `dev` not ahead of `main`, so it only proved the no-op path.
+- [ ] **Branch protection on `dev` is looser than ADR-0027 says.** The sync push was refused until `enforce_admins` was
+  turned off on `dev` (a classic branch protection has no bypass list for the token's owner). Either move the rule to
+  a **ruleset with a bypass only for the token's owner** and turn `enforce_admins` back on, or accept the current
+  state and correct [ADR-0027](adr/0027-sync-dev-after-promotion.md) and
+  [deploy.md](deploy.md#keeping-dev-in-sync-with-main), which still say "add the owner to the bypass list".
+- [ ] **`sync_dev.py` hides the reason a push fails.** It captures git's stderr, so the log only shows
+  `CalledProcessError`. Print stderr on failure (with a test), and move the `PROMOTE_TOKEN` check in `sync-dev.yml`
+  before `actions/checkout`, which currently fails first with `Input required and not supplied: token`.
+- [ ] **`PROMOTE_TOKEN` expires.** Record the PAT's expiry date (here or in a calendar); when it lapses, promotion and
+  sync fail again with the same errors. Rotate it on a schedule (see 2.7).
+- [ ] **Stale local state:** delete the merged local branch `ci/sync-dev-after-promotion` (`git branch -d`). It still
+  carries an uncommitted change to `apps/web/src/lib/legal.ts` that needs its own branch and PR.
 
 ### 1.2 Rollback only covers code, during the deploy
 
