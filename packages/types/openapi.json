@@ -1617,7 +1617,7 @@
         "tags": [
           "Roadmaps"
         ],
-        "summary": "Enrol in a roadmap (fails with 403 while prerequisites are not met)",
+        "summary": "Enrol in a roadmap (fails with 403 while prerequisites are not met; administrators are never blocked)",
         "parameters": [
           {
             "name": "slug",
@@ -1687,6 +1687,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TopicDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/topics/{slug}/resources": {
+      "get": {
+        "tags": [
+          "Topics"
+        ],
+        "summary": "Topic library: the curated reading of the modules that teach the topic plus the pages its questions cite, in the request language",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicResourcesDto"
                 }
               }
             }
@@ -3008,6 +3038,52 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "CitedReferenceDto": {
+        "required": [
+          "url",
+          "host",
+          "questions",
+          "exampleQuestion"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "questions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exampleQuestion": {
+            "type": "string"
+          }
+        }
+      },
+      "CitedSubtopicDto": {
+        "required": [
+          "slug",
+          "name",
+          "references"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CitedReferenceDto"
+            }
           }
         }
       },
@@ -5075,6 +5151,28 @@
           }
         }
       },
+      "TopicLibraryModuleDto": {
+        "required": [
+          "slug",
+          "name",
+          "topics"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudyTopicDto"
+            }
+          }
+        }
+      },
       "TopicProgressDto": {
         "required": [
           "topicSlug",
@@ -5174,6 +5272,32 @@
           },
           "status": {
             "$ref": "#/components/schemas/LearnQuestionStatus"
+          }
+        }
+      },
+      "TopicResourcesDto": {
+        "required": [
+          "modules",
+          "cited",
+          "totalLinks"
+        ],
+        "type": "object",
+        "properties": {
+          "modules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TopicLibraryModuleDto"
+            }
+          },
+          "cited": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CitedSubtopicDto"
+            }
+          },
+          "totalLinks": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

@@ -23,6 +23,19 @@ export const learn: Messages["learn"] = {
     subtopics: "Subtópicos",
     accuracyLabel: (name) => `Precisão em ${name}`,
     new: "novo",
+    /** "Biblioteca de estudo": todos os links para estudar o tópico, da leitura dos módulos e das referências das questões. */
+    library: {
+      heading: "Biblioteca de estudo",
+      intro: (topic, links, modules) =>
+        `${links === 1 ? "1 link" : `${links} links`} para estudar ${topic}: leitura selecionada de ${modules === 1 ? "1 módulo" : `${modules} módulos`} e as páginas oficiais citadas nas questões.`,
+      curatedHeading: "Leitura selecionada",
+      curatedIntro: "Livros, documentação oficial e cursos escolhidos para cada módulo que ensina este tópico. Abra um módulo para ver onde ele está em uma roadmap.",
+      openModule: "Abrir módulo",
+      citedHeading: "Páginas oficiais citadas nas questões",
+      citedIntro: "Toda explicação aponta para uma referência. Estas são as páginas por trás das questões deste tópico, as mais usadas primeiro.",
+      usedIn: (n) => (n === 1 ? "Usada em 1 questão" : `Usada em ${n} questões`),
+      example: (title) => `p. ex. “${title}”`,
+    },
     questions: {
       heading: "Questões",
       subtitle: "Filtre por dificuldade, escolha as que quiser e responda.",

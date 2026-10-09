@@ -1971,7 +1971,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Enrol in a roadmap (fails with 403 while prerequisites are not met) */
+        /** Enrol in a roadmap (fails with 403 while prerequisites are not met; administrators are never blocked) */
         post: {
             parameters: {
                 query?: never;
@@ -2061,6 +2061,44 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["TopicDetailDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/topics/{slug}/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Topic library: the curated reading of the modules that teach the topic plus the pages its questions cite, in the request language */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TopicResourcesDto"];
                     };
                 };
             };
@@ -2692,6 +2730,18 @@ export interface components {
             currentPassword: null | string;
             newPassword: null | string;
         };
+        CitedReferenceDto: {
+            url: string;
+            host: string;
+            /** Format: int32 */
+            questions: number;
+            exampleQuestion: string;
+        };
+        CitedSubtopicDto: {
+            slug: string;
+            name: string;
+            references: components["schemas"]["CitedReferenceDto"][];
+        };
         CompletedStepDto: {
             /** Format: uuid */
             roadmapId: string;
@@ -3256,6 +3306,11 @@ export interface components {
             questions: components["schemas"]["DifficultyCountsDto"];
             subtopics: components["schemas"]["SubtopicDto"][];
         };
+        TopicLibraryModuleDto: {
+            slug: string;
+            name: string;
+            topics: components["schemas"]["StudyTopicDto"][];
+        };
         TopicProgressDto: {
             topicSlug: string;
             topicName: string;
@@ -3287,6 +3342,12 @@ export interface components {
             /** Format: int32 */
             xpReward: number;
             status: components["schemas"]["LearnQuestionStatus"];
+        };
+        TopicResourcesDto: {
+            modules: components["schemas"]["TopicLibraryModuleDto"][];
+            cited: components["schemas"]["CitedSubtopicDto"][];
+            /** Format: int32 */
+            totalLinks: number;
         };
         UpdateProfileRequest: {
             displayName: null | string;

@@ -10,6 +10,7 @@ import { useTopic } from "@/lib/queries";
 import { routes } from "@/lib/routes";
 import { useT } from "@/i18n";
 import { TopicIcon } from "@/components/icons";
+import { TopicLibrary } from "@/components/topic-library";
 import { TopicQuestions } from "@/components/topic-questions";
 import { ErrorState, PageHeader, Skeleton } from "@/components/widgets";
 
@@ -76,6 +77,8 @@ function TopicView() {
           </Link>
         ))}
       </div>
+
+      <TopicLibrary topic={topic.slug} topicName={topic.name} />
 
       <TopicQuestions topicSlug={topic.slug} subtopics={topic.subtopics.map((s) => ({ slug: s.slug, name: s.name }))} initialSubtopic={focus} />
     </>
