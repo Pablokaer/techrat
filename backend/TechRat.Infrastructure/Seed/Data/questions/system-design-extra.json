@@ -1,0 +1,342 @@
+[
+  {
+    "id": "sd-fund-latency-hierarchy",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Easy",
+    "title": "Latency orders of magnitude",
+    "question": "Which list orders typical latencies from the fastest to the slowest?",
+    "options": [
+      "Reading from memory, reading from a local SSD, a round trip inside one data centre, a round trip across continents",
+      "Reading from a local SSD, reading from memory, a round trip inside one data centre, a round trip across continents",
+      "Reading from memory, a round trip across continents, reading from a local SSD, a round trip inside one data centre",
+      "A round trip inside one data centre, reading from memory, a round trip across continents, reading from a local SSD"
+    ],
+    "correctIndex": 0,
+    "explanation": "Memory is read in about a hundred nanoseconds, an SSD in tens to hundreds of microseconds, a hop inside a data centre in roughly half a millisecond, and a trip between continents takes on the order of a hundred milliseconds because of the speed of light. Knowing these gaps tells you why caches, locality and keeping calls in one region matter so much in a design.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/well-architected/performance-efficiency/capacity-planning"
+  },
+  {
+    "id": "sd-fund-read-write-ratio",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Medium",
+    "title": "Designing for a read-heavy workload",
+    "question": "A product-page service receives about 200 reads for every write, and the database is the bottleneck. Which first move gives the most relief for the least complexity?",
+    "options": [
+      "Shard the data by user id so that writes spread over many machines",
+      "Cache hot reads and add read replicas, because reads dominate the load",
+      "Make every write synchronous across two regions before acknowledging it",
+      "Put all writes behind a queue and process them one at a time"
+    ],
+    "correctIndex": 1,
+    "explanation": "With a 200:1 ratio the load is almost entirely reads, and reads are the easiest thing to scale: cache the popular pages and fan the rest out to replicas. Sharding and multi-region synchronous writes add heavy complexity to a path that is hardly used, and serialising writes through a queue does nothing for the reads that cause the saturation.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/caching"
+  },
+  {
+    "id": "sd-fund-qps-estimate",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Medium",
+    "title": "Estimating peak requests per second",
+    "question": "A service has 10 million daily active users who each make about 30 requests per day. Peak traffic is roughly three times the daily average. Which figure is the best estimate of peak requests per second?",
+    "options": [
+      "About 3,500 requests per second",
+      "About 100,000 requests per second",
+      "About 10,000 requests per second",
+      "About 1,000 requests per second"
+    ],
+    "correctIndex": 2,
+    "explanation": "10 million users times 30 requests is 300 million requests per day, and a day has about 86,400 seconds, so the average is near 3,500 per second. Multiplying by the peak factor of 3 gives roughly 10,000 per second. The 3,500 figure forgets the peak factor, and the other two are off by an order of magnitude.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/well-architected/performance-efficiency/capacity-planning"
+  },
+  {
+    "id": "sd-scale-replicas-before-shards",
+    "topic": "system-design",
+    "subtopic": "scaling",
+    "difficulty": "Medium",
+    "title": "Scaling a database before sharding",
+    "question": "A single-primary relational database sits at 85% CPU, almost all of it from read queries on a handful of hot tables, while writes are light. What is the most proportionate next step before considering sharding?",
+    "options": [
+      "Shard every table by user id straight away, before checking what the real bottleneck is",
+      "Move to multi-master writes in two regions",
+      "Double the disk capacity of the primary server",
+      "Add read replicas and cache hot reads, after tuning slow queries and indexes"
+    ],
+    "correctIndex": 3,
+    "explanation": "Sharding is a large, hard-to-reverse change, and it is unnecessary when the pressure comes from reads: indexes and query tuning, a cache and read replicas absorb that load while keeping a single write path. Multi-master adds conflict handling for a problem the workload does not have, and more disk space does not reduce CPU.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/warm-standby.html"
+  },
+  {
+    "id": "sd-cache-ttl-jitter",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Medium",
+    "title": "Mass expiry after a cache warm-up",
+    "question": "Millions of cache entries were loaded at 02:00 with a one-hour TTL. Every night at 03:00 the database load spikes as they all expire together. Which change prevents the spike?",
+    "options": [
+      "Add random jitter to each entry's TTL so that expirations spread out over time",
+      "Raise every TTL to 24 hours so that expiry happens only once per day, moving the wave to another hour",
+      "Flush the entire cache once an hour so that it reloads on a schedule",
+      "Disable the cache for the pages that are the most requested"
+    ],
+    "correctIndex": 0,
+    "explanation": "Entries created together with the same TTL expire together and send a wave of misses to the database. A random jitter on the TTL turns that wave into a steady trickle. A longer TTL only moves the wave to a different time and serves staler data, flushing on a schedule creates the very spike you want to avoid, and removing the cache for hot pages overloads the database.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/caching-challenges-and-strategies/"
+  },
+  {
+    "id": "sd-cache-negative-caching",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Medium",
+    "title": "Requests for keys that do not exist",
+    "question": "A lookup endpoint is flooded with ids that do not exist. Each request misses the cache, queries the database and finds nothing, so the database is overloaded. Which technique addresses this?",
+    "options": [
+      "Lengthen the TTL of the entries that do exist in the cache, so that valid ids stay cached for much longer",
+      "Switch the cache from cache-aside to write-through",
+      "Cache the \"not found\" answer with a short TTL, optionally guarded by a Bloom filter of valid ids",
+      "Add more cache nodes to raise the hit rate of existing keys"
+    ],
+    "correctIndex": 2,
+    "explanation": "A key that does not exist never gets cached by a normal cache-aside flow, so every request goes through to the database. Storing a short-lived negative entry (or rejecting ids that a Bloom filter says were never created) stops the repeated lookups. Longer TTLs, write-through or more nodes only help keys that are already present.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/caching"
+  },
+  {
+    "id": "sd-cache-write-through",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Easy",
+    "title": "What write-through caching does",
+    "question": "Which description matches a write-through cache?",
+    "options": [
+      "Writes go to the cache only and are flushed to the store later in batches, once enough have piled up",
+      "Data is loaded into the cache only when a read misses",
+      "Writes skip the cache entirely and the entry just expires after its TTL",
+      "Each write updates the cache and the store in one operation: reads stay fresh, writes are slower"
+    ],
+    "correctIndex": 3,
+    "explanation": "In write-through the application (or the cache layer) writes to both places before acknowledging, so a later read never sees stale data, at the cost of higher write latency. Flushing later describes write-behind, loading on a miss describes cache-aside, and letting entries expire is plain TTL-based invalidation.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/caching"
+  },
+  {
+    "id": "sd-lb-slow-start",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Medium",
+    "title": "New instances flooded with traffic",
+    "question": "A load balancer using least-outstanding-requests adds a freshly started instance, and it immediately receives a huge share of the traffic and fails while its caches and runtime are still cold. Which load-balancer feature helps?",
+    "options": [
+      "Sticky sessions that pin returning users to the newest instance, so that it gets warm sooner",
+      "Slow start, which ramps up the share of traffic sent to a new target gradually",
+      "Lowering the health-check interval to detect failures sooner",
+      "Round robin with equal weights for every instance"
+    ],
+    "correctIndex": 1,
+    "explanation": "A new instance reports no outstanding requests, so a least-loaded policy sends it everything at once, before it is warm. Slow start lets the share grow over a configured period so the instance can warm up. Stickiness would concentrate users on it, faster health checks only notice the failure, and equal-weight round robin ignores that the instance is cold.",
+    "referenceUrl": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-target-group-attributes.html"
+  },
+  {
+    "id": "sd-lb-power-of-two-choices",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Hard",
+    "title": "Many balancers with stale load data",
+    "question": "Dozens of independent load balancers each send every request to the backend that looks least loaded, using load figures that are a few seconds old. Backends take turns being flooded and then idle. Which algorithm avoids this herd behaviour while still favouring lightly loaded backends?",
+    "options": [
+      "Pick two backends at random and send the request to the less loaded of the two",
+      "Pick the single backend with the lowest recent load figure at every single request, refreshing figures as often as possible",
+      "Send each request to the backend with the longest uptime",
+      "Hash the client address and always use the same backend for that client"
+    ],
+    "correctIndex": 0,
+    "explanation": "When many balancers react to the same stale snapshot they all pick the same \"least loaded\" backend and overload it. Choosing the better of two random candidates (the power of two choices) keeps the choice random enough to avoid the herd but still steers traffic away from busy backends. Always taking the minimum is exactly what causes the herd, uptime says nothing about load, and client hashing ignores load altogether.",
+    "referenceUrl": "https://sre.google/sre-book/load-balancing-datacenter/"
+  },
+  {
+    "id": "sd-repl-async-failover-loss",
+    "topic": "system-design",
+    "subtopic": "replication-partitioning",
+    "difficulty": "Medium",
+    "title": "Lost writes after a failover",
+    "question": "A primary database with an asynchronous replica crashes and the replica is promoted. Some writes that clients had seen acknowledged are missing. What explains this, and what is the standard mitigation?",
+    "options": [
+      "The replica never stores the write-ahead log, so it can only recover by replaying clients' requests after the failover",
+      "Promotion waits for the DNS record to expire, and writes sent during that wait are discarded",
+      "Acks came before the replica received the writes; use synchronous or quorum replication for critical data",
+      "Clock skew between the machines made the replica reject the newest records as too old"
+    ],
+    "correctIndex": 2,
+    "explanation": "With asynchronous replication the primary confirms a write as soon as it is durable locally, so the replica can lag behind and the most recent acknowledged writes die with the primary. Synchronous or quorum replication delays the acknowledgement until a replica has the data, trading some write latency (and availability) for durability. Replicas do receive the log, promotion does not depend on DNS expiry for data, and clock skew is not how streaming replication orders records.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/warm-standby.html"
+  },
+  {
+    "id": "sd-repl-hot-key-salting",
+    "topic": "system-design",
+    "subtopic": "replication-partitioning",
+    "difficulty": "Hard",
+    "title": "One key overloads one shard",
+    "question": "A social app shards like counters by user id. One celebrity's counter receives 50,000 writes per second and its shard is saturated while the others are idle. Which fix works?",
+    "options": [
+      "Add more shards to the cluster so that the load is divided further among machines",
+      "Add more read replicas to the saturated shard",
+      "Switch from hash partitioning to range partitioning by user id",
+      "Split the hot key into N sub-keys with random suffixes and sum them on read"
+    ],
+    "correctIndex": 3,
+    "explanation": "A single key always maps to a single shard, so adding shards or replicas does not divide its write rate. Salting the key spreads its writes over N sub-counters that can live on different shards; reads pay for it by summing N values (or reading a periodically aggregated total). Range partitioning would still put the celebrity's key on exactly one shard.",
+    "referenceUrl": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html"
+  },
+  {
+    "id": "sd-msg-crash-before-ack",
+    "topic": "system-design",
+    "subtopic": "messaging",
+    "difficulty": "Easy",
+    "title": "Crash between processing and acknowledgement",
+    "question": "A consumer acknowledges a message only after it has fully processed it. It crashes after finishing the work but before sending the acknowledgement. What happens?",
+    "options": [
+      "The broker redelivers it: at-least-once delivery, so the handler must tolerate duplicates",
+      "The message is lost, because it was already taken off the queue",
+      "The broker guarantees exactly-once processing, so it silently discards the redelivered copy",
+      "The message goes straight to the dead-letter queue as a poison message"
+    ],
+    "correctIndex": 0,
+    "explanation": "Until the acknowledgement arrives the broker considers the message unfinished and will hand it to a consumer again, which gives at-least-once delivery. Because the work was already done once, the handler has to be idempotent or deduplicate. Losing the message is what acknowledging before processing risks, and a dead-letter queue is used only after repeated failed deliveries.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/competing-consumers"
+  },
+  {
+    "id": "sd-msg-pubsub-vs-queue",
+    "topic": "system-design",
+    "subtopic": "messaging",
+    "difficulty": "Easy",
+    "title": "One event, many independent consumers",
+    "question": "An order-placed event must trigger billing, a confirmation email and analytics, each at its own pace, and new consumers should be addable later without touching the producer. Which messaging model fits?",
+    "options": [
+      "One shared queue that all three consumers read from competitively",
+      "A topic with a separate subscription per consumer (publish/subscribe)",
+      "The producer calling each of the three services synchronously in turn",
+      "A shared database table that every consumer polls for new rows"
+    ],
+    "correctIndex": 1,
+    "explanation": "With publish/subscribe every subscription receives its own copy of each event and drains it independently, and a new subscriber is added without any change on the producer. A single shared queue delivers each message to only one of the competing consumers. Synchronous calls couple the producer to every consumer's availability, and a polled table works but reinvents a broker, with polling load and no isolation.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/publisher-subscriber"
+  },
+  {
+    "id": "sd-rl-leaky-bucket",
+    "topic": "system-design",
+    "subtopic": "rate-limiting",
+    "difficulty": "Medium",
+    "title": "Smoothing bursts into a steady rate",
+    "question": "A downstream system accepts a steady 100 requests per second and cannot absorb bursts. The limiter in front of it should turn bursty input into a constant outflow. Which algorithm does that?",
+    "options": [
+      "A token bucket with a very large capacity, so that bursts are allowed through",
+      "A fixed-window counter reset every second",
+      "A leaky bucket: requests wait in a queue and drain at a fixed rate",
+      "A sliding log that records the timestamp of every request"
+    ],
+    "correctIndex": 2,
+    "explanation": "A leaky bucket buffers arrivals and releases them at a constant rate, dropping the excess when the buffer is full, so the downstream sees a smooth stream. A token bucket deliberately lets bursts through up to its capacity, a fixed window allows a double burst around the boundary, and a sliding log decides admission precisely but does not shape the output.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/rate-limiting-pattern"
+  },
+  {
+    "id": "sd-res-graceful-degradation",
+    "topic": "system-design",
+    "subtopic": "resilience",
+    "difficulty": "Medium",
+    "title": "Behaviour when a non-critical dependency fails",
+    "question": "A home page calls a recommendations service that has started timing out. Recommendations are a nice-to-have. What is the best behaviour for the page?",
+    "options": [
+      "Return an error for the whole page until the recommendations service has recovered completely",
+      "Retry the call without limit until it answers",
+      "Hold the page open and render nothing until the service is back",
+      "Render the page with fallback content such as a cached list, and flag the section as degraded"
+    ],
+    "correctIndex": 3,
+    "explanation": "Graceful degradation keeps the core function working when a non-critical dependency fails: a short timeout, then a fallback such as cached or generic recommendations. Failing the whole page turns a partial outage into a total one, and unbounded retries or blocking pile up waiting threads and can take down the page itself.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_mitigate_interaction_failure_graceful_degradation.html"
+  },
+  {
+    "id": "sd-cons-monotonic-reads",
+    "topic": "system-design",
+    "subtopic": "consistency",
+    "difficulty": "Medium",
+    "title": "A comment appears and then vanishes",
+    "question": "Reads are spread across replicas with different replication lag. A user refreshes a page and sees a new comment, refreshes again and the comment is gone, then it reappears. Which guarantee is being violated and what is a cheap fix?",
+    "options": [
+      "Monotonic reads; route each user's reads to the same replica or track the last position seen",
+      "Durability; write every single comment to disk twice and verify the copies before acknowledging it",
+      "Atomicity; wrap the comment and the page view in one transaction",
+      "Isolation; lock the comments table while any page is being rendered"
+    ],
+    "correctIndex": 0,
+    "explanation": "Time went backwards for the user because the second read hit a replica that had not yet applied the comment: monotonic reads were violated. Pinning a user's session to one replica, or sending the last-seen position so that a replica waits until it has caught up, restores the guarantee cheaply. The other properties concern lost data, partial writes and concurrent transactions, not stale replicas.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/cosmos-db/consistency-levels"
+  },
+  {
+    "id": "sd-event-schema-evolution",
+    "topic": "system-design",
+    "subtopic": "event-driven",
+    "difficulty": "Hard",
+    "title": "Changing an event consumed by many teams",
+    "question": "A producer team must add information to an event that a dozen other teams consume, each on its own release schedule. Which approach evolves the event safely?",
+    "options": [
+      "Rename the existing field to a clearer name in place and tell the teams afterwards",
+      "Add the new field as optional with a default, let consumers ignore unknown fields, and enforce compatibility rules in a schema registry",
+      "Deploy the producer and every consumer together in one coordinated release",
+      "Change the type of an existing field and bump the topic name to match"
+    ],
+    "correctIndex": 1,
+    "explanation": "Adding an optional field with a default is a backward- and forward-compatible change: old consumers ignore it and new ones can handle its absence in older events. A schema registry that checks compatibility on publish turns the rule into an automatic gate. Renaming or retyping a field breaks every consumer that has not yet upgraded, and a lockstep release across a dozen independent teams defeats the point of decoupled events.",
+    "referenceUrl": "https://docs.confluent.io/platform/current/schema-registry/fundamentals/schema-evolution.html"
+  },
+  {
+    "id": "sd-ha-active-active-conflicts",
+    "topic": "system-design",
+    "subtopic": "high-availability",
+    "difficulty": "Hard",
+    "title": "Writes in two regions at once",
+    "question": "Two regions both accept writes in an active-active setup. During a network partition, users in each region update the same record. What must the design provide?",
+    "options": [
+      "Nothing special: synchronous cross-region writes remove conflicts at no cost",
+      "A rule that the write with the latest wall-clock time always wins without losing anything",
+      "A conflict-resolution strategy, such as CRDTs, version vectors or giving each record a home region",
+      "A load balancer that alternates users between the two regions on each request"
+    ],
+    "correctIndex": 2,
+    "explanation": "Concurrent writes accepted on both sides of a partition are genuine conflicts, and the replicas must merge them deterministically when they reconnect. Options are mergeable data types (CRDTs), detecting concurrency with version vectors and resolving it, or avoiding it by routing each record's writes to one home region. Synchronous cross-region writes would block or fail during the partition, and last-write-wins silently drops one of the updates and is vulnerable to clock skew.",
+    "referenceUrl": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GlobalTables.html"
+  },
+  {
+    "id": "sd-int-ticket-double-booking",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Hard",
+    "title": "Ticketing: the last seat",
+    "question": "On a ticketing site two buyers click the last remaining seat at the same millisecond. Which design guarantees that it is sold only once?",
+    "options": [
+      "Read the seat's availability in the app and insert the booking right after, which is fast enough in practice",
+      "Serve seat availability from a CDN so that both buyers see the same status",
+      "Let both purchases proceed and retry both until one of them fails",
+      "An atomic conditional update (or unique constraint) on the seat, plus a timed hold during payment"
+    ],
+    "correctIndex": 3,
+    "explanation": "The check and the claim must be one atomic step in the system of record: an update that only succeeds if the seat is still free, or a unique constraint on the seat and show, so exactly one request wins and the other gets a clean failure. A short hold (an expiring reservation) keeps the seat while payment completes. Check-then-insert has a race window, a CDN only makes availability staler, and retrying both does not decide a winner.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/explicit-locking.html"
+  },
+  {
+    "id": "sd-int-web-crawler-politeness",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Medium",
+    "title": "Crawler: staying polite at scale",
+    "question": "A web crawler must fetch billions of pages without overloading any single website. Which element of the design enforces this?",
+    "options": [
+      "Per-host queues in the frontier, a delay between requests to one host and robots.txt compliance",
+      "One global FIFO queue of URLs consumed by as many workers as possible",
+      "Fetching all the pages of a site at the same moment, to benefit from connection reuse",
+      "Randomising the order of every URL in the frontier so that no two pages of one site end up close together"
+    ],
+    "correctIndex": 0,
+    "explanation": "Politeness is a per-host property: the frontier keeps a queue per host and a scheduler only releases the next URL for a host after a delay, while robots.txt says which paths and rates are allowed. A global FIFO queue easily hands one site's links to many workers at once, parallel bursts are the opposite of polite, and random ordering only reduces the chance of clustering without bounding it.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9309.html"
+  }
+]

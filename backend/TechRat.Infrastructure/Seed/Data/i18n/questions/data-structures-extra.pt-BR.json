@@ -1,0 +1,254 @@
+[
+  {
+    "id": "ds-arr-amortized-append",
+    "title": "Custo amortizado de um append",
+    "question": "Um array dinâmico dobra sua capacidade sempre que fica cheio. Se você adiciona n elementos, um de cada vez, a um array inicialmente vazio, qual é o custo amortizado de cada append?",
+    "options": [
+      "O(log n)",
+      "O(n)",
+      "O(1)",
+      "O(n log n)"
+    ],
+    "explanation": "O redimensionamento é caro (copia todos os elementos), mas só acontece depois que a capacidade dobra, então as cópias ao longo dos n appends somam menos de 2n movimentações. Diluído entre os n appends, isso é uma constante por append. O(n) é o pior caso de um único append que dispara o redimensionamento, não o custo amortizado."
+  },
+  {
+    "id": "ds-arr-two-pointers-sorted",
+    "title": "Par com soma dada em um array ordenado",
+    "question": "Você recebe um array ordenado de n números e precisa decidir se dois elementos diferentes somam um alvo T, usando O(1) de memória extra. Qual abordagem dá o melhor tempo de execução dentro desse limite?",
+    "options": [
+      "Manter um índice em cada ponta e mover aquele cujo passo aproxima a soma de T",
+      "Inserir cada valor em um conjunto hash e buscar T menos cada valor ao longo da varredura",
+      "Fazer busca binária por T menos o primeiro elemento e repetir a partir do segundo elemento",
+      "Copiar o array, ordenar a cópia e testar todos os pares de posições até um coincidir"
+    ],
+    "explanation": "Como o array está ordenado, uma soma grande demais só diminui movendo o índice da direita para a esquerda e uma soma pequena demais só aumenta movendo o da esquerda para a direita, então uma única passada em O(n) de tempo e O(1) de memória basta. O conjunto hash também é O(n) em tempo, mas exige O(n) de memória extra, o que a restrição proíbe. Testar todos os pares é O(n ao quadrado), e como o array já está ordenado, ordenar uma cópia é trabalho desperdiçado."
+  },
+  {
+    "id": "ds-arr-binary-search-overflow",
+    "title": "Estouro no ponto médio da busca binária",
+    "question": "Uma busca binária percorre um array de até 2^31 - 1 elementos e calcula o ponto médio como `mid ← (lo + hi) / 2`, usando inteiros de 32 bits com sinal que dão a volta no estouro. Em arrays muito grandes ela às vezes lê um índice negativo. Qual mudança resolve sem alterar o algoritmo?",
+    "options": [
+      "Trocar por uma varredura linear sempre que o array tiver mais de 2^30 elementos",
+      "Calcular `mid ← lo + (hi - lo) / 2`, que nunca ultrapassa `hi`",
+      "Arredondar o ponto médio para cima em vez de para baixo quando a soma for ímpar",
+      "Verificar que `lo` não é negativo antes de cada leitura do array"
+    ],
+    "explanation": "Quando lo e hi são ambos grandes, a soma pode exceder o maior valor de 32 bits e virar um número negativo. A diferença hi - lo sempre cabe, então lo + (hi - lo) / 2 produz o mesmo ponto médio sem nunca estourar. Arredondar para cima muda qual elemento é sondado, mas não o estouro, e checar lo é inútil porque o próprio lo está correto; o valor ruim é mid."
+  },
+  {
+    "id": "ds-str-build-in-loop",
+    "title": "Construindo uma string longa em um laço",
+    "question": "Com strings imutáveis, um laço executa `result ← result + piece` n vezes, e cada concatenação copia toda a string existente para uma nova. Qual é o custo total e qual é o remédio usual?",
+    "options": [
+      "O(n) no total, porque as cópias são adiadas; nenhuma mudança é necessária",
+      "O(n log n) no total; ordenar os pedaços antes para que as cópias sejam menores",
+      "O(n ao quadrado) no total; travar a string para que ela possa ser editada diretamente no mesmo lugar da memória",
+      "O(n ao quadrado) no total; juntar os pedaços em um buffer expansível e unir uma só vez"
+    ],
+    "explanation": "Cada iteração copia tudo o que já foi construído, então os tamanhos 1 + 2 + ... + n somam O(n ao quadrado) cópias de caracteres. Um buffer expansível (um string builder, ou uma lista de pedaços unida no final) adiciona em O(1) amortizado e copia uma só vez, resultando em O(n) no total. Ordenar não encurta as cópias e travar não torna uma string imutável editável."
+  },
+  {
+    "id": "ds-str-rolling-hash",
+    "title": "Hash rolante para busca de substring",
+    "question": "Para achar um padrão de tamanho m em um texto de tamanho n, você compara o hash do padrão com o hash de cada janela do texto. Calcular o hash de cada janela do zero custa O(m). Como um hash rolante (Rabin-Karp) melhora isso e qual é o tempo total esperado?",
+    "options": [
+      "Ele deriva o hash de cada janela do anterior removendo o caractere que sai e somando o que entra em O(1), com tempo esperado de O(n + m)",
+      "Ele calcula o hash só de uma a cada m janelas e ignora as outras, porque janelas sobrepostas nunca contêm um casamento, então textos longos exigem bem menos cálculos de hash, em tempo O(n / m)",
+      "Ele ordena antes os caracteres de cada janela para que anagramas colidam de propósito, o que dá O(n m log m) de tempo no total",
+      "Ele guarda um hash por prefixo do texto e compara só os tamanhos, o que deixa cada comparação de janela livre de qualquer cálculo de hash"
+    ],
+    "explanation": "Um hash polinomial rolante permite subtrair a contribuição do caractere que sai da janela e somar a do que entra, então cada deslocamento é O(1) e a varredura inteira é O(n) mais O(m) para o hash do padrão. Hashes iguais ainda podem ser colisões, então o candidato é verificado caractere a caractere, o que mantém o custo esperado linear com uma boa função hash. Pular janelas perderia casamentos, e ordenar os caracteres acharia anagramas, não substrings."
+  },
+  {
+    "id": "ds-ll-sentinel-node",
+    "title": "Por que usar um nó sentinela",
+    "question": "Muitas implementações de lista ligada mantêm um nó fantasma, a sentinela, na frente do primeiro nó real. Qual é o principal motivo?",
+    "options": [
+      "Ele permite alcançar qualquer elemento pela sua posição em tempo constante, como indexar um array",
+      "Atualizações no início e no meio usam o mesmo código, sem caso especial para a cabeça",
+      "Ele mantém a lista ordenada automaticamente, sem precisar de nenhuma comparação durante a inserção dos nós",
+      "Ele dispensa os ponteiros next no último nó"
+    ],
+    "explanation": "Com uma sentinela, todo nó real tem um predecessor, então o código que liga ou desliga um nó nunca precisa perguntar se está mexendo na cabeça ou se a lista está vazia. Isso elimina uma classe inteira de bugs de off-by-one e de ponteiro nulo ao custo de um nó extra. Uma sentinela não dá acesso aleatório e não ordena nada."
+  },
+  {
+    "id": "ds-ll-find-middle",
+    "title": "Meio de uma lista em uma passada",
+    "question": "Você precisa achar o nó do meio de uma lista simplesmente ligada de tamanho desconhecido, em uma única passada e com O(1) de memória extra. Qual técnica faz isso?",
+    "options": [
+      "Copiar cada nó para um array enquanto percorre a lista e depois ler o elemento da posição n / 2",
+      "Inverter a lista inteira no lugar e depois devolver o novo nó cabeça",
+      "Mover um ponteiro um nó por passo e outro dois; quando o rápido termina, o lento está no meio",
+      "Fazer busca binária sobre os endereços dos nós até as duas metades terem o mesmo tamanho"
+    ],
+    "explanation": "O ponteiro rápido percorre o dobro da distância do lento, então quando ele sai do fim da lista o lento percorreu metade dela. É uma passada e dois ponteiros. A cópia para array exige O(n) de memória extra, inverter devolve o último nó e não o do meio, e endereços de nós não têm ordem sobre a qual fazer busca binária."
+  },
+  {
+    "id": "ds-stack-iterative-dfs",
+    "title": "Busca em profundidade sem recursão",
+    "question": "Uma busca em profundidade recursiva sobre um grafo em forma de cadeia de 5 milhões de nós trava com estouro da pilha de chamadas. Qual mudança remove a dependência da profundidade da pilha de chamadas sem deixar de visitar em profundidade?",
+    "options": [
+      "Manter uma pilha explícita na memória heap, desempilhar um nó e empilhar seus vizinhos não visitados",
+      "Trocar a pilha por uma fila, que visita os nós exatamente na mesma ordem em que a recursão os visitaria",
+      "Aumentar o tamanho máximo da pilha de chamadas até caber uma cadeia de 5 milhões de frames",
+      "Memoizar o resultado de cada chamada recursiva para processar cada nó uma só vez"
+    ],
+    "explanation": "A recursão esconde uma pilha de frames na pilha de chamadas, que é limitada; uma pilha explícita vive na heap, muito maior, e dá a mesma exploração last-in-first-out. Uma fila transforma a travessia em busca em largura, que visita os nós em outra ordem. Uma pilha de chamadas maior só empurra o limite, e a memoização não reduz o quanto as chamadas se aninham em uma cadeia."
+  },
+  {
+    "id": "ds-queue-bfs-visited-on-enqueue",
+    "title": "Quando marcar um nó como visitado no BFS",
+    "question": "Uma busca em largura sobre uma grade aberta de 1000 x 1000 marca a célula como visitada só quando ela é retirada da fila. O uso de memória explode muito além de uma entrada por célula. Qual é a causa?",
+    "options": [
+      "Uma fila FIFO sempre precisa de O(V ao quadrado) de espaço, não importa onde as marcas de visita ficam",
+      "Retirar na ordem de chegada revisita células numa ordem que o BFS não permite",
+      "O marcador de visita precisa ficar dentro de cada entrada da fila, o que dobra o seu tamanho",
+      "Vários vizinhos enfileiram a mesma célula antes de ela ser retirada, e a fila se enche de duplicatas"
+    ],
+    "explanation": "Enquanto uma célula não é retirada, ela continua sem marca, então cada vizinho já visitado que a alcança a enfileira de novo, e a fila pode conter uma célula até quatro vezes (e bem mais em grafos densos). Marcar a célula ao enfileirar mantém cada célula na fila no máximo uma vez, então a fila nunca passa de V entradas. A ordem FIFO não é o problema, e o limite de espaço é O(V) quando as duplicatas são evitadas."
+  },
+  {
+    "id": "ds-hash-bloom-filter",
+    "title": "O que um filtro de Bloom garante",
+    "question": "Um crawler lembra as URLs visitadas em um filtro de Bloom. Para algumas URLs que nunca visitou, o filtro responde \"possivelmente vista\". Qual garantia um filtro de Bloom corretamente construído ainda dá?",
+    "options": [
+      "Quando responde \"possivelmente vista\", a URL certamente foi adicionada em algum momento",
+      "Quando responde \"não vista\", a URL certamente nunca foi adicionada, ou seja, não há falsos negativos",
+      "Zerar os bits de uma URL a remove sem afetar nenhuma outra URL",
+      "A taxa de falsos positivos cai de forma constante conforme mais e mais URLs são inseridas no mesmíssimo filtro"
+    ],
+    "explanation": "Um filtro de Bloom só liga bits, então um elemento que foi adicionado sempre encontra todos os seus bits ligados: sem falsos negativos. Outros elementos podem ligar os mesmos bits por acaso, o que causa falsos positivos, e essa taxa cresce conforme o filtro enche. Zerar bits para remover corromperia outros elementos que os compartilham, e por isso a remoção exige uma variante com contadores."
+  },
+  {
+    "id": "ds-hash-collision-flooding",
+    "title": "Ataque de hash flooding",
+    "question": "Um serviço público guarda parâmetros de requisição em uma tabela hash que usa uma função hash fixa, que todos podem conhecer. Um atacante envia milhares de chaves distintas que caem todas no mesmo bucket, e a CPU satura. Qual defesa no nível da estrutura de dados é a mais eficaz?",
+    "options": [
+      "Aumentar a capacidade inicial da tabela para ter mais buckets",
+      "Normalizar as chaves para minúsculas antes de calcular o hash",
+      "Inicializar o hash com um segredo aleatório por processo para que chaves colidentes não possam ser pré-calculadas",
+      "Trocar a tabela de encadeamento para sondagem linear, para que as colisões usem slots livres vizinhos"
+    ],
+    "explanation": "Se a função hash é conhecida, o atacante pode pré-calcular chaves que colidem e transformar cada operação em uma varredura de uma cadeia longa, O(n) em vez de O(1). Um hash com chave e semente aleatória secreta torna as colisões imprevisíveis. Mais buckets não ajudam quando todas as chaves caem em um só, converter para minúsculas não muda as colisões, e a sondagem linear degrada igualmente com chaves agrupadas."
+  },
+  {
+    "id": "ds-bst-lowest-common-ancestor",
+    "title": "Menor ancestral comum em uma BST",
+    "question": "Uma BST com chaves distintas tem altura h. Dadas duas chaves a < b presentes nela, qual método acha o menor ancestral comum delas mais rápido em geral?",
+    "options": [
+      "Fazer uma travessia em ordem completa e pegar o nó encontrado entre a e b",
+      "Montar a cadeia de pais dos dois nós e comparar as duas cadeias das folhas para cima até se encontrarem",
+      "Buscar cada chave separadamente a partir da raiz e devolver o nó mais raso",
+      "Descer da raiz: esquerda se as duas chaves são menores, direita se são maiores, senão parar"
+    ],
+    "explanation": "A ordenação diz onde as duas chaves estão. Enquanto ambas são menores dá para descartar a subárvore direita, e enquanto ambas são maiores a esquerda; o primeiro nó em que elas se separam (ou que é igual a uma delas) é o menor ancestral comum. Isso custa O(h) sem memória extra, enquanto percorrer tudo é O(n) e as outras duas abordagens fazem mais trabalho para chegar ao mesmo nó."
+  },
+  {
+    "id": "ds-tree-segment-tree",
+    "title": "Somas de intervalo com atualizações pontuais",
+    "question": "Um array de n números recebe muitas atualizações pontuais intercaladas com consultas de soma de intervalo. Somas de prefixo respondem a consulta em O(1), mas precisam de O(n) para se corrigirem após uma atualização. Qual estrutura suporta as duas operações em O(log n)?",
+    "options": [
+      "Uma tabela hash que mapeia cada índice para seu valor atual, varrida a cada consulta de intervalo",
+      "Uma árvore de segmentos ou árvore de Fenwick que guarda somas de intervalos de índices em seus nós",
+      "Um min-heap que guarda os valores do array",
+      "Uma cópia ordenada do array que é reconstruída do zero depois de cada alteração"
+    ],
+    "explanation": "Uma árvore de segmentos guarda a soma de cada intervalo em um nó, então uma consulta combina O(log n) nós e uma atualização recalcula apenas os O(log n) ancestrais da folha alterada. Uma árvore de Fenwick alcança os mesmos limites com menos memória. Uma tabela hash obriga a consulta de intervalo a varrer todos os índices, um heap não tem noção de posição, e reordenar uma cópia custa O(n log n) por atualização."
+  },
+  {
+    "id": "ds-bst-validate-bounds",
+    "title": "Validando uma BST",
+    "question": "Um validador aceita uma árvore quando todo nó é maior que o filho esquerdo e menor que o filho direito. Qual destas árvores essa checagem aceita mesmo não sendo uma BST válida?",
+    "options": [
+      "Raiz 10 com filho esquerdo 5 cujo filho esquerdo é 3",
+      "Raiz 10 cujo único filho é um filho direito 20",
+      "Raiz 10 com filho esquerdo 5 cujo filho direito é 12",
+      "Raiz 10 com filho direito 15 cujo filho esquerdo é 12"
+    ],
+    "explanation": "Uma BST exige que toda chave da subárvore esquerda de um nó seja menor que ele, não só o filho imediato. Aqui o 12 está na subárvore esquerda do 10, então a árvore é inválida, mas o 12 é maior que seu pai 5 e a checagem local passa. Um validador correto carrega uma faixa (mín, máx) pela recursão ou verifica que a travessia em ordem é estritamente crescente."
+  },
+  {
+    "id": "ds-bst-rotation-invariant",
+    "title": "O que uma rotação de árvore preserva",
+    "question": "BSTs autobalanceadas corrigem o desbalanceamento com rotações. Qual propriedade uma rotação preserva enquanto muda o formato da árvore?",
+    "options": [
+      "A sequência em ordem das chaves, de modo que a ordenação da BST continua valendo",
+      "A altura de cada nó da subárvore rotacionada e de todos os seus ancestrais",
+      "A identidade do nó raiz da árvore inteira, seja qual for o nó rotacionado",
+      "O número de folhas sob cada nó"
+    ],
+    "explanation": "Uma rotação apenas religa alguns ponteiros em torno de dois nós e move a subárvore do meio de um lado para o outro, o que mantém intacta a ordem esquerda-direita das chaves. As alturas mudam (esse é o objetivo de rotacionar), a raiz pode mudar quando a rotação acontece no topo, e a contagem de folhas sob um nó também pode mudar."
+  },
+  {
+    "id": "ds-heap-running-median",
+    "title": "Mediana corrente de um fluxo",
+    "question": "Números chegam um de cada vez e, depois de cada um, você deve informar a mediana de tudo o que já viu, com O(log n) de trabalho por chegada. Qual projeto consegue isso?",
+    "options": [
+      "Um único min-heap, lendo a posição do meio do seu array de apoio depois de cada inserção",
+      "Um array ordenado, inserindo cada novo valor com busca binária",
+      "Dois min-heaps mantidos sempre exatamente com o mesmo tamanho",
+      "Um max-heap para a metade inferior e um min-heap para a superior, tamanhos com diferença de um"
+    ],
+    "explanation": "O topo do max-heap é o maior valor da metade inferior e o topo do min-heap é o menor da superior, então a mediana é um desses topos ou a média deles. Cada inserção vai para um heap e, se os tamanhos se afastam, um elemento passa para o outro, tudo em O(log n). O array de um heap não é ordenado, e um array ordenado paga O(n) para deslocar elementos na inserção."
+  },
+  {
+    "id": "ds-graph-directed-cycle-check",
+    "title": "Detecção de ciclo em um grafo direcionado",
+    "question": "Uma DFS que usa um único conjunto de visitados para detectar ciclos reporta um ciclo em um grafo de tarefas que é acíclico: duas tarefas simplesmente dependem da mesma terceira tarefa. Qual é a checagem correta?",
+    "options": [
+      "Limpar o conjunto de visitados depois de explorar cada aresta, para que todo nó possa ser explorado de novo por cada novo caminho",
+      "Reportar ciclo só quando a DFS encontra um nó ainda no caminho atual, não um apenas visitado",
+      "Reportar ciclo sempre que o número de arestas for pelo menos o número de vértices",
+      "Rodar uma busca em largura no lugar, que não consegue revisitar nós"
+    ],
+    "explanation": "Em um grafo direcionado, alcançar um nó já concluído por um segundo caminho é inofensivo (um formato de losango); só uma aresta de volta para um nó ainda em exploração, que está no caminho da recursão atual, fecha um ciclo. Por isso a DFS pinta os nós de branco, cinza e preto, ou mantém um conjunto de nós na pilha. Muitos grafos acíclicos têm pelo menos tantas arestas quanto vértices, e limpar o conjunto de visitados tornaria a busca exponencial."
+  },
+  {
+    "id": "ds-graph-bfs-complexity",
+    "title": "Tempo de execução do BFS",
+    "question": "Um grafo com V vértices e E arestas é guardado como listas de adjacência. Qual é o tempo de execução de uma busca em largura a partir de um vértice?",
+    "options": [
+      "O(V ao quadrado)",
+      "O(V vezes E)",
+      "O(V + E)",
+      "O(E log V)"
+    ],
+    "explanation": "Cada vértice entra e sai da fila no máximo uma vez, e cada lista de adjacência é percorrida uma vez, então o trabalho é proporcional aos vértices mais as arestas. O(V ao quadrado) é o custo com matriz de adjacência, em que percorrer os vizinhos de um vértice leva O(V). Os outros limites contam trabalho que o BFS nunca faz."
+  },
+  {
+    "id": "ds-dsu-online-connectivity",
+    "title": "Conectividade enquanto links são adicionados",
+    "question": "Links entre máquinas são adicionados um a um e, depois de cada link, é preciso dizer se duas máquinas dadas estão conectadas. Refazer uma busca no grafo a cada adição custa O(V + E) toda vez. Qual é a abordagem melhor?",
+    "options": [
+      "Union-find: unir as pontas de cada link novo e comparar raízes para responder, em tempo quase constante",
+      "Manter uma matriz de adjacência e multiplicá-la por ela mesma de novo depois de cada link adicionado para atualizar a alcançabilidade",
+      "Ordenar os links por peso e reconstruir uma árvore geradora a cada consulta",
+      "Guardar os links em um min-heap e retirá-los até as duas máquinas se encontrarem"
+    ],
+    "explanation": "Conectividade que só funde componentes é exatamente o que uma estrutura de conjuntos disjuntos resolve: um union por novo link e um find por consulta, com compressão de caminho e união por rank deixando cada operação quase O(1) amortizado. A multiplicação de matrizes é muito mais cara, pesos são irrelevantes para conectividade simples, e um heap não tem noção de alcançabilidade."
+  },
+  {
+    "id": "ds-trie-delete-word",
+    "title": "Removendo uma palavra de uma trie",
+    "question": "Uma trie guarda as palavras \"car\" e \"card\". Você remove \"card\". Qual procedimento está correto?",
+    "options": [
+      "Remover todos os nós do caminho da palavra, da raiz até a última letra, sem considerar o compartilhamento",
+      "Remover apenas o último nó do caminho, mesmo que outras palavras ainda passem por ele",
+      "Desmarcar a flag de fim e depois apagar nós de baixo para cima enquanto não tiverem filhos nem terminarem outra palavra",
+      "Reconstruir a trie inteira a partir das palavras restantes depois de cada remoção"
+    ],
+    "explanation": "Nós de um caminho podem ser compartilhados com outras palavras. Depois de limpar a flag de fim de \"card\" você sobe e remove um nó só se ele não tem filhos e não termina uma palavra; o nó do 'd' sai, mas 'c', 'a' e 'r' ficam porque \"car\" ainda precisa deles. Apagar o caminho inteiro quebraria \"car\", e uma reconstrução completa funciona, mas é caríssima sem necessidade."
+  },
+  {
+    "id": "ds-mat-staircase-search",
+    "title": "Busca em matriz ordenada por linhas e colunas",
+    "question": "Uma matriz m x n tem todas as linhas ordenadas da esquerda para a direita e todas as colunas ordenadas de cima para baixo. Qual método acha um valor alvo em tempo O(m + n)?",
+    "options": [
+      "Fazer busca binária em cada linha separadamente, já que toda linha está ordenada",
+      "Achatar a matriz linha por linha em um único array e fazer busca binária nesse array achatado, procurando o alvo",
+      "Começar na célula do canto superior esquerdo e andar pela diagonal principal",
+      "Começar na célula do canto superior direito: ir para a esquerda se for maior que o alvo, descer se for menor"
+    ],
+    "explanation": "No canto superior direito a célula é a maior da sua linha e a menor da sua coluna, então um valor maior permite descartar a coluna inteira e um menor, a linha inteira. Cada passo remove uma linha ou uma coluna, logo são necessários no máximo m + n passos. Buscar em todas as linhas é O(m log n), e o array achatado não é ordenado no conjunto, então a busca binária nele é inválida."
+  }
+]
