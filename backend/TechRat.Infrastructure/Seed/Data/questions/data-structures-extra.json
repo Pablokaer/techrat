@@ -1,0 +1,359 @@
+[
+  {
+    "id": "ds-arr-amortized-append",
+    "topic": "data-structures",
+    "subtopic": "arrays",
+    "difficulty": "Easy",
+    "title": "Amortized cost of appending",
+    "question": "A dynamic array doubles its capacity whenever it is full. If you append n elements one at a time to an initially empty array, what is the amortized cost of each append?",
+    "options": [
+      "O(log n)",
+      "O(n)",
+      "O(1)",
+      "O(n log n)"
+    ],
+    "correctIndex": 2,
+    "explanation": "Resizing is expensive (it copies every element), but it happens only after the capacity doubles, so the copies across all n appends add up to fewer than 2n element moves. Spread over n appends that is a constant per append. O(n) is the worst case of a single append that triggers a resize, not the amortized cost.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/dynamicarray.html"
+  },
+  {
+    "id": "ds-arr-two-pointers-sorted",
+    "topic": "data-structures",
+    "subtopic": "arrays",
+    "difficulty": "Medium",
+    "title": "Pair with a given sum in a sorted array",
+    "question": "A sorted array of n numbers is given. You must decide whether two different elements add up to a target T, using O(1) extra space. Which approach gives the best running time within that limit?",
+    "options": [
+      "Keep one index at each end and move the one whose step brings the sum closer to T",
+      "Insert every value into a hash set and look up T minus each value as you go along",
+      "Binary search for T minus the first element, then repeat from the second element on",
+      "Copy the array, sort the copy and test every pair of positions until one matches"
+    ],
+    "correctIndex": 0,
+    "explanation": "Because the array is sorted, a sum that is too big can only shrink by moving the right index left and a sum that is too small can only grow by moving the left index right, so one pass of O(n) time and O(1) space suffices. The hash set is also O(n) time but needs O(n) extra space, which the constraint forbids. Testing all pairs is O(n squared), and the array is already sorted so sorting a copy is wasted work.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/array.html"
+  },
+  {
+    "id": "ds-arr-binary-search-overflow",
+    "topic": "data-structures",
+    "subtopic": "arrays",
+    "difficulty": "Hard",
+    "title": "Midpoint overflow in binary search",
+    "question": "A binary search runs over an array of up to 2^31 - 1 elements and computes the midpoint as `mid ← (lo + hi) / 2` using 32-bit signed integers that wrap around on overflow. On very large arrays it occasionally reads a negative index. Which change fixes it without altering the algorithm?",
+    "options": [
+      "Switch to a linear scan whenever the array has more than 2^30 elements",
+      "Compute `mid ← lo + (hi - lo) / 2`, which can never exceed `hi`",
+      "Round the midpoint up instead of down when the sum is odd",
+      "Test that `lo` is not negative before every read of the array"
+    ],
+    "correctIndex": 1,
+    "explanation": "When lo and hi are both large, their sum can exceed the largest 32-bit value and wrap to a negative number. The difference hi - lo always fits, so lo + (hi - lo) / 2 yields the same midpoint without ever overflowing. Rounding up changes which element is probed but not the overflow, and checking lo is useless because lo itself is fine; the bad value is mid.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/binarySearch.html"
+  },
+  {
+    "id": "ds-str-build-in-loop",
+    "topic": "data-structures",
+    "subtopic": "strings",
+    "difficulty": "Medium",
+    "title": "Building a long string in a loop",
+    "question": "With immutable strings, a loop runs `result ← result + piece` n times, and every concatenation copies the whole existing string into a new one. What is the total cost, and what is the usual remedy?",
+    "options": [
+      "O(n) in total, because the copies are deferred; no change is needed",
+      "O(n log n) in total; sort the pieces first so that the copies are shorter",
+      "O(n squared) in total; lock the string so that it can be edited in place",
+      "O(n squared) in total; collect the pieces in a growable buffer and join once"
+    ],
+    "correctIndex": 3,
+    "explanation": "Each iteration copies everything built so far, so the lengths 1 + 2 + ... + n add up to O(n squared) character copies. A growable buffer (a string builder, or a list of pieces joined at the end) appends in amortized O(1) and copies once, for O(n) overall. Sorting does not shorten the copies and locking does not make an immutable string editable.",
+    "referenceUrl": "https://docs.python.org/3/library/stdtypes.html#text-sequence-type-str"
+  },
+  {
+    "id": "ds-str-rolling-hash",
+    "topic": "data-structures",
+    "subtopic": "strings",
+    "difficulty": "Hard",
+    "title": "Rolling hash for substring search",
+    "question": "To find a pattern of length m in a text of length n, you compare the hash of the pattern with the hash of every window of the text. Hashing each window from scratch costs O(m). How does a rolling hash (Rabin-Karp) improve this, and what is the expected total time?",
+    "options": [
+      "It derives each window's hash from the previous one by removing the outgoing character and adding the incoming one in O(1), for O(n + m) expected time",
+      "It hashes only every m-th window and skips the others, because overlapping windows can never hold a match, so long texts need far fewer hash computations, for O(n / m) time",
+      "It sorts the characters of every window first so that anagrams collide on purpose, which gives O(n m log m) time in total",
+      "It stores one hash per prefix of the text and compares only lengths, which makes every window comparison free of any hashing"
+    ],
+    "correctIndex": 0,
+    "explanation": "A polynomial rolling hash lets you subtract the contribution of the character leaving the window and add the one entering it, so each shift is O(1) and the whole scan is O(n) plus O(m) to hash the pattern. Equal hashes can still be collisions, so a candidate is verified character by character, which keeps the expected cost linear with a good hash. Skipping windows would miss matches, and sorting the characters would find anagrams, not substrings.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/karpRabin.html"
+  },
+  {
+    "id": "ds-ll-sentinel-node",
+    "topic": "data-structures",
+    "subtopic": "linked-lists",
+    "difficulty": "Easy",
+    "title": "Why use a sentinel node",
+    "question": "Many linked-list implementations keep a dummy sentinel node in front of the real first node. What is the main reason?",
+    "options": [
+      "It lets any element be reached by its position in constant time, just like indexing an array",
+      "Front and middle updates share one code path, with no special case for the head",
+      "It keeps the list sorted automatically, without any comparison being needed while nodes are inserted",
+      "It makes the next pointers unnecessary for the last node"
+    ],
+    "correctIndex": 1,
+    "explanation": "With a sentinel, every real node has a predecessor, so the code that links or unlinks a node never has to ask whether it is touching the head or whether the list is empty. That removes a whole class of off-by-one and null-pointer bugs for the price of one extra node. A sentinel does not give random access and does not order anything.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/linkedList.html"
+  },
+  {
+    "id": "ds-ll-find-middle",
+    "topic": "data-structures",
+    "subtopic": "linked-lists",
+    "difficulty": "Medium",
+    "title": "Middle of a list in one pass",
+    "question": "You must find the middle node of a singly linked list whose length is unknown, in a single pass and with O(1) extra space. Which technique does it?",
+    "options": [
+      "Copy every node into an array while walking the list and afterwards read the element at position n / 2",
+      "Reverse the whole list in place and then return the new head node",
+      "Move one pointer one node per step and another two; when the fast one ends, the slow one is in the middle",
+      "Binary search over the node addresses until the two halves have equal length"
+    ],
+    "correctIndex": 2,
+    "explanation": "The fast pointer covers twice the distance of the slow one, so when it falls off the end the slow pointer has covered half the list. That is one pass and two pointers. The array copy needs O(n) extra space, reversing yields the last node rather than the middle, and node addresses carry no order to binary search over.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/linkedList.html"
+  },
+  {
+    "id": "ds-stack-iterative-dfs",
+    "topic": "data-structures",
+    "subtopic": "stacks",
+    "difficulty": "Medium",
+    "title": "Depth-first search without recursion",
+    "question": "A recursive depth-first search over a graph shaped like a chain of 5 million nodes crashes with a call-stack overflow. Which change removes the dependence on the call-stack depth while still visiting depth-first?",
+    "options": [
+      "Keep an explicit stack in heap memory, pop a node and push its unvisited neighbours",
+      "Replace the stack with a queue, which visits the nodes in the very same order",
+      "Raise the maximum call-stack size until a chain of 5 million frames fits",
+      "Memoize the result of every recursive call so that each node is processed once"
+    ],
+    "correctIndex": 0,
+    "explanation": "Recursion hides a stack of frames in the limited call stack; an explicit stack lives on the heap, which is far larger, and gives the same last-in-first-out exploration. A queue turns the traversal into breadth-first search, which visits nodes in a different order. A bigger call stack only moves the limit, and memoization does not reduce how deep the calls nest on a chain.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/stack.html"
+  },
+  {
+    "id": "ds-queue-bfs-visited-on-enqueue",
+    "topic": "data-structures",
+    "subtopic": "queues",
+    "difficulty": "Hard",
+    "title": "When to mark a node visited in BFS",
+    "question": "A breadth-first search over an open 1000 x 1000 grid marks a cell as visited only when the cell is dequeued. Memory use balloons far beyond one entry per cell. What is the cause?",
+    "options": [
+      "A FIFO queue always needs O(V squared) space, however the visited marks are placed",
+      "Dequeuing in arrival order revisits cells in an order that BFS does not allow",
+      "The visited flag has to be stored inside each queue entry, which doubles its size",
+      "Several neighbours enqueue the same cell before it is dequeued, so the queue fills with duplicates"
+    ],
+    "correctIndex": 3,
+    "explanation": "Until a cell is dequeued it is still unmarked, so each of its already-visited neighbours that reaches it enqueues it again, and the queue can hold a cell up to four times (and many more in dense graphs). Marking the cell when it is enqueued keeps every cell in the queue at most once, so the queue never exceeds V entries. The FIFO order is not the problem, and the space bound is O(V) once duplicates are prevented.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/breadthfirst.html"
+  },
+  {
+    "id": "ds-hash-bloom-filter",
+    "topic": "data-structures",
+    "subtopic": "hash-tables",
+    "difficulty": "Hard",
+    "title": "What a Bloom filter guarantees",
+    "question": "A crawler remembers visited URLs in a Bloom filter. For a few URLs it has never visited, the filter answers \"possibly seen\". Which guarantee does a correctly built Bloom filter still give?",
+    "options": [
+      "When it answers \"possibly seen\", the URL was certainly added at some point",
+      "When it answers \"not seen\", the URL was certainly never added, so there are no false negatives",
+      "Clearing the bits of a URL removes it without affecting any other URL",
+      "The false-positive rate drops steadily as more and more URLs are inserted into the very same filter"
+    ],
+    "correctIndex": 1,
+    "explanation": "A Bloom filter only sets bits, so an element that was added always finds all its bits set: no false negatives. Other elements can set the same bits by chance, which causes false positives, and that rate grows as the filter fills. Clearing bits to delete would corrupt other elements that share them, which is why deletion needs a counting variant.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/bloomFilter.html"
+  },
+  {
+    "id": "ds-hash-collision-flooding",
+    "topic": "data-structures",
+    "subtopic": "hash-tables",
+    "difficulty": "Hard",
+    "title": "Hash flooding attack",
+    "question": "A public service stores request parameters in a hash table that uses a fixed hash function everyone can read about. An attacker sends thousands of distinct keys that all land in the same bucket, and the CPU saturates. Which defence at the data-structure level is the most effective?",
+    "options": [
+      "Raise the initial capacity of the table so that there are more buckets",
+      "Normalise the keys to lower case before they are hashed",
+      "Seed the hash with a random per-process secret so colliding keys cannot be precomputed",
+      "Switch the table from chaining to linear probing, so that collisions use neighbouring free slots"
+    ],
+    "correctIndex": 2,
+    "explanation": "If the hash function is known, an attacker can precompute keys that collide and turn each operation into a scan of one long chain, O(n) instead of O(1). A keyed hash with a secret random seed makes the collisions unpredictable. More buckets do not help when all keys map to one, lowercasing does not change collisions, and linear probing degrades just as badly under clustered keys.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/hash.html"
+  },
+  {
+    "id": "ds-bst-lowest-common-ancestor",
+    "topic": "data-structures",
+    "subtopic": "binary-search-trees",
+    "difficulty": "Medium",
+    "title": "Lowest common ancestor in a BST",
+    "question": "A BST with distinct keys has height h. Given two keys a < b that are present in it, which method finds their lowest common ancestor fastest in general?",
+    "options": [
+      "Run a full in-order traversal and take the node found between a and b",
+      "Build the parent chain of both nodes and compare the two chains from the leaves upwards until they meet",
+      "Search for each key separately from the root and return the shallower node",
+      "Walk down from the root: left if both keys are smaller, right if both are larger, else stop"
+    ],
+    "correctIndex": 3,
+    "explanation": "The ordering tells you where both keys live. While both are smaller you can discard the right subtree, and while both are larger the left one; the first node where they split (or that equals one of them) is the lowest common ancestor. That costs O(h) with no extra memory, whereas traversing everything is O(n) and the other two approaches do more work to reach the same node.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/binarySearchTree.html"
+  },
+  {
+    "id": "ds-tree-segment-tree",
+    "topic": "data-structures",
+    "subtopic": "trees",
+    "difficulty": "Hard",
+    "title": "Range sums with point updates",
+    "question": "An array of n numbers receives many point updates interleaved with range-sum queries. Prefix sums answer a query in O(1) but need O(n) to repair after an update. Which structure supports both operations in O(log n)?",
+    "options": [
+      "A hash table that maps every index to its current value, scanned for each range query",
+      "A segment tree or Fenwick tree that stores sums of index ranges in its nodes",
+      "A min-heap that holds the values of the array",
+      "A sorted copy of the array that is rebuilt from scratch after each single update"
+    ],
+    "correctIndex": 1,
+    "explanation": "A segment tree keeps the sum of each range in a node, so a query combines O(log n) nodes and an update recomputes only the O(log n) ancestors of the changed leaf. A Fenwick tree achieves the same bounds with less memory. A hash table makes a range query scan every index, a heap has no notion of position, and re-sorting a copy costs O(n log n) per update.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/binarytree.html"
+  },
+  {
+    "id": "ds-bst-validate-bounds",
+    "topic": "data-structures",
+    "subtopic": "binary-search-trees",
+    "difficulty": "Medium",
+    "title": "Validating a BST",
+    "question": "A validator accepts a tree when every node is greater than its left child and smaller than its right child. Which of these trees does that check accept even though it is not a valid BST?",
+    "options": [
+      "Root 10 with a left child 5 whose left child is 3",
+      "Root 10 whose only child is a right child 20",
+      "Root 10 with a left child 5 whose right child is 12",
+      "Root 10 with a right child 15 whose left child is 12"
+    ],
+    "correctIndex": 2,
+    "explanation": "A BST requires every key in the left subtree of a node to be smaller than it, not just the immediate child. Here 12 sits in the left subtree of 10, so the tree is invalid, yet 12 is greater than its parent 5 and the local check passes. A correct validator carries a (min, max) range down the recursion or checks that an in-order traversal is strictly increasing.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/binarySearchTree.html"
+  },
+  {
+    "id": "ds-bst-rotation-invariant",
+    "topic": "data-structures",
+    "subtopic": "binary-search-trees",
+    "difficulty": "Easy",
+    "title": "What a tree rotation preserves",
+    "question": "Self-balancing BSTs fix imbalance with rotations. Which property does a rotation preserve while it changes the shape of the tree?",
+    "options": [
+      "The in-order sequence of the keys, so the BST ordering still holds",
+      "The height of every node in the rotated subtree and in all of its ancestors",
+      "The identity of the root node of the whole tree, whichever node is rotated",
+      "The number of leaves under each node"
+    ],
+    "correctIndex": 0,
+    "explanation": "A rotation only re-links a few pointers around two nodes and moves the middle subtree from one side to the other, which keeps the left-to-right order of the keys intact. Heights change (that is the point of rotating), the root can change when the rotation happens at the top, and the leaf count under a node can change too.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/rotation.html"
+  },
+  {
+    "id": "ds-heap-running-median",
+    "topic": "data-structures",
+    "subtopic": "heaps",
+    "difficulty": "Medium",
+    "title": "Running median of a stream",
+    "question": "Numbers arrive one at a time and after each one you must report the median of everything seen so far, with O(log n) work per arrival. Which design achieves it?",
+    "options": [
+      "A single min-heap, reading the middle position of its backing array after every insert",
+      "A sorted array, inserting each new value with binary search",
+      "Two min-heaps that are always kept at exactly the same size",
+      "A max-heap for the lower half and a min-heap for the upper half, sizes within one"
+    ],
+    "correctIndex": 3,
+    "explanation": "The top of the max-heap is the largest value of the lower half and the top of the min-heap is the smallest of the upper half, so the median is one of those tops or their average. Each insert goes into one heap and, if the sizes drift apart, one element moves across, all in O(log n). The array of a heap is not sorted, and a sorted array pays O(n) to shift elements on insert.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/median.html"
+  },
+  {
+    "id": "ds-graph-directed-cycle-check",
+    "topic": "data-structures",
+    "subtopic": "graphs",
+    "difficulty": "Medium",
+    "title": "Cycle detection in a directed graph",
+    "question": "A DFS that uses one visited set to detect cycles reports a cycle in a task graph that is acyclic: two tasks simply depend on the same third task. What is the correct check?",
+    "options": [
+      "Clear the visited set after exploring each edge, so that every node can be explored again from each new route",
+      "Report a cycle only when DFS meets a node still on the current path, not one merely visited",
+      "Report a cycle whenever the number of edges is at least the number of vertices",
+      "Run a breadth-first search instead, which cannot revisit nodes"
+    ],
+    "correctIndex": 1,
+    "explanation": "In a directed graph, reaching an already finished node through a second route is harmless (a diamond shape); only an edge back to a node still being explored, one on the current recursion path, closes a cycle. That is why DFS colours nodes white, grey and black, or keeps an in-stack set. Many acyclic graphs have at least as many edges as vertices, and clearing the visited set would make the search exponential.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/directedGraph.html"
+  },
+  {
+    "id": "ds-graph-bfs-complexity",
+    "topic": "data-structures",
+    "subtopic": "graphs",
+    "difficulty": "Easy",
+    "title": "BFS running time",
+    "question": "A graph with V vertices and E edges is stored as adjacency lists. What is the running time of a breadth-first search from one vertex?",
+    "options": [
+      "O(V squared)",
+      "O(V times E)",
+      "O(V + E)",
+      "O(E log V)"
+    ],
+    "correctIndex": 2,
+    "explanation": "Each vertex is enqueued and dequeued at most once, and each adjacency list is scanned once, so the work is proportional to the vertices plus the edges. O(V squared) is the cost with an adjacency matrix, where scanning a vertex's neighbours takes O(V). The other bounds count work that BFS never does.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/breadthfirst.html"
+  },
+  {
+    "id": "ds-dsu-online-connectivity",
+    "topic": "data-structures",
+    "subtopic": "disjoint-set",
+    "difficulty": "Medium",
+    "title": "Connectivity while links are added",
+    "question": "Links between machines are added one by one, and after each link you must tell whether two given machines are connected. Re-running a graph search after every addition costs O(V + E) each time. What is the better approach?",
+    "options": [
+      "Union-find: union each new link's endpoints and compare roots to answer queries, in near-constant time",
+      "Keep an adjacency matrix and multiply it by itself again after every single added link to refresh reachability",
+      "Sort the links by weight and rebuild a spanning tree for every query",
+      "Store the links in a min-heap and pop them until the two machines meet"
+    ],
+    "correctIndex": 0,
+    "explanation": "Connectivity that only ever merges components is exactly what a disjoint-set structure handles: a union per new link and a find per query, with path compression and union by rank making each operation nearly O(1) amortized. Matrix multiplication is far more expensive, weights are irrelevant to plain connectivity, and a heap has no notion of reachability.",
+    "referenceUrl": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.DisjointSet.html"
+  },
+  {
+    "id": "ds-trie-delete-word",
+    "topic": "data-structures",
+    "subtopic": "tries",
+    "difficulty": "Medium",
+    "title": "Deleting a word from a trie",
+    "question": "A trie stores the words \"car\" and \"card\". You delete \"card\". Which procedure is correct?",
+    "options": [
+      "Remove every node on the path of the word, from the root down to its last letter, regardless of sharing",
+      "Remove only the last node of the path, even if other words still pass through it",
+      "Unmark the end flag, then delete nodes upwards while they have no children and end no other word",
+      "Rebuild the whole trie from the remaining words after each deletion"
+    ],
+    "correctIndex": 2,
+    "explanation": "Nodes on a path may be shared with other words. After clearing the end flag of \"card\" you walk back up and remove a node only if it has no children and does not end a word; the node for 'd' goes, but 'c', 'a' and 'r' stay because \"car\" still needs them. Deleting the whole path would break \"car\", and a full rebuild is correct but pointlessly expensive.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/trie.html"
+  },
+  {
+    "id": "ds-mat-staircase-search",
+    "topic": "data-structures",
+    "subtopic": "matrices",
+    "difficulty": "Medium",
+    "title": "Searching a row- and column-sorted matrix",
+    "question": "An m x n matrix has every row sorted left to right and every column sorted top to bottom. Which method finds a target value in O(m + n) time?",
+    "options": [
+      "Binary search each row separately, since every row is sorted",
+      "Flatten the matrix row by row and binary search the flattened array",
+      "Start at the top-left cell and walk along the main diagonal",
+      "Start at the top-right cell: move left if it is larger than the target, move down if it is smaller"
+    ],
+    "correctIndex": 3,
+    "explanation": "From the top-right corner the cell is the largest in its row and the smallest in its column, so a larger value lets you discard the whole column and a smaller one the whole row. Each step removes a row or a column, so at most m + n steps are needed. Searching every row is O(m log n), and the flattened array is not sorted overall, so binary search on it is invalid.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/array.html"
+  }
+]

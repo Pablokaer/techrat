@@ -1,0 +1,242 @@
+[
+  {
+    "id": "sd-fund-latency-hierarchy",
+    "title": "Ordens de grandeza da latência",
+    "question": "Qual lista ordena as latências típicas da mais rápida para a mais lenta?",
+    "options": [
+      "Ler da memória, ler de um SSD local, uma ida e volta dentro de um data center, uma ida e volta entre continentes",
+      "Ler de um SSD local, ler da memória, uma ida e volta dentro de um data center, uma ida e volta entre continentes",
+      "Ler da memória, uma ida e volta entre continentes, ler de um SSD local, uma ida e volta dentro de um data center",
+      "Uma ida e volta dentro de um data center, ler da memória, uma ida e volta entre continentes, ler de um SSD local"
+    ],
+    "explanation": "A memória é lida em cerca de cem nanossegundos, um SSD em dezenas a centenas de microssegundos, um salto dentro de um data center em aproximadamente meio milissegundo, e uma viagem entre continentes leva algo da ordem de cem milissegundos por causa da velocidade da luz. Conhecer essas distâncias explica por que caches, localidade e manter as chamadas em uma região importam tanto em um projeto."
+  },
+  {
+    "id": "sd-fund-read-write-ratio",
+    "title": "Projetando para uma carga com muita leitura",
+    "question": "Um serviço de página de produto recebe cerca de 200 leituras para cada escrita, e o banco de dados é o gargalo. Qual primeiro passo dá mais alívio com a menor complexidade?",
+    "options": [
+      "Fazer sharding dos dados por id de usuário para espalhar as escritas por muitas máquinas",
+      "Colocar leituras quentes em cache e adicionar réplicas de leitura, porque as leituras dominam a carga",
+      "Tornar toda escrita síncrona entre duas regiões antes de confirmá-la",
+      "Colocar todas as escritas atrás de uma fila e processá-las uma de cada vez"
+    ],
+    "explanation": "Com uma proporção de 200:1 a carga é quase toda de leitura, e leitura é o que há de mais fácil de escalar: coloque as páginas populares em cache e distribua o restante para réplicas. Sharding e escritas síncronas multirregião acrescentam muita complexidade a um caminho quase sem uso, e serializar escritas em uma fila não faz nada pelas leituras que causam a saturação."
+  },
+  {
+    "id": "sd-fund-qps-estimate",
+    "title": "Estimando requisições por segundo no pico",
+    "question": "Um serviço tem 10 milhões de usuários ativos por dia, e cada um faz cerca de 30 requisições por dia. O pico de tráfego é aproximadamente três vezes a média diária. Qual valor é a melhor estimativa de requisições por segundo no pico?",
+    "options": [
+      "Cerca de 3.500 requisições por segundo",
+      "Cerca de 100.000 requisições por segundo",
+      "Cerca de 10.000 requisições por segundo",
+      "Cerca de 1.000 requisições por segundo"
+    ],
+    "explanation": "10 milhões de usuários vezes 30 requisições dão 300 milhões de requisições por dia, e um dia tem cerca de 86.400 segundos, então a média fica perto de 3.500 por segundo. Multiplicar pelo fator de pico 3 dá aproximadamente 10.000 por segundo. O valor de 3.500 esquece o fator de pico, e os outros dois erram por uma ordem de grandeza."
+  },
+  {
+    "id": "sd-scale-replicas-before-shards",
+    "title": "Escalando um banco de dados antes do sharding",
+    "question": "Um banco relacional com um único primário está com 85% de CPU, quase tudo vindo de consultas de leitura em algumas tabelas quentes, enquanto as escritas são leves. Qual é o próximo passo mais proporcional antes de considerar sharding?",
+    "options": [
+      "Fazer sharding de todas as tabelas por id de usuário imediatamente, antes de verificar qual é o gargalo real",
+      "Migrar para escritas multi-master em duas regiões",
+      "Dobrar a capacidade de disco do servidor primário",
+      "Adicionar réplicas de leitura e cachear leituras quentes, depois de ajustar consultas lentas e índices"
+    ],
+    "explanation": "Sharding é uma mudança grande e difícil de reverter, e é desnecessária quando a pressão vem de leituras: índices e ajuste de consultas, um cache e réplicas de leitura absorvem essa carga mantendo um único caminho de escrita. Multi-master acrescenta tratamento de conflitos para um problema que a carga não tem, e mais espaço em disco não reduz CPU."
+  },
+  {
+    "id": "sd-cache-ttl-jitter",
+    "title": "Expiração em massa após o aquecimento do cache",
+    "question": "Milhões de entradas de cache foram carregadas às 02:00 com TTL de uma hora. Toda noite às 03:00 a carga do banco dispara porque todas expiram juntas. Qual mudança evita o pico?",
+    "options": [
+      "Adicionar jitter aleatório ao TTL de cada entrada para espalhar as expirações no tempo",
+      "Aumentar todos os TTLs para 24 horas para que a expiração aconteça só uma vez por dia, mudando a onda para outro horário",
+      "Limpar o cache inteiro uma vez por hora para que ele recarregue em horário programado",
+      "Desativar o cache das páginas mais requisitadas"
+    ],
+    "explanation": "Entradas criadas juntas com o mesmo TTL expiram juntas e mandam uma onda de misses para o banco. Um jitter aleatório no TTL transforma essa onda em um fluxo constante. Um TTL maior só muda a onda de horário e serve dados mais velhos, limpar em horário programado cria o próprio pico que se quer evitar, e remover o cache das páginas quentes sobrecarrega o banco."
+  },
+  {
+    "id": "sd-cache-negative-caching",
+    "title": "Requisições por chaves que não existem",
+    "question": "Um endpoint de consulta é inundado por ids que não existem. Cada requisição dá miss no cache, consulta o banco e não encontra nada, e o banco fica sobrecarregado. Qual técnica resolve isso?",
+    "options": [
+      "Aumentar o TTL das entradas que existem no cache, para que os ids válidos fiquem cacheados por muito mais tempo",
+      "Trocar o cache de cache-aside para write-through",
+      "Cachear a resposta \"não encontrado\" com TTL curto, opcionalmente protegida por um filtro de Bloom de ids válidos",
+      "Adicionar mais nós de cache para aumentar a taxa de acerto das chaves existentes"
+    ],
+    "explanation": "Uma chave que não existe nunca é cacheada por um fluxo cache-aside normal, então toda requisição chega ao banco. Guardar uma entrada negativa de vida curta (ou rejeitar ids que um filtro de Bloom diz nunca terem sido criados) interrompe as consultas repetidas. TTLs maiores, write-through ou mais nós só ajudam chaves que já estão presentes."
+  },
+  {
+    "id": "sd-cache-write-through",
+    "title": "O que o cache write-through faz",
+    "question": "Qual descrição corresponde a um cache write-through?",
+    "options": [
+      "As escritas vão só para o cache e são descarregadas no armazenamento depois, em lotes, quando juntam o bastante",
+      "Os dados são carregados no cache somente quando uma leitura dá miss",
+      "As escritas pulam o cache por completo e a entrada simplesmente expira após o TTL",
+      "Cada escrita atualiza o cache e o armazenamento na mesma operação: leituras atualizadas, escritas mais lentas"
+    ],
+    "explanation": "No write-through a aplicação (ou a camada de cache) escreve nos dois lugares antes de confirmar, então uma leitura posterior nunca vê dados antigos, ao custo de maior latência de escrita. Descarregar depois descreve o write-behind, carregar em um miss descreve o cache-aside, e deixar as entradas expirarem é a invalidação simples por TTL."
+  },
+  {
+    "id": "sd-lb-slow-start",
+    "title": "Instâncias novas inundadas de tráfego",
+    "question": "Um load balancer que usa menos requisições em andamento adiciona uma instância recém-iniciada, que recebe imediatamente uma enorme fatia do tráfego e falha enquanto seus caches e o runtime ainda estão frios. Qual recurso do load balancer ajuda?",
+    "options": [
+      "Sessões fixas (sticky) que prendem usuários que voltam à instância mais nova, para que ela aqueça mais cedo",
+      "Slow start, que aumenta gradualmente a fatia de tráfego enviada a um novo alvo",
+      "Reduzir o intervalo do health check para detectar falhas mais cedo",
+      "Round robin com pesos iguais para todas as instâncias"
+    ],
+    "explanation": "Uma instância nova não tem requisições em andamento, então uma política de menor carga manda tudo para ela de uma vez, antes de ela aquecer. O slow start deixa a fatia crescer ao longo de um período configurado para que a instância aqueça. A fixação concentraria usuários nela, health checks mais rápidos só percebem a falha, e o round robin de pesos iguais ignora que a instância está fria."
+  },
+  {
+    "id": "sd-lb-power-of-two-choices",
+    "title": "Vários balanceadores com dados de carga defasados",
+    "question": "Dezenas de load balancers independentes enviam cada requisição ao backend que parece menos carregado, usando números de carga com alguns segundos de atraso. Os backends se revezam entre inundados e ociosos. Qual algoritmo evita esse efeito manada e ainda favorece backends pouco carregados?",
+    "options": [
+      "Sortear dois backends e enviar a requisição ao menos carregado dos dois",
+      "Escolher a cada requisição o único backend com o menor número de carga recente, atualizando os números com a maior frequência possível",
+      "Enviar cada requisição ao backend com maior tempo de atividade",
+      "Calcular o hash do endereço do cliente e usar sempre o mesmo backend para ele"
+    ],
+    "explanation": "Quando muitos balanceadores reagem ao mesmo retrato defasado, todos escolhem o mesmo backend \"menos carregado\" e o sobrecarregam. Escolher o melhor entre dois candidatos aleatórios (o poder de duas escolhas) mantém a escolha aleatória o bastante para evitar a manada, mas ainda afasta o tráfego de backends ocupados. Sempre pegar o mínimo é exatamente o que causa a manada, o tempo de atividade não diz nada sobre carga, e o hash do cliente ignora a carga por completo."
+  },
+  {
+    "id": "sd-repl-async-failover-loss",
+    "title": "Escritas perdidas após um failover",
+    "question": "Um banco primário com uma réplica assíncrona cai e a réplica é promovida. Algumas escritas que os clientes viram confirmadas estão faltando. O que explica isso e qual é a mitigação padrão?",
+    "options": [
+      "A réplica nunca guarda o log de escrita antecipada, então só consegue se recuperar reexecutando as requisições dos clientes depois do failover",
+      "A promoção espera o registro DNS expirar, e as escritas enviadas durante essa espera são descartadas",
+      "O primário confirmou antes de a réplica receber; usar replicação síncrona ou por quórum para dados críticos",
+      "A diferença de relógio entre as máquinas fez a réplica rejeitar os registros mais novos como antigos demais"
+    ],
+    "explanation": "Com replicação assíncrona o primário confirma a escrita assim que ela está durável localmente, então a réplica pode ficar atrasada e as escritas confirmadas mais recentes morrem com o primário. A replicação síncrona ou por quórum atrasa a confirmação até uma réplica ter o dado, trocando um pouco de latência de escrita (e de disponibilidade) por durabilidade. As réplicas recebem o log sim, a promoção não depende da expiração do DNS para os dados, e a diferença de relógio não é como a replicação por streaming ordena os registros."
+  },
+  {
+    "id": "sd-repl-hot-key-salting",
+    "title": "Uma chave sobrecarrega um shard",
+    "question": "Um app social faz sharding de contadores de curtidas por id de usuário. O contador de uma celebridade recebe 50.000 escritas por segundo e seu shard está saturado, enquanto os outros estão ociosos. Qual correção funciona?",
+    "options": [
+      "Adicionar mais shards ao cluster para dividir ainda mais a carga entre as máquinas",
+      "Adicionar mais réplicas de leitura ao shard saturado",
+      "Trocar o particionamento por hash pelo particionamento por faixa do id de usuário",
+      "Dividir a chave quente em N subchaves com sufixo aleatório e somá-las na leitura"
+    ],
+    "explanation": "Uma única chave sempre mapeia para um único shard, então adicionar shards ou réplicas não divide a taxa de escrita dela. Adicionar um sufixo aleatório espalha as escritas por N subcontadores que podem ficar em shards diferentes; as leituras pagam o preço somando N valores (ou lendo um total agregado periodicamente). O particionamento por faixa ainda colocaria a chave da celebridade em exatamente um shard."
+  },
+  {
+    "id": "sd-msg-crash-before-ack",
+    "title": "Falha entre o processamento e a confirmação",
+    "question": "Um consumidor confirma uma mensagem somente depois de processá-la por completo. Ele cai depois de terminar o trabalho, mas antes de enviar a confirmação. O que acontece?",
+    "options": [
+      "O broker a reentrega: entrega pelo menos uma vez, então o handler precisa tolerar duplicatas",
+      "A mensagem é perdida, porque já tinha sido retirada da fila",
+      "O broker garante processamento exatamente uma vez, então descarta em silêncio a cópia reentregue",
+      "A mensagem vai direto para a dead-letter queue como mensagem venenosa"
+    ],
+    "explanation": "Enquanto a confirmação não chega, o broker considera a mensagem inacabada e vai entregá-la de novo a um consumidor, o que dá entrega pelo menos uma vez. Como o trabalho já foi feito uma vez, o handler precisa ser idempotente ou deduplicar. Perder a mensagem é o risco de confirmar antes de processar, e uma dead-letter queue só é usada após várias entregas falhas."
+  },
+  {
+    "id": "sd-msg-pubsub-vs-queue",
+    "title": "Um evento, vários consumidores independentes",
+    "question": "Um evento de pedido realizado deve disparar cobrança, um e-mail de confirmação e analytics, cada um no seu ritmo, e novos consumidores devem poder ser adicionados depois sem mexer no produtor. Qual modelo de mensageria serve?",
+    "options": [
+      "Uma fila compartilhada da qual os três consumidores leem de forma competitiva",
+      "Um tópico com uma assinatura separada por consumidor (publish/subscribe)",
+      "O produtor chamando cada um dos três serviços de forma síncrona, em sequência",
+      "Uma tabela de banco compartilhada que cada consumidor consulta em busca de novas linhas"
+    ],
+    "explanation": "No publish/subscribe cada assinatura recebe a sua própria cópia de cada evento e a consome de forma independente, e um novo assinante é adicionado sem nenhuma mudança no produtor. Uma única fila compartilhada entrega cada mensagem a apenas um dos consumidores concorrentes. Chamadas síncronas acoplam o produtor à disponibilidade de cada consumidor, e uma tabela consultada funciona, mas reinventa um broker, com carga de polling e sem isolamento."
+  },
+  {
+    "id": "sd-rl-leaky-bucket",
+    "title": "Suavizando rajadas em uma taxa constante",
+    "question": "Um sistema downstream aceita 100 requisições por segundo constantes e não suporta rajadas. O limitador na frente dele deve transformar a entrada em rajadas em uma saída constante. Qual algoritmo faz isso?",
+    "options": [
+      "Um token bucket com capacidade muito grande, de modo que rajadas possam passar",
+      "Um contador de janela fixa zerado a cada segundo",
+      "Um leaky bucket: as requisições esperam em fila e escoam a uma taxa fixa",
+      "Um log deslizante que registra o horário de cada requisição"
+    ],
+    "explanation": "Um leaky bucket armazena as chegadas e as libera a uma taxa constante, descartando o excesso quando o buffer enche, então o downstream vê um fluxo suave. Um token bucket deixa rajadas passarem de propósito até a sua capacidade, uma janela fixa permite uma rajada dupla na fronteira, e um log deslizante decide a admissão com precisão mas não molda a saída."
+  },
+  {
+    "id": "sd-res-graceful-degradation",
+    "title": "Comportamento quando uma dependência não crítica falha",
+    "question": "Uma página inicial chama um serviço de recomendações que começou a dar timeout. As recomendações são um extra desejável. Qual é o melhor comportamento da página?",
+    "options": [
+      "Devolver um erro para a página inteira até o serviço de recomendações se recuperar por completo",
+      "Repetir a chamada sem limite até ela responder",
+      "Manter a página aberta e não renderizar nada até o serviço voltar",
+      "Renderizar a página com conteúdo alternativo, como uma lista em cache, e sinalizar a seção como degradada"
+    ],
+    "explanation": "A degradação graciosa mantém a função principal funcionando quando uma dependência não crítica falha: um timeout curto e depois um fallback, como recomendações em cache ou genéricas. Falhar a página inteira transforma uma indisponibilidade parcial em total, e retentativas sem limite ou bloqueio acumulam threads esperando e podem derrubar a própria página."
+  },
+  {
+    "id": "sd-cons-monotonic-reads",
+    "title": "Um comentário aparece e depois some",
+    "question": "As leituras são distribuídas entre réplicas com atrasos de replicação diferentes. Um usuário atualiza a página e vê um comentário novo, atualiza de novo e o comentário sumiu, depois ele reaparece. Qual garantia está sendo violada e qual é uma correção barata?",
+    "options": [
+      "Leituras monotônicas; direcionar as leituras de cada usuário para a mesma réplica ou rastrear a última posição vista",
+      "Durabilidade; gravar cada comentário duas vezes em disco e verificar as cópias antes de confirmá-lo",
+      "Atomicidade; envolver o comentário e a visualização da página em uma única transação",
+      "Isolamento; travar a tabela de comentários enquanto qualquer página estiver sendo renderizada"
+    ],
+    "explanation": "O tempo andou para trás para o usuário porque a segunda leitura caiu em uma réplica que ainda não tinha aplicado o comentário: as leituras monotônicas foram violadas. Fixar a sessão do usuário em uma réplica, ou enviar a última posição vista para que uma réplica espere até se atualizar, restaura a garantia de forma barata. As outras propriedades tratam de dados perdidos, escritas parciais e transações concorrentes, não de réplicas desatualizadas."
+  },
+  {
+    "id": "sd-event-schema-evolution",
+    "title": "Alterando um evento consumido por muitas equipes",
+    "question": "Uma equipe produtora precisa adicionar informação a um evento que uma dúzia de outras equipes consome, cada uma no seu próprio calendário de releases. Qual abordagem evolui o evento com segurança?",
+    "options": [
+      "Renomear o campo existente para um nome mais claro e avisar as equipes depois",
+      "Adicionar o novo campo como opcional com valor padrão, deixar os consumidores ignorarem campos desconhecidos e impor regras de compatibilidade em um schema registry",
+      "Fazer o deploy do produtor e de todos os consumidores juntos em uma única release coordenada",
+      "Mudar o tipo de um campo existente e alterar o nome do tópico para combinar"
+    ],
+    "explanation": "Adicionar um campo opcional com valor padrão é uma mudança compatível para trás e para a frente: consumidores antigos o ignoram e os novos conseguem lidar com a sua ausência em eventos mais velhos. Um schema registry que verifica a compatibilidade na publicação transforma a regra em um portão automático. Renomear ou mudar o tipo de um campo quebra todo consumidor que ainda não atualizou, e uma release sincronizada entre uma dúzia de equipes independentes anula o sentido de eventos desacoplados."
+  },
+  {
+    "id": "sd-ha-active-active-conflicts",
+    "title": "Escritas em duas regiões ao mesmo tempo",
+    "question": "Duas regiões aceitam escritas em uma configuração ativo-ativo. Durante uma partição de rede, usuários de cada região atualizam o mesmo registro. O que o projeto precisa prover?",
+    "options": [
+      "Nada de especial: escritas síncronas entre regiões eliminam conflitos sem custo",
+      "Uma regra em que a escrita com o relógio de parede mais recente sempre vence sem perder nada",
+      "Uma estratégia de resolução de conflitos, como CRDTs, vetores de versão ou dar a cada registro uma região de origem",
+      "Um load balancer que alterna os usuários entre as duas regiões a cada requisição"
+    ],
+    "explanation": "Escritas concorrentes aceitas dos dois lados de uma partição são conflitos de verdade, e as réplicas precisam fundi-las de forma determinística quando se reconectam. As opções são tipos de dados mescláveis (CRDTs), detectar a concorrência com vetores de versão e resolvê-la, ou evitá-la direcionando as escritas de cada registro para uma região de origem. Escritas síncronas entre regiões bloqueariam ou falhariam durante a partição, e o last-write-wins descarta uma das atualizações em silêncio e é vulnerável a diferença de relógio."
+  },
+  {
+    "id": "sd-int-ticket-double-booking",
+    "title": "Ingressos: o último assento",
+    "question": "Em um site de ingressos, dois compradores clicam no último assento restante no mesmo milissegundo. Qual projeto garante que ele seja vendido uma única vez?",
+    "options": [
+      "Ler a disponibilidade do assento no app e inserir a reserva logo depois, o que é rápido o bastante na prática",
+      "Servir a disponibilidade dos assentos por uma CDN para que os dois compradores vejam o mesmo status",
+      "Deixar as duas compras prosseguirem e repetir ambas até uma delas falhar",
+      "Uma atualização condicional atômica (ou restrição de unicidade) no assento, mais uma reserva com prazo durante o pagamento"
+    ],
+    "explanation": "A checagem e a reserva precisam ser um único passo atômico no sistema de registro: uma atualização que só tem sucesso se o assento ainda estiver livre, ou uma restrição de unicidade no assento e na sessão, de modo que exatamente uma requisição vença e a outra receba uma falha limpa. Uma reserva curta (com expiração) mantém o assento enquanto o pagamento termina. Verificar e depois inserir tem uma janela de corrida, uma CDN só deixa a disponibilidade mais velha, e repetir as duas não decide um vencedor."
+  },
+  {
+    "id": "sd-int-web-crawler-politeness",
+    "title": "Crawler: mantendo a educação em escala",
+    "question": "Um web crawler precisa buscar bilhões de páginas sem sobrecarregar nenhum site individual. Qual elemento do projeto garante isso?",
+    "options": [
+      "Filas por host na fronteira, um intervalo entre requisições a um host e conformidade com o robots.txt",
+      "Uma única fila FIFO global de URLs consumida pelo maior número possível de workers",
+      "Buscar todas as páginas de um site no mesmo instante, para aproveitar a reutilização de conexões",
+      "Embaralhar a ordem de cada URL na fronteira para que duas páginas de um mesmo site nunca acabem próximas"
+    ],
+    "explanation": "A educação é uma propriedade por host: a fronteira mantém uma fila por host e um agendador só libera a próxima URL de um host depois de um intervalo, enquanto o robots.txt diz quais caminhos e taxas são permitidos. Uma fila FIFO global facilmente entrega links de um mesmo site a muitos workers ao mesmo tempo, rajadas paralelas são o oposto de educação, e a ordem aleatória só reduz a chance de agrupamento sem limitá-la."
+  }
+]
