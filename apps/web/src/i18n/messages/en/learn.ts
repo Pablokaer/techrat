@@ -21,6 +21,19 @@ export const learn = {
     subtopics: "Subtopics",
     accuracyLabel: (name: string) => `${name} accuracy`,
     new: "new",
+    /** "Study library": every link to read about the topic, from its modules' curated reading and its questions' references. */
+    library: {
+      heading: "Study library",
+      intro: (topic: string, links: number, modules: number) =>
+        `${links === 1 ? "1 link" : `${links} links`} to study ${topic}: curated reading from ${modules === 1 ? "1 module" : `${modules} modules`} and the official pages its questions cite.`,
+      curatedHeading: "Curated reading",
+      curatedIntro: "Books, official docs and courses picked for each module that teaches this topic. Open a module to see where it sits in a roadmap.",
+      openModule: "Open module",
+      citedHeading: "Official pages cited in the questions",
+      citedIntro: "Every explanation points to a reference. These are the pages behind this topic's questions, most relied-on first.",
+      usedIn: (n: number) => (n === 1 ? "Used in 1 question" : `Used in ${n} questions`),
+      example: (title: string) => `e.g. “${title}”`,
+    },
     questions: {
       heading: "Questions",
       subtitle: "Filter by difficulty, pick the ones you want and answer them.",

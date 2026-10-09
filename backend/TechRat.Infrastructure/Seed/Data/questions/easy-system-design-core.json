@@ -1,0 +1,342 @@
+[
+  {
+    "id": "ez-sd1-fund-latency-vs-throughput",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Easy",
+    "title": "Latency versus throughput",
+    "question": "Which statement correctly distinguishes latency from throughput?",
+    "options": [
+      "Latency is how many requests the system can complete per second, while throughput is how long a single request takes to finish from start to end",
+      "Latency measures only the time spent on the network, while throughput measures only the CPU time spent inside the server process of the application",
+      "Latency is how long a single request takes to complete, while throughput is how many requests the system completes per unit of time",
+      "Latency and throughput are two names for the same metric, which is usually reported as an average computed over a whole day of production traffic"
+    ],
+    "correctIndex": 2,
+    "explanation": "Latency is a time per operation; throughput is a rate of operations. A system can have high throughput and still be slow for each user, for example by batching work. Swapping the definitions, splitting them by network versus CPU, or treating them as one metric all lose that distinction.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/well-architected/pillars"
+  },
+  {
+    "id": "ez-sd1-fund-availability-nines",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Easy",
+    "title": "What 99.9% availability allows",
+    "question": "A service promises 99.9% availability over a year. Roughly how much total downtime does that allow?",
+    "options": [
+      "About 8.8 hours per year",
+      "About 52 minutes per year, because each extra nine divides the allowed downtime by ten, starting from one full day",
+      "About 3.7 days per year, because 99.9% means that one day out of every thousand days may be lost to failures",
+      "About 5 minutes per year, because three nines is the level at which only a single short restart is permitted"
+    ],
+    "correctIndex": 0,
+    "explanation": "Availability is the fraction of time the service is up: 0.1% of 8,760 hours is about 8.8 hours. The 52-minute figure belongs to 99.99%, and the 3.7-day figure is roughly 99%. Knowing these orders of magnitude helps you judge whether an SLA is realistic.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/well-architected/reliability/metrics"
+  },
+  {
+    "id": "ez-sd1-fund-single-point-of-failure",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Easy",
+    "title": "Single point of failure",
+    "question": "What is a single point of failure (SPOF) in a system design?",
+    "options": [
+      "A component that is written in a single programming language, which makes it hard to hire engineers who can maintain it",
+      "A request path that crosses only one network hop, which makes its latency lower than every other path in the system",
+      "A failure that happens only once in the lifetime of a service, so it does not need monitoring or any alerting rules",
+      "A component whose failure stops the whole system because nothing else can take over its job"
+    ],
+    "correctIndex": 3,
+    "explanation": "A SPOF is defined by the absence of redundancy: if that one database, load balancer or node dies, everything behind it is down. The usual fix is to run redundant copies with automatic failover. Language choice, hop count and how often a failure occurs do not define a SPOF.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/well-architected/reliability/redundancy"
+  },
+  {
+    "id": "ez-sd1-fund-4xx-vs-5xx",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Easy",
+    "title": "4xx versus 5xx status codes",
+    "question": "An API returns `503 Service Unavailable` for a valid request while its database is down. What does the 5xx class of status codes indicate?",
+    "options": [
+      "The client sent a malformed or unauthorized request, so the client must change the request before trying again",
+      "The server failed or could not handle a request that appears to be valid, so retrying later may succeed",
+      "The request was redirected to another URL, so the client should follow the `Location` header to reach the resource",
+      "The request succeeded but the response body is empty, so the client should treat it as a completed operation"
+    ],
+    "correctIndex": 1,
+    "explanation": "Status codes in the 5xx range blame the server side, which is why clients and load balancers often retry them with backoff. The 4xx class blames the client request, 3xx signals redirection and 2xx signals success. Choosing the right class tells callers whether a retry is worth attempting.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status"
+  },
+  {
+    "id": "ez-sd1-cache-lru-eviction",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Easy",
+    "title": "LRU eviction",
+    "question": "A full cache must drop an entry to store a new one. What does a least recently used (LRU) eviction policy remove?",
+    "options": [
+      "The entry that was inserted into the cache first, regardless of how often it has been read since then",
+      "The entry that has gone the longest without being read or written",
+      "The entry with the largest value in bytes, so that the most memory is freed by a single eviction",
+      "The entry that is requested most often, so that popular data is refreshed from the source of truth"
+    ],
+    "correctIndex": 1,
+    "explanation": "LRU assumes that data not touched recently is the least likely to be needed soon, so it evicts that entry. Removing the oldest inserted entry is FIFO, removing the biggest is a size-based policy, and evicting the most popular entry would hurt the hit ratio the most.",
+    "referenceUrl": "https://redis.io/docs/latest/develop/reference/eviction/"
+  },
+  {
+    "id": "ez-sd1-cache-hit-ratio",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Easy",
+    "title": "Cache hit ratio",
+    "question": "What does the hit ratio of a cache measure?",
+    "options": [
+      "The share of cached entries that have already expired, which tells you how much memory is being wasted on stale data",
+      "The share of the data store's rows that currently live in the cache, which tells you how large the cache is compared to it",
+      "The share of write requests that the cache accepted, which tells you how well the cache absorbs traffic that changes data",
+      "The share of lookups that were answered from the cache instead of going to the underlying data store"
+    ],
+    "correctIndex": 3,
+    "explanation": "Hit ratio is hits divided by total lookups. A low ratio means most requests still reach the database, so the cache adds latency and cost without much benefit. Expired entries, cache coverage and write acceptance are different quantities.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/caching"
+  },
+  {
+    "id": "ez-sd1-cache-what-to-cache",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Easy",
+    "title": "Good candidates for caching",
+    "question": "Which data is the best candidate to put in a cache?",
+    "options": [
+      "A product catalog page that is read thousands of times per minute and changes only a few times a day",
+      "A bank account balance that changes with every transaction and must always show the exact current value to the customer",
+      "A one-time password that is generated for each login attempt and is never requested a second time by anyone",
+      "A large nightly report that is generated once, downloaded by a single analyst and then deleted right after that"
+    ],
+    "correctIndex": 0,
+    "explanation": "Caching pays off when data is read far more often than it changes, so each stored copy serves many requests. Constantly changing exact values risk being stale, and data that is read once never produces a second hit, so caching it only adds overhead.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside"
+  },
+  {
+    "id": "ez-sd1-cdn-edge-purpose",
+    "topic": "system-design",
+    "subtopic": "cdn",
+    "difficulty": "Easy",
+    "title": "Purpose of a CDN edge",
+    "question": "Why do websites serve images and scripts through a content delivery network (CDN)?",
+    "options": [
+      "The CDN rewrites every file into a smaller programming language, which lowers the amount of CPU used in the browser",
+      "The CDN replaces the application's database, which is why the origin no longer needs to store the original files",
+      "Edge servers near users keep copies of the files, which shortens the distance to each user and reduces the load on the origin",
+      "The CDN encrypts the files so that only paying users can read them, which is the main reason for using one"
+    ],
+    "correctIndex": 2,
+    "explanation": "A CDN is a geographically distributed cache: users download from a nearby edge location, and the origin is contacted only on misses. It does not translate code, it does not replace the origin's storage (the origin remains the source of truth), and access control is a separate feature.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching"
+  },
+  {
+    "id": "ez-sd1-cdn-cache-miss",
+    "topic": "system-design",
+    "subtopic": "cdn",
+    "difficulty": "Easy",
+    "title": "CDN cache miss",
+    "question": "A user requests a file that a CDN edge location does not have in its cache. What normally happens?",
+    "options": [
+      "The edge returns an error to the user, and an operator must upload the file to that location manually",
+      "The edge redirects the user to a random edge in another region, which repeats the lookup until some edge has the file",
+      "The edge serves an empty placeholder response and asks the browser to request the real file again after one day",
+      "The edge fetches the file from the origin, returns it to the user and usually stores a copy for later requests"
+    ],
+    "correctIndex": 3,
+    "explanation": "On a miss the edge acts as a caching reverse proxy: it requests the object from the origin, responds, and keeps a copy according to the cache headers. Later users near that edge get a hit. Manual uploads, random redirects and placeholders are not how CDNs work.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching"
+  },
+  {
+    "id": "ez-sd1-cdn-no-store",
+    "topic": "system-design",
+    "subtopic": "cdn",
+    "difficulty": "Easy",
+    "title": "Cache-Control no-store",
+    "question": "What does the response header `Cache-Control: no-store` tell caches to do?",
+    "options": [
+      "To keep the response only in the browser and never in a CDN, but to reuse it freely without any revalidation",
+      "Not to keep any copy of the response, neither in the browser nor in shared caches such as a CDN",
+      "To keep the response in every cache but to check with the origin before each reuse to see whether it changed",
+      "To keep the response for exactly one hour and then delete it, regardless of what the origin sends afterwards"
+    ],
+    "correctIndex": 1,
+    "explanation": "`no-store` forbids storing the response at all, which suits sensitive data. Keeping it only in the browser is `private`, checking before each reuse is `no-cache` (despite its name), and a fixed lifetime is set with `max-age`.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control"
+  },
+  {
+    "id": "ez-sd1-scale-horizontal-definition",
+    "topic": "system-design",
+    "subtopic": "scaling",
+    "difficulty": "Easy",
+    "title": "Horizontal scaling",
+    "question": "What does scaling horizontally (scaling out) mean?",
+    "options": [
+      "Upgrading a single server with a faster processor and more memory so that it can handle a larger workload alone",
+      "Moving the application to a different data center so that it is physically closer to the largest group of users",
+      "Adding more machines or instances that share the work, instead of making one machine bigger",
+      "Splitting the source code into more files and packages so that more engineers can work on it at the same time"
+    ],
+    "correctIndex": 2,
+    "explanation": "Scaling out increases capacity by running several copies behind a load balancer, which also removes the ceiling of the biggest available machine. Making one machine bigger is vertical scaling. Relocating the service or organizing the code does not add processing capacity.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/guide/design-principles/scale-out"
+  },
+  {
+    "id": "ez-sd1-scale-elasticity",
+    "topic": "system-design",
+    "subtopic": "scaling",
+    "difficulty": "Easy",
+    "title": "Elasticity in the cloud",
+    "question": "What does elasticity mean for a cloud application?",
+    "options": [
+      "Capacity grows automatically when demand rises and shrinks again when demand falls, so you pay only for what you need",
+      "Capacity is fixed at the peak level forever, so that the application never needs to change its number of servers",
+      "Capacity grows only when an engineer files a ticket, which keeps every infrastructure change reviewed and predictable",
+      "Capacity is shared equally between all applications of the company, so that no application ever runs out of resources"
+    ],
+    "correctIndex": 0,
+    "explanation": "Elasticity is the ability to add and remove resources as load changes, typically through autoscaling. Provisioning for the peak all the time wastes money, manual tickets are slow to react, and equal sharing ignores that different workloads need different amounts.",
+    "referenceUrl": "https://kubernetes.io/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/"
+  },
+  {
+    "id": "ez-sd1-scale-uploads-object-storage",
+    "topic": "system-design",
+    "subtopic": "scaling",
+    "difficulty": "Easy",
+    "title": "Where to store uploaded files",
+    "question": "A web app runs on three instances behind a load balancer and users upload profile photos. Where should the files be stored so every instance can serve them?",
+    "options": [
+      "In shared object storage that all instances read from, instead of on each instance's own disk",
+      "On the local disk of whichever instance received the upload, since each instance then serves its own files quickly",
+      "In the memory of the instance that received the upload, because memory is faster to read than any shared service",
+      "In a cookie on the user's browser, so that the instances never need to store the photo anywhere on the server side"
+    ],
+    "correctIndex": 0,
+    "explanation": "Instances should be interchangeable. A file kept on one local disk is missing when the load balancer sends the next request to another instance, and it disappears if that instance is replaced. Shared object storage keeps the web tier stateless; cookies are far too small for photos.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/guide/design-principles/scale-out"
+  },
+  {
+    "id": "ez-sd1-lb-purpose",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Easy",
+    "title": "What a load balancer does",
+    "question": "What is the main job of a load balancer placed in front of several application servers?",
+    "options": [
+      "To store the application's data permanently so that the servers do not need a database of their own to work",
+      "To compile and deploy new versions of the code to every server whenever a developer pushes a new commit",
+      "To spread incoming requests across the servers so that no single server is overwhelmed",
+      "To translate every request into a different protocol so that the servers only ever receive internal messages"
+    ],
+    "correctIndex": 2,
+    "explanation": "A load balancer is a traffic distributor: clients talk to one address, and it forwards each request to one of the healthy servers. That improves capacity and availability. Persistent storage, deployment and protocol translation are different responsibilities.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/guide/technology-choices/load-balancing-overview"
+  },
+  {
+    "id": "ez-sd1-lb-round-robin",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Easy",
+    "title": "Round robin algorithm",
+    "question": "How does a round-robin load balancing algorithm choose a server for each request?",
+    "options": [
+      "It always sends the request to the server that currently has the fewest active connections at that moment in time",
+      "It sends requests to the servers one after another in a fixed rotating order",
+      "It hashes the client's IP address so that the same client is always routed to the same server every single time",
+      "It picks the server that is geographically closest to the client according to a table of latency measurements"
+    ],
+    "correctIndex": 1,
+    "explanation": "Round robin simply cycles through the list: first, second, third, then first again. Choosing the fewest active connections is least connections, hashing the client address is IP hash (which gives stickiness), and picking by proximity is latency or geo-based routing.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/guide/technology-choices/load-balancing-overview"
+  },
+  {
+    "id": "ez-sd1-lb-health-check-removal",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Easy",
+    "title": "Health checks and failed servers",
+    "question": "One of four servers behind a load balancer crashes. How does a load balancer normally avoid sending users to it?",
+    "options": [
+      "It waits for users to report errors and then an administrator edits the list of servers by hand",
+      "It sends every request to all four servers at once and returns whichever response arrives first",
+      "It restarts the crashed server by itself and keeps routing to it while the operating system boots",
+      "It probes each server periodically and stops routing to any server that fails the health check"
+    ],
+    "correctIndex": 3,
+    "explanation": "Health checks let the balancer detect failures within seconds and take unhealthy targets out of rotation, putting them back when probes succeed again. Manual editing is too slow, and sending to all servers wastes capacity; load balancers also do not reboot machines.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/implementing-health-checks/"
+  },
+  {
+    "id": "ez-sd1-lb-redundant-pair",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Easy",
+    "title": "Avoiding a load balancer SPOF",
+    "question": "A single load balancer fronts ten healthy servers, yet the whole site goes down when it fails. What is the standard remedy?",
+    "options": [
+      "Replace the load balancer with a single bigger machine, which makes a failure of that machine much less likely",
+      "Remove the load balancer and give users the addresses of all ten servers so they pick one on their own",
+      "Run at least two load balancers, ideally in different zones, so that one can take over when the other fails",
+      "Add more application servers behind it, since extra servers also make the load balancer itself more reliable"
+    ],
+    "correctIndex": 2,
+    "explanation": "Spreading load over many servers does not help if the entry point is a single instance. Redundant balancers, usually managed services spanning zones, remove that single point of failure. A bigger machine still fails, and pushing server selection to users is brittle.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/well-architected/reliability/redundancy"
+  },
+  {
+    "id": "ez-sd1-repl-leader-follower",
+    "topic": "system-design",
+    "subtopic": "replication-partitioning",
+    "difficulty": "Easy",
+    "title": "Leader-follower replication",
+    "question": "In a leader-follower (primary-replica) database setup, where do application writes normally go?",
+    "options": [
+      "To any follower chosen at random, which then forwards the change to the leader once per day",
+      "To all followers at the same time, because the leader only serves reads and never accepts changes",
+      "To the application's cache first, which is responsible for deciding which database node stores the row",
+      "To the leader, which then sends the changes on to the followers"
+    ],
+    "correctIndex": 3,
+    "explanation": "With a single leader there is one authoritative order of changes, and followers apply that stream. Reads can be spread over followers, but writes are accepted by the leader. Random targets, followers-only writes and caches deciding placement are not how this topology works.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/warm-standby.html"
+  },
+  {
+    "id": "ez-sd1-repl-sharding-definition",
+    "topic": "system-design",
+    "subtopic": "replication-partitioning",
+    "difficulty": "Easy",
+    "title": "What sharding is",
+    "question": "What does sharding (horizontal partitioning) a database mean?",
+    "options": [
+      "Splitting the rows of a dataset across several nodes, so that each node stores only a subset of the data",
+      "Keeping a full identical copy of the dataset on several nodes so that any of them can answer every query",
+      "Splitting a table's columns into separate databases so that each node stores one attribute of every row",
+      "Compressing old rows into an archive so that the primary node keeps only the data from the last month"
+    ],
+    "correctIndex": 0,
+    "explanation": "Sharding distributes different rows to different nodes, usually by a shard key, which lets both storage and write load grow with the number of nodes. Full copies are replication, splitting columns is vertical partitioning, and archiving is data lifecycle management.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/sharding"
+  },
+  {
+    "id": "ez-sd1-repl-lag-definition",
+    "topic": "system-design",
+    "subtopic": "replication-partitioning",
+    "difficulty": "Easy",
+    "title": "Replication lag",
+    "question": "What is replication lag?",
+    "options": [
+      "The time a replica needs to boot after a restart, during which it cannot connect to any client application",
+      "The delay between a change being committed on the leader and that change becoming visible on a replica",
+      "The extra time a query takes when its table has too many indexes, which slows down every write on the leader",
+      "The period after which old rows are deleted from the leader, so that they only exist on the replicas afterwards"
+    ],
+    "correctIndex": 1,
+    "explanation": "With asynchronous replication a replica applies changes slightly after the leader, so reading from it can return older data for a moment. Boot time, index overhead and retention are unrelated, though all three can affect performance.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/warm-standby.html"
+  }
+]

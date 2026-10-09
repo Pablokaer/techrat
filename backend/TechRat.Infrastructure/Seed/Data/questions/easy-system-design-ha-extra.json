@@ -1,0 +1,342 @@
+[
+  {
+    "id": "ez-sd2-ha-spof",
+    "topic": "system-design",
+    "subtopic": "high-availability",
+    "difficulty": "Easy",
+    "title": "Single point of failure",
+    "question": "What is a single point of failure (SPOF) in a system?",
+    "options": [
+      "A component whose failure alone makes the whole system unavailable because no other component can take over its role",
+      "A component that handles more traffic than every other component and therefore needs the largest hardware size",
+      "A request path that was written by a single team and has no documented owner or on-call rotation for it",
+      "A service that stores its data in only one table, even when several redundant instances of it are running"
+    ],
+    "correctIndex": 0,
+    "explanation": "A SPOF is any element, such as a lone database server or a single load balancer, whose outage stops the whole system because there is no redundant replacement. High availability removes SPOFs by adding redundancy and automatic failover. Being busy, owned by one team or using one table says nothing about whether a failure can be survived.",
+    "referenceUrl": "https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/rel_withstand_component_failures_avoid_sofa.html"
+  },
+  {
+    "id": "ez-sd2-ha-nines",
+    "topic": "system-design",
+    "subtopic": "high-availability",
+    "difficulty": "Easy",
+    "title": "Reading availability percentages",
+    "question": "Roughly how much downtime per year does an availability target of 99.9% (\"three nines\") allow?",
+    "options": [
+      "About 53 minutes per year, which is roughly 4 minutes in a 30-day month",
+      "About 8.8 hours of downtime per year, or roughly 43 minutes a month",
+      "About 3.7 days per year, which is roughly 7 hours in a 30-day month",
+      "About 5 minutes per year, which is roughly 26 seconds in a 30-day month"
+    ],
+    "correctIndex": 1,
+    "explanation": "0.1% of a year (8,760 hours) is about 8.8 hours, or around 43 minutes per month. Each extra nine divides the budget by ten, so 99.99% allows roughly 53 minutes a year. The other figures correspond to 99.99%, 99%, and 99.999% respectively, so they are not three nines.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/well-architected/reliability/metrics"
+  },
+  {
+    "id": "ez-sd2-ha-active-passive",
+    "topic": "system-design",
+    "subtopic": "high-availability",
+    "difficulty": "Easy",
+    "title": "Active-passive redundancy",
+    "question": "In an active-passive high-availability setup, what does the passive node do while the active node is healthy?",
+    "options": [
+      "It serves half of the requests in parallel with the active node so that both nodes share the load equally",
+      "It runs only the nightly batch jobs and reports, and it is never allowed to take over live user traffic",
+      "It stays on standby, usually with up-to-date data, ready to be promoted automatically when the active node fails",
+      "It is powered off completely and is rebuilt from a fresh image only after an outage has been declared"
+    ],
+    "correctIndex": 2,
+    "explanation": "The passive node waits in standby, typically receiving replicated data, and takes over after a failover when the active node fails. Sharing live traffic is the active-active model. A node that never takes live traffic, or is powered off and rebuilt later, does not give fast failover.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/reliability/availability-zones-overview"
+  },
+  {
+    "id": "ez-sd2-ha-rto",
+    "topic": "system-design",
+    "subtopic": "high-availability",
+    "difficulty": "Easy",
+    "title": "Recovery time objective",
+    "question": "What does the recovery time objective (RTO) of a service define?",
+    "options": [
+      "The maximum amount of recent data, measured in time, that the business accepts losing in a failure",
+      "The average time a request takes to complete under normal load, measured at the 95th percentile",
+      "The minimum time that must pass between two consecutive backups before the older one can be deleted",
+      "The maximum acceptable time from the start of an outage until the service is fully back to normal"
+    ],
+    "correctIndex": 3,
+    "explanation": "RTO is how long the business can tolerate the service being down before recovery must be complete. The tolerated amount of lost data is the RPO, a different objective. Request latency and backup retention gaps are unrelated to recovery targets.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/well-architected/reliability/metrics"
+  },
+  {
+    "id": "ez-sd2-ha-health-checks",
+    "topic": "system-design",
+    "subtopic": "high-availability",
+    "difficulty": "Easy",
+    "title": "Health checks and failover",
+    "question": "Why do load balancers in front of redundant servers run periodic health checks?",
+    "options": [
+      "To stop routing requests to an instance that has stopped responding, sending users only to the healthy ones",
+      "To compress the responses of each instance, so that less bandwidth is used between the servers and the clients",
+      "To make sure every instance holds exactly the same number of open connections at any given moment in time",
+      "To restart the whole fleet at fixed intervals, so that memory leaks never have time to accumulate anywhere"
+    ],
+    "correctIndex": 0,
+    "explanation": "Health checks let the balancer detect a failed instance and take it out of rotation automatically, which is what turns redundancy into real availability. Balancers do not compress responses as a health feature, cannot force equal connection counts, and do not restart the fleet on a schedule.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/health-endpoint-monitoring"
+  },
+  {
+    "id": "ez-sd2-dr-pilot-light",
+    "topic": "cloud",
+    "subtopic": "regions-dr",
+    "difficulty": "Easy",
+    "title": "Pilot light strategy",
+    "question": "In a pilot light disaster recovery strategy, what is kept running in the recovery region before a disaster?",
+    "options": [
+      "A complete copy of the production environment, sized to take the full traffic immediately after a failover",
+      "Only the core pieces, such as replicated data, while application servers stay off or minimal until needed",
+      "Nothing at all except offsite backups, which are restored onto new infrastructure when a disaster happens",
+      "A second production environment that serves a share of the live traffic every day alongside the first one"
+    ],
+    "correctIndex": 1,
+    "explanation": "Pilot light keeps the critical core, mainly continuously replicated data, running in the recovery region and scales the rest up during a disaster. A full-size copy is warm standby, nothing but backups is backup and restore, and a live second environment is active-active. Pilot light sits between the first two in cost and recovery time.",
+    "referenceUrl": "https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html"
+  },
+  {
+    "id": "ez-sd2-dr-backup-restore",
+    "topic": "cloud",
+    "subtopic": "regions-dr",
+    "difficulty": "Easy",
+    "title": "Backup and restore trade-off",
+    "question": "Compared with other DR strategies, what is the main trade-off of the backup and restore approach?",
+    "options": [
+      "It has the highest ongoing cost but the shortest recovery time and virtually no potential data loss",
+      "It has no ongoing cost and no data loss, because the backups are always taken at every single write",
+      "Lowest ongoing cost, but the longest recovery time and largest potential data loss among DR options",
+      "It has a moderate ongoing cost and requires the application to run in two regions at the same time"
+    ],
+    "correctIndex": 2,
+    "explanation": "Backup and restore only pays for backup storage until a disaster, but recovery means rebuilding infrastructure and restoring data, so RTO and RPO are the largest. The costly, near-zero-loss option is multi-site active-active. Backups are periodic, so some loss is expected, and running in two regions is a different strategy.",
+    "referenceUrl": "https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html"
+  },
+  {
+    "id": "ez-sd2-dr-data-residency",
+    "topic": "cloud",
+    "subtopic": "regions-dr",
+    "difficulty": "Easy",
+    "title": "Region choice and data residency",
+    "question": "A company must keep customer data inside a specific country by law. What should drive the choice of cloud region and DR region?",
+    "options": [
+      "Only the primary region matters, since the DR region holds copies that regulators do not look at in an audit",
+      "The cheapest region, because encryption at rest makes the physical location of the data irrelevant to the law",
+      "The region with the most services, since compliance is handled by the provider and not by the customer",
+      "Both regions must satisfy the legal residency rule, even if another region is cheaper or closer to users"
+    ],
+    "correctIndex": 3,
+    "explanation": "Data residency rules apply to every copy of the data, including replicas and backups in the DR region, so both regions must comply. Encryption does not remove residency obligations, and the shared responsibility model leaves the choice of where data lives with the customer. Price and service count are secondary to the legal constraint.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/reliability/regions-overview"
+  },
+  {
+    "id": "ez-sd2-dr-region-latency",
+    "topic": "cloud",
+    "subtopic": "regions-dr",
+    "difficulty": "Easy",
+    "title": "Region proximity and latency",
+    "question": "Why does a team usually deploy the primary region of a user-facing application geographically close to most of its users?",
+    "options": [
+      "Shorter network distance reduces the round-trip latency between users and the servers hosting the app",
+      "Because nearby regions are guaranteed to be immune to outages, so no other region needs to be configured",
+      "Because cloud providers charge nothing for compute in the region that is closest to the customer's office",
+      "Because browsers refuse to connect to servers located in a region that is far from the user's own country"
+    ],
+    "correctIndex": 0,
+    "explanation": "Network latency grows with physical distance because of the speed of light and the number of hops, so a nearby region gives faster responses. Proximity gives no protection against outages, pricing varies by region and not by the customer's office, and browsers do not block distant servers.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/reliability/regions-overview"
+  },
+  {
+    "id": "ez-sd2-dr-immutable-backups",
+    "topic": "cloud",
+    "subtopic": "regions-dr",
+    "difficulty": "Easy",
+    "title": "Immutable backups",
+    "question": "What protection does an immutable (write-once) backup add for disaster recovery?",
+    "options": [
+      "Backups are restored faster, because immutable storage keeps all the data in the memory of the compute instances",
+      "Backups cannot be altered or deleted during retention, even with stolen admin credentials, so a ransomware attack cannot erase them",
+      "Backups no longer need to be tested, because data that cannot change cannot become corrupted or unreadable",
+      "Backups are copied to another region by themselves, without any extra replication or copy configuration"
+    ],
+    "correctIndex": 1,
+    "explanation": "Immutability, such as object lock or WORM storage, blocks changes and deletes until the retention period ends, so ransomware or a compromised admin account cannot destroy the recovery copy. It does not speed up restores, does not replace restore tests, and does not copy data to another region unless that is configured.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/well-architected/reliability/disaster-recovery"
+  },
+  {
+    "id": "ez-sd2-msg-delivery",
+    "topic": "system-design",
+    "subtopic": "messaging",
+    "difficulty": "Easy",
+    "title": "At-least-once delivery",
+    "question": "What does an at-least-once delivery guarantee mean for a message consumer?",
+    "options": [
+      "A message is delivered exactly one time, so the consumer never needs to worry about handling repeated messages",
+      "A message may be dropped when the broker is busy, but it is never delivered twice to the same consumer",
+      "No message is lost, but duplicates can happen, so consumers must tolerate them, for instance after a retry",
+      "A message is delivered at least once per minute until the consumer stops the stream with an explicit command"
+    ],
+    "correctIndex": 2,
+    "explanation": "At-least-once favours not losing data: the broker redelivers until acknowledged, so a crash or timeout can lead to duplicates. Consumers therefore need to be idempotent. Exactly-once is a much stronger property, dropping messages describes at-most-once, and delivery is driven by acknowledgements, not by a per-minute timer.",
+    "referenceUrl": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html"
+  },
+  {
+    "id": "ez-sd2-msg-consumer-lag",
+    "topic": "system-design",
+    "subtopic": "messaging",
+    "difficulty": "Easy",
+    "title": "Consumer lag",
+    "question": "In a log-based broker such as Kafka, what does a steadily growing consumer lag tell you?",
+    "options": [
+      "Producers are writing messages more slowly than usual, so the topic is being underused by the applications",
+      "Messages are being deleted from the topic before any consumer has had the chance to read them at all",
+      "The brokers have run out of partitions, so new messages are silently merged into the oldest existing ones",
+      "Consumers process messages more slowly than producers write them, so a backlog builds up in the partitions"
+    ],
+    "correctIndex": 3,
+    "explanation": "Lag is the gap between the latest offset written to a partition and the offset the consumer group has committed. If it keeps growing, consumption is not keeping up and you should speed up processing or add consumers. Slow producers would shrink lag, and lost messages or merged partitions are not what the metric shows.",
+    "referenceUrl": "https://kafka.apache.org/documentation/"
+  },
+  {
+    "id": "ez-sd2-rl-why",
+    "topic": "system-design",
+    "subtopic": "rate-limiting",
+    "difficulty": "Easy",
+    "title": "Why rate limit an API",
+    "question": "What is a core reason to apply rate limiting to a public API?",
+    "options": [
+      "To stop one client or spike from exhausting shared capacity and degrading the service for everyone else, which is the fairness goal",
+      "To reduce the size of each response, so that clients on slow networks can download the payloads more quickly",
+      "To guarantee that every request is authenticated before it reaches the application servers that handle it",
+      "To make the database queries behind the API run faster by caching the results of the most frequent calls"
+    ],
+    "correctIndex": 0,
+    "explanation": "Rate limiting caps how much work a client can demand in a time window, protecting shared resources from abuse, bugs and noisy neighbours. Response size is controlled by compression or pagination, authentication is a separate mechanism, and caching is a performance tool; none of them limits demand.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/rate-limiting-pattern"
+  },
+  {
+    "id": "ez-sd2-gw-vs-lb",
+    "topic": "system-design",
+    "subtopic": "api-gateway",
+    "difficulty": "Easy",
+    "title": "API gateway versus load balancer",
+    "question": "How does an API gateway differ from a plain layer-4 load balancer?",
+    "options": [
+      "A gateway only forwards raw TCP connections to any server, while a load balancer inspects the content of each request",
+      "It understands the API, so it can authenticate, throttle and route by path or header, not only spread traffic out",
+      "A gateway stores the business data of every backend service, while a load balancer keeps only the configuration",
+      "A gateway can be used only with a single backend server, while a load balancer always requires at least two servers"
+    ],
+    "correctIndex": 1,
+    "explanation": "An API gateway works at the application layer, so it can apply cross-cutting concerns such as authentication, rate limiting and routing by URL path or header. A layer-4 load balancer distributes connections without reading the request. The other options reverse the roles or invent restrictions that do not exist.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/gateway-offloading"
+  },
+  {
+    "id": "ez-sd2-res-timeout",
+    "topic": "system-design",
+    "subtopic": "resilience",
+    "difficulty": "Easy",
+    "title": "Why every remote call needs a timeout",
+    "question": "Why should a client set a timeout on every call to a remote service?",
+    "options": [
+      "Without one, the remote service would reject the call, because the protocol requires a timeout header on requests",
+      "Without one, the response would arrive corrupted, since timeouts are what keep the network packets in order",
+      "Without one, a hung dependency can block threads and connections indefinitely and spread the failure up to the callers of the service",
+      "Without one, the client could not retry, because a retry is always triggered by a successful response code"
+    ],
+    "correctIndex": 2,
+    "explanation": "A call with no timeout can wait forever on a slow or dead dependency, tying up threads and connections until the caller fails too. A timeout bounds that wait and lets the client fail fast, retry or fall back. No protocol requires a timeout header, packet ordering is handled by TCP, and retries are triggered by failures.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/"
+  },
+  {
+    "id": "ez-sd2-res-retry-which",
+    "topic": "system-design",
+    "subtopic": "resilience",
+    "difficulty": "Easy",
+    "title": "Which failures are worth retrying",
+    "question": "Which failure is a good candidate for an automatic retry with backoff?",
+    "options": [
+      "A 400 Bad Request caused by a malformed JSON body, which fails identically on every repeat",
+      "A 401 Unauthorized caused by an expired credential, which fails until a new token is issued",
+      "A 404 Not Found for an order id that does not exist, which keeps returning the same answer",
+      "A 503 Service Unavailable from a brief overload, which may well succeed once the load drops"
+    ],
+    "correctIndex": 3,
+    "explanation": "Transient errors such as 503, timeouts or connection resets can clear on their own, so retrying with exponential backoff and jitter often works. Client errors like 400, 401 and 404 are deterministic: repeating the same request cannot change the outcome and only adds load.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/"
+  },
+  {
+    "id": "ez-sd2-idem-increment",
+    "topic": "system-design",
+    "subtopic": "idempotency",
+    "difficulty": "Easy",
+    "title": "Non-idempotent operations",
+    "question": "Which operation is NOT idempotent, so retrying it after a timeout may corrupt data?",
+    "options": [
+      "\"Add 10 to the account balance\", since each repeat adds 10 more and may credit twice",
+      "\"Set the account balance to 110\", because each repeat leaves the balance at 110",
+      "\"Mark order 42 as shipped\", because each repeat keeps the order in the shipped state",
+      "\"Delete the session with id abc\", because each repeat leaves that session absent"
+    ],
+    "correctIndex": 0,
+    "explanation": "An operation is idempotent when applying it several times has the same effect as applying it once. Relative changes like \"add 10\" accumulate with every retry, while absolute assignments, state transitions to a fixed value and deletes of a given id converge to the same final state.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/"
+  },
+  {
+    "id": "ez-sd2-cons-eventual",
+    "topic": "system-design",
+    "subtopic": "consistency",
+    "difficulty": "Easy",
+    "title": "Eventual consistency",
+    "question": "What does eventual consistency guarantee about replicated data?",
+    "options": [
+      "Every read always returns the most recent write, because all replicas are updated at the very same instant",
+      "Without new writes, all replicas converge to the same value, though reads may be stale for a while",
+      "Replicas may keep different values forever, because the system never attempts to reconcile them afterwards",
+      "Writes are rejected until every replica has acknowledged them, so no client ever sees an older value at all"
+    ],
+    "correctIndex": 1,
+    "explanation": "Eventual consistency promises convergence over time, not instant agreement, so a read from a lagging replica can return older data. Always seeing the latest write is strong consistency, and blocking writes until all replicas ack is a synchronous approach. Replicas that never converge would break the guarantee itself.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/cosmos-db/consistency-levels"
+  },
+  {
+    "id": "ez-sd2-dt-no-cross-service-tx",
+    "topic": "system-design",
+    "subtopic": "distributed-transactions",
+    "difficulty": "Easy",
+    "title": "ACID across services",
+    "question": "Why can't a single local database transaction keep an order service and a payment service consistent when each owns its own database?",
+    "options": [
+      "A local transaction is limited to one table, so it cannot update two rows even inside the same database",
+      "A local transaction always commits automatically after one second, which is shorter than any network call",
+      "A local transaction covers one database, so the other service needs a pattern such as a saga to stay consistent",
+      "A local transaction can only run in services written in the same language, which is rarely the case in practice"
+    ],
+    "correctIndex": 2,
+    "explanation": "ACID transactions are scoped to a single database, so a commit in one service cannot roll back what another service already stored. Teams use sagas with compensating actions, or less often two-phase commit, to coordinate. Local transactions can span many rows and tables, have no one-second limit, and are not tied to a language.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/saga"
+  },
+  {
+    "id": "ez-sd2-event-decoupling",
+    "topic": "system-design",
+    "subtopic": "event-driven",
+    "difficulty": "Easy",
+    "title": "Decoupling with events",
+    "question": "What is the main decoupling benefit of publishing an \"OrderPlaced\" event instead of calling each interested service directly?",
+    "options": [
+      "The consumers are guaranteed to process the event before the order service finishes responding to its own caller",
+      "The event removes any need for a message broker, since consumers read it straight from the order service's memory",
+      "The event makes all consumers share one database schema, which keeps their data models identical over time",
+      "The publisher does not need to know its consumers, so new ones can be added without changing it or redeploying it"
+    ],
+    "correctIndex": 3,
+    "explanation": "With events, the publisher only announces a fact and consumers subscribe independently, so adding a new reaction does not touch the publisher. Processing is normally asynchronous, with no guarantee it finishes before the response. Events usually travel through a broker, and consumers keep their own data models.",
+    "referenceUrl": "https://martinfowler.com/articles/201701-event-driven.html"
+  }
+]

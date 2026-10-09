@@ -27,6 +27,7 @@ export const qk = {
   passwordStatus: ["password-status"] as const,
   roadmapResources: (slug: string) => ["roadmap-resources", slug] as const,
   moduleResources: (slug: string) => ["module-resources", slug] as const,
+  topicResources: (slug: string) => ["topic-resources", slug] as const,
 };
 
 /** Study resources are curated content: they change with deployments, not while the learner studies. */
@@ -34,6 +35,9 @@ export const useRoadmapResources = (slug: string) =>
   useQuery({ queryKey: qk.roadmapResources(slug), queryFn: () => unwrap(api.GET("/api/v1/roadmaps/{slug}/resources", { params: { path: { slug } } })), enabled: !!slug, staleTime: 30 * 60_000 });
 export const useModuleResources = (slug: string) =>
   useQuery({ queryKey: qk.moduleResources(slug), queryFn: () => unwrap(api.GET("/api/v1/modules/{slug}/resources", { params: { path: { slug } } })), enabled: !!slug, staleTime: 30 * 60_000 });
+/** A topic's library: the curated reading of its modules plus the pages its questions cite. */
+export const useTopicResources = (slug: string) =>
+  useQuery({ queryKey: qk.topicResources(slug), queryFn: () => unwrap(api.GET("/api/v1/topics/{slug}/resources", { params: { path: { slug } } })), enabled: !!slug, staleTime: 30 * 60_000 });
 
 /** Whether the account has a password (change it) or signed up through a provider (set one). */
 export const usePasswordStatus = () =>
