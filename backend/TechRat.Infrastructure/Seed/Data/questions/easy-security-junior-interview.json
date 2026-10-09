@@ -1,0 +1,342 @@
+[
+  {
+    "id": "ez-sec-injection-what-is",
+    "topic": "security",
+    "subtopic": "injection",
+    "difficulty": "Easy",
+    "title": "What injection means",
+    "question": "In application security, what does an injection flaw let an attacker do?",
+    "options": [
+      "Guess a user's password by submitting thousands of login attempts against the sign-in form until one works",
+      "Read the traffic exchanged between a browser and a server because the connection is not encrypted",
+      "Send untrusted data that an interpreter treats as part of a command or query instead of as plain data",
+      "Overload a server with so many simultaneous requests that it can no longer answer legitimate users"
+    ],
+    "correctIndex": 2,
+    "explanation": "Injection happens when untrusted input is concatenated into a command or query (SQL, shell, LDAP, HTML) and the interpreter cannot tell data from instructions. Repeated password guessing is brute force, reading unencrypted traffic is eavesdropping, and flooding a server with requests is denial of service; none of them rely on input being interpreted as code.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Injection_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "ez-sec-injection-concat-sql",
+    "topic": "security",
+    "subtopic": "injection",
+    "difficulty": "Easy",
+    "title": "Why string concatenation is risky",
+    "question": "A developer builds a query with `\"SELECT * FROM users WHERE name = '\" + name + \"'\"`. Why is this dangerous?",
+    "options": [
+      "The user-supplied text becomes part of the SQL statement itself, so a crafted value can change what the query does",
+      "The database has to re-parse the text on every single call, which slows the query down enough to cause an outage",
+      "The `+` operator trims quotes from the value, so names containing apostrophes are silently stored incorrectly",
+      "Concatenated queries cannot use indexes, so the database always scans the full table and exposes extra rows"
+    ],
+    "correctIndex": 0,
+    "explanation": "With concatenation the value is merged into the SQL text before the database parses it, so input such as `' OR '1'='1` rewrites the condition. Parsing cost, quote trimming and index usage are performance or correctness side issues, not the security flaw. Parameterized queries keep the value separate from the statement.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Query_Parameterization_Cheat_Sheet.html"
+  },
+  {
+    "id": "ez-sec-injection-orm-raw",
+    "topic": "security",
+    "subtopic": "injection",
+    "difficulty": "Easy",
+    "title": "Raw queries inside an ORM",
+    "question": "A team uses an ORM and writes `db.raw(\"... WHERE email = '\" + email + \"'\")` for one report. What is the situation?",
+    "options": [
+      "The ORM escapes every string it receives, so the report is as safe as any other query the ORM generates",
+      "The risk only exists for numeric values, because text values are always wrapped in quotes by the driver",
+      "The ORM runs in a sandbox that rejects destructive statements, so only read-only data could be exposed",
+      "The query is injectable, because the ORM's protection applies only to values passed as bound parameters"
+    ],
+    "correctIndex": 3,
+    "explanation": "ORMs are safe when they build queries with bound parameters, but a raw string you concatenate yourself bypasses that protection and remains injectable. Drivers do not escape concatenated text, ORMs do not sandbox statements, and quoted text values can be broken out of with an apostrophe. Use the raw API with placeholders instead.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Query_Parameterization_Cheat_Sheet.html"
+  },
+  {
+    "id": "ez-sec-injection-allowlist",
+    "topic": "security",
+    "subtopic": "injection",
+    "difficulty": "Easy",
+    "title": "Allowlist input validation",
+    "question": "Which input validation approach is generally recommended as a complement to parameterized queries?",
+    "options": [
+      "Accept anything and remove a list of known dangerous words such as `DROP` or `SELECT` from the value before using it",
+      "Accept only values that match a strict definition of what is valid, such as a pattern, type, range or length",
+      "Validate in the browser with JavaScript, since the server can then assume that every received value is already clean",
+      "Replace every single quote with two single quotes in all fields, whatever the type of data they hold"
+    ],
+    "correctIndex": 1,
+    "explanation": "Allowlist validation defines what a valid value looks like and rejects everything else, which reduces the attack surface even though it is not a substitute for parameterization. Blocklists of keywords are easy to bypass, browser checks can be skipped by calling the API directly, and blanket quote doubling is fragile and does nothing for other contexts such as shell commands.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html"
+  },
+  {
+    "id": "ez-sec-injection-least-privilege-db",
+    "topic": "security",
+    "subtopic": "injection",
+    "difficulty": "Easy",
+    "title": "Limiting the damage of an injection",
+    "question": "Why should the application connect to the database with an account that has only the permissions it needs?",
+    "options": [
+      "It makes queries run faster, because the database skips permission checks for restricted accounts",
+      "It removes the need for parameterized queries, since a restricted account cannot be tricked by input",
+      "It limits what an attacker can read or change if an injection flaw is exploited, reducing the impact",
+      "It prevents the application from being reached from the internet, since the account has no remote access"
+    ],
+    "correctIndex": 2,
+    "explanation": "Least privilege is a defence in depth measure: if an injection slips through, an account that cannot drop tables or read unrelated schemas limits the damage. It does not speed up queries, does not replace parameterization, and has nothing to do with network exposure of the application.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+  },
+  {
+    "id": "ez-sec-authz-least-privilege",
+    "topic": "security",
+    "subtopic": "authorization",
+    "difficulty": "Easy",
+    "title": "Principle of least privilege",
+    "question": "What does the principle of least privilege say about granting access?",
+    "options": [
+      "Every user should receive the same standard permissions, so that nobody is treated differently from the others",
+      "Each user or service gets only the access required for its task, and nothing beyond that",
+      "Permissions should start wide and be removed later, once the team has seen which resources are never used",
+      "Administrators should hold every permission permanently, so that they can always fix problems without delay"
+    ],
+    "correctIndex": 1,
+    "explanation": "Least privilege means granting the minimum rights needed to do a job, so that a compromised account or a bug can do less harm. Identical permissions for everyone, starting wide and trimming later, and permanent blanket admin rights all enlarge the blast radius, which is the opposite of the principle.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+  },
+  {
+    "id": "ez-sec-authz-rbac",
+    "topic": "security",
+    "subtopic": "authorization",
+    "difficulty": "Easy",
+    "title": "Role-based access control",
+    "question": "How does role-based access control (RBAC) decide whether a user may perform an action?",
+    "options": [
+      "It compares the user's IP address with a list of networks that are allowed to call the application",
+      "It asks the user to confirm the action with a second factor each time a sensitive operation is requested",
+      "It lets each resource owner approve or deny every request personally, one request at a time as it arrives",
+      "It attaches permissions to roles, gives roles to users, and checks that the user's roles allow the action"
+    ],
+    "correctIndex": 3,
+    "explanation": "In RBAC, permissions are attached to roles such as editor or admin and users receive roles, so access reviews and changes happen at the role level. IP allowlists are network controls, a second factor is authentication, and per-request approval by owners describes discretionary, manual access rather than role-based rules.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+  },
+  {
+    "id": "ez-sec-authz-vertical-horizontal",
+    "topic": "security",
+    "subtopic": "authorization",
+    "difficulty": "Easy",
+    "title": "Vertical privilege escalation",
+    "question": "A regular user calls an admin-only endpoint and it works. Which kind of authorization failure is this?",
+    "options": [
+      "Vertical privilege escalation, because the user obtained rights of a higher-privileged role",
+      "Horizontal privilege escalation, because the user reached data that belongs to another peer",
+      "Session fixation, because the user kept using a session identifier that was set by someone else",
+      "Credential stuffing, because the user logged in with a password leaked from a different website"
+    ],
+    "correctIndex": 0,
+    "explanation": "Gaining capabilities of a more privileged role, such as an admin function, is vertical escalation; accessing another user's data at the same level is horizontal escalation (an IDOR is the classic case). Session fixation and credential stuffing are authentication problems and do not describe a missing role check on an endpoint.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+  },
+  {
+    "id": "ez-sec-authz-every-request",
+    "topic": "security",
+    "subtopic": "authorization",
+    "difficulty": "Easy",
+    "title": "When to check permissions",
+    "question": "When should a web API verify that the caller is allowed to perform an action?",
+    "options": [
+      "Once at login, since the permissions granted at that moment stay valid for the whole session",
+      "Only for write operations, because reading data never causes harm to the system or its users",
+      "On every request to a protected resource, on the server, for the specific action and object",
+      "Only in the front end, because the interface decides which buttons and pages each user may see"
+    ],
+    "correctIndex": 2,
+    "explanation": "Authorization must be enforced on the server for each request, because roles can change, tokens can be replayed and clients can call the API directly. Checking only at login, only on writes, or only in the interface leaves gaps: reads can leak confidential data and hidden buttons do not stop crafted requests.",
+    "referenceUrl": "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+  },
+  {
+    "id": "ez-sec-authz-oauth-scope",
+    "topic": "security",
+    "subtopic": "authorization",
+    "difficulty": "Easy",
+    "title": "What an OAuth scope does",
+    "question": "In OAuth 2.0, what is the purpose of the scopes requested by a client application?",
+    "options": [
+      "They encrypt the access token so that only the intended API is able to read its content",
+      "They prove the identity of the end user to the client application after a successful login",
+      "They define how long the refresh token stays valid before the user has to sign in again",
+      "They limit the kind of access the client gets to the user's resources, such as read-only"
+    ],
+    "correctIndex": 3,
+    "explanation": "A scope names a bounded permission, for example read access to a calendar, that the user consents to and the token carries, so the client gets less than full access. Token encryption, proving the user's identity (an OpenID Connect concern) and token lifetime are separate mechanisms.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc6749"
+  },
+  {
+    "id": "ez-jr-oop-polymorphism",
+    "topic": "junior-career",
+    "subtopic": "junior-oop-concepts",
+    "difficulty": "Easy",
+    "title": "Polymorphism in plain words",
+    "question": "In an interview you are asked what polymorphism means in object-oriented programming. Which answer is correct?",
+    "options": [
+      "Objects of one class can be copied so that each copy keeps its own independent state and identity",
+      "The same call on a shared type can run different behaviour depending on the object's concrete class",
+      "A class hides its fields and only exposes them through methods that control how they are read and changed from outside",
+      "A class reuses the fields and methods of another class by extending it, avoiding duplicated code"
+    ],
+    "correctIndex": 1,
+    "explanation": "Polymorphism lets code call a method on a base type or interface and have each subclass supply its own behaviour, such as `shape.area()` for circles and squares. Copying objects is cloning, hiding fields behind methods is encapsulation, and reusing another class's members by extending it is inheritance.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Polymorphism"
+  },
+  {
+    "id": "ez-jr-oop-inheritance-is-a",
+    "topic": "junior-career",
+    "subtopic": "junior-oop-concepts",
+    "difficulty": "Easy",
+    "title": "When inheritance fits",
+    "question": "Which sentence best tells you that class `Dog` may extend class `Animal`?",
+    "options": [
+      "A `Dog` has an `Animal` that it keeps as a field and uses to delegate part of its work, such as feeding and walking",
+      "A `Dog` needs a few methods from `Animal`, and copying them is faster than writing them again",
+      "A `Dog` and an `Animal` are stored in the same table, so they must share a common base class",
+      "A `Dog` is an `Animal`, so it can be used wherever an `Animal` is expected without breaking callers"
+    ],
+    "correctIndex": 3,
+    "explanation": "Inheritance models an is-a relationship where the subclass can substitute for the base class. A has-a relationship calls for composition, borrowing a few methods is not a reason to extend, and storage layout has no bearing on whether the types are substitutable.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/java/concepts/inheritance.html"
+  },
+  {
+    "id": "ez-jr-oop-static-vs-instance",
+    "topic": "junior-career",
+    "subtopic": "junior-oop-concepts",
+    "difficulty": "Easy",
+    "title": "Static versus instance members",
+    "question": "What is the difference between a static member and an instance member of a class?",
+    "options": [
+      "A static member belongs to the class itself and is shared, while an instance member belongs to each object",
+      "A static member can never change its value after creation, while an instance member can be reassigned freely",
+      "A static member is visible only inside its own class, while an instance member can be reached from anywhere",
+      "A static member is created when the object is garbage collected, while an instance member is created earlier"
+    ],
+    "correctIndex": 0,
+    "explanation": "Static members belong to the class, so there is one copy shared by all objects and no object is needed to use it; instance members exist once per object and hold that object's state. Immutability is expressed with `final` or `readonly`, visibility is controlled by access modifiers, and neither has anything to do with garbage collection timing.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/java/javaOO/classvars.html"
+  },
+  {
+    "id": "ez-jr-oop-constructor",
+    "topic": "junior-career",
+    "subtopic": "junior-oop-concepts",
+    "difficulty": "Easy",
+    "title": "What a constructor is for",
+    "question": "What is the purpose of a constructor in a class?",
+    "options": [
+      "It releases the resources held by an object when the object is no longer needed by the program",
+      "It declares the methods that every subclass must implement before the class can be instantiated",
+      "It initialises a new object, putting its fields in a valid state at the moment of creation",
+      "It restricts the class so that only a single instance can ever exist while the program runs"
+    ],
+    "correctIndex": 2,
+    "explanation": "A constructor runs when an object is created and sets up its initial state, ideally leaving the object valid and ready to use. Releasing resources is the job of a finaliser, `Dispose` or `close`; required subclass methods come from abstract members; and a single instance is the singleton pattern, which is a separate design choice.",
+    "referenceUrl": "https://docs.oracle.com/javase/tutorial/java/javaOO/constructors.html"
+  },
+  {
+    "id": "ez-jr-db-primary-foreign-key",
+    "topic": "junior-career",
+    "subtopic": "junior-web-db-concepts",
+    "difficulty": "Easy",
+    "title": "Primary key and foreign key",
+    "question": "In a relational database, what does a foreign key do?",
+    "options": [
+      "It uniquely identifies each row of its own table and cannot hold null values or repeated values",
+      "It speeds up searches on a column by keeping a sorted copy of the values in a separate structure",
+      "It encrypts the column so that only users with the proper database role can read the stored value on disk",
+      "It links a row to a row in another table by referring to that table's key, enforcing the relationship"
+    ],
+    "correctIndex": 3,
+    "explanation": "A foreign key column references the primary key of another table, and the database rejects values that point to a row that does not exist. The unique, non-null identifier of a row is the primary key, the sorted copy that speeds up searches is an index, and column encryption is a separate security feature.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/ddl-constraints.html"
+  },
+  {
+    "id": "ez-jr-web-4xx-5xx",
+    "topic": "junior-career",
+    "subtopic": "junior-web-db-concepts",
+    "difficulty": "Easy",
+    "title": "4xx versus 5xx status codes",
+    "question": "An API returns 404 for a missing order and 500 when its database is down. What do the two status code classes mean?",
+    "options": [
+      "4xx means the request was wrong or cannot be satisfied, while 5xx means the server failed on a valid request",
+      "4xx means the server is overloaded and should be retried, while 5xx means the client sent a malformed request",
+      "4xx means a redirect to another address, while 5xx means the response was served from a cache copy",
+      "4xx means the operation succeeded without a body, while 5xx means it succeeded with a very large body"
+    ],
+    "correctIndex": 0,
+    "explanation": "The 4xx class reports a client-side problem such as a bad request, missing authentication or a resource that does not exist, while 5xx reports that the server could not complete an apparently valid request. Redirects are 3xx and success is 2xx; the two failure classes are not about overload, caching or body size.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status"
+  },
+  {
+    "id": "ez-jr-db-transaction-atomic",
+    "topic": "junior-career",
+    "subtopic": "junior-web-db-concepts",
+    "difficulty": "Easy",
+    "title": "What a transaction guarantees",
+    "question": "A bank transfer debits one account and credits another. Why are the two updates placed in one database transaction?",
+    "options": [
+      "Transactions make both statements run faster because the database batches them into a single disk write",
+      "Either both updates are applied or neither is, so a failure in the middle cannot leave money missing",
+      "Transactions lock the whole database, which guarantees that no other user can read any table meanwhile",
+      "Transactions copy the affected rows to a backup table, so the transfer can be undone at any later date"
+    ],
+    "correctIndex": 1,
+    "explanation": "Atomicity means the transaction is all or nothing: if the credit fails, the debit is rolled back. Speed is not the goal, isolation normally locks only the affected rows rather than the whole database, and rolling back applies before commit, not through a backup table days later.",
+    "referenceUrl": "https://www.postgresql.org/docs/current/tutorial-transactions.html"
+  },
+  {
+    "id": "ez-jr-live-think-aloud",
+    "topic": "junior-career",
+    "subtopic": "live-coding-communication",
+    "difficulty": "Easy",
+    "title": "Thinking aloud while coding",
+    "question": "Why do interviewers ask candidates to think aloud during a live coding exercise?",
+    "options": [
+      "To test how fast the candidate can type and talk at the same time without making typing mistakes",
+      "To give the candidate extra time, since silence is penalised and speaking is the only accepted way to stall",
+      "To let the interviewer follow the reasoning, spot misunderstandings early and offer help at the right moment",
+      "To make sure the candidate memorised the standard solutions, which are recited step by step at the board"
+    ],
+    "correctIndex": 2,
+    "explanation": "Narrating the approach shows how you break down a problem, compare options and react to mistakes, and it lets the interviewer correct a misunderstanding before it costs you ten minutes. It is not a typing test, a stalling tactic or a recital of memorised solutions.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Algorithm"
+  },
+  {
+    "id": "ez-jr-live-dont-know-api",
+    "topic": "junior-career",
+    "subtopic": "live-coding-communication",
+    "difficulty": "Easy",
+    "title": "Forgetting a library function",
+    "question": "In a live coding exercise you cannot remember the exact name of a standard library function. What is the best reaction?",
+    "options": [
+      "Say what the function should do, write a clear placeholder or approximate call, and ask whether you may look it up",
+      "Stop coding and stay silent until the exact name comes back, so that no line you write is wrong at all",
+      "Rewrite the whole solution without that function, even if the replacement becomes far longer and error prone",
+      "Pretend the name is correct and keep going, since the interviewer will probably not check such small details"
+    ],
+    "correctIndex": 0,
+    "explanation": "Interviewers care about reasoning, not memorised signatures, so describing the behaviour and continuing keeps the momentum and shows honesty. Going silent wastes time, a much more complex rewrite adds risk, and bluffing about a name you are unsure of damages trust more than admitting it.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Glossary/Pseudocode"
+  },
+  {
+    "id": "ez-jr-live-edge-cases",
+    "topic": "junior-career",
+    "subtopic": "live-coding-communication",
+    "difficulty": "Easy",
+    "title": "Edge cases before submitting",
+    "question": "You finished a function that finds the largest number in a list. Which extra check shows good engineering habits?",
+    "options": [
+      "Rename every variable to a single letter so the solution looks shorter and the diff stays tiny",
+      "Add a comment above each line that repeats exactly what the line does, to make the code self-explanatory",
+      "Run it only with the sample from the statement, since that is the case the interviewer provided",
+      "Try inputs such as an empty list, one element, repeated values and negatives, and say what happens"
+    ],
+    "correctIndex": 3,
+    "explanation": "Thinking about boundaries such as an empty list, a single element, duplicates and negatives is where most bugs hide, and saying the expected behaviour aloud shows you test your work. Shorter names hurt readability, line-by-line comments add noise, and checking only the sample misses exactly the cases the interviewer is likely to try.",
+    "referenceUrl": "https://martinfowler.com/bliki/SelfTestingCode.html"
+  }
+]

@@ -1,0 +1,242 @@
+[
+  {
+    "id": "ez-ai-eval-golden-set",
+    "title": "O que é um conjunto de avaliação",
+    "question": "No desenvolvimento de aplicações com LLMs, o que é um conjunto de avaliação (eval set)?",
+    "options": [
+      "Uma coleção de entradas representativas com saídas esperadas ou critérios de nota, reutilizada para pontuar cada mudança",
+      "Um único prompt escolhido à mão que a equipe relê a cada versão para decidir se o modelo ainda parece bom no geral",
+      "A parte do corpus original de treinamento que o provedor reserva para medir a precisão dos pesos base do próprio modelo",
+      "Um registro de todas as conversas de produção guardado como está, reexibido aos usuários para que avaliem cada resposta manualmente depois"
+    ],
+    "explanation": "Um conjunto de avaliação dá uma medida repetível e comparável: os mesmos casos representativos rodam após cada mudança de prompt, modelo ou recuperação. Um único prompt é anedótico, os dados de treino reservados do provedor não estão disponíveis para você, e um log bruto de conversas não tem saídas esperadas nem critérios para pontuar."
+  },
+  {
+    "id": "ez-ai-eval-success-criteria",
+    "title": "Definindo critérios de sucesso",
+    "question": "Antes de montar avaliações para um recurso com LLM, como devem ser os critérios de sucesso?",
+    "options": [
+      "Objetivos amplos como \"o assistente deve parecer útil e natural\", revisados pela equipe a cada sessão de demonstração",
+      "Metas específicas e mensuráveis, como um F1 em um conjunto rotulado ou ao menos 95% das respostas aprovadas em uma rubrica",
+      "O que quer que o primeiro protótipo funcional produza, já que as mudanças seguintes são comparadas com essa saída de base",
+      "Um único número de acurácia em um dataset de tamanho fixo, escolhido para ignorar latência, custo e segurança e ser fácil de explicar"
+    ],
+    "explanation": "Bons critérios são específicos e mensuráveis para que uma mudança seja julgada melhor ou pior sem debate. Metas vagas não podem ser pontuadas, definir sucesso pelo que o protótipo produz embute seus defeitos, e um único número de acurácia ignora latência, custo e segurança, que costumam importar em produção."
+  },
+  {
+    "id": "ez-ai-eval-edge-cases",
+    "title": "Casos extremos em um conjunto de avaliação",
+    "question": "Qual acréscimo torna mais confiável um conjunto de avaliação para um chatbot de suporte?",
+    "options": [
+      "Muitas paráfrases da mesma pergunta fácil para que a taxa de acerto continue alta e o painel pareça saudável aos stakeholders",
+      "Apenas perguntas que a equipe já sabe que o prompt atual responde bem, para evitar falhas ruidosas que travem cada versão",
+      "Entradas difíceis e incomuns, como erros de digitação, pedidos ambíguos, perguntas fora do tema e tentativas de quebrar as regras",
+      "Exatamente os exemplos já colocados no prompt como demonstrações few-shot, porque o modelo já os viu antes de responder"
+    ],
+    "explanation": "Um conjunto de avaliação deve cobrir a variedade do tráfego real, incluindo as entradas raras e difíceis onde as falhas se escondem. Repetir paráfrases fáceis ou escolher só casos que passam infla a nota sem achar problemas, e reutilizar os exemplos few-shot testa demonstrações memorizadas em vez de generalização."
+  },
+  {
+    "id": "ez-ai-eval-human-vs-auto",
+    "title": "Escolhendo o método de correção",
+    "question": "Qual método de correção é o mais rápido e confiável para perguntas com uma única resposta exata esperada, como um rótulo de categoria?",
+    "options": [
+      "Uma pessoa ler cada saída a cada execução, porque o julgamento humano é sempre o avaliador mais consistente disponível",
+      "Pedir a um LLM juiz uma nota geral de qualidade de um a dez para cada saída, porque escalas numéricas são precisas para qualquer tarefa",
+      "Contar os caracteres de cada resposta e comparar o total com o tamanho da resposta de referência daquele caso de teste",
+      "Correção baseada em código, como comparação exata de strings, pois é determinística, instantânea e não custa nada por execução"
+    ],
+    "explanation": "Quando a resposta é um valor exato, um programa a compara com o rótulo esperado de forma determinística, instantânea e gratuita. A revisão humana é lenta e varia entre revisores, um LLM juiz acrescenta custo e variância sem necessidade, e contagem de caracteres não diz nada sobre correção."
+  },
+  {
+    "id": "ez-ai-sec-jailbreak-vs-injection",
+    "title": "Jailbreak versus injeção de prompt",
+    "question": "Como a OWASP relaciona jailbreak com injeção de prompt?",
+    "options": [
+      "São coisas sem relação: o jailbreak trata apenas de ataques de rede contra os servidores de hospedagem, nunca das instruções ou do comportamento do modelo",
+      "O jailbreak é uma forma de injeção de prompt em que a entrada faz o modelo ignorar suas regras de segurança",
+      "A injeção de prompt só existe em modelos de imagem, enquanto o jailbreak é o ataque equivalente para modelos só de texto",
+      "São nomes idênticos para exceder os limites de taxa de um provedor enviando requisições demais em uma janela curta de tempo"
+    ],
+    "explanation": "A OWASP trata o jailbreak como um tipo de injeção de prompt: uma entrada elaborada leva o modelo a desconsiderar seus protocolos ou diretrizes de segurança. Nenhum dos termos é um ataque de rede, nenhum se limita a uma modalidade e nenhum se refere a limites de taxa, que pertencem a outra categoria de risco."
+  },
+  {
+    "id": "ez-ai-sec-sensitive-disclosure",
+    "title": "Divulgação de informações sensíveis",
+    "question": "Qual prática reduz melhor o risco de um app com LLM revelar dados pessoais de outros clientes?",
+    "options": [
+      "Dizer ao modelo no prompt de sistema para ter cuidado, já que uma instrução sozinha é uma barreira garantida contra vazamentos",
+      "Usar um modelo maior, porque modelos grandes nunca repetem nenhum detalhe recebido no contexto ou nos dados de treinamento",
+      "Restringir os dados de cada usuário com controle de acesso e sanitizar ou remover campos sensíveis antes que cheguem ao modelo",
+      "Esconder o nome do modelo na interface, para que atacantes não saibam qual provedor está respondendo às suas perguntas"
+    ],
+    "explanation": "A defesa confiável é minimização de dados e controle de acesso: só dados que o usuário atual pode ver devem entrar no contexto, e campos sensíveis devem ser removidos ou mascarados antes. Uma instrução educada não é mecanismo de imposição, o tamanho do modelo não evita vazamentos e esconder o nome do provedor não muda o que o modelo pode revelar."
+  },
+  {
+    "id": "ez-ai-sec-data-poisoning",
+    "title": "Envenenamento de dados",
+    "question": "O que é envenenamento de dados (data poisoning) no contexto de segurança de LLMs?",
+    "options": [
+      "Sobrecarregar o endpoint de inferência com tantas requisições que usuários legítimos ficam esperando por respostas",
+      "Roubar os pesos do modelo de um servidor copiando os arquivos diretamente do volume de armazenamento dele, sem passar pela API pública",
+      "Enganar a interface para renderizar um script oculto que roda no navegador da pessoa que está conversando",
+      "Plantar dados maliciosos ou enviesados no treinamento, no ajuste fino ou em fontes de recuperação para que o modelo aprenda comportamento nocivo"
+    ],
+    "explanation": "O envenenamento manipula os dados dos quais o modelo aprende ou que ele recupera (pré-treino, ajuste fino, embeddings ou bases de conhecimento), introduzindo backdoors, viés ou fatos errados. Inundar com requisições é negação de serviço, copiar pesos é roubo de modelo e um script renderizado no navegador é tratamento inadequado de saída."
+  },
+  {
+    "id": "ez-ai-ops-tokens-billing",
+    "title": "Pelo que as APIs de LLM cobram",
+    "question": "Qual é a unidade normalmente usada pelas APIs de LLM hospedadas para medir e cobrar o uso?",
+    "options": [
+      "Segundos de relógio em que a conexão HTTP permanece aberta entre o cliente e os servidores do provedor",
+      "O número de usuários distintos que enviaram ao menos uma requisição durante o mês corrente do calendário",
+      "Tokens processados, com tokens de entrada e de saída geralmente precificados em taxas diferentes",
+      "O número de chamadas à API feitas, independentemente do tamanho do prompt ou da resposta que acabou sendo gerada"
+    ],
+    "explanation": "APIs de LLM hospedadas cobram por tokens, e tokens de saída costumam custar mais que os de entrada, então prompts longos e respostas longas aumentam a conta. Tempo de conexão, usuários ativos mensais e contagem bruta de chamadas não são a forma normal de medir o uso por requisição."
+  },
+  {
+    "id": "ez-ai-ops-retry-backoff",
+    "title": "Tratando erros de limite de taxa",
+    "question": "Uma API de LLM retorna HTTP 429 (limite de taxa) em algumas requisições. Qual é a forma padrão de o cliente reagir?",
+    "options": [
+      "Reenviar a mesma requisição imediatamente em um laço apertado até dar certo, para que nenhum usuário espere mais que o necessário",
+      "Tratar como falha permanente, descartar a requisição e mostrar um erro ao usuário sem nenhuma nova tentativa nem registro do ocorrido",
+      "Trocar por um prompt diferente e aleatório para a mesma tarefa, já que o limite vale só para prompts repetidos",
+      "Tentar de novo após um atraso que cresce exponencialmente, com algum jitter aleatório, respeitando a dica de nova tentativa enviada pela API"
+    ],
+    "explanation": "Um 429 é transitório, então tentar de novo com backoff exponencial e jitter, respeitando a dica de retry-after, deixa a janela do limite se recuperar sem empilhar mais carga no serviço. Insistir imediatamente piora o bloqueio, desistir descarta trabalho recuperável e o limite não depende de prompts repetidos."
+  },
+  {
+    "id": "ez-ai-ops-context-window",
+    "title": "A janela de contexto",
+    "question": "O que a janela de contexto de um modelo limita?",
+    "options": [
+      "O total de tokens, somando o prompt e a saída gerada, que o modelo consegue processar em uma única requisição",
+      "O número de usuários distintos autorizados a chamar o mesmo endpoint do modelo exatamente no mesmo instante, sem enfileirar ninguém",
+      "O número de requisições por minuto que uma organização pode enviar antes de o provedor começar a rejeitá-las",
+      "O tempo que o provedor mantém conversas armazenadas antes de apagá-las automaticamente dos seus servidores"
+    ],
+    "explanation": "A janela de contexto é a quantidade máxima de texto, medida em tokens, que o modelo considera de uma vez, incluindo sua entrada e a resposta, então históricos longos precisam ser cortados ou resumidos. Concorrência, requisições por minuto e retenção de dados são limites ou políticas separados."
+  },
+  {
+    "id": "ez-dp-ocp-meaning",
+    "title": "Princípio Aberto/Fechado",
+    "question": "O que o Princípio Aberto/Fechado pede de um módulo bem projetado?",
+    "options": [
+      "Que fique aberto a edições por qualquer pessoa da empresa e seja fechado só quando um branch de release é criado",
+      "Que fique aberto a novo comportamento por extensão, sem editar seu código-fonte existente e já testado",
+      "Que mantenha todos os campos públicos para os chamadores o estenderem, enquanto os métodos ficam selados contra sobrescrita",
+      "Que fique fechado a qualquer mudança após a primeira versão, de modo que novas necessidades sempre exijam uma reescrita"
+    ],
+    "explanation": "O princípio diz que entidades de software devem ser abertas para extensão e fechadas para modificação: novo comportamento entra por código novo, como outra implementação, e não editando código comprovado. Não se trata de permissões do repositório, de campos públicos nem de congelar o sistema após o lançamento."
+  },
+  {
+    "id": "ez-dp-di-vs-dip",
+    "title": "Injeção versus inversão de dependência",
+    "question": "Como a injeção de dependência se relaciona com o Princípio da Inversão de Dependência?",
+    "options": [
+      "São dois nomes para a mesma regra, então qualquer código que injeta objetos já depende automaticamente de abstrações",
+      "A injeção proíbe o uso de interfaces em qualquer camada, enquanto a inversão exige que cada classe crie seus próprios colaboradores",
+      "A injeção é uma técnica de tempo de execução que só funciona em linguagens dinâmicas, ao contrário do princípio de compilação",
+      "A injeção é uma técnica que fornece as dependências de fora, ajudando a aplicar um princípio sobre depender de abstrações"
+    ],
+    "explanation": "A Inversão de Dependência é o princípio de que a política de alto nível deve depender de abstrações e não de detalhes concretos. A injeção de dependência é uma técnica, passar colaboradores por construtor ou setter, que ajuda a alcançá-lo. Injetar uma classe concreta ainda viola o princípio, e a injeção funciona também em linguagens tipadas."
+  },
+  {
+    "id": "ez-dp-lsp-square",
+    "title": "Quadrado e Retângulo",
+    "question": "Uma classe `Square` estende `Rectangle` e sobrescreve `setWidth` para que também altere a altura. Um código que define largura 5 e altura 4 em um `Rectangle` espera área 20. Qual princípio isso quebra?",
+    "options": [
+      "Segregação de Interfaces, porque o retângulo expõe mais setters do que o quadrado precisa",
+      "Responsabilidade Única, porque a classe do quadrado guarda as dimensões e também calcula uma área",
+      "Aberto/Fechado, porque adicionar o quadrado exigiu criar uma nova classe em vez de editar o retângulo",
+      "Substituição de Liskov, porque o subtipo não pode ser usado onde o tipo base é esperado sem surpresas"
+    ],
+    "explanation": "A Substituição de Liskov exige que um subtipo possa ser usado onde o tipo base é esperado sem quebrar as suposições dos chamadores. Um quadrado que acopla largura e altura viola o contrato do retângulo, e a área muda de forma inesperada. Adicionar uma classe é o que o Aberto/Fechado incentiva, e os outros princípios tratam do tamanho de interfaces e de motivos para mudar."
+  },
+  {
+    "id": "ez-dp-high-cohesion",
+    "title": "O que significa coesão",
+    "question": "O que significa alta coesão para uma classe ou módulo?",
+    "options": [
+      "Seus membros trabalham todos para um propósito focado e pertencem ao mesmo lugar",
+      "Ela importa o máximo de outros módulos possível para que toda funcionalidade seja alcançável a partir de um único lugar",
+      "Ela tem o maior número de linhas da base de código porque tudo que se relaciona fica guardado em um único arquivo",
+      "Seus campos são todos públicos para que outros módulos leiam e atualizem rapidamente qualquer estado interno dela"
+    ],
+    "explanation": "Coesão mede o quanto as partes de um módulo se relacionam com um único propósito; alta coesão facilita nomear, entender e mudar. Importar muitos módulos aumenta o acoplamento, tamanho excessivo costuma indicar baixa coesão, e campos públicos mutáveis enfraquecem o encapsulamento em vez de dar foco."
+  },
+  {
+    "id": "ez-dp-loose-coupling",
+    "title": "Reduzindo o acoplamento",
+    "question": "Qual mudança reduz o acoplamento entre um `OrderService` e o código de envio de e-mail que ele usa?",
+    "options": [
+      "Copiar o código-fonte da biblioteca de e-mail para dentro do `OrderService` para que ele não referencie outro módulo",
+      "Fazer o `OrderService` depender de uma pequena interface de notificação que o código de e-mail implementa",
+      "Deixar o `OrderService` ler diretamente os campos privados da classe de e-mail para evitar chamar seus métodos",
+      "Mover as credenciais de e-mail para campos do `OrderService` para que as duas partes sempre mudem ao mesmo tempo"
+    ],
+    "explanation": "Depender de uma interface estreita faz o `OrderService` conhecer só um contrato, então a implementação de e-mail pode mudar ou ser trocada sem tocá-lo. Copiar código, acessar campos privados e compartilhar credenciais fazem as duas partes saberem mais uma da outra, o que aumenta o acoplamento."
+  },
+  {
+    "id": "ez-dp-feature-envy",
+    "title": "Code smell inveja de funcionalidade",
+    "question": "Um método de `Invoice` gasta quase todo o corpo chamando getters de um `Customer` para calcular um desconto. Como se chama esse smell e qual é a correção usual?",
+    "options": [
+      "Shotgun surgery; dividir o método em vários minúsculos espalhados por todas as classes que ele toca",
+      "Primitive obsession; trocar os getters por valores numéricos simples devolvidos pela classe do cliente",
+      "Feature envy; mover o método, ou a parte que usa os dados, para dentro da classe `Customer`",
+      "Speculative generality; apagar a classe `Customer` para que a fatura guarde os próprios dados"
+    ],
+    "explanation": "A inveja de funcionalidade (feature envy) aparece quando um método se interessa mais pelos dados de outra classe do que pelos seus, sinal de baixa coesão e alto acoplamento. Mover o comportamento para perto dos dados que usa resolve. Shotgun surgery trata de uma mudança que toca muitas classes, primitive obsession do uso excessivo de tipos básicos e speculative generality de flexibilidade sem uso."
+  },
+  {
+    "id": "ez-dp-kiss",
+    "title": "O princípio KISS",
+    "question": "O que o princípio KISS recomenda quando dois projetos resolvem o problema?",
+    "options": [
+      "Escolher o que tem mais camadas e abstrações, porque estrutura extra sempre prepara o código para crescer no futuro",
+      "Escolher o que usa os recursos mais novos da linguagem, já que a sintaxe moderna costuma ser mais fácil de ler para os outros",
+      "Escolher o de código mais curto possível, mesmo que dependa de truques enigmáticos que poucos colegas entendem",
+      "Escolher o mais simples, fácil de entender e mudar, acrescentando complexidade só quando for necessário"
+    ],
+    "explanation": "O KISS (mantenha simples) favorece o projeto mais simples que funciona, pois código simples é mais fácil de ler, testar e mudar. Camadas extras sem necessidade são especulativas, novidade não é o mesmo que clareza, e concisão enigmática é simples de escrever mas não de entender."
+  },
+  {
+    "id": "ez-dp-separation-of-concerns",
+    "title": "Separação de responsabilidades",
+    "question": "O que significa separação de responsabilidades (separation of concerns) no design de software?",
+    "options": [
+      "Dividir um programa em partes que tratam cada uma de uma preocupação distinta, como UI, regras de negócio ou acesso a dados",
+      "Separar a equipe em grupos fixos que nunca leem o código uns dos outros, para evitar opiniões conflitantes nas revisões",
+      "Manter cada preocupação em um repositório diferente, de modo que nenhum módulo possa chamar outro módulo",
+      "Colocar cada função em seu próprio arquivo, independentemente de as funções se relacionarem com a mesma responsabilidade"
+    ],
+    "explanation": "A separação de responsabilidades divide o sistema para que cada parte trate de um aspecto, permitindo mudá-la ou testá-la sem perturbar as outras. Não significa isolar pessoas, proibir chamadas entre módulos nem um arquivo por função; as partes continuam colaborando por interfaces claras."
+  },
+  {
+    "id": "ez-dp-boy-scout",
+    "title": "A Regra do Escoteiro",
+    "question": "O que diz a Regra do Escoteiro (Boy Scout Rule) para código?",
+    "options": [
+      "Deixe o código um pouco mais limpo do que você o encontrou toda vez que trabalhar nele",
+      "Reescreva do zero todo módulo que abrir para que siga as convenções mais recentes da equipe",
+      "Nunca mexa em código que funciona, porque qualquer limpeza pode introduzir uma regressão que ninguém pediu",
+      "Registre cada smell no rastreador e espere uma sprint dedicada de limpeza antes de mudar qualquer coisa"
+    ],
+    "explanation": "A regra incentiva melhorias pequenas e contínuas, como um nome mais claro ou uma duplicação removida, sempre que você passa pelo código, para que a qualidade não se deteriore. Reescritas completas são arriscadas, recusar-se a tocar em código que funciona deixa a bagunça acumular, e esperar só por sprints de limpeza adia correções baratas agora."
+  },
+  {
+    "id": "ez-dp-fail-fast",
+    "title": "Falhar rápido",
+    "question": "O que o princípio fail fast (falhar rápido) recomenda?",
+    "options": [
+      "Capturar toda exceção no nível mais alto e continuar rodando com valores padrão para manter o sistema sempre disponível",
+      "Adiar a validação de entrada até que o dado seja realmente usado no fundo do programa, para que os fluxos normais fiquem curtos",
+      "Relatar o problema de imediato e de forma visível no ponto em que é detectado, em vez de continuar em estado inválido",
+      "Otimizar cada função para rodar o mais rápido possível, de modo que as falhas sejam raras e baratas quando ocorrerem"
+    ],
+    "explanation": "Falhar rápido significa parar com um erro claro assim que algo está errado, como um argumento inválido, para que o bug seja achado perto da causa e não muito depois como dado corrompido. Engolir erros esconde defeitos, validar tarde espalha estado inválido, e ajuste de desempenho não tem relação com a forma de expor falhas."
+  }
+]

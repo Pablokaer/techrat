@@ -1,0 +1,342 @@
+[
+  {
+    "id": "ez-solid-srp-benefit",
+    "topic": "clean-code",
+    "subtopic": "solid-srp-ocp",
+    "difficulty": "Easy",
+    "title": "Why apply the single responsibility principle",
+    "question": "What practical benefit does the single responsibility principle aim to deliver for a class?",
+    "options": [
+      "Each class exposes exactly one public method, so callers have no way to misuse it by accident",
+      "Every object in the application shares one global instance, so state is never duplicated in memory",
+      "A change requested by one group of stakeholders usually touches only one class, not many",
+      "The compiler can inline every call and remove object overhead, which makes the program run faster"
+    ],
+    "correctIndex": 2,
+    "explanation": "Keeping each class tied to one reason to change means a request from, say, finance does not force edits in code that serves another group, which lowers the risk of regressions. It is not about having a single public method, sharing one global instance (that is the Singleton pattern) or compiler inlining.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+  },
+  {
+    "id": "ez-solid-srp-function-level",
+    "topic": "clean-code",
+    "subtopic": "solid-srp-ocp",
+    "difficulty": "Easy",
+    "title": "Single responsibility beyond classes",
+    "question": "A function named `saveUserAndSendWelcomeEmail(user)` validates the user, writes the row to the database and then sends an email. How does the single responsibility principle view it?",
+    "options": [
+      "It mixes persistence and notification, so each concern should be split into its own function or module",
+      "It is fine, because the principle only applies to classes and never to individual functions or modules",
+      "It is fine as long as the function is under fifty lines, since size alone defines a single responsibility",
+      "It breaks the principle only because of its long name, so shortening the name to `saveUser` solves it"
+    ],
+    "correctIndex": 0,
+    "explanation": "The principle applies at every level, from functions to modules, and the function here has two separate reasons to change: how users are stored and how they are notified. Line count and name length are symptoms, not the criterion, and renaming it to `saveUser` would only hide the email side effect.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+  },
+  {
+    "id": "ez-solid-ocp-definition",
+    "topic": "clean-code",
+    "subtopic": "solid-srp-ocp",
+    "difficulty": "Easy",
+    "title": "What open for extension means",
+    "question": "The open/closed principle says software entities should be open for extension but closed for modification. What does that ask of a design?",
+    "options": [
+      "Source files stay open in the editor for everyone on the team while the compiled output is locked read-only",
+      "Classes must be declared `final` or `sealed` so nobody can ever extend them or change their behaviour",
+      "Public methods may be edited freely, but private methods are locked once the first release has shipped",
+      "New behaviour is added by writing new code, such as a new implementation, instead of editing tested code"
+    ],
+    "correctIndex": 3,
+    "explanation": "The goal is to add features by adding code, typically a new class behind an existing abstraction, so code that already works and has tests is not touched. Locking files, forbidding inheritance with `final` or `sealed`, or freezing private methods are unrelated ideas and would actually work against extension.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/05/12/TheOpenClosedPrinciple.html"
+  },
+  {
+    "id": "ez-solid-lsp-throws-not-supported",
+    "topic": "clean-code",
+    "subtopic": "solid-lsp-isp",
+    "difficulty": "Easy",
+    "title": "Subclass that throws on an inherited method",
+    "question": "`Bird` has a `fly()` method. `Penguin extends Bird` overrides `fly()` to throw an `UnsupportedOperationException`. Which principle does this design break?",
+    "options": [
+      "Open/closed, because adding `Penguin` required changing the `Bird` class itself, which should stay untouched",
+      "Liskov substitution, because code that works with any `Bird` can now fail when given a `Penguin`",
+      "Dependency inversion, because `Penguin` depends on the concrete `Bird` class instead of an abstraction",
+      "Single responsibility, because `Penguin` now has two jobs, being a bird and also refusing to fly"
+    ],
+    "correctIndex": 1,
+    "explanation": "A caller that loops over birds and calls `fly()` expects it to work, so a subtype that throws is not substitutable for its base type. The design shows no edit to `Bird` (open/closed), is not about creating dependencies (dependency inversion) and a class with one refused method does not have two responsibilities.",
+    "referenceUrl": "https://martinfowler.com/bliki/RoleInterface.html"
+  },
+  {
+    "id": "ez-solid-isp-fat-interface",
+    "topic": "clean-code",
+    "subtopic": "solid-lsp-isp",
+    "difficulty": "Easy",
+    "title": "Clients forced to implement unused methods",
+    "question": "`IMachine` declares `print()`, `scan()` and `fax()`. A basic printer class must implement all three, leaving two of them empty. What does the interface segregation principle recommend?",
+    "options": [
+      "Keep the single large interface and add a comment on each unused method so developers know to ignore it",
+      "Merge the printer into one class that also scans and faxes, so no method ever stays empty again",
+      "Turn the interface into an abstract base class so the printer can inherit the empty defaults for free",
+      "Split it into smaller interfaces so each client depends only on the methods it actually uses and needs"
+    ],
+    "correctIndex": 3,
+    "explanation": "Interface segregation says no client should be forced to depend on methods it does not use, so the fix is several focused interfaces such as `IPrinter` and `IScanner`. Comments leave the coupling in place, adding features the printer does not have changes its purpose, and an abstract base class still ties every client to the whole contract.",
+    "referenceUrl": "https://martinfowler.com/bliki/RoleInterface.html"
+  },
+  {
+    "id": "ez-solid-lsp-contract-tests",
+    "topic": "clean-code",
+    "subtopic": "solid-lsp-isp",
+    "difficulty": "Easy",
+    "title": "Spotting a substitutability violation",
+    "question": "A team wants a practical check that every subclass of `PaymentGateway` is truly substitutable for it. Which approach fits the Liskov substitution principle best?",
+    "options": [
+      "Run the same test suite written for the base type against every single subclass and expect all of them to pass",
+      "Count the lines each subclass overrides and reject any subclass that overrides more than three methods",
+      "Check that each subclass has the same constructor signature as the base class and a matching file name",
+      "Make sure every subclass adds at least one new public method that the base class does not already offer"
+    ],
+    "correctIndex": 0,
+    "explanation": "Because Liskov substitution is about behaviour, a shared contract test suite exercising the base type's promises is the most direct evidence that subtypes honour them. Override counts, constructor signatures and extra public methods say nothing about whether callers keep working when a subclass is swapped in.",
+    "referenceUrl": "https://martinfowler.com/bliki/RoleInterface.html"
+  },
+  {
+    "id": "ez-solid-dip-definition",
+    "topic": "clean-code",
+    "subtopic": "solid-dip-di",
+    "difficulty": "Easy",
+    "title": "What dependency inversion inverts",
+    "question": "The dependency inversion principle says high-level modules should not depend on low-level modules. What should both depend on instead?",
+    "options": [
+      "The same concrete database library, so that both layers share exactly the same data types and drivers",
+      "Abstractions, such as an interface owned by the high-level policy that the low-level detail implements",
+      "A shared static utility class that holds every helper method used by either of the two modules",
+      "Each other through circular references, so that neither side is ever considered the lower level"
+    ],
+    "correctIndex": 1,
+    "explanation": "Dependency inversion makes both the business policy and the technical detail depend on an abstraction, so the detail plugs into the policy rather than the policy importing the detail. Sharing a concrete library or a static helper class keeps the coupling, and circular references make it worse.",
+    "referenceUrl": "https://martinfowler.com/articles/injection.html"
+  },
+  {
+    "id": "ez-solid-di-constructor-injection",
+    "topic": "clean-code",
+    "subtopic": "solid-dip-di",
+    "difficulty": "Easy",
+    "title": "Receiving dependencies instead of creating them",
+    "question": "`OrderService` receives an `IPaymentGateway` through its constructor instead of writing `new StripeGateway()` inside. What is the main benefit?",
+    "options": [
+      "The service becomes thread-safe automatically, because constructor parameters are never shared between callers",
+      "The gateway is created lazily, so it is never instantiated even when `OrderService` is used for payments",
+      "Tests can pass a fake gateway, and production can swap the implementation without editing the service",
+      "The code compiles faster, since the compiler skips type checking for objects that arrive as parameters"
+    ],
+    "correctIndex": 2,
+    "explanation": "Constructor injection lets the caller decide which implementation to supply, which is what makes substituting a test double or another provider trivial. It gives no thread safety, does not delay creation of the gateway and has no effect on compilation speed or type checking.",
+    "referenceUrl": "https://martinfowler.com/articles/injection.html"
+  },
+  {
+    "id": "ez-solid-violations-switch-on-payment",
+    "topic": "clean-code",
+    "subtopic": "solid-violations",
+    "difficulty": "Easy",
+    "title": "Which principle a growing switch breaks",
+    "question": "Each time the business adds a payment method, developers must edit a `switch` on the payment type in `checkout()`, `refund()` and `receipt()`. Which principle is most clearly violated?",
+    "options": [
+      "Interface segregation, because the payment type enum contains more values than any one method actually reads",
+      "Liskov substitution, because the payment types cannot be replaced by their parent type inside a `switch`",
+      "Open/closed, because supporting a new variant forces edits to several existing, working methods",
+      "Dependency inversion, because a `switch` statement is a low-level construct that high-level code must not use"
+    ],
+    "correctIndex": 2,
+    "explanation": "When every new variant means reopening existing methods, the code is not closed for modification; polymorphism, with one class per payment method, lets new types be added without touching callers. There is no fat interface, no subtype breaking its parent and `switch` itself is not a dependency-direction issue.",
+    "referenceUrl": "https://blog.cleancoder.com/uncle-bob/2014/05/12/TheOpenClosedPrinciple.html"
+  },
+  {
+    "id": "ez-solid-violations-new-in-service",
+    "topic": "clean-code",
+    "subtopic": "solid-violations",
+    "difficulty": "Easy",
+    "title": "Hard-wired dependency inside a service",
+    "question": "`ReportService` creates `new SqlReportRepository()` inside its constructor, so unit tests need a real database. Which principle does this violate?",
+    "options": [
+      "Single responsibility, because any class that touches a repository automatically has two reasons to change",
+      "Interface segregation, because `SqlReportRepository` probably exposes more methods than the service needs",
+      "Liskov substitution, because the repository cannot stand in for the service in the unit tests",
+      "Dependency inversion, because the high-level service is tied to a concrete low-level class"
+    ],
+    "correctIndex": 3,
+    "explanation": "The service names and builds a concrete class, so it cannot be given a fake or another storage engine. Depending on an abstraction supplied from outside fixes that. Using a repository is not itself a second responsibility, repository size is a separate concern and the repository was never meant to replace the service.",
+    "referenceUrl": "https://martinfowler.com/articles/injection.html"
+  },
+  {
+    "id": "ez-pat-singleton-purpose",
+    "topic": "design-patterns",
+    "subtopic": "creational",
+    "difficulty": "Easy",
+    "title": "Purpose of the Singleton pattern",
+    "question": "What does the Singleton pattern guarantee?",
+    "options": [
+      "A class has exactly one instance, and the code provides a single global point of access to that instance",
+      "Every object of a class is created from a template and can later be cloned without calling constructors",
+      "Subclasses decide which concrete product to create while callers only see the shared interface",
+      "Construction of a complex object is split into steps so the same process builds different forms"
+    ],
+    "correctIndex": 0,
+    "explanation": "Singleton restricts a class to one instance and exposes a way to reach it, which is useful for things like a shared configuration. Copying from a template is Prototype, letting subclasses choose the product is Factory Method and step-by-step construction is Builder.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/singleton"
+  },
+  {
+    "id": "ez-pat-prototype-clone",
+    "topic": "design-patterns",
+    "subtopic": "creational",
+    "difficulty": "Easy",
+    "title": "Creating objects by copying",
+    "question": "Which situation is the Prototype pattern designed for?",
+    "options": [
+      "Making sure that only one instance of a class ever exists for the whole lifetime of the application",
+      "Letting a family of related products be created without naming their concrete classes anywhere",
+      "Creating a new object by copying an existing configured instance instead of building it from scratch",
+      "Hiding a complicated subsystem behind one simple class that offers only a handful of methods"
+    ],
+    "correctIndex": 2,
+    "explanation": "Prototype asks an existing object to clone itself, which avoids repeating costly setup and keeps callers independent of the concrete class. Guaranteeing one instance is Singleton, creating product families is Abstract Factory and hiding a subsystem is the job of Facade.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/prototype"
+  },
+  {
+    "id": "ez-pat-simple-factory-hides-type",
+    "topic": "design-patterns",
+    "subtopic": "creational",
+    "difficulty": "Easy",
+    "title": "Why centralise object creation in a factory",
+    "question": "Client code calls `NotifierFactory.create(\"sms\")` and receives a `Notifier`, instead of writing `new SmsNotifier()`. What does this give the client?",
+    "options": [
+      "It makes the notifier immutable, because objects built by a factory can never be modified afterwards",
+      "It no longer depends on concrete notifier classes, so all creation logic lives in one single place",
+      "It guarantees one shared notifier instance, because the factory always hands back the same object",
+      "It lets the compiler choose the notifier at build time, so no decision happens while the code runs"
+    ],
+    "correctIndex": 1,
+    "explanation": "A factory hides which concrete class is built, so callers depend only on the `Notifier` abstraction and changes to construction are made in one spot. Factories say nothing about immutability, they may return new objects each time (a single instance is Singleton) and the choice normally happens at runtime.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/factory-method"
+  },
+  {
+    "id": "ez-pat-proxy-placeholder",
+    "topic": "design-patterns",
+    "subtopic": "structural",
+    "difficulty": "Easy",
+    "title": "A stand-in controlling access to an object",
+    "question": "An `ImageProxy` has the same interface as `RealImage`, but loads the large file only when `display()` is first called. Which pattern is this?",
+    "options": [
+      "Adapter, a wrapper that converts the interface of one class into a different interface clients expect",
+      "Decorator, a wrapper whose only job is to stack additional behaviour on top of the wrapped object",
+      "Facade, a single simplified entry point that hides the complexity of a whole subsystem of classes",
+      "Proxy, a stand-in with the same interface that controls how and when the real object is accessed"
+    ],
+    "correctIndex": 3,
+    "explanation": "A proxy keeps the same interface as the real object and decides when and how to reach it, here by delaying an expensive load. An adapter changes the interface, a decorator adds responsibilities and a facade simplifies many classes into one entry point.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/proxy"
+  },
+  {
+    "id": "ez-pat-adapter-vs-facade",
+    "topic": "design-patterns",
+    "subtopic": "structural",
+    "difficulty": "Easy",
+    "title": "Telling Adapter and Facade apart",
+    "question": "Both Adapter and Facade wrap other code. What mainly distinguishes an Adapter?",
+    "options": [
+      "It hides a whole subsystem of many classes behind one new and much simpler interface",
+      "It adds new responsibilities to an object at runtime while keeping the interface unchanged",
+      "It makes an existing class fit the interface that the client code already expects",
+      "It shares fine-grained objects between many clients to reduce the memory used by the program"
+    ],
+    "correctIndex": 2,
+    "explanation": "An Adapter translates one interface into another so incompatible classes can work together, usually around a single class. Hiding a subsystem is Facade, adding behaviour without changing the interface is Decorator and sharing objects to save memory is Flyweight.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/adapter"
+  },
+  {
+    "id": "ez-pat-structural-which-pattern",
+    "topic": "design-patterns",
+    "subtopic": "structural",
+    "difficulty": "Easy",
+    "title": "Recognising the structural patterns",
+    "question": "What do structural design patterns, such as Adapter, Composite and Proxy, mainly deal with?",
+    "options": [
+      "How classes and objects are composed into larger structures while keeping them flexible",
+      "How objects are created, so that code does not depend on the exact classes it instantiates",
+      "How responsibilities are assigned between objects and how they communicate with each other",
+      "How data is read from and written to a database while keeping the domain model separate"
+    ],
+    "correctIndex": 0,
+    "explanation": "Structural patterns describe ways of assembling classes and objects into larger structures. Patterns about instantiation are creational, those about interaction and responsibility are behavioral, and persistence patterns belong to data access.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/structural-patterns"
+  },
+  {
+    "id": "ez-pat-observer-notify",
+    "topic": "design-patterns",
+    "subtopic": "behavioral",
+    "difficulty": "Easy",
+    "title": "One-to-many change notification",
+    "question": "When a `StockPrice` changes, every registered chart and alert widget must update automatically, without `StockPrice` knowing their concrete classes. Which pattern fits?",
+    "options": [
+      "Mediator, where a central object coordinates the work and every other object talks only to it",
+      "Observer, where subscribers register with the subject and are notified when its state changes",
+      "Iterator, where the subject exposes its elements one by one without revealing how it stores them",
+      "Memento, where the subject saves a snapshot of its state so that it can be restored later"
+    ],
+    "correctIndex": 1,
+    "explanation": "Observer defines a subscription relationship: the subject keeps a list of listeners and notifies them, which keeps it decoupled from their concrete types. Mediator centralises communication, Iterator traverses collections and Memento captures state for undo, so none of them broadcasts changes.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/observer"
+  },
+  {
+    "id": "ez-pat-template-method-skeleton",
+    "topic": "design-patterns",
+    "subtopic": "behavioral",
+    "difficulty": "Easy",
+    "title": "Fixed algorithm skeleton with overridable steps",
+    "question": "`DataImporter.run()` always calls `read()`, `validate()` and `save()` in that order, but subclasses supply the details of `read()` for CSV or JSON. Which pattern is this?",
+    "options": [
+      "Strategy, where the algorithm is chosen by swapping an object that the context holds at runtime",
+      "Command, where each request is wrapped in an object so that it can be queued, logged or undone",
+      "State, where an object changes its behaviour by switching between internal state objects over time",
+      "Template Method, where the base class fixes the algorithm and subclasses override specific steps"
+    ],
+    "correctIndex": 3,
+    "explanation": "Template Method keeps the order of steps in a base-class method and lets subclasses fill in individual steps through inheritance. Strategy swaps a whole algorithm by composition, Command packages requests as objects and State varies behaviour with the object's current condition.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/template-method"
+  },
+  {
+    "id": "ez-pat-mediator-coordination",
+    "topic": "design-patterns",
+    "subtopic": "behavioral",
+    "difficulty": "Easy",
+    "title": "Reducing many-to-many dependencies between objects",
+    "question": "In a dialog, a checkbox, a text box and a button all reference each other to enable and disable themselves. Which pattern removes these direct links?",
+    "options": [
+      "Singleton, where one global dialog instance is created and every component reads its state directly",
+      "Prototype, where each component is cloned from a template so that none shares references with another",
+      "Mediator, where components notify one central object that coordinates how all the others should react",
+      "Bridge, where the dialog abstraction and its platform implementation are developed independently"
+    ],
+    "correctIndex": 2,
+    "explanation": "Mediator replaces a tangle of direct references with one coordinator, so components only know the mediator and become easier to reuse. Singleton would still leave direct reads, Prototype is about copying and Bridge separates an abstraction from its implementation rather than untangling peers.",
+    "referenceUrl": "https://refactoring.guru/design-patterns/mediator"
+  },
+  {
+    "id": "ez-pat-active-record-basics",
+    "topic": "design-patterns",
+    "subtopic": "data-access",
+    "difficulty": "Easy",
+    "title": "What an Active Record object is",
+    "question": "In the Active Record pattern, what does one object represent?",
+    "options": [
+      "A single database row, combining its data with methods that load, save and hold domain logic",
+      "A whole table, with only static methods and no state, used to run every query that touches it",
+      "A unit of work that tracks changed entities and flushes all of them in one single transaction",
+      "A cache that keeps recently read rows in memory so repeated queries never reach the database"
+    ],
+    "correctIndex": 0,
+    "explanation": "An Active Record wraps one row and carries both the data and the persistence methods, which is simple but couples the domain to the schema. A table gateway uses static-style access for a whole table, Unit of Work tracks changes across objects and a cache only avoids repeated reads.",
+    "referenceUrl": "https://martinfowler.com/eaaCatalog/activeRecord.html"
+  }
+]

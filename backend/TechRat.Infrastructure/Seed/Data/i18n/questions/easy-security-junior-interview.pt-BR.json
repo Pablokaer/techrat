@@ -1,0 +1,242 @@
+[
+  {
+    "id": "ez-sec-injection-what-is",
+    "title": "O que significa injection",
+    "question": "Em segurança de aplicações, o que uma falha de injection permite a um atacante fazer?",
+    "options": [
+      "Descobrir a senha de um usuário enviando milhares de tentativas de login no formulário até que uma delas funcione",
+      "Ler o tráfego trocado entre um navegador e um servidor porque a conexão não está criptografada",
+      "Enviar dados não confiáveis que um interpretador trata como parte de um comando ou consulta, e não como dados simples",
+      "Sobrecarregar um servidor com tantas requisições simultâneas que ele deixa de atender os usuários legítimos"
+    ],
+    "explanation": "Injection acontece quando uma entrada não confiável é concatenada a um comando ou consulta (SQL, shell, LDAP, HTML) e o interpretador não consegue distinguir dados de instruções. Adivinhar senhas repetidamente é força bruta, ler tráfego sem criptografia é espionagem de rede e inundar o servidor com requisições é negação de serviço; nenhum deles depende de a entrada ser interpretada como código."
+  },
+  {
+    "id": "ez-sec-injection-concat-sql",
+    "title": "Por que concatenar strings é arriscado",
+    "question": "Um desenvolvedor monta uma consulta com `\"SELECT * FROM users WHERE name = '\" + name + \"'\"`. Por que isso é perigoso?",
+    "options": [
+      "O texto enviado pelo usuário passa a fazer parte do próprio comando SQL, então um valor malicioso pode mudar o que a consulta faz",
+      "O banco precisa analisar o texto de novo a cada chamada, o que deixa a consulta lenta o bastante para causar uma indisponibilidade",
+      "O operador `+` remove as aspas do valor, então nomes com apóstrofo são gravados de forma incorreta sem aviso",
+      "Consultas concatenadas não conseguem usar índices, então o banco sempre varre a tabela inteira e expõe linhas extras"
+    ],
+    "explanation": "Na concatenação, o valor é misturado ao texto SQL antes de o banco analisá-lo, então uma entrada como `' OR '1'='1` reescreve a condição. Custo de parsing, remoção de aspas e uso de índices são questões de desempenho ou correção, não a falha de segurança. Consultas parametrizadas mantêm o valor separado do comando."
+  },
+  {
+    "id": "ez-sec-injection-orm-raw",
+    "title": "Consultas raw dentro de um ORM",
+    "question": "Uma equipe usa um ORM e escreve `db.raw(\"... WHERE email = '\" + email + \"'\")` em um relatório. Qual é a situação?",
+    "options": [
+      "O ORM escapa toda string que recebe, então o relatório é tão seguro quanto qualquer outra consulta gerada pelo ORM",
+      "O risco só existe para valores numéricos, porque valores de texto sempre são envolvidos por aspas pelo driver",
+      "O ORM roda em uma sandbox que rejeita comandos destrutivos, então só dados de leitura poderiam ser expostos",
+      "A consulta é vulnerável a injection, pois a proteção do ORM vale apenas para valores passados como parâmetros"
+    ],
+    "explanation": "ORMs são seguros quando montam consultas com parâmetros, mas uma string que você concatena à mão ignora essa proteção e continua vulnerável. Drivers não escapam texto concatenado, ORMs não isolam comandos em sandbox e valores de texto entre aspas podem ser quebrados com um apóstrofo. Use a API raw com placeholders."
+  },
+  {
+    "id": "ez-sec-injection-allowlist",
+    "title": "Validação de entrada por allowlist",
+    "question": "Qual abordagem de validação de entrada costuma ser recomendada como complemento às consultas parametrizadas?",
+    "options": [
+      "Aceitar qualquer coisa e remover do valor uma lista de palavras perigosas conhecidas, como `DROP` ou `SELECT`, antes de usá-lo",
+      "Aceitar apenas valores que se encaixem em uma definição estrita do que é válido, como padrão, tipo, faixa ou tamanho",
+      "Validar no navegador com JavaScript, já que assim o servidor pode presumir que todo valor recebido já está limpo",
+      "Trocar toda aspa simples por duas aspas simples em todos os campos, qualquer que seja o tipo de dado deles"
+    ],
+    "explanation": "A validação por allowlist define como é um valor válido e rejeita todo o resto, o que reduz a superfície de ataque, embora não substitua a parametrização. Listas de palavras proibidas são fáceis de contornar, verificações no navegador podem ser puladas chamando a API direto, e dobrar aspas indiscriminadamente é frágil e não ajuda em outros contextos, como comandos de shell."
+  },
+  {
+    "id": "ez-sec-injection-least-privilege-db",
+    "title": "Limitando o estrago de uma injection",
+    "question": "Por que a aplicação deve se conectar ao banco com uma conta que tenha apenas as permissões de que precisa?",
+    "options": [
+      "Faz as consultas rodarem mais rápido, porque o banco pula a verificação de permissões para contas restritas",
+      "Elimina a necessidade de consultas parametrizadas, já que uma conta restrita não pode ser enganada por entradas",
+      "Limita o que um atacante pode ler ou alterar se uma falha de injection for explorada, reduzindo o impacto",
+      "Impede que a aplicação seja alcançada pela internet, já que a conta não tem acesso remoto ao servidor"
+    ],
+    "explanation": "Menor privilégio é uma medida de defesa em profundidade: se uma injection passar, uma conta que não pode apagar tabelas nem ler outros schemas limita o dano. Isso não acelera consultas, não substitui a parametrização e não tem relação com a exposição de rede da aplicação."
+  },
+  {
+    "id": "ez-sec-authz-least-privilege",
+    "title": "Princípio do menor privilégio",
+    "question": "O que o princípio do menor privilégio diz sobre a concessão de acesso?",
+    "options": [
+      "Todo usuário deve receber as mesmas permissões padrão, para que ninguém seja tratado de forma diferente dos demais",
+      "Cada usuário ou serviço recebe apenas o acesso necessário para sua tarefa, e nada além disso",
+      "As permissões devem começar amplas e ser removidas depois, quando a equipe perceber quais recursos nunca são usados",
+      "Administradores devem ter todas as permissões de forma permanente, para poderem corrigir problemas sem demora"
+    ],
+    "explanation": "Menor privilégio significa conceder o mínimo de direitos necessário para o trabalho, de modo que uma conta comprometida ou um bug cause menos dano. Permissões idênticas para todos, começar amplo e reduzir depois e direitos de admin permanentes ampliam o raio de impacto, o oposto do princípio."
+  },
+  {
+    "id": "ez-sec-authz-rbac",
+    "title": "Controle de acesso baseado em papéis",
+    "question": "Como o controle de acesso baseado em papéis (RBAC) decide se um usuário pode executar uma ação?",
+    "options": [
+      "Compara o endereço IP do usuário com uma lista de redes que podem chamar a aplicação",
+      "Pede ao usuário que confirme a ação com um segundo fator a cada vez que uma operação sensível é solicitada",
+      "Deixa o dono de cada recurso aprovar ou negar cada requisição pessoalmente, uma a uma, conforme ela chega",
+      "Liga permissões a papéis, papéis a usuários e verifica se os papéis do usuário permitem a ação"
+    ],
+    "explanation": "No RBAC, as permissões ficam ligadas a papéis, como editor ou admin, e os usuários recebem papéis, então revisões e mudanças de acesso acontecem no nível do papel. Listas de IPs são controles de rede, o segundo fator é autenticação e a aprovação de cada requisição pelo dono descreve um acesso manual e discricionário, não regras por papel."
+  },
+  {
+    "id": "ez-sec-authz-vertical-horizontal",
+    "title": "Escalação vertical de privilégios",
+    "question": "Um usuário comum chama um endpoint exclusivo de administradores e funciona. Que tipo de falha de autorização é essa?",
+    "options": [
+      "Escalação vertical de privilégios, porque o usuário obteve direitos de um papel com mais privilégios",
+      "Escalação horizontal de privilégios, porque o usuário alcançou dados que pertencem a outro usuário do mesmo nível",
+      "Session fixation, porque o usuário continuou usando um identificador de sessão definido por outra pessoa",
+      "Credential stuffing, porque o usuário entrou com uma senha vazada de um site diferente do que está atacando"
+    ],
+    "explanation": "Obter capacidades de um papel mais privilegiado, como uma função de admin, é escalação vertical; acessar dados de outro usuário no mesmo nível é escalação horizontal (o IDOR é o caso clássico). Session fixation e credential stuffing são problemas de autenticação e não descrevem a falta de verificação de papel em um endpoint."
+  },
+  {
+    "id": "ez-sec-authz-every-request",
+    "title": "Quando verificar permissões",
+    "question": "Quando uma API web deve verificar se quem chama pode executar uma ação?",
+    "options": [
+      "Uma vez no login, já que as permissões concedidas naquele momento continuam válidas durante toda a sessão",
+      "Só em operações de escrita, porque ler dados nunca causa dano ao sistema ou aos seus usuários",
+      "A cada requisição a um recurso protegido, no servidor, para a ação e o objeto específicos",
+      "Só no front end, porque a interface decide quais botões e páginas cada usuário pode ver"
+    ],
+    "explanation": "A autorização deve ser aplicada no servidor a cada requisição, porque papéis mudam, tokens podem ser reutilizados e clientes podem chamar a API diretamente. Verificar só no login, só em escritas ou só na interface deixa brechas: leituras podem vazar dados confidenciais e botões escondidos não impedem requisições forjadas."
+  },
+  {
+    "id": "ez-sec-authz-oauth-scope",
+    "title": "Para que serve um scope no OAuth",
+    "question": "No OAuth 2.0, qual é a finalidade dos scopes solicitados por uma aplicação cliente?",
+    "options": [
+      "Criptografar o access token para que somente a API de destino consiga ler o conteúdo dele",
+      "Provar a identidade do usuário final para a aplicação cliente depois de um login bem-sucedido",
+      "Definir por quanto tempo o refresh token continua válido antes de o usuário precisar entrar de novo",
+      "Limitar o tipo de acesso do cliente aos recursos do usuário, como somente leitura"
+    ],
+    "explanation": "Um scope nomeia uma permissão delimitada, por exemplo acesso de leitura a uma agenda, que o usuário autoriza e o token carrega, de modo que o cliente receba menos que acesso total. Criptografia do token, prova de identidade (assunto do OpenID Connect) e validade do token são mecanismos separados."
+  },
+  {
+    "id": "ez-jr-oop-polymorphism",
+    "title": "Polimorfismo em palavras simples",
+    "question": "Em uma entrevista perguntam o que é polimorfismo na orientação a objetos. Qual resposta está correta?",
+    "options": [
+      "Objetos de uma classe podem ser copiados de modo que cada cópia mantenha seu próprio estado e identidade independentes",
+      "A mesma chamada feita sobre um tipo compartilhado pode executar comportamentos diferentes conforme a classe concreta do objeto",
+      "Uma classe esconde seus campos e só os expõe por métodos que controlam como eles são lidos e alterados",
+      "Uma classe reaproveita campos e métodos de outra ao estendê-la, evitando código duplicado entre elas"
+    ],
+    "explanation": "O polimorfismo permite chamar um método em um tipo base ou interface e deixar cada subclasse fornecer seu comportamento, como `shape.area()` para círculos e quadrados. Copiar objetos é clonagem, esconder campos atrás de métodos é encapsulamento e reaproveitar membros de outra classe ao estendê-la é herança."
+  },
+  {
+    "id": "ez-jr-oop-inheritance-is-a",
+    "title": "Quando a herança faz sentido",
+    "question": "Qual frase indica melhor que a classe `Dog` pode estender a classe `Animal`?",
+    "options": [
+      "Um `Dog` tem um `Animal` que ele usa para delegar parte do trabalho, como alimentar e passear",
+      "Um `Dog` precisa de alguns métodos de `Animal`, e copiá-los é mais rápido do que escrevê-los de novo",
+      "Um `Dog` e um `Animal` ficam gravados na mesma tabela, então precisam compartilhar uma classe base comum",
+      "Um `Dog` é um `Animal`, então pode ser usado onde se espera um `Animal` sem quebrar quem o chama"
+    ],
+    "explanation": "Herança modela uma relação é-um, em que a subclasse pode substituir a classe base. Uma relação tem-um pede composição, pegar emprestados alguns métodos não é motivo para estender e o formato de armazenamento não define se os tipos são substituíveis."
+  },
+  {
+    "id": "ez-jr-oop-static-vs-instance",
+    "title": "Membros estáticos e de instância",
+    "question": "Qual é a diferença entre um membro estático e um membro de instância de uma classe?",
+    "options": [
+      "Um membro estático pertence à própria classe e é compartilhado, enquanto um membro de instância pertence a cada objeto",
+      "Um membro estático nunca pode mudar de valor depois de criado, enquanto um membro de instância pode ser reatribuído livremente",
+      "Um membro estático só é visível dentro da própria classe, enquanto um membro de instância pode ser acessado de qualquer lugar",
+      "Um membro estático é criado quando o objeto é coletado pelo garbage collector, enquanto o de instância é criado antes"
+    ],
+    "explanation": "Membros estáticos pertencem à classe, então existe uma cópia compartilhada por todos os objetos e nenhum objeto é necessário para usá-los; membros de instância existem uma vez por objeto e guardam o estado dele. Imutabilidade se expressa com `final` ou `readonly`, visibilidade é controlada por modificadores de acesso e nenhum dos dois tem relação com o momento da coleta de lixo."
+  },
+  {
+    "id": "ez-jr-oop-constructor",
+    "title": "Para que serve um construtor",
+    "question": "Qual é a finalidade de um construtor em uma classe?",
+    "options": [
+      "Liberar os recursos mantidos por um objeto quando o programa não precisa mais dele",
+      "Declarar os métodos que toda subclasse precisa implementar antes de a classe poder ser instanciada",
+      "Inicializar um novo objeto, colocando seus campos em um estado válido no momento da criação",
+      "Restringir a classe para que só possa existir uma única instância enquanto o programa executa"
+    ],
+    "explanation": "Um construtor roda quando o objeto é criado e define seu estado inicial, idealmente deixando-o válido e pronto para uso. Liberar recursos é papel de um finalizador, de `Dispose` ou de `close`; métodos obrigatórios de subclasses vêm de membros abstratos; e uma única instância é o padrão singleton, uma decisão de projeto separada."
+  },
+  {
+    "id": "ez-jr-db-primary-foreign-key",
+    "title": "Chave primária e chave estrangeira",
+    "question": "Em um banco relacional, o que faz uma chave estrangeira?",
+    "options": [
+      "Identifica de forma única cada linha da própria tabela e não pode ter valores nulos nem repetidos",
+      "Acelera buscas em uma coluna mantendo uma cópia ordenada dos valores em uma estrutura separada",
+      "Criptografa a coluna para que somente usuários com o papel correto no banco consigam ler o valor gravado",
+      "Liga uma linha a uma linha de outra tabela ao referenciar a chave dela, garantindo o relacionamento"
+    ],
+    "explanation": "Uma coluna de chave estrangeira referencia a chave primária de outra tabela, e o banco rejeita valores que apontem para uma linha inexistente. O identificador único e não nulo de uma linha é a chave primária, a cópia ordenada que acelera buscas é um índice e a criptografia de coluna é outro recurso de segurança."
+  },
+  {
+    "id": "ez-jr-web-4xx-5xx",
+    "title": "Códigos de status 4xx e 5xx",
+    "question": "Uma API retorna 404 para um pedido inexistente e 500 quando o banco está fora do ar. O que significam as duas classes de status?",
+    "options": [
+      "4xx indica que a requisição estava errada ou não pode ser atendida, e 5xx indica que o servidor falhou numa requisição válida",
+      "4xx indica que o servidor está sobrecarregado e deve ser tentado de novo, e 5xx indica que o cliente enviou uma requisição malformada",
+      "4xx indica um redirecionamento para outro endereço, e 5xx indica que a resposta foi servida de uma cópia em cache",
+      "4xx indica que a operação teve sucesso sem corpo de resposta, e 5xx indica que teve sucesso com um corpo muito grande"
+    ],
+    "explanation": "A classe 4xx informa um problema do lado do cliente, como requisição inválida, falta de autenticação ou recurso inexistente, e a 5xx informa que o servidor não conseguiu concluir uma requisição aparentemente válida. Redirecionamentos são 3xx e sucesso é 2xx; as duas classes de erro não tratam de sobrecarga, cache ou tamanho do corpo."
+  },
+  {
+    "id": "ez-jr-db-transaction-atomic",
+    "title": "O que uma transação garante",
+    "question": "Uma transferência bancária debita uma conta e credita outra. Por que as duas atualizações ficam em uma única transação do banco?",
+    "options": [
+      "Transações fazem os dois comandos rodarem mais rápido porque o banco os agrupa em uma única gravação em disco",
+      "Ou as duas atualizações são aplicadas ou nenhuma é, então uma falha no meio não deixa dinheiro desaparecido",
+      "Transações bloqueiam o banco inteiro, o que garante que nenhum outro usuário leia nenhuma tabela nesse meio tempo",
+      "Transações copiam as linhas afetadas para uma tabela de backup, então a transferência pode ser desfeita em qualquer data futura"
+    ],
+    "explanation": "Atomicidade significa tudo ou nada: se o crédito falhar, o débito sofre rollback. Velocidade não é o objetivo, o isolamento normalmente bloqueia só as linhas afetadas e não o banco inteiro, e o rollback vale antes do commit, não por uma tabela de backup dias depois."
+  },
+  {
+    "id": "ez-jr-live-think-aloud",
+    "title": "Pensar em voz alta ao programar",
+    "question": "Por que entrevistadores pedem que o candidato pense em voz alta durante um exercício de código ao vivo?",
+    "options": [
+      "Para testar a velocidade com que o candidato digita e fala ao mesmo tempo sem cometer erros de digitação",
+      "Para dar tempo extra ao candidato, já que o silêncio é penalizado e falar é a única forma aceita de ganhar tempo",
+      "Para que o entrevistador acompanhe o raciocínio, perceba mal-entendidos cedo e ajude no momento certo",
+      "Para garantir que o candidato decorou as soluções padrão, que são recitadas passo a passo na lousa"
+    ],
+    "explanation": "Narrar a abordagem mostra como você divide o problema, compara opções e reage a erros, e permite que o entrevistador corrija um mal-entendido antes que ele custe dez minutos. Não é um teste de digitação, uma tática para ganhar tempo nem uma recitação de soluções decoradas."
+  },
+  {
+    "id": "ez-jr-live-dont-know-api",
+    "title": "Esquecendo uma função da biblioteca",
+    "question": "Em um exercício de código ao vivo você não lembra o nome exato de uma função da biblioteca padrão. Qual é a melhor reação?",
+    "options": [
+      "Dizer o que a função deveria fazer, escrever uma chamada aproximada ou um marcador claro e perguntar se pode consultar a documentação",
+      "Parar de programar e ficar em silêncio até o nome exato voltar, para que nenhuma linha escrita tenha qualquer erro",
+      "Reescrever a solução inteira sem essa função, mesmo que a substituta fique bem mais longa e propensa a erros",
+      "Fingir que o nome está certo e seguir em frente, já que o entrevistador provavelmente não vai conferir detalhes tão pequenos"
+    ],
+    "explanation": "Entrevistadores avaliam raciocínio, não assinaturas decoradas, então descrever o comportamento e continuar mantém o ritmo e demonstra honestidade. Ficar em silêncio desperdiça tempo, uma reescrita bem mais complexa aumenta o risco e blefar sobre um nome do qual você não tem certeza prejudica mais a confiança do que admitir."
+  },
+  {
+    "id": "ez-jr-live-edge-cases",
+    "title": "Casos de borda antes de entregar",
+    "question": "Você terminou uma função que encontra o maior número de uma lista. Qual verificação extra mostra bons hábitos de engenharia?",
+    "options": [
+      "Renomear todas as variáveis para uma única letra, para a solução parecer menor e o diff ficar minúsculo",
+      "Colocar um comentário acima de cada linha repetindo exatamente o que ela faz, para o código se explicar sozinho",
+      "Rodar só com o exemplo do enunciado, já que esse é o caso que o entrevistador forneceu para o exercício",
+      "Testar entradas como lista vazia, um elemento, valores repetidos e negativos, e dizer o que acontece"
+    ],
+    "explanation": "Pensar nos limites, como lista vazia, um único elemento, duplicatas e negativos, é onde a maioria dos bugs se esconde, e dizer em voz alta o comportamento esperado mostra que você testa seu trabalho. Nomes curtos prejudicam a leitura, comentários linha a linha geram ruído e checar só o exemplo deixa passar justamente os casos que o entrevistador tende a tentar."
+  }
+]

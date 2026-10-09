@@ -1,0 +1,242 @@
+[
+  {
+    "id": "ez-solid-srp-benefit",
+    "title": "Por que aplicar o princípio da responsabilidade única",
+    "question": "Que benefício prático o princípio da responsabilidade única busca entregar para uma classe?",
+    "options": [
+      "Cada classe expõe exatamente um método público, de modo que os chamadores não tenham como usá-la errado",
+      "Todos os objetos da aplicação compartilham uma única instância global, evitando duplicar estado na memória",
+      "Uma mudança pedida por um grupo de interessados costuma tocar em apenas uma classe, e não em várias",
+      "O compilador consegue embutir cada chamada e remover o custo dos objetos, deixando o programa mais rápido"
+    ],
+    "explanation": "Manter cada classe ligada a um único motivo para mudar significa que um pedido do financeiro, por exemplo, não obriga edições em código que atende outro grupo, o que reduz o risco de regressões. Não se trata de ter um único método público, de compartilhar uma instância global (isso é o padrão Singleton) nem de otimização do compilador."
+  },
+  {
+    "id": "ez-solid-srp-function-level",
+    "title": "Responsabilidade única além das classes",
+    "question": "Uma função chamada `saveUserAndSendWelcomeEmail(user)` valida o usuário, grava a linha no banco de dados e depois envia um e-mail. Como o princípio da responsabilidade única enxerga isso?",
+    "options": [
+      "Ela mistura persistência e notificação, então cada preocupação deveria ser separada em sua própria função ou módulo",
+      "Está tudo bem, pois o princípio só vale para classes e nunca para funções ou módulos individuais",
+      "Está tudo bem enquanto a função tiver menos de cinquenta linhas, já que só o tamanho define uma responsabilidade única",
+      "Ela viola o princípio apenas por causa do nome longo, então encurtar para `saveUser` resolve o problema"
+    ],
+    "explanation": "O princípio vale em todos os níveis, de funções a módulos, e a função tem dois motivos distintos para mudar: como os usuários são armazenados e como são notificados. Número de linhas e tamanho do nome são sintomas, não o critério, e renomear para `saveUser` apenas esconderia o efeito colateral do e-mail."
+  },
+  {
+    "id": "ez-solid-ocp-definition",
+    "title": "O que significa aberto para extensão",
+    "question": "O princípio aberto/fechado diz que entidades de software devem ser abertas para extensão, mas fechadas para modificação. O que isso pede de um design?",
+    "options": [
+      "Os arquivos-fonte ficam abertos no editor para todos da equipe enquanto a saída compilada é bloqueada como somente leitura",
+      "As classes precisam ser declaradas `final` ou `sealed` para que ninguém possa estendê-las ou alterar seu comportamento",
+      "Métodos públicos podem ser editados livremente, mas métodos privados ficam travados depois que a primeira versão for lançada",
+      "Novo comportamento entra escrevendo código novo, como uma nova implementação, em vez de editar código testado"
+    ],
+    "explanation": "O objetivo é adicionar funcionalidades adicionando código, em geral uma nova classe atrás de uma abstração existente, de modo que o código que já funciona e tem testes não seja tocado. Bloquear arquivos, proibir herança com `final` ou `sealed` ou congelar métodos privados são ideias não relacionadas e até atrapalhariam a extensão."
+  },
+  {
+    "id": "ez-solid-lsp-throws-not-supported",
+    "title": "Subclasse que lança exceção em método herdado",
+    "question": "`Bird` tem um método `fly()`. `Penguin extends Bird` sobrescreve `fly()` para lançar uma `UnsupportedOperationException`. Qual princípio esse design quebra?",
+    "options": [
+      "Aberto/fechado, porque adicionar `Penguin` exigiu alterar a própria classe `Bird`, que deveria ficar intocada",
+      "Substituição de Liskov, porque o código que funciona com qualquer `Bird` agora pode falhar ao receber um `Penguin`",
+      "Inversão de dependência, porque `Penguin` depende da classe concreta `Bird` em vez de uma abstração",
+      "Responsabilidade única, porque `Penguin` agora tem dois trabalhos, ser uma ave e também se recusar a voar"
+    ],
+    "explanation": "Um chamador que percorre aves e chama `fly()` espera que funcione, então um subtipo que lança exceção não é substituível pelo tipo base. O design não mostra edição em `Bird` (aberto/fechado), não trata de criar dependências (inversão de dependência) e uma classe com um método recusado não tem duas responsabilidades."
+  },
+  {
+    "id": "ez-solid-isp-fat-interface",
+    "title": "Clientes forçados a implementar métodos não usados",
+    "question": "`IMachine` declara `print()`, `scan()` e `fax()`. Uma classe de impressora simples precisa implementar os três, deixando dois vazios. O que o princípio da segregação de interfaces recomenda?",
+    "options": [
+      "Manter a interface grande e comentar cada método não usado para que os desenvolvedores saibam que devem ignorá-lo",
+      "Fundir a impressora em uma classe que também escaneia e envia fax, para que nenhum método fique vazio de novo",
+      "Transformar a interface em uma classe base abstrata para que a impressora herde os padrões vazios de graça",
+      "Dividi-la em interfaces menores para que cada cliente dependa só dos métodos que de fato usa e precisa"
+    ],
+    "explanation": "A segregação de interfaces diz que nenhum cliente deve ser forçado a depender de métodos que não usa, então a solução são várias interfaces focadas, como `IPrinter` e `IScanner`. Comentários mantêm o acoplamento, adicionar recursos que a impressora não tem muda seu propósito, e uma classe base abstrata ainda prende todo cliente ao contrato inteiro."
+  },
+  {
+    "id": "ez-solid-lsp-contract-tests",
+    "title": "Identificando uma violação de substituibilidade",
+    "question": "Uma equipe quer uma verificação prática de que toda subclasse de `PaymentGateway` é realmente substituível por ela. Qual abordagem se encaixa melhor no princípio da substituição de Liskov?",
+    "options": [
+      "Rodar a mesma suíte de testes escrita para o tipo base em cada subclasse, uma a uma, e esperar que todas passem",
+      "Contar as linhas que cada subclasse sobrescreve e rejeitar qualquer uma que sobrescreva mais de três métodos",
+      "Verificar se cada subclasse tem a mesma assinatura de construtor da classe base e um nome de arquivo correspondente",
+      "Garantir que toda subclasse adicione ao menos um método público novo que a classe base ainda não oferece"
+    ],
+    "explanation": "Como a substituição de Liskov trata de comportamento, uma suíte de testes de contrato compartilhada, que exercita as promessas do tipo base, é a evidência mais direta de que os subtipos as cumprem. Contagem de sobrescritas, assinaturas de construtor e métodos públicos extras nada dizem sobre os chamadores continuarem funcionando quando uma subclasse é trocada."
+  },
+  {
+    "id": "ez-solid-dip-definition",
+    "title": "O que a inversão de dependência inverte",
+    "question": "O princípio da inversão de dependência diz que módulos de alto nível não devem depender de módulos de baixo nível. Do que ambos devem depender, então?",
+    "options": [
+      "Da mesma biblioteca concreta de banco de dados, para que as duas camadas compartilhem os mesmos tipos de dados e drivers",
+      "De abstrações, como uma interface pertencente à política de alto nível que o detalhe de baixo nível implementa",
+      "De uma classe utilitária estática compartilhada que reúne todos os métodos auxiliares usados pelos dois módulos",
+      "Um do outro por referências circulares, de modo que nenhum lado seja considerado o de nível mais baixo"
+    ],
+    "explanation": "A inversão de dependência faz tanto a política de negócio quanto o detalhe técnico dependerem de uma abstração, de modo que o detalhe se encaixa na política em vez de a política importar o detalhe. Compartilhar uma biblioteca concreta ou uma classe auxiliar estática mantém o acoplamento, e referências circulares o pioram."
+  },
+  {
+    "id": "ez-solid-di-constructor-injection",
+    "title": "Receber dependências em vez de criá-las",
+    "question": "`OrderService` recebe um `IPaymentGateway` pelo construtor em vez de escrever `new StripeGateway()` por dentro. Qual é o principal benefício?",
+    "options": [
+      "O serviço se torna thread-safe automaticamente, porque parâmetros de construtor nunca são compartilhados entre chamadores",
+      "O gateway é criado de forma preguiçosa, então nunca é instanciado mesmo quando `OrderService` é usado para pagamentos",
+      "Os testes podem passar um gateway falso, e a produção pode trocar a implementação sem editar o serviço",
+      "O código compila mais rápido, já que o compilador pula a checagem de tipos de objetos que chegam como parâmetros"
+    ],
+    "explanation": "A injeção por construtor deixa o chamador decidir qual implementação fornecer, o que torna trivial substituir por um dublê de teste ou outro provedor. Ela não dá thread safety, não adia a criação do gateway e não afeta a velocidade de compilação nem a checagem de tipos."
+  },
+  {
+    "id": "ez-solid-violations-switch-on-payment",
+    "title": "Qual princípio um switch crescente quebra",
+    "question": "Toda vez que o negócio adiciona um meio de pagamento, os desenvolvedores precisam editar um `switch` sobre o tipo de pagamento em `checkout()`, `refund()` e `receipt()`. Qual princípio é violado de forma mais clara?",
+    "options": [
+      "Segregação de interfaces, porque o enum de tipos de pagamento tem mais valores do que qualquer método realmente lê",
+      "Substituição de Liskov, porque os tipos de pagamento não podem ser trocados pelo tipo pai dentro de um `switch`",
+      "Aberto/fechado, porque suportar uma nova variante força edições em vários métodos existentes que já funcionam",
+      "Inversão de dependência, porque o `switch` é uma construção de baixo nível que o código de alto nível não deve usar"
+    ],
+    "explanation": "Quando cada nova variante significa reabrir métodos existentes, o código não está fechado para modificação; o polimorfismo, com uma classe por meio de pagamento, permite adicionar tipos novos sem tocar nos chamadores. Não há interface gorda, nenhum subtipo quebrando o pai e o `switch` em si não é um problema de direção de dependência."
+  },
+  {
+    "id": "ez-solid-violations-new-in-service",
+    "title": "Dependência amarrada dentro de um serviço",
+    "question": "`ReportService` cria `new SqlReportRepository()` dentro do seu construtor, então os testes unitários precisam de um banco de dados real. Qual princípio isso viola?",
+    "options": [
+      "Responsabilidade única, porque toda classe que toca um repositório automaticamente tem dois motivos para mudar",
+      "Segregação de interfaces, porque `SqlReportRepository` provavelmente expõe mais métodos do que o serviço precisa",
+      "Substituição de Liskov, porque o repositório não pode ocupar o lugar do serviço nos testes unitários",
+      "Inversão de dependência, porque o serviço de alto nível fica preso a uma classe concreta de baixo nível"
+    ],
+    "explanation": "O serviço nomeia e constrói uma classe concreta, então não é possível dar a ele um falso ou outro mecanismo de armazenamento. Depender de uma abstração fornecida de fora resolve isso. Usar um repositório não é por si só uma segunda responsabilidade, o tamanho do repositório é outra questão e o repositório nunca deveria substituir o serviço."
+  },
+  {
+    "id": "ez-pat-singleton-purpose",
+    "title": "Propósito do padrão Singleton",
+    "question": "O que o padrão Singleton garante?",
+    "options": [
+      "Uma classe tem exatamente uma instância, e o código oferece um único ponto global de acesso a essa instância",
+      "Todo objeto de uma classe é criado a partir de um modelo e pode ser clonado depois sem chamar construtores",
+      "As subclasses decidem qual produto concreto criar enquanto os chamadores enxergam apenas a interface compartilhada",
+      "A construção de um objeto complexo é dividida em etapas para que o mesmo processo gere formas diferentes"
+    ],
+    "explanation": "O Singleton restringe uma classe a uma instância e expõe um jeito de alcançá-la, o que é útil para coisas como uma configuração compartilhada. Copiar de um modelo é o Prototype, deixar as subclasses escolherem o produto é o Factory Method e a construção passo a passo é o Builder."
+  },
+  {
+    "id": "ez-pat-prototype-clone",
+    "title": "Criando objetos por cópia",
+    "question": "Para qual situação o padrão Prototype foi projetado?",
+    "options": [
+      "Garantir que apenas uma instância de uma classe exista durante toda a vida útil da aplicação",
+      "Permitir que uma família de produtos relacionados seja criada sem nomear suas classes concretas em lugar algum",
+      "Criar um novo objeto copiando uma instância já configurada em vez de construí-lo do zero",
+      "Esconder um subsistema complicado atrás de uma classe simples que oferece apenas alguns poucos métodos"
+    ],
+    "explanation": "O Prototype pede a um objeto existente que se clone, o que evita repetir uma configuração custosa e mantém os chamadores independentes da classe concreta. Garantir uma instância é o Singleton, criar famílias de produtos é o Abstract Factory e esconder um subsistema é o trabalho do Facade."
+  },
+  {
+    "id": "ez-pat-simple-factory-hides-type",
+    "title": "Por que centralizar a criação de objetos em uma fábrica",
+    "question": "O código cliente chama `NotifierFactory.create(\"sms\")` e recebe um `Notifier`, em vez de escrever `new SmsNotifier()`. O que isso dá ao cliente?",
+    "options": [
+      "Torna o notificador imutável, porque objetos construídos por uma fábrica nunca podem ser modificados depois",
+      "Ele deixa de depender de classes concretas de notificação, e toda a lógica de criação fica em um único lugar",
+      "Garante uma única instância compartilhada do notificador, porque a fábrica sempre devolve o mesmo objeto",
+      "Permite que o compilador escolha o notificador em tempo de build, então nenhuma decisão ocorre durante a execução"
+    ],
+    "explanation": "Uma fábrica esconde qual classe concreta é construída, então os chamadores dependem só da abstração `Notifier` e mudanças na construção são feitas em um único ponto. Fábricas nada dizem sobre imutabilidade, podem devolver objetos novos a cada vez (instância única é o Singleton) e a escolha normalmente acontece em tempo de execução."
+  },
+  {
+    "id": "ez-pat-proxy-placeholder",
+    "title": "Um substituto que controla o acesso a um objeto",
+    "question": "Um `ImageProxy` tem a mesma interface de `RealImage`, mas só carrega o arquivo grande quando `display()` é chamado pela primeira vez. Que padrão é esse?",
+    "options": [
+      "Adapter, um invólucro que converte a interface de uma classe em outra interface que os clientes esperam",
+      "Decorator, um invólucro cuja única função é empilhar comportamento adicional sobre o objeto envolvido",
+      "Facade, um ponto de entrada único e simplificado que esconde a complexidade de todo um subsistema de classes",
+      "Proxy, um substituto com a mesma interface que controla como e quando o objeto real é acessado"
+    ],
+    "explanation": "Um proxy mantém a mesma interface do objeto real e decide quando e como alcançá-lo, aqui adiando um carregamento caro. Um adapter muda a interface, um decorator adiciona responsabilidades e um facade simplifica várias classes em um único ponto de entrada."
+  },
+  {
+    "id": "ez-pat-adapter-vs-facade",
+    "title": "Distinguindo Adapter de Facade",
+    "question": "Tanto o Adapter quanto o Facade envolvem outro código. O que distingue principalmente um Adapter?",
+    "options": [
+      "Ele esconde um subsistema inteiro de muitas classes atrás de uma nova interface muito mais simples",
+      "Ele adiciona novas responsabilidades a um objeto em tempo de execução mantendo a interface inalterada",
+      "Ele faz uma classe existente se encaixar na interface que o código cliente já espera",
+      "Ele compartilha objetos de granularidade fina entre muitos clientes para reduzir a memória usada pelo programa"
+    ],
+    "explanation": "Um Adapter traduz uma interface em outra para que classes incompatíveis trabalhem juntas, em geral envolvendo uma única classe. Esconder um subsistema é o Facade, adicionar comportamento sem mudar a interface é o Decorator e compartilhar objetos para economizar memória é o Flyweight."
+  },
+  {
+    "id": "ez-pat-structural-which-pattern",
+    "title": "Reconhecendo os padrões estruturais",
+    "question": "Com o que os padrões de projeto estruturais, como Adapter, Composite e Proxy, lidam principalmente?",
+    "options": [
+      "Como classes e objetos são compostos em estruturas maiores mantendo a flexibilidade",
+      "Como os objetos são criados, para que o código não dependa das classes exatas que instancia",
+      "Como as responsabilidades são atribuídas entre objetos e como eles se comunicam uns com os outros",
+      "Como os dados são lidos e gravados em um banco de dados mantendo o modelo de domínio separado"
+    ],
+    "explanation": "Os padrões estruturais descrevem formas de montar classes e objetos em estruturas maiores. Padrões sobre instanciação são criacionais, os de interação e responsabilidade são comportamentais e os de persistência pertencem ao acesso a dados."
+  },
+  {
+    "id": "ez-pat-observer-notify",
+    "title": "Notificação de mudança de um para muitos",
+    "question": "Quando um `StockPrice` muda, todos os gráficos e widgets de alerta registrados precisam se atualizar automaticamente, sem que `StockPrice` conheça suas classes concretas. Qual padrão se encaixa?",
+    "options": [
+      "Mediator, em que um objeto central coordena o trabalho e todos os outros objetos falam apenas com ele",
+      "Observer, em que os assinantes se registram no sujeito e são notificados quando o estado dele muda",
+      "Iterator, em que o sujeito expõe seus elementos um a um sem revelar como os armazena",
+      "Memento, em que o sujeito salva um instantâneo do seu estado para que possa ser restaurado depois"
+    ],
+    "explanation": "O Observer define uma relação de assinatura: o sujeito mantém uma lista de ouvintes e os notifica, o que o mantém desacoplado dos tipos concretos deles. Mediator centraliza a comunicação, Iterator percorre coleções e Memento captura estado para desfazer, então nenhum deles transmite mudanças."
+  },
+  {
+    "id": "ez-pat-template-method-skeleton",
+    "title": "Esqueleto fixo de algoritmo com etapas sobrescrevíveis",
+    "question": "`DataImporter.run()` sempre chama `read()`, `validate()` e `save()` nessa ordem, mas as subclasses fornecem os detalhes de `read()` para CSV ou JSON. Que padrão é esse?",
+    "options": [
+      "Strategy, em que o algoritmo é escolhido trocando um objeto que o contexto mantém em tempo de execução",
+      "Command, em que cada requisição é embrulhada em um objeto para que possa ser enfileirada, registrada ou desfeita",
+      "State, em que um objeto muda seu comportamento alternando entre objetos de estado internos ao longo do tempo",
+      "Template Method, em que a classe base fixa o algoritmo e as subclasses sobrescrevem etapas específicas"
+    ],
+    "explanation": "O Template Method mantém a ordem das etapas em um método da classe base e deixa as subclasses preencherem etapas individuais por herança. O Strategy troca um algoritmo inteiro por composição, o Command empacota requisições como objetos e o State varia o comportamento conforme a condição atual do objeto."
+  },
+  {
+    "id": "ez-pat-mediator-coordination",
+    "title": "Reduzindo dependências muitos-para-muitos entre objetos",
+    "question": "Em uma caixa de diálogo, um checkbox, uma caixa de texto e um botão referenciam uns aos outros para se habilitar e desabilitar. Qual padrão remove esses vínculos diretos?",
+    "options": [
+      "Singleton, em que uma instância global do diálogo é criada e todo componente lê o estado dela diretamente",
+      "Prototype, em que cada componente é clonado de um modelo para que nenhum compartilhe referências com outro",
+      "Mediator, em que os componentes avisam um objeto central que coordena como todos os outros devem reagir",
+      "Bridge, em que a abstração do diálogo e sua implementação de plataforma são desenvolvidas de forma independente"
+    ],
+    "explanation": "O Mediator troca um emaranhado de referências diretas por um coordenador, então os componentes conhecem apenas o mediador e ficam mais fáceis de reutilizar. O Singleton ainda deixaria leituras diretas, o Prototype trata de cópia e o Bridge separa uma abstração de sua implementação em vez de desembaraçar pares."
+  },
+  {
+    "id": "ez-pat-active-record-basics",
+    "title": "O que é um objeto Active Record",
+    "question": "No padrão Active Record, o que um objeto representa?",
+    "options": [
+      "Uma única linha do banco de dados, combinando seus dados com métodos que carregam, salvam e guardam lógica de domínio",
+      "Uma tabela inteira, com apenas métodos estáticos e sem estado, usada para executar toda consulta que a toque",
+      "Uma unidade de trabalho que rastreia entidades alteradas e descarrega todas elas em uma única transação",
+      "Um cache que mantém linhas lidas recentemente na memória para que consultas repetidas nunca cheguem ao banco"
+    ],
+    "explanation": "Um Active Record envolve uma linha e carrega tanto os dados quanto os métodos de persistência, o que é simples, mas acopla o domínio ao esquema. Um table gateway usa acesso estilo estático para uma tabela inteira, o Unit of Work rastreia mudanças entre objetos e um cache apenas evita leituras repetidas."
+  }
+]

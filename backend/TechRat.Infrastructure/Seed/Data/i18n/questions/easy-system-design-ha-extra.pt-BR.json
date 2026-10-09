@@ -1,0 +1,242 @@
+[
+  {
+    "id": "ez-sd2-ha-spof",
+    "title": "Ponto único de falha",
+    "question": "O que é um ponto único de falha (SPOF) em um sistema?",
+    "options": [
+      "Um componente cuja falha, sozinha, deixa o sistema inteiro indisponível porque nenhum outro componente pode assumir o seu papel",
+      "Um componente que recebe mais tráfego do que todos os outros e, por isso, precisa do maior tamanho de hardware",
+      "Um caminho de requisição escrito por uma única equipe e sem dono documentado nem rotação de plantão para ele",
+      "Um serviço que guarda seus dados em uma única tabela, mesmo quando várias instâncias redundantes dele estão rodando"
+    ],
+    "explanation": "Um SPOF é qualquer elemento, como um único servidor de banco ou um único balanceador, cuja queda interrompe o sistema todo por não haver substituto redundante. Alta disponibilidade elimina SPOFs com redundância e failover automático. Ser muito usado, ter um só dono ou usar uma tabela não diz nada sobre sobreviver a uma falha."
+  },
+  {
+    "id": "ez-sd2-ha-nines",
+    "title": "Lendo percentuais de disponibilidade",
+    "question": "Aproximadamente quanto tempo de indisponibilidade por ano uma meta de disponibilidade de 99,9% (\"três noves\") permite?",
+    "options": [
+      "Cerca de 53 minutos por ano, o que equivale a aproximadamente 4 minutos em um mês de 30 dias",
+      "Cerca de 8,8 horas por ano, ou uns 43 minutos em um mês de 30 dias por ano, em média",
+      "Cerca de 3,7 dias por ano, o que equivale a aproximadamente 7 horas em um mês de 30 dias",
+      "Cerca de 5 minutos por ano, o que equivale a aproximadamente 26 segundos em um mês de 30 dias"
+    ],
+    "explanation": "0,1% de um ano (8.760 horas) dá cerca de 8,8 horas, ou uns 43 minutos por mês. Cada nove a mais divide o orçamento por dez, então 99,99% permite cerca de 53 minutos por ano. Os outros valores correspondem a 99,99%, 99% e 99,999%, respectivamente, e não a três noves."
+  },
+  {
+    "id": "ez-sd2-ha-active-passive",
+    "title": "Redundância ativo-passivo",
+    "question": "Em uma configuração de alta disponibilidade ativo-passivo, o que o nó passivo faz enquanto o nó ativo está saudável?",
+    "options": [
+      "Atende metade das requisições em paralelo com o nó ativo, de modo que os dois dividem a carga igualmente",
+      "Roda apenas os jobs em lote noturnos e os relatórios, e nunca pode assumir o tráfego real dos usuários",
+      "Fica em espera, normalmente com dados atualizados, pronto para ser promovido automaticamente se o nó ativo falhar",
+      "Fica totalmente desligado e só é reconstruído a partir de uma imagem nova depois que uma queda é declarada"
+    ],
+    "explanation": "O nó passivo aguarda em standby, em geral recebendo dados replicados, e assume no failover quando o ativo falha. Dividir tráfego real é o modelo ativo-ativo. Um nó que nunca recebe tráfego real, ou que fica desligado e é reconstruído depois, não oferece failover rápido."
+  },
+  {
+    "id": "ez-sd2-ha-rto",
+    "title": "Objetivo de tempo de recuperação",
+    "question": "O que o objetivo de tempo de recuperação (RTO) de um serviço define?",
+    "options": [
+      "A quantidade máxima de dados recentes, medida em tempo, que o negócio aceita perder em uma falha",
+      "O tempo médio que uma requisição leva para ser concluída sob carga normal, medido no percentil 95",
+      "O tempo mínimo que deve passar entre dois backups consecutivos antes de o mais antigo poder ser apagado",
+      "O tempo máximo aceitável do início de uma queda até a restauração do serviço ao funcionamento normal"
+    ],
+    "explanation": "O RTO é quanto tempo o negócio tolera o serviço fora do ar antes de a recuperação estar concluída. A quantidade de dados perdidos tolerada é o RPO, outro objetivo. Latência de requisição e intervalo de retenção de backups não têm relação com metas de recuperação."
+  },
+  {
+    "id": "ez-sd2-ha-health-checks",
+    "title": "Health checks e failover",
+    "question": "Por que balanceadores de carga na frente de servidores redundantes executam health checks periódicos?",
+    "options": [
+      "Para parar de rotear requisições para uma instância que deixou de responder, só para as saudáveis",
+      "Para comprimir as respostas de cada instância, de modo que menos banda seja usada entre os servidores e os clientes",
+      "Para garantir que todas as instâncias tenham exatamente o mesmo número de conexões abertas a cada momento",
+      "Para reiniciar a frota inteira em intervalos fixos, de modo que vazamentos de memória nunca acumulem em lugar algum"
+    ],
+    "explanation": "Os health checks permitem ao balanceador detectar uma instância com falha e tirá-la de rotação automaticamente, o que transforma redundância em disponibilidade real. Balanceadores não comprimem respostas como função de health check, não forçam contagens iguais de conexões e não reiniciam a frota por agenda."
+  },
+  {
+    "id": "ez-sd2-dr-pilot-light",
+    "title": "Estratégia pilot light",
+    "question": "Em uma estratégia de recuperação de desastres pilot light, o que fica em execução na região de recuperação antes de um desastre?",
+    "options": [
+      "Uma cópia completa do ambiente de produção, dimensionada para receber todo o tráfego imediatamente após um failover",
+      "Apenas as peças centrais, como os dados replicados, com os servidores de aplicação desligados",
+      "Nada além de backups externos, que são restaurados em infraestrutura nova quando um desastre acontece",
+      "Um segundo ambiente de produção que atende uma parcela do tráfego real todos os dias ao lado do primeiro"
+    ],
+    "explanation": "O pilot light mantém o núcleo crítico, principalmente os dados replicados continuamente, rodando na região de recuperação e escala o resto durante um desastre. Uma cópia em tamanho total é warm standby, só backups é backup e restauração, e um segundo ambiente ativo é active-active. O pilot light fica entre os dois primeiros em custo e tempo de recuperação."
+  },
+  {
+    "id": "ez-sd2-dr-backup-restore",
+    "title": "Trade-off do backup e restauração",
+    "question": "Comparado a outras estratégias de DR, qual é o principal trade-off da abordagem de backup e restauração?",
+    "options": [
+      "Tem o maior custo contínuo, mas o menor tempo de recuperação e praticamente nenhuma perda potencial de dados",
+      "Não tem custo contínuo nem perda de dados, porque os backups são feitos a cada gravação individual",
+      "Menor custo contínuo, mas o maior tempo de recuperação e a maior perda potencial de dados",
+      "Tem custo contínuo moderado e exige que a aplicação rode em duas regiões ao mesmo tempo"
+    ],
+    "explanation": "Backup e restauração só paga o armazenamento dos backups até um desastre, mas recuperar significa reconstruir a infraestrutura e restaurar os dados, então RTO e RPO são os maiores. A opção cara e com perda quase zero é a multi-site ativo-ativo. Backups são periódicos, então alguma perda é esperada, e rodar em duas regiões é outra estratégia."
+  },
+  {
+    "id": "ez-sd2-dr-data-residency",
+    "title": "Escolha de região e residência de dados",
+    "question": "Uma empresa precisa, por lei, manter os dados dos clientes dentro de um país específico. O que deve guiar a escolha da região da nuvem e da região de DR?",
+    "options": [
+      "Só a região primária importa, já que a região de DR guarda cópias que os reguladores não olham em uma auditoria",
+      "A região mais barata, porque a criptografia em repouso torna irrelevante para a lei a localização física dos dados",
+      "A região com mais serviços, já que a conformidade é tratada pelo provedor e não pelo cliente",
+      "As duas regiões devem cumprir a regra legal de residência, mesmo que outra seja mais barata, ou mais perto"
+    ],
+    "explanation": "Regras de residência de dados valem para toda cópia dos dados, inclusive réplicas e backups na região de DR, então as duas regiões precisam estar em conformidade. A criptografia não elimina obrigações de residência, e o modelo de responsabilidade compartilhada deixa a escolha de onde os dados ficam com o cliente. Preço e quantidade de serviços são secundários diante da restrição legal."
+  },
+  {
+    "id": "ez-sd2-dr-region-latency",
+    "title": "Proximidade da região e latência",
+    "question": "Por que uma equipe costuma implantar a região primária de uma aplicação voltada ao usuário geograficamente perto da maioria dos seus usuários?",
+    "options": [
+      "A menor distância de rede reduz a latência de ida e volta de cada requisição entre os usuários e os servidores",
+      "Porque regiões próximas têm garantia de ficarem imunes a quedas, então nenhuma outra região precisa ser configurada",
+      "Porque os provedores de nuvem não cobram nada pela computação na região mais próxima do escritório do cliente",
+      "Porque os navegadores se recusam a se conectar a servidores em uma região distante do país do próprio usuário"
+    ],
+    "explanation": "A latência de rede cresce com a distância física, por causa da velocidade da luz e do número de saltos, então uma região próxima responde mais rápido. Proximidade não protege contra quedas, os preços variam por região e não pelo escritório do cliente, e navegadores não bloqueiam servidores distantes."
+  },
+  {
+    "id": "ez-sd2-dr-immutable-backups",
+    "title": "Backups imutáveis",
+    "question": "Que proteção um backup imutável (gravação única) acrescenta à recuperação de desastres?",
+    "options": [
+      "Os backups são restaurados mais rápido, porque o armazenamento imutável mantém todos os dados na memória das instâncias de computação",
+      "Os backups não podem ser alterados nem apagados na retenção, mesmo com credenciais de admin roubadas, então um ataque de ransomware não consegue apagá-los",
+      "Os backups deixam de precisar de testes, porque dados que não podem mudar não podem ficar corrompidos nem ilegíveis",
+      "Os backups são copiados para outra região sozinhos, sem nenhuma configuração extra de replicação ou de cópia"
+    ],
+    "explanation": "A imutabilidade, como object lock ou armazenamento WORM, bloqueia alterações e exclusões até o fim da retenção, então ransomware ou uma conta de administrador comprometida não consegue destruir a cópia de recuperação. Ela não acelera restaurações, não substitui testes de restauração e não copia dados para outra região sem configuração."
+  },
+  {
+    "id": "ez-sd2-msg-delivery",
+    "title": "Entrega pelo menos uma vez",
+    "question": "O que uma garantia de entrega at-least-once (pelo menos uma vez) significa para o consumidor de mensagens?",
+    "options": [
+      "A mensagem é entregue exatamente uma vez, então o consumidor nunca precisa se preocupar com mensagens repetidas",
+      "A mensagem pode ser descartada quando o broker está ocupado, mas nunca é entregue duas vezes ao mesmo consumidor",
+      "Nenhuma mensagem se perde, mas duplicatas podem ocorrer, então o consumidor deve tolerá-las",
+      "A mensagem é entregue ao menos uma vez por minuto até o consumidor encerrar o fluxo com um comando explícito"
+    ],
+    "explanation": "O at-least-once prioriza não perder dados: o broker reentrega até receber a confirmação, então uma queda ou timeout pode gerar duplicatas. Por isso os consumidores precisam ser idempotentes. Exactly-once é uma propriedade bem mais forte, descartar mensagens descreve at-most-once, e a entrega é guiada por confirmações, não por um relógio por minuto."
+  },
+  {
+    "id": "ez-sd2-msg-consumer-lag",
+    "title": "Lag do consumidor",
+    "question": "Em um broker baseado em log como o Kafka, o que um consumer lag que cresce continuamente indica?",
+    "options": [
+      "Os produtores estão escrevendo mensagens mais devagar que o normal, então o tópico está sendo subutilizado pelas aplicações",
+      "As mensagens estão sendo apagadas do tópico antes de qualquer consumidor ter tido a chance de lê-las",
+      "Os brokers ficaram sem partições, então as mensagens novas são mescladas em silêncio com as mais antigas",
+      "Os consumidores processam mais devagar do que os produtores escrevem, formando um backlog nas partições desse tópico"
+    ],
+    "explanation": "Lag é a diferença entre o último offset escrito em uma partição e o offset confirmado pelo grupo de consumidores. Se continua crescendo, o consumo não acompanha e é preciso acelerar o processamento ou adicionar consumidores. Produtores lentos reduziriam o lag, e mensagens perdidas ou partições mescladas não são o que a métrica mostra."
+  },
+  {
+    "id": "ez-sd2-rl-why",
+    "title": "Por que limitar a taxa de uma API",
+    "question": "Qual é um motivo central para aplicar rate limiting a uma API pública?",
+    "options": [
+      "Impedir que um cliente ou pico esgote a capacidade compartilhada e degrade o serviço para todos os outros, que é o objetivo de justiça",
+      "Reduzir o tamanho de cada resposta, para que clientes em redes lentas baixem as cargas úteis com mais rapidez",
+      "Garantir que toda requisição seja autenticada antes de chegar aos servidores de aplicação que a tratam",
+      "Fazer as consultas ao banco por trás da API rodarem mais rápido cacheando o resultado das chamadas mais frequentes"
+    ],
+    "explanation": "O rate limiting limita quanto trabalho um cliente pode exigir em uma janela de tempo, protegendo recursos compartilhados de abuso, bugs e vizinhos barulhentos. O tamanho da resposta é controlado por compressão ou paginação, a autenticação é outro mecanismo e o cache é uma ferramenta de desempenho; nenhum deles limita a demanda."
+  },
+  {
+    "id": "ez-sd2-gw-vs-lb",
+    "title": "API gateway versus balanceador de carga",
+    "question": "Em que um API gateway se diferencia de um balanceador de carga simples de camada 4?",
+    "options": [
+      "O gateway apenas repassa conexões TCP brutas para qualquer servidor, enquanto o balanceador inspeciona o conteúdo de cada requisição",
+      "Ele entende a API, então pode autenticar, limitar a taxa e rotear por caminho ou cabeçalho, e não só balancear tráfego",
+      "O gateway armazena os dados de negócio de todos os serviços de backend, enquanto o balanceador guarda só a configuração",
+      "O gateway só pode ser usado com um único servidor de backend, enquanto o balanceador sempre exige ao menos dois servidores"
+    ],
+    "explanation": "Um API gateway atua na camada de aplicação, então aplica preocupações transversais como autenticação, rate limiting e roteamento por caminho de URL ou cabeçalho. Um balanceador de camada 4 distribui conexões sem ler a requisição. As outras opções invertem os papéis ou inventam restrições que não existem."
+  },
+  {
+    "id": "ez-sd2-res-timeout",
+    "title": "Por que toda chamada remota precisa de timeout",
+    "question": "Por que um cliente deve definir um timeout em toda chamada a um serviço remoto?",
+    "options": [
+      "Sem ele, o serviço remoto rejeitaria a chamada, porque o protocolo exige um cabeçalho de timeout nas requisições",
+      "Sem ele, a resposta chegaria corrompida, já que os timeouts é que mantêm os pacotes de rede em ordem",
+      "Sem ele, uma dependência travada pode bloquear threads e conexões indefinidamente e espalhar a falha até os chamadores do serviço",
+      "Sem ele, o cliente não poderia fazer retry, porque um retry sempre é disparado por um código de resposta de sucesso"
+    ],
+    "explanation": "Uma chamada sem timeout pode esperar para sempre por uma dependência lenta ou morta, prendendo threads e conexões até o chamador também falhar. O timeout limita essa espera e permite falhar rápido, tentar de novo ou usar um fallback. Nenhum protocolo exige cabeçalho de timeout, a ordem dos pacotes é tratada pelo TCP e retries são disparados por falhas."
+  },
+  {
+    "id": "ez-sd2-res-retry-which",
+    "title": "Quais falhas valem um retry",
+    "question": "Qual falha é uma boa candidata a retry automático com backoff?",
+    "options": [
+      "Um 400 Bad Request causado por um corpo JSON malformado, que falha do mesmo jeito a cada repetição",
+      "Um 401 Unauthorized causado por uma credencial expirada, que falha até um novo token ser emitido",
+      "Um 404 Not Found para um id de pedido que não existe, que continua devolvendo a mesma resposta",
+      "Um 503 Service Unavailable de uma sobrecarga breve, que pode funcionar um instante depois"
+    ],
+    "explanation": "Erros transitórios como 503, timeouts ou resets de conexão podem passar sozinhos, então tentar de novo com backoff exponencial e jitter costuma funcionar. Erros de cliente como 400, 401 e 404 são determinísticos: repetir a mesma requisição não muda o resultado e só adiciona carga."
+  },
+  {
+    "id": "ez-sd2-idem-increment",
+    "title": "Operações não idempotentes",
+    "question": "Qual operação NÃO é idempotente, de modo que repeti-la após um timeout pode corromper os dados?",
+    "options": [
+      "\"Somar 10 ao saldo da conta\", pois cada repetição soma mais 10 e pode creditar duas vezes",
+      "\"Definir o saldo da conta como 110\", porque cada repetição deixa o saldo em 110",
+      "\"Marcar o pedido 42 como enviado\", porque cada repetição mantém o pedido no estado enviado",
+      "\"Apagar a sessão de id abc\", porque cada repetição deixa essa sessão ausente"
+    ],
+    "explanation": "Uma operação é idempotente quando aplicá-la várias vezes tem o mesmo efeito de aplicá-la uma vez. Mudanças relativas como \"somar 10\" se acumulam a cada retry, enquanto atribuições absolutas, transições para um estado fixo e exclusões de um id convergem para o mesmo estado final."
+  },
+  {
+    "id": "ez-sd2-cons-eventual",
+    "title": "Consistência eventual",
+    "question": "O que a consistência eventual garante sobre dados replicados?",
+    "options": [
+      "Toda leitura sempre devolve a escrita mais recente, porque todas as réplicas são atualizadas no mesmo instante exato",
+      "Sem novas escritas, as réplicas convergem para o mesmo valor, embora leituras possam estar defasadas nesse meio-tempo",
+      "As réplicas podem manter valores diferentes para sempre, porque o sistema nunca tenta reconciliá-las depois",
+      "As escritas são rejeitadas até que toda réplica as confirme, então nenhum cliente jamais vê um valor mais antigo"
+    ],
+    "explanation": "A consistência eventual promete convergência ao longo do tempo, não acordo instantâneo, então uma leitura em uma réplica atrasada pode devolver dados antigos. Sempre ver a escrita mais recente é consistência forte, e bloquear escritas até todas as réplicas confirmarem é uma abordagem síncrona. Réplicas que nunca convergem quebrariam a própria garantia."
+  },
+  {
+    "id": "ez-sd2-dt-no-cross-service-tx",
+    "title": "ACID entre serviços",
+    "question": "Por que uma única transação local de banco não consegue manter consistentes um serviço de pedidos e um de pagamentos quando cada um tem seu próprio banco?",
+    "options": [
+      "Uma transação local é limitada a uma tabela, então não consegue atualizar duas linhas nem dentro do mesmo banco",
+      "Uma transação local sempre faz commit automático após um segundo, o que é menos que qualquer chamada de rede",
+      "Uma transação local cobre um só banco, então o outro serviço precisa de um padrão como a saga",
+      "Uma transação local só roda em serviços escritos na mesma linguagem, o que raramente acontece na prática"
+    ],
+    "explanation": "Transações ACID têm escopo de um único banco, então um commit em um serviço não consegue desfazer o que outro serviço já gravou. As equipes usam sagas com ações compensatórias, ou mais raramente two-phase commit, para coordenar. Transações locais podem abranger várias linhas e tabelas, não têm limite de um segundo e não dependem da linguagem."
+  },
+  {
+    "id": "ez-sd2-event-decoupling",
+    "title": "Desacoplamento com eventos",
+    "question": "Qual é o principal benefício de desacoplamento de publicar um evento \"OrderPlaced\" em vez de chamar diretamente cada serviço interessado?",
+    "options": [
+      "Os consumidores têm garantia de processar o evento antes de o serviço de pedidos terminar de responder ao seu próprio chamador",
+      "O evento elimina a necessidade de um message broker, já que os consumidores o leem direto da memória do serviço de pedidos",
+      "O evento faz todos os consumidores compartilharem um mesmo esquema de banco, o que mantém seus modelos de dados idênticos",
+      "O publicador não precisa conhecer os consumidores, então novos podem ser adicionados sem alterá-lo, ou reimplantá-lo"
+    ],
+    "explanation": "Com eventos, o publicador apenas anuncia um fato e os consumidores assinam de forma independente, então adicionar uma nova reação não toca no publicador. O processamento costuma ser assíncrono, sem garantia de terminar antes da resposta. Eventos normalmente passam por um broker, e os consumidores mantêm seus próprios modelos de dados."
+  }
+]
