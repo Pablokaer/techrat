@@ -50,7 +50,7 @@ export function StudyResources(props: { roadmap: string; module?: never } | { mo
   );
 }
 
-function SourceList({ sources }: { sources: StudySource[] }) {
+export function SourceList({ sources }: { sources: StudySource[] }) {
   const t = useT().modules.resources;
   return (
     <ul className="mt-2 divide-y divide-border">

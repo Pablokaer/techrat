@@ -112,4 +112,60 @@ public class StudyResourcesTests(TechRatFactory api)
         Assert.NotEmpty(catalog.ModuleSlugs);
         Assert.Empty(catalog.ModuleSlugs.Except(modules));
     }
+
+    [Fact]
+    public async Task A_topic_library_gathers_the_reading_of_its_modules_and_the_pages_its_questions_cite()
+    {
+        var res = await api.CreateClient().GetFromJsonAsync<TopicResourcesDto>("/api/v1/topics/data-structures/resources", TechRatFactory.Json);
+
+        Assert.Contains(res!.Modules, m => m.Slug == "linear-data-structures");
+        Assert.All(res.Modules, m => Assert.All(m.Topics, t => Assert.NotEmpty(t.Sources)));
+        Assert.NotEmpty(res.Cited);
+        Assert.All(res.Cited.SelectMany(c => c.References), r =>
+        {
+            Assert.StartsWith("https://", r.Url);
+            Assert.True(r.Questions >= 1);
+            Assert.False(string.IsNullOrWhiteSpace(r.Host));
+        });
+        Assert.True(res.TotalLinks >= res.Modules.SelectMany(m => m.Topics).SelectMany(t => t.Sources).Count());
+    }
+
+    [Fact]
+    public async Task A_topic_library_lists_each_link_once()
+    {
+        var res = await api.CreateClient().GetFromJsonAsync<TopicResourcesDto>("/api/v1/topics/system-design/resources", TechRatFactory.Json);
+
+        var curated = res!.Modules.SelectMany(m => m.Topics).SelectMany(t => t.Sources).Select(s => s.Url).ToList();
+        Assert.Equal(curated.Count, curated.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Contains(res.Modules, m => m.Slug == "system-design-foundations");
+    }
+
+    [Fact]
+    public async Task A_topic_library_follows_the_request_language()
+    {
+        var en = await api.CreateClient().GetFromJsonAsync<TopicResourcesDto>("/api/v1/topics/data-structures/resources", TechRatFactory.Json);
+        var pt = await Portuguese(api.CreateClient()).GetFromJsonAsync<TopicResourcesDto>("/api/v1/topics/data-structures/resources", TechRatFactory.Json);
+
+        Assert.Equal("Linked Lists, Stacks & Queues", en!.Modules.First(m => m.Slug == "linear-data-structures").Name);
+        Assert.NotEqual(en.Modules.First(m => m.Slug == "linear-data-structures").Name, pt!.Modules.First(m => m.Slug == "linear-data-structures").Name);
+        Assert.Contains(pt.Cited, c => c.Slug == "linked-lists");
+    }
+
+    [Fact]
+    public async Task Every_active_topic_has_a_curated_library()
+    {
+        var slugs = await api.WithDbAsync(db => db.Topics.Where(t => t.IsActive).Select(t => t.Slug).ToListAsync());
+        var client = api.CreateClient();
+        foreach (var slug in slugs.Where(s => !s.StartsWith("zz-", StringComparison.Ordinal)))
+        {
+            var res = await client.GetFromJsonAsync<TopicResourcesDto>($"/api/v1/topics/{slug}/resources", TechRatFactory.Json);
+            Assert.True(res!.Modules.Count > 0, $"Topic {slug} has no curated reading: add resources for a module that teaches it.");
+        }
+    }
+
+    [Fact]
+    public async Task An_unknown_topic_has_no_library()
+    {
+        Assert.Equal(HttpStatusCode.NotFound, (await api.CreateClient().GetAsync("/api/v1/topics/nope/resources")).StatusCode);
+    }
 }

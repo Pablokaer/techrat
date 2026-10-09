@@ -77,6 +77,9 @@ public sealed class TopicsEndpoints : IEndpointModule
             .WithSummary("Knowledge tree: topics, subtopics and question counts");
         topics.MapGet("/{slug}", async (string slug, CatalogService catalog, ICurrentUser me, CancellationToken ct) =>
             TypedResults.Ok(await catalog.GetTopicAsync(slug, me.UserId, ct)));
+        topics.MapGet("/{slug}/resources", async (string slug, StudyResourceService svc, CancellationToken ct) =>
+            TypedResults.Ok(await svc.ForTopicAsync(slug, ct)))
+            .WithSummary("Topic library: the curated reading of the modules that teach the topic plus the pages its questions cite, in the request language");
         topics.MapGet("/{slug}/questions", async (string slug, string? subtopic, Difficulty? difficulty, CatalogService catalog, ICurrentUser me, CancellationToken ct) =>
             TypedResults.Ok(await catalog.ListTopicQuestionsAsync(slug, subtopic, difficulty, me.RequireUserId(), ct))).RequireAuthorization()
             .WithSummary("Learn: the topic's questions (filter by subtopic and difficulty) with the learner's latest result on each; answer the chosen ones with a Learn session");
