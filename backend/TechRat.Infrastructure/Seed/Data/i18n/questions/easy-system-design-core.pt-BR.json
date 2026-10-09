@@ -1,0 +1,242 @@
+[
+  {
+    "id": "ez-sd1-fund-latency-vs-throughput",
+    "title": "Latência versus vazão",
+    "question": "Qual afirmação distingue corretamente latência de vazão (throughput)?",
+    "options": [
+      "Latência é quantas requisições o sistema consegue concluir por segundo, enquanto vazão é quanto tempo uma única requisição leva para terminar do início ao fim",
+      "Latência mede apenas o tempo gasto na rede, enquanto vazão mede apenas o tempo de CPU gasto dentro do processo do servidor da aplicação",
+      "Latência é quanto tempo uma única requisição leva para ser concluída, enquanto vazão é quantas requisições o sistema conclui por unidade de tempo",
+      "Latência e vazão são dois nomes para a mesma métrica, normalmente reportada como uma média calculada ao longo de um dia inteiro de tráfego de produção"
+    ],
+    "explanation": "Latência é um tempo por operação; vazão é uma taxa de operações. Um sistema pode ter vazão alta e ainda assim ser lento para cada usuário, por exemplo ao processar em lotes. Trocar as definições, separá-las entre rede e CPU ou tratá-las como uma só métrica perde essa distinção."
+  },
+  {
+    "id": "ez-sd1-fund-availability-nines",
+    "title": "O que 99,9% de disponibilidade permite",
+    "question": "Um serviço promete 99,9% de disponibilidade ao longo de um ano. Quanto tempo total de indisponibilidade isso permite, aproximadamente?",
+    "options": [
+      "Cerca de 8,8 horas por ano",
+      "Cerca de 52 minutos por ano, porque cada nove adicional divide a indisponibilidade permitida por dez, a partir de um dia inteiro",
+      "Cerca de 3,7 dias por ano, porque 99,9% significa que um dia a cada mil dias pode ser perdido por falhas",
+      "Cerca de 5 minutos por ano, porque três noves é o nível em que apenas uma única reinicialização curta é permitida"
+    ],
+    "explanation": "Disponibilidade é a fração do tempo em que o serviço está no ar: 0,1% de 8.760 horas dá cerca de 8,8 horas. O valor de 52 minutos corresponde a 99,99%, e o de 3,7 dias é aproximadamente 99%. Conhecer essas ordens de grandeza ajuda a julgar se um SLA é realista."
+  },
+  {
+    "id": "ez-sd1-fund-single-point-of-failure",
+    "title": "Ponto único de falha",
+    "question": "O que é um ponto único de falha (SPOF) no desenho de um sistema?",
+    "options": [
+      "Um componente escrito em uma única linguagem de programação, o que dificulta a contratação de engenheiros que consigam mantê-lo",
+      "Um caminho de requisição que passa por apenas um salto de rede, o que deixa sua latência menor que a de qualquer outro caminho do sistema",
+      "Uma falha que acontece só uma vez na vida de um serviço, então ela não precisa de monitoramento nem de regras de alerta",
+      "Um componente cuja falha derruba o sistema inteiro porque nada mais pode assumir o trabalho dele"
+    ],
+    "explanation": "Um SPOF se define pela ausência de redundância: se aquele banco, balanceador ou nó cair, tudo que depende dele fica fora do ar. A correção usual é manter cópias redundantes com failover automático. Escolha de linguagem, número de saltos e frequência da falha não definem um SPOF."
+  },
+  {
+    "id": "ez-sd1-fund-4xx-vs-5xx",
+    "title": "Códigos de status 4xx versus 5xx",
+    "question": "Uma API retorna `503 Service Unavailable` para uma requisição válida enquanto seu banco de dados está fora do ar. O que a classe 5xx de códigos de status indica?",
+    "options": [
+      "O cliente enviou uma requisição malformada ou não autorizada, então ele precisa alterá-la antes de tentar novamente",
+      "O servidor falhou ou não conseguiu tratar uma requisição que parece válida, então tentar de novo mais tarde pode funcionar",
+      "A requisição foi redirecionada para outra URL, então o cliente deve seguir o cabeçalho `Location` para chegar ao recurso",
+      "A requisição foi bem-sucedida mas o corpo da resposta está vazio, então o cliente deve tratá-la como operação concluída"
+    ],
+    "explanation": "Os códigos da faixa 5xx culpam o lado do servidor, e por isso clientes e balanceadores costumam repeti-los com backoff. A classe 4xx culpa a requisição do cliente, 3xx sinaliza redirecionamento e 2xx sinaliza sucesso. Escolher a classe certa diz ao chamador se vale a pena tentar de novo."
+  },
+  {
+    "id": "ez-sd1-cache-lru-eviction",
+    "title": "Remoção por LRU",
+    "question": "Um cache cheio precisa descartar uma entrada para guardar uma nova. O que uma política de remoção LRU (least recently used) remove?",
+    "options": [
+      "A entrada que foi inserida primeiro no cache, independentemente de quantas vezes foi lida desde então",
+      "A entrada que está há mais tempo sem ser lida nem escrita",
+      "A entrada com o maior valor em bytes, para que a maior quantidade de memória seja liberada por uma única remoção",
+      "A entrada solicitada com mais frequência, para que os dados populares sejam atualizados a partir da fonte da verdade"
+    ],
+    "explanation": "O LRU parte do princípio de que um dado não tocado recentemente é o menos provável de ser necessário em breve, então remove essa entrada. Remover a mais antiga inserida é FIFO, remover a maior é uma política baseada em tamanho, e remover a mais popular prejudicaria ao máximo a taxa de acertos."
+  },
+  {
+    "id": "ez-sd1-cache-hit-ratio",
+    "title": "Taxa de acerto do cache",
+    "question": "O que a taxa de acerto (hit ratio) de um cache mede?",
+    "options": [
+      "A parcela das entradas em cache que já expiraram, o que indica quanta memória está sendo desperdiçada com dados obsoletos",
+      "A parcela das linhas do armazenamento de dados que atualmente estão no cache, o que indica o tamanho do cache em relação a ele",
+      "A parcela das requisições de escrita que o cache aceitou, o que indica quão bem o cache absorve o tráfego que altera dados",
+      "A parcela das consultas que foram respondidas pelo cache em vez de irem ao armazenamento de dados subjacente"
+    ],
+    "explanation": "A taxa de acerto é o número de acertos dividido pelo total de consultas. Uma taxa baixa significa que a maioria das requisições ainda chega ao banco, então o cache só soma latência e custo sem muito benefício. Entradas expiradas, cobertura do cache e escritas aceitas são grandezas diferentes."
+  },
+  {
+    "id": "ez-sd1-cache-what-to-cache",
+    "title": "Bons candidatos para cache",
+    "question": "Qual dado é o melhor candidato para ser colocado em um cache?",
+    "options": [
+      "Uma página de catálogo de produtos lida milhares de vezes por minuto e alterada apenas algumas vezes por dia",
+      "O saldo de uma conta bancária que muda a cada transação e precisa sempre mostrar ao cliente o valor exato e atual",
+      "Uma senha de uso único gerada a cada tentativa de login e que nunca é solicitada uma segunda vez por ninguém",
+      "Um relatório noturno grande gerado uma vez, baixado por um único analista e apagado logo em seguida"
+    ],
+    "explanation": "O cache compensa quando o dado é lido muito mais vezes do que muda, de modo que cada cópia guardada atende muitas requisições. Valores exatos que mudam o tempo todo correm o risco de ficar obsoletos, e dados lidos uma única vez nunca geram um segundo acerto, então cachear só acrescenta custo."
+  },
+  {
+    "id": "ez-sd1-cdn-edge-purpose",
+    "title": "Finalidade de um edge de CDN",
+    "question": "Por que sites servem imagens e scripts por meio de uma rede de entrega de conteúdo (CDN)?",
+    "options": [
+      "A CDN reescreve cada arquivo em uma linguagem de programação menor, o que diminui a quantidade de CPU usada no navegador",
+      "A CDN substitui o banco de dados da aplicação, e por isso a origem não precisa mais armazenar os arquivos originais",
+      "Servidores de borda próximos aos usuários guardam cópias dos arquivos, o que encurta a distância até cada usuário e reduz a carga na origem",
+      "A CDN criptografa os arquivos para que apenas usuários pagantes possam lê-los, que é o principal motivo para usar uma"
+    ],
+    "explanation": "Uma CDN é um cache distribuído geograficamente: os usuários baixam de uma borda próxima, e a origem só é consultada nos misses. Ela não traduz código, não substitui o armazenamento da origem (que continua sendo a fonte da verdade) e controle de acesso é outro recurso."
+  },
+  {
+    "id": "ez-sd1-cdn-cache-miss",
+    "title": "Cache miss na CDN",
+    "question": "Um usuário pede um arquivo que um ponto de borda da CDN não tem em seu cache. O que normalmente acontece?",
+    "options": [
+      "A borda devolve um erro ao usuário, e um operador precisa enviar o arquivo manualmente para aquele local",
+      "A borda redireciona o usuário para uma borda aleatória em outra região, que repete a busca até alguma borda ter o arquivo",
+      "A borda serve uma resposta vazia como substituta e pede ao navegador que solicite o arquivo real de novo após um dia",
+      "A borda busca o arquivo na origem, o devolve ao usuário e normalmente guarda uma cópia para as próximas requisições"
+    ],
+    "explanation": "Em um miss a borda age como um proxy reverso com cache: pede o objeto à origem, responde e mantém uma cópia conforme os cabeçalhos de cache. Os usuários seguintes perto dessa borda recebem um hit. Envio manual, redirecionamentos aleatórios e respostas substitutas não são como as CDNs funcionam."
+  },
+  {
+    "id": "ez-sd1-cdn-no-store",
+    "title": "Cache-Control no-store",
+    "question": "O que o cabeçalho de resposta `Cache-Control: no-store` diz aos caches para fazerem?",
+    "options": [
+      "Guardar a resposta apenas no navegador e nunca em uma CDN, mas reutilizá-la livremente sem nenhuma revalidação",
+      "Não guardar nenhuma cópia da resposta, nem no navegador nem em caches compartilhados como uma CDN",
+      "Guardar a resposta em todos os caches, mas consultar a origem antes de cada reutilização para ver se ela mudou",
+      "Guardar a resposta por exatamente uma hora e depois apagá-la, independentemente do que a origem enviar depois"
+    ],
+    "explanation": "`no-store` proíbe armazenar a resposta, o que serve para dados sensíveis. Guardar só no navegador é `private`, verificar antes de cada reutilização é `no-cache` (apesar do nome) e um tempo de vida fixo é definido com `max-age`."
+  },
+  {
+    "id": "ez-sd1-scale-horizontal-definition",
+    "title": "Escalabilidade horizontal",
+    "question": "O que significa escalar horizontalmente (scale out)?",
+    "options": [
+      "Atualizar um único servidor com um processador mais rápido e mais memória para que ele aguente sozinho uma carga maior",
+      "Mover a aplicação para outro data center para que ela fique fisicamente mais perto do maior grupo de usuários",
+      "Adicionar mais máquinas ou instâncias que dividem o trabalho, em vez de tornar uma única máquina maior",
+      "Dividir o código-fonte em mais arquivos e pacotes para que mais engenheiros possam trabalhar nele ao mesmo tempo"
+    ],
+    "explanation": "Escalar horizontalmente aumenta a capacidade executando várias cópias atrás de um balanceador, o que também remove o teto da maior máquina disponível. Tornar uma máquina maior é escalabilidade vertical. Mudar o serviço de lugar ou organizar o código não adiciona capacidade de processamento."
+  },
+  {
+    "id": "ez-sd1-scale-elasticity",
+    "title": "Elasticidade na nuvem",
+    "question": "O que significa elasticidade para uma aplicação na nuvem?",
+    "options": [
+      "A capacidade aumenta automaticamente quando a demanda sobe e diminui de novo quando ela cai, então você paga só pelo que precisa",
+      "A capacidade fica fixa no nível de pico para sempre, de modo que a aplicação nunca precisa mudar seu número de servidores",
+      "A capacidade só aumenta quando um engenheiro abre um chamado, o que mantém toda mudança de infraestrutura revisada e previsível",
+      "A capacidade é dividida igualmente entre todas as aplicações da empresa, para que nenhuma aplicação fique sem recursos"
+    ],
+    "explanation": "Elasticidade é a capacidade de adicionar e remover recursos conforme a carga muda, tipicamente por autoscaling. Provisionar sempre para o pico desperdiça dinheiro, chamados manuais reagem devagar e a divisão igual ignora que cargas diferentes precisam de quantidades diferentes."
+  },
+  {
+    "id": "ez-sd1-scale-uploads-object-storage",
+    "title": "Onde guardar arquivos enviados",
+    "question": "Uma aplicação web roda em três instâncias atrás de um balanceador e usuários enviam fotos de perfil. Onde os arquivos devem ficar para que todas as instâncias possam servi-los?",
+    "options": [
+      "Em um armazenamento de objetos compartilhado, lido por todas as instâncias, em vez do disco de cada instância",
+      "No disco local da instância que recebeu o envio, já que cada instância então serve rapidamente seus próprios arquivos",
+      "Na memória da instância que recebeu o envio, porque a memória é mais rápida de ler do que qualquer serviço compartilhado",
+      "Em um cookie no navegador do usuário, para que as instâncias nunca precisem guardar a foto do lado do servidor"
+    ],
+    "explanation": "As instâncias devem ser intercambiáveis. Um arquivo guardado em um disco local some quando o balanceador manda a próxima requisição para outra instância, e desaparece se essa instância for substituída. O armazenamento de objetos compartilhado mantém a camada web sem estado; cookies são pequenos demais para fotos."
+  },
+  {
+    "id": "ez-sd1-lb-purpose",
+    "title": "O que um balanceador de carga faz",
+    "question": "Qual é a principal função de um balanceador de carga colocado na frente de vários servidores de aplicação?",
+    "options": [
+      "Armazenar os dados da aplicação de forma permanente para que os servidores não precisem de um banco de dados próprio",
+      "Compilar e implantar novas versões do código em todos os servidores sempre que um desenvolvedor enviar um novo commit",
+      "Distribuir as requisições recebidas entre os servidores para que nenhum servidor fique sobrecarregado",
+      "Traduzir cada requisição para outro protocolo para que os servidores recebam apenas mensagens internas"
+    ],
+    "explanation": "Um balanceador de carga é um distribuidor de tráfego: os clientes falam com um único endereço e ele encaminha cada requisição para um dos servidores saudáveis. Isso melhora capacidade e disponibilidade. Armazenamento persistente, implantação e tradução de protocolo são outras responsabilidades."
+  },
+  {
+    "id": "ez-sd1-lb-round-robin",
+    "title": "Algoritmo round robin",
+    "question": "Como um algoritmo de balanceamento round robin escolhe o servidor para cada requisição?",
+    "options": [
+      "Ele sempre envia a requisição ao servidor que tem o menor número de conexões ativas naquele exato momento",
+      "Ele envia as requisições aos servidores um após o outro, em uma ordem rotativa fixa",
+      "Ele aplica um hash ao endereço IP do cliente para que o mesmo cliente seja sempre roteado ao mesmo servidor, toda vez",
+      "Ele escolhe o servidor geograficamente mais próximo do cliente de acordo com uma tabela de medições de latência"
+    ],
+    "explanation": "O round robin simplesmente percorre a lista: primeiro, segundo, terceiro e depois o primeiro de novo. Escolher o menor número de conexões ativas é least connections, aplicar hash ao endereço do cliente é IP hash (que dá afinidade) e escolher por proximidade é roteamento por latência ou geográfico."
+  },
+  {
+    "id": "ez-sd1-lb-health-check-removal",
+    "title": "Health checks e servidores com falha",
+    "question": "Um dos quatro servidores atrás de um balanceador de carga cai. Como o balanceador normalmente evita enviar usuários a ele?",
+    "options": [
+      "Ele espera os usuários reportarem erros e depois um administrador edita a lista de servidores manualmente",
+      "Ele envia cada requisição aos quatro servidores ao mesmo tempo e devolve a resposta que chegar primeiro",
+      "Ele reinicia sozinho o servidor que caiu e continua roteando para ele enquanto o sistema operacional inicializa",
+      "Ele sonda cada servidor periodicamente e para de rotear para qualquer servidor que falhe no health check"
+    ],
+    "explanation": "Os health checks permitem ao balanceador detectar falhas em segundos e tirar alvos não saudáveis da rotação, recolocando-os quando as sondas voltam a passar. Edição manual é lenta demais, enviar a todos desperdiça capacidade, e balanceadores também não reiniciam máquinas."
+  },
+  {
+    "id": "ez-sd1-lb-redundant-pair",
+    "title": "Evitando um SPOF no balanceador",
+    "question": "Um único balanceador de carga fica na frente de dez servidores saudáveis, mas o site inteiro cai quando ele falha. Qual é o remédio padrão?",
+    "options": [
+      "Trocar o balanceador por uma única máquina maior, o que torna muito menos provável uma falha dessa máquina",
+      "Remover o balanceador e dar aos usuários os endereços dos dez servidores para que escolham um por conta própria",
+      "Executar pelo menos dois balanceadores, de preferência em zonas diferentes, para que um assuma quando o outro falhar",
+      "Adicionar mais servidores de aplicação atrás dele, já que servidores extras também tornam o próprio balanceador mais confiável"
+    ],
+    "explanation": "Distribuir a carga entre muitos servidores não ajuda se a porta de entrada é uma única instância. Balanceadores redundantes, geralmente serviços gerenciados que abrangem zonas, eliminam esse ponto único de falha. Uma máquina maior ainda falha, e empurrar a escolha do servidor para os usuários é frágil."
+  },
+  {
+    "id": "ez-sd1-repl-leader-follower",
+    "title": "Replicação líder-seguidor",
+    "question": "Em uma configuração de banco de dados líder-seguidor (primário-réplica), para onde as escritas da aplicação normalmente vão?",
+    "options": [
+      "Para qualquer seguidor escolhido ao acaso, que depois repassa a alteração ao líder uma vez por dia",
+      "Para todos os seguidores ao mesmo tempo, porque o líder só atende leituras e nunca aceita alterações",
+      "Para o cache da aplicação primeiro, que é responsável por decidir qual nó do banco armazena a linha",
+      "Para o líder, que depois envia as alterações aos seguidores"
+    ],
+    "explanation": "Com um único líder existe uma ordem autoritativa das alterações, e os seguidores aplicam esse fluxo. As leituras podem ser distribuídas entre os seguidores, mas as escritas são aceitas pelo líder. Destinos aleatórios, escritas só nos seguidores e caches decidindo o posicionamento não são como essa topologia funciona."
+  },
+  {
+    "id": "ez-sd1-repl-sharding-definition",
+    "title": "O que é sharding",
+    "question": "O que significa fazer sharding (particionamento horizontal) de um banco de dados?",
+    "options": [
+      "Dividir as linhas de um conjunto de dados entre vários nós, de modo que cada nó armazene apenas um subconjunto dos dados",
+      "Manter uma cópia completa e idêntica do conjunto de dados em vários nós para que qualquer um deles responda a toda consulta",
+      "Dividir as colunas de uma tabela em bancos separados para que cada nó armazene um atributo de cada linha",
+      "Comprimir linhas antigas em um arquivo morto para que o nó primário guarde apenas os dados do último mês"
+    ],
+    "explanation": "O sharding distribui linhas diferentes para nós diferentes, geralmente por uma chave de shard, o que permite que armazenamento e carga de escrita cresçam com o número de nós. Cópias completas são replicação, dividir colunas é particionamento vertical e arquivamento é gestão do ciclo de vida dos dados."
+  },
+  {
+    "id": "ez-sd1-repl-lag-definition",
+    "title": "Atraso de replicação",
+    "question": "O que é o atraso de replicação (replication lag)?",
+    "options": [
+      "O tempo que uma réplica precisa para inicializar depois de reiniciar, durante o qual ela não aceita conexões de nenhuma aplicação",
+      "O intervalo entre uma alteração ser confirmada no líder e essa alteração ficar visível em uma réplica",
+      "O tempo extra que uma consulta leva quando sua tabela tem índices demais, o que desacelera toda escrita no líder",
+      "O período após o qual linhas antigas são apagadas do líder, de modo que depois só existam nas réplicas"
+    ],
+    "explanation": "Com replicação assíncrona, a réplica aplica as alterações um pouco depois do líder, então ler dela pode devolver dados mais antigos por um instante. Tempo de inicialização, custo de índices e retenção não têm relação, embora os três possam afetar o desempenho."
+  }
+]
