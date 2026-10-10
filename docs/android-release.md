@@ -113,8 +113,9 @@ eas build --platform android --profile production
 | Account deletion web link | `https://techrat.io/account/delete` |
 | Terms (store listing, optional) | `https://techrat.io/terms` |
 
-Both legal pages are **drafts that need legal review** (they carry visible `TODO` markers; the company name and contact
-email are set in `apps/web/src/lib/legal.ts`). Do not submit to production before reviewing them.
+Both legal pages are **drafts that need legal review** (a banner says so, and one `TODO(owner)` marker is left: the country of the
+Hostinger data centre; the operator, contact email, Irish law, minimum age 16, Resend in Ireland, backup and log periods
+are filled in, see [ADR-0033](adr/0033-backups-log-retention-and-irish-legal-basis.md)). Do not submit to production before a review.
 
 ## Automating later (not enabled)
 
@@ -147,8 +148,8 @@ Add an environment with required reviewers before enabling it: a release should 
 Everything the repository can do for the release is done and verified (typecheck, lint, 110 mobile tests, `expo-doctor` 21/21,
 production config, Android bundle export). What remains needs you:
 
-- [ ] Resolve every `TODO(owner)` / `TODO(legal)` in `apps/web/src/lib/legal.ts` and the privacy/terms messages, have them
-      reviewed, then set `LEGAL.draft` to `false`. Deploy the web app so `/privacy`, `/terms` and `/account/delete` are live.
+- [ ] State the country of the Hostinger data centre (hPanel, VPS, Overview) in the one `TODO(owner)` left in the privacy
+      messages (en and pt-BR), have the policy and terms reviewed by a solicitor, then set `LEGAL.draft` to `false`. Deploy the web app so `/privacy`, `/terms` and `/account/delete` are live.
 - [ ] Confirm `https://techrat.io` serves the API (register, login, refresh) and sends email.
 - [ ] Create the Expo account, then `eas login` and `eas init` (commit the `projectId`).
 - [ ] `eas build --platform android --profile preview`, install the APK on a real phone and walk through register, practice,
