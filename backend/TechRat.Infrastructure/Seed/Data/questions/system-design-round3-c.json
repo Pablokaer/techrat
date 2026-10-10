@@ -1,0 +1,155 @@
+[
+  {
+    "id": "sd3c-repl-virtual-nodes",
+    "topic": "system-design",
+    "subtopic": "replication-partitioning",
+    "difficulty": "Medium",
+    "title": "Uneven shares on a hash ring",
+    "question": "A consistent-hash ring places each of 5 cache nodes at a single point. One node owns about 40% of the keys, another only 6%, and the busy node keeps running out of memory. Which change evens out the load without remapping most keys?",
+    "options": [
+      "Switch to hash(key) mod N over the same 5 nodes, so each node gets exactly one fifth of the key space by construction",
+      "Re-hash every key with a stronger hash function, so keys spread evenly even though each node still sits at one position",
+      "Give every physical node many virtual points on the ring (for example 100 to 200), so each owns many small arcs",
+      "Add a second ring with the same node positions and store each key on both rings so that the copy absorbs the skew"
+    ],
+    "correctIndex": 2,
+    "explanation": "With one point per node, the arcs between random points differ a lot, so one node can own several times its fair share. Virtual nodes give each machine many points, so the total arc length per machine evens out, and when a node joins or leaves only its small arcs move. A mod-N rule balances perfectly but remaps almost every key whenever N changes, a better hash spreads keys uniformly but not the node positions, and a second ring with the same positions repeats the same imbalance.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/sharding"
+  },
+  {
+    "id": "sd3c-gw-trusted-network-header",
+    "topic": "system-design",
+    "subtopic": "api-gateway",
+    "difficulty": "Medium",
+    "title": "Trusting a header inside the network",
+    "question": "An API gateway validates JWTs and forwards requests to internal services over a private network. The services trust any caller on that network and read the `X-User-Id` header to decide whose data to return. A compromised internal batch job calls the orders service directly with another customer's id in that header and reads their orders. What is the best correction?",
+    "options": [
+      "Make each service authenticate its callers (mTLS or service credentials) and verify the user from a signed token",
+      "Make the gateway strip `X-User-Id` from incoming client requests, which stops outside users but not callers that are already inside",
+      "Encrypt the internal traffic with TLS, so the header can no longer be read or altered while it travels between the services",
+      "Add a rate limit to the orders service so one internal caller cannot read many customers' orders in a short time"
+    ],
+    "correctIndex": 0,
+    "explanation": "Authenticating only at the edge leaves every service trusting the network, so anything inside it can forge the header. A zero-trust design makes each service verify who is calling (mTLS or service credentials) and who the end user is, from a signed token, so a plain header carries no authority. Stripping the header at the gateway blocks only external clients, TLS alone encrypts but does not prove the caller may act as that user, and a rate limit slows the abuse without preventing it.",
+    "referenceUrl": "https://csrc.nist.gov/pubs/sp/800/207/final"
+  },
+  {
+    "id": "sd3c-msg-prefetch-uneven-workers",
+    "topic": "system-design",
+    "subtopic": "messaging",
+    "difficulty": "Medium",
+    "title": "Idle workers next to overloaded ones",
+    "question": "Twenty workers consume one queue, and each is allowed to hold up to 1,000 delivered but unacknowledged messages (its prefetch). Jobs take from 50 ms to 5 minutes. A few workers drew many slow jobs and stay busy for hours while the others sit idle and the queue is still long. Which change fixes the imbalance?",
+    "options": [
+      "Add more workers, so the slow jobs are spread over more machines and the new ones take work from the busy workers",
+      "Raise the prefetch so each worker holds even more messages and the broker needs fewer round trips to feed them",
+      "Switch to auto-acknowledge, so messages leave the broker on delivery and cannot pile up on any single worker",
+      "Lower the prefetch to a small number such as 1 to 10, so a worker gets its next message only after finishing one"
+    ],
+    "correctIndex": 3,
+    "explanation": "Prefetch is how many messages the broker pushes to a consumer ahead of time. With 1,000, a worker that draws slow jobs holds hundreds hostage while the others starve; a small prefetch makes delivery follow each worker's real speed, at the cost of some throughput for very short jobs. New workers cannot take messages that were already handed out, a bigger prefetch makes the hoarding worse, and auto-acknowledge removes redelivery, so a crashed worker loses its messages.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-prefetch"
+  },
+  {
+    "id": "sd3c-scale-autoscaling-flapping",
+    "topic": "system-design",
+    "subtopic": "scaling",
+    "difficulty": "Medium",
+    "title": "An autoscaling group that never settles",
+    "question": "An autoscaling group adds an instance when average CPU is above 60% and removes one when it is below 55%. At a steady load, 4 instances run at 62% CPU, so it adds a fifth; with 5 instances CPU is about 50%, so it removes one, and the cycle repeats every few minutes with latency spikes on each change. What stabilises it?",
+    "options": [
+      "Lower both thresholds by 10 points so the group keeps more spare capacity, leaving the same 5-point gap between them",
+      "Widen the gap (scale in below 35%) and add cooldowns, so a removal cannot push CPU straight back over the limit",
+      "Shorten the metric period to one minute so the group reacts faster to every change in average CPU",
+      "Scale on the maximum CPU across instances instead of the average, which is always higher and avoids the oscillation"
+    ],
+    "correctIndex": 1,
+    "explanation": "Removing one of 5 instances raises utilisation by a factor of 5/4, so the scale-in threshold must sit below 60 / 1.25 = 48% to avoid immediately re-triggering scale-out; with 55% the group flaps. A wider gap (hysteresis) plus cooldowns or stabilisation windows breaks the loop. Moving both thresholds keeps the same flaw, reacting faster makes the oscillation quicker, and the maximum metric only changes where the thresholds sit, without fixing the gap.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/auto-scaling"
+  },
+  {
+    "id": "sd3c-cache-cdc-invalidation",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Hard",
+    "title": "Stale cache from writes that bypass the app",
+    "question": "A product service caches rows in Redis (cache-aside) and invalidates the key in application code after each update. Prices still show stale for up to an hour, because a nightly import job, a bulk SQL script and a support tool write to the database directly. Which approach removes this whole class of stale entries?",
+    "options": [
+      "Cut every TTL to 30 seconds so stale entries expire quickly, accepting a lower hit rate and many more database reads",
+      "Copy the invalidation calls into the import job and the support tool so that every writer knows about the cache",
+      "Drive invalidation from the database's change log (CDC), so every committed change, whoever made it, triggers it",
+      "Switch to write-behind caching so the application writes to the cache first and flushes to the database later"
+    ],
+    "correctIndex": 2,
+    "explanation": "Invalidating in application code only sees writes that go through the application. Change data capture reads the database's commit log, so bulk scripts and tools are covered too, in commit order; a TTL stays as a safety net for lost or delayed events. A short TTL only narrows the window, copying calls into every writer breaks as soon as a new writer appears or one forgets, and write-behind makes the cache the entry point for writes, which direct SQL still bypasses.",
+    "referenceUrl": "https://debezium.io/documentation/"
+  },
+  {
+    "id": "sd3c-int-nearby-drivers",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Medium",
+    "title": "Ride hailing: finding nearby drivers",
+    "question": "A ride-hailing service must show the nearest available drivers within 2 km of a rider. Half a million drivers report their location every 5 seconds, and scanning every driver for each request is too slow. Which data design fits?",
+    "options": [
+      "Index drivers by geohash or grid cell in memory, move an entry on each ping, and search the rider's cell and neighbours",
+      "Keep latitude and longitude in two separate B-tree indexes and intersect the results of two range scans on every request",
+      "Keep drivers in a table ordered by the time of their last ping and return the most recently updated ones to the rider",
+      "Precompute the nearest drivers for every street address once an hour and serve that stored list to riders at that address"
+    ],
+    "correctIndex": 0,
+    "explanation": "A spatial index turns 'within 2 km' into a lookup of a few cells, and a moving driver changes one cell entry per ping. Two independent coordinate indexes each return a huge band of the map before the intersection, ordering by last ping ignores location, and hourly lists are stale for drivers who move every few seconds.",
+    "referenceUrl": "https://redis.io/docs/latest/commands/geosearch/"
+  },
+  {
+    "id": "sd3c-int-snowflake-clock-rollback",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Expert",
+    "title": "Snowflake ids and a clock that moves back",
+    "question": "A service issues 64-bit ids in a Snowflake-style layout: a millisecond timestamp, a worker id and a per-millisecond sequence. After an NTP correction moves one server's clock back by 3 ms, that server starts issuing ids that collide with ones it produced moments earlier. What is the correct handling?",
+    "options": [
+      "Keep issuing from the corrected clock, because the worker id already makes every id unique across servers",
+      "Fill the sequence field with random bits on every call so ids sharing a timestamp still come out different",
+      "Turn NTP off on the id servers so that their clocks can never move backwards again, whatever the hardware does",
+      "Keep the last timestamp; if the clock is behind it, wait or fail over rather than reuse earlier milliseconds"
+    ],
+    "correctIndex": 3,
+    "explanation": "Uniqueness rests on (timestamp, worker, sequence) never repeating. If the clock returns to an earlier millisecond, the same sequence numbers are issued again for that worker, so the generator must never move its timestamp backwards: it remembers the last one, waits out small skews and rejects or fails over on large ones. The worker id does not help within one server, random sequence bits make collisions unlikely rather than impossible, and disabling NTP leaves clocks to drift and does not protect after a restart.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9562.html"
+  },
+  {
+    "id": "sd3c-fund-averaging-percentiles",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Medium",
+    "title": "Averaging percentiles across instances",
+    "question": "A dashboard shows fleet latency as the average of the p99 values that each of 20 instances computes for the last minute. Its number often disagrees with the p99 of all requests taken together, for example when one instance serves very little traffic and has a few slow calls. Why?",
+    "options": [
+      "Averages are always lower than percentiles by a fixed factor, so the dashboard understates latency and a constant multiplier fixes it",
+      "Percentiles cannot be averaged: that mean ignores how many requests each instance served; merge histograms or use raw samples",
+      "Each instance should report its p100 instead of its p99, so that averaging them gives the true fleet p99",
+      "The averaging is valid, but the instances' clocks are slightly out of sync, which changes which requests fall in each minute"
+    ],
+    "correctIndex": 1,
+    "explanation": "A percentile is a property of a distribution, not of a sum, so averaging per-instance p99s gives a number that no request experienced: an instance with 10 requests counts as much as one with 10 million. The fleet p99 must be computed from merged histograms (or sketches) or from all raw samples. There is no constant factor between a mean of percentiles and the real percentile, p100 is just the maximum, and clock skew would blur minute boundaries without explaining the systematic gap.",
+    "referenceUrl": "https://sre.google/sre-book/monitoring-distributed-systems/"
+  },
+  {
+    "id": "sd3c-cons-merkle-anti-entropy",
+    "topic": "system-design",
+    "subtopic": "consistency",
+    "difficulty": "Hard",
+    "title": "Finding differing keys between replicas",
+    "question": "Two replicas of a 2 TB key range may have diverged after a network partition. Comparing every key and value over the network would take hours. Which technique finds the differing keys while exchanging very little data?",
+    "options": [
+      "Each replica sends one checksum of the whole range, and on a mismatch both copy the full range from the node with the larger checksum",
+      "Each replica sends its full list of keys with timestamps, so the receiver can pick the newer version of every key",
+      "Each replica hashes its key ranges into a Merkle tree, compares root hashes and descends only into subtrees that differ",
+      "Replicas rely on read repair alone, because every difference is eventually found when a client reads the affected key"
+    ],
+    "correctIndex": 2,
+    "explanation": "A Merkle tree summarises ranges with hashes, so equal subtrees are skipped and the differing ranges are located with few comparisons; only the keys in those ranges are then exchanged (Dynamo-style stores such as Cassandra use this for anti-entropy repair). One whole-range checksum says that something differs but not what, so it forces a full copy; sending all keys and timestamps is as large as the key set itself; and read repair fixes only keys that clients happen to read, leaving rarely read keys diverged.",
+    "referenceUrl": "https://cassandra.apache.org/doc/latest/cassandra/managing/operating/repair.html"
+  }
+]

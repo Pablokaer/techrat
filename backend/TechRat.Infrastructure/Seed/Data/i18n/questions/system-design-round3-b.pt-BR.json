@@ -1,0 +1,146 @@
+[
+  {
+    "id": "sd3b-gw-client-ip-behind-cdn",
+    "title": "Limite por cliente atrás de uma CDN",
+    "question": "Um gateway limita cada cliente a 100 requisições por minuto, usando o endereço de origem TCP como chave. Depois que uma CDN foi colocada na frente dele, milhares de usuários sem relação entre si passaram a receber respostas 429, porque o gateway enxerga apenas algumas dezenas de endereços de borda da CDN. Qual é a correção certa?",
+    "options": [
+      "Aumentar o limite por endereço para 10.000 requisições por minuto para que os endereços da CDN deixem de ser bloqueados, mantendo a mesma chave e aceitando uma proteção mais fraca contra clientes abusivos",
+      "Pegar o primeiro valor (mais à esquerda) de `X-Forwarded-For` em toda requisição e usá-lo como chave, já que essa entrada sempre contém o endereço original do cliente, não importa quem enviou a requisição, o que também evita ter de manter uma lista de faixas de endereços de proxies confiáveis",
+      "Obter o endereço do cliente de `X-Forwarded-For`, confiando nesse cabeçalho só quando a requisição vier de faixas conhecidas da CDN ou do balanceador e contando os saltos a partir do lado confiável, ou usar uma chave de API autenticada como chave do limite",
+      "Remover o limite do gateway e aplicá-lo dentro de cada serviço de backend, que enxerga os mesmos endereços de conexão, mas consegue contar as requisições depois da autenticação"
+    ],
+    "explanation": "Atrás de um proxy, o endereço do socket é o do proxy, então o cliente real precisa vir de `X-Forwarded-For` ou de uma identidade como a chave de API. Clientes podem enviar o cabeçalho por conta própria, por isso ele só vale quando foi acrescentado por um salto confiável; caso contrário a entrada mais à esquerda é falsificada com facilidade para escapar do limite. Aumentar o limite apenas desliga a proteção, e mover para os backends não muda o endereço que eles enxergam."
+  },
+  {
+    "id": "sd3b-res-breaker-min-calls",
+    "title": "Disjuntor abre numa madrugada tranquila",
+    "question": "Um circuit breaker abre quando 50% das chamadas da sua janela deslizante falham. Às 3 da manhã o serviço recebe uma chamada a cada poucos segundos, um único timeout transitório deixa a janela com 1 falha em 2 chamadas, e o breaker abre por 30 segundos sobre uma dependência saudável, rejeitando requisições válidas. Qual é o melhor ajuste?",
+    "options": [
+      "Reduzir o limite da taxa de falhas para 20%, para que o breaker reaja mais cedo e proteja a dependência de forma mais agressiva assim que qualquer degradação real começar",
+      "Exigir um número mínimo de chamadas na janela, por exemplo 20, antes de avaliar a taxa de falhas, para que poucas amostras não consigam abrir o breaker",
+      "Encurtar o tempo aberto de 30 segundos para 1 segundo, para que um breaker aberto por engano se recupere quase de imediato enquanto o limite de falhas permanece intacto",
+      "Trocar o breaker por tentativas ilimitadas e um timeout longo, para que erros isolados sejam absorvidos em silêncio e a dependência nunca seja reportada como indisponível"
+    ],
+    "explanation": "Uma taxa de falhas calculada sobre duas amostras é ruído estatístico, por isso breakers precisam de uma proteção de vazão mínima antes de julgar a taxa. Um limite menor piora o problema dos horários calmos, um estado aberto de 1 segundo elimina quase toda a proteção numa queda real, e tentativas ilimitadas são justamente o que transforma uma dependência lenta em uma tempestade de retries."
+  },
+  {
+    "id": "sd3b-res-hedged-requests",
+    "title": "Hedging em leituras para reduzir a latência de cauda",
+    "question": "Um endpoint de leitura idempotente tem p50 = 20 ms e p99 = 800 ms porque algumas réplicas ficam lentas de vez em quando. O cliente passa a enviar uma segunda requisição a outra réplica quando a primeira não respondeu dentro da latência p95, e a usar a resposta que chegar primeiro. O que a equipe deve esperar?",
+    "options": [
+      "Cerca de 100% a mais de requisições, já que toda chamada é enviada duas vezes desde o início, o que torna o hedging adequado só para jobs em lote raros em que a carga dobrada é aceitável",
+      "Nenhuma carga extra, já que a tentativa mais lenta é cancelada no instante em que a mais rápida responde e o backend nunca começa a processar a duplicata",
+      "Cerca de 50% a mais de requisições, porque o hedge dispara depois da latência mediana, com quase nenhuma mudança no p99 porque as réplicas lentas continuam sendo consultadas primeiro",
+      "Cerca de 5% a mais de requisições, porque só as chamadas mais lentas que o p95 disparam uma segunda tentativa, e um p99 bem menor, porque duas réplicas independentes raramente estão lentas na mesma chamada"
+    ],
+    "explanation": "Fazer hedge depois do p95 significa que cerca de 5% das chamadas (as que ainda estão pendentes nesse ponto) geram uma segunda requisição, então o custo é pequeno perto do ganho: a cauda agora exige que as duas réplicas estejam lentas. A duplicata não é grátis, pois o cancelamento chega depois que o trabalho começou, e o hedging deve se limitar a chamadas idempotentes. Enviar duas vezes de início ou fazer hedge na mediana multiplicaria a carga sem o mesmo retorno."
+  },
+  {
+    "id": "sd3b-idem-concurrent-duplicate",
+    "title": "Requisição duplicada enquanto a primeira está em andamento",
+    "question": "Uma API de pagamentos consulta uma tabela pelo `Idempotency-Key` da requisição e, quando não encontra nada, cobra o cartão e depois grava o resultado. Um cliente estoura o timeout e repete 20 ms depois, enquanto a primeira requisição ainda está chamando o processador de cartão, e o cliente é cobrado duas vezes. O que fecha essa condição de corrida?",
+    "options": [
+      "Reservar a chave de forma atômica antes de qualquer efeito colateral, inserindo uma linha em estado de processamento sob uma restrição de unicidade, para que a segunda requisição receba um conflito ou espere e depois receba o resultado gravado",
+      "Consultar a tabela de chaves duas vezes, uma no início e outra logo antes de cobrar, para que uma duplicata que chegou nesse meio-tempo seja detectada antes de chamar o processador de cartão",
+      "Manter um lock na memória de cada instância da aplicação, indexado pela chave de idempotência, para que requisições concorrentes com a mesma chave sejam serializadas dentro do processo que as recebeu, o que também mantém o caminho crítico livre de qualquer ida extra ao banco de dados",
+      "Gravar a resposta em um cache somente depois que a cobrança terminar e fazer as novas tentativas lerem desse cache, para que toda repetição posterior devolva o resultado original sem cobrar de novo"
+    ],
+    "explanation": "Verificar e depois agir é uma condição de corrida: as duas requisições veem a tabela vazia e seguem. Uma restrição de unicidade torna a reserva atômica entre todas as instâncias, e o marcador de processamento permite rejeitar a duplicata ou mandá-la esperar. Verificar duas vezes só estreita a janela, locks por processo não cobrem várias instâncias, e gravar a resposta depois de concluir não ajuda repetições que chegam antes de a cobrança terminar."
+  },
+  {
+    "id": "sd3b-idem-key-retention",
+    "title": "Reenvio offline depois que a chave expirou",
+    "question": "Uma API de pedidos guarda chaves de idempotência por 24 horas. Um app móvel enfileira um pedido não enviado enquanto o celular está offline e o reenvia com a mesma chave três dias depois, e um pedido duplicado é criado porque o registro da chave já tinha sido apagado. Qual mudança elimina essa classe de duplicatas?",
+    "options": [
+      "Fazer o app gerar uma chave de idempotência nova a cada reenvio, para que cada tentativa seja tratada como uma requisição própria e o servidor saiba sempre qual tentativa é qual",
+      "Persistir um identificador de pedido gerado pelo cliente junto com o pedido sob uma restrição de unicidade, para que a deduplicação dependa de dados de negócio duráveis e não de registros de chave que expiram",
+      "Rejeitar qualquer requisição cujo timestamp informado pelo cliente seja mais antigo que 24 horas, para que reenvios após a janela de retenção sejam descartados antes de criar um segundo pedido",
+      "Reduzir a retenção para uma hora para manter a tabela de chaves pequena, já que as repetições normalmente chegam em segundos e a tabela só deve guardar chaves plausivelmente ainda ativas"
+    ],
+    "explanation": "Um TTL nos registros de chave só é seguro se for maior que qualquer repetição que o cliente possa produzir, e uma fila offline torna isso ilimitado. Colocar o identificador sob uma restrição de unicidade junto com o pedido faz a duplicata falhar para sempre, sem armazenamento extra. Uma chave nova por reenvio anula a idempotência, o timestamp do cliente pode estar errado e descartaria um pedido legítimo, e um TTL menor aumenta a lacuna."
+  },
+  {
+    "id": "sd3b-cons-optimistic-lock",
+    "title": "Dois atendentes editam o mesmo registro",
+    "question": "Dois atendentes de suporte abrem o mesmo registro de cliente, cada um edita um campo diferente, e quem salva depois apaga em silêncio a alteração do primeiro, porque a API substitui o registro inteiro. A equipe quer detectar o conflito sem travar registros enquanto as pessoas digitam. O que devem fazer?",
+    "options": [
+      "Resolver conflitos com last-write-wins usando um timestamp do servidor, para que o salvamento mais recente sempre vire o valor armazenado e nenhum atendente veja uma mensagem de erro",
+      "Tomar um lock pessimista de linha quando o formulário abre e mantê-lo até o atendente salvar, para que nenhum segundo atendente consiga ler ou editar o registro nesse intervalo",
+      "Devolver uma versão ou `ETag` junto com o registro, exigi-la de volta como `If-Match` (ou na condição do update) e responder 412 Precondition Failed quando a versão armazenada tiver mudado",
+      "Subir o nível de isolamento do banco para read committed, porque assim o banco rejeita o salvamento posterior sempre que ele sobrescrever um valor alterado por outra transação, o que também evita ter de adicionar uma coluna de versão à tabela"
+    ],
+    "explanation": "A concorrência otimista deixa os dois atendentes trabalharem livremente e só falha o salvamento cuja versão base está velha, que então pode recarregar e mesclar. Last-write-wins é exatamente o bug de atualização perdida, um lock mantido durante o tempo de reflexão humana bloqueia os outros e vaza quando o navegador fecha, e níveis de isolamento só protegem dentro de uma transação, enquanto aqui a leitura e a escrita ocorrem em requisições separadas."
+  },
+  {
+    "id": "sd3b-cons-raft-read-index",
+    "title": "Leituras linearizáveis em um cluster Raft",
+    "question": "Um armazenamento chave-valor construído sobre Raft precisa servir leituras linearizáveis sem acrescentar uma entrada de log para cada leitura. Um líder que responde direto do seu estado local pode devolver dados velhos depois que uma partição de rede elege um novo líder em outro lugar. Qual técnica restaura a linearizabilidade com baixo custo?",
+    "options": [
+      "Deixar o líder responder imediatamente do estado local, porque o Raft garante que o nó que acredita ser o líder sempre tem todas as entradas confirmadas e não pode ter sido substituído, o que evita esperar a ida e volta de qualquer heartbeat e mantém a latência de leitura em uma única consulta local",
+      "Ler de qualquer seguidor cujo relógio mostre que recebeu um heartbeat no último segundo, já que um heartbeat recente prova que sua máquina de estados aplicou todas as entradas confirmadas",
+      "Consultar a maioria dos seguidores e devolver o valor com o timestamp mais novo, já que o Raft carimba cada valor armazenado com um horário de relógio que ordena as escritas entre os nós",
+      "Fazer o líder registrar seu commit index atual, confirmar que ainda é o líder por meio de um heartbeat reconhecido pela maioria, esperar até que sua máquina de estados tenha aplicado esse índice e só então responder (um lease de líder pode substituir o heartbeat)"
+    ],
+    "explanation": "Um líder destituído pode não saber que foi substituído, então antes de responder ele precisa provar a liderança em um ponto posterior ao início da leitura e aplicar até o commit index que observou; esse é o protocolo ReadIndex, usado pelo etcd nas leituras linearizáveis, e leituras com lease trocam a viagem de ida e volta por uma suposição de relógio. Leituras locais em um nó são apenas serializáveis. A recência de um seguidor não prova que ele aplicou as entradas confirmadas, e o Raft ordena entradas por índice e termo, não por timestamp."
+  },
+  {
+    "id": "sd3b-dt-compensation-retry",
+    "title": "Uma chamada de compensação que estoura o timeout",
+    "question": "Em uma saga de pedidos, o pagamento foi capturado e depois a reserva de estoque falhou, então o orquestrador chama `RefundPayment`. Essa chamada estoura o timeout, o orquestrador marca a saga como falha e para, e os clientes acabam cobrados por pedidos que não existem. Como os passos de compensação devem ser projetados?",
+    "options": [
+      "Tornar toda compensação idempotente e repeti-la de forma durável até ter sucesso, escalando para um alerta ou fila manual só quando as tentativas se esgotarem, porque a saga não pode ser considerada revertida antes disso",
+      "Tratar compensações como melhor esforço, tentando cada uma uma vez e registrando as falhas, já que o job noturno de reconciliação pode corrigir o raro estorno que não passou",
+      "Envolver os passos de pagamento e estoque em um commit em duas fases para que nenhum estorno seja necessário, o que dá atomicidade sem lógica de retentativa extra no orquestrador, enquanto a lógica de retentativa fica restrita ao único serviço dono do endpoint de estorno",
+      "Repetir o passo original `CapturePayment` até o serviço de estoque se recuperar, para que a saga eventualmente conclua para frente e nenhuma compensação seja necessária"
+    ],
+    "explanation": "Depois que um passo foi confirmado, a saga só chega a um estado consistente se sua compensação eventualmente tiver sucesso, então compensações precisam ser repetíveis e seguras de executar duas vezes, com o estado da saga persistido para retomar após quedas. Estornos de melhor esforço deixam clientes cobrados, o commit em duas fases entre serviços independentes é a abordagem bloqueante que as sagas substituem, e repetir o passo para frente está errado quando ele falha por motivo de negócio, como falta de estoque."
+  },
+  {
+    "id": "sd3b-dt-tcc-empty-rollback",
+    "title": "Cancel chega antes do Try",
+    "question": "Um serviço de cupons com Try-Confirm/Cancel reserva um cupom no Try. O coordenador estoura o timeout esperando o Try, envia o Cancel, e o Cancel chega ao serviço primeiro, não encontra nada para desfazer e devolve sucesso. O Try atrasado chega depois e reserva o cupom, que nunca é confirmado nem cancelado. Como o participante deve ser projetado?",
+    "options": [
+      "Tornar o Try idempotente pelo id da transação, para que um Try reentregue seja ignorado, o que impede que a mesma reserva seja aplicada duas vezes quando mensagens são duplicadas",
+      "Registrar o id da transação como cancelada quando o Cancel não encontra reserva (um rollback vazio) e fazer o Try consultar esse registro e se recusar a reservar para uma transação já cancelada",
+      "Fazer o coordenador enviar o Cancel só depois de duas vezes o timeout do Try, para que o Try sempre já tenha chegado e o Cancel sempre encontre a reserva que precisa liberar",
+      "Encurtar o timeout do coordenador para que falhas do Try sejam detectadas rápido, antes que a rede tenha tempo de entregar mensagens fora de ordem e criar essa situação"
+    ],
+    "explanation": "Redes podem reordenar e atrasar mensagens, então o Cancel pode legitimamente preceder o Try. O participante precisa de estado durável por transação para que um Cancel vazio deixe uma marca e um Try tardio seja rejeitado (o que costuma ser chamado de prevenir a suspensão). Um Try idempotente não resolve a ordem, esperar um múltiplo do timeout é uma suposição de tempo sem limite superior numa rede assíncrona, e um timeout menor torna cancelamentos espúrios mais prováveis, não menos."
+  },
+  {
+    "id": "sd3b-ha-az-capacity-math",
+    "title": "Dimensionando a frota para sobreviver à perda de uma AZ",
+    "question": "Um serviço tem pico de 3.000 requisições por segundo e cada instância sustenta no máximo 100 requisições por segundo. Ele roda em 3 zonas de disponibilidade com o mesmo número de instâncias e precisa continuar atendendo o pico completo depois de perder uma zona, sem esperar o autoscaling. Qual é a menor frota que atende isso?",
+    "options": [
+      "30 instâncias, 10 por zona: isso cobre exatamente o pico de 3.000 requisições por segundo, e depois de perder uma zona as 20 instâncias restantes ainda atendem cerca de dois terços dele",
+      "45 instâncias, 15 por zona: depois de perder uma zona as 30 instâncias restantes conseguem carregar 3.000 requisições por segundo, então o pico normal roda a cerca de 67% de utilização",
+      "36 instâncias, 12 por zona: uma folga de 20% sobre o pico cobre as variações usuais de tráfego, e as 24 instâncias restantes após a perda de uma zona absorvem a carga extra",
+      "60 instâncias, 20 por zona: cada zona sozinha consegue carregar o pico inteiro, o que é o mínimo necessário para que a falha de qualquer zona deixe capacidade suficiente"
+    ],
+    "explanation": "As zonas sobreviventes precisam atender 3.000 requisições por segundo sozinhas: 3.000 / 100 = 30 instâncias em 2 zonas, ou seja, 15 por zona e 45 no total (15 x 3). Os tamanhos de 10 e 12 por zona deixam apenas 2.000 e 2.400 requisições por segundo de capacidade após a perda, e 60 instâncias funciona mas excede o mínimo, porque só uma zona precisa ser perdida, não duas."
+  },
+  {
+    "id": "sd3b-int-typeahead",
+    "title": "Autocomplete de busca a 100 mil QPS",
+    "question": "Em uma entrevista de system design você precisa construir sugestões de busca enquanto o usuário digita: as 10 melhores completações por prefixo, p99 abaixo de 10 ms, 100.000 requisições por segundo, e sugestões que podem estar até uma hora defasadas. Qual desenho se encaixa?",
+    "options": [
+      "Executar `WHERE term LIKE 'pre%' ORDER BY count DESC LIMIT 10` na tabela com todas as consultas passadas a cada tecla digitada, e adicionar uma réplica de leitura por região para dividir a carga, com um cache na frente do banco de dados para absorver os prefixos populares repetidos",
+      "Enviar a lista completa de termos conhecidos para cada navegador e filtrar e ranquear no cliente, para que os servidores só precisem distribuir o arquivo quando ele mudar",
+      "Pré-calcular as 10 melhores completações de cada prefixo a partir dos logs de consultas agregados em um job em lote periódico, e servi-las de uma trie em memória ou de um armazenamento chave-valor atualizado em intervalos",
+      "Atualizar um contador global de popularidade e reordenar toda a lista de termos de forma síncrona a cada requisição de busca, para que as sugestões sempre reflitam as consultas mais recentes"
+    ],
+    "explanation": "Como as sugestões podem ter uma hora de atraso, o ranqueamento caro sai do caminho da requisição: um job em lote calcula o top-k por prefixo e servir vira uma consulta em memória, o que cumpre o orçamento de 10 ms. Um `LIKE` com ordenação varre faixas enormes para prefixos curtos, a lista completa de termos no cliente é grande demais, e reordenar de forma síncrona a cada busca transforma o caminho de escrita no gargalo."
+  },
+  {
+    "id": "sd3b-int-collab-editor",
+    "title": "Edição colaborativa de documentos",
+    "question": "Projetando um editor no estilo Google Docs, você nota que Alice insere \"h\" no índice 1 de \"cat\" enquanto Bob, ao mesmo tempo, apaga o \"a\" no índice 1. Aplicar as operações um do outro pelo índice bruto faz as réplicas divergirem ou perderem a intenção. Qual abordagem faz as edições concorrentes convergirem preservando a intenção dos dois usuários?",
+    "options": [
+      "Travar o parágrafo para o primeiro usuário que começar a digitar, e rejeitar ou enfileirar as edições dos demais até que esse usuário pare de editar por alguns segundos",
+      "Manter o documento inteiro como um único valor e aplicar last-write-wins por timestamp, para que o salvamento mais recente substitua os outros e todas as réplicas terminem idênticas",
+      "Reexecutar todas as operações em ordem de timestamp de relógio em cada réplica usando seus índices brutos, já que uma única ordem total basta para preservar o que cada usuário quis dizer, o que também elimina a necessidade de qualquer servidor central ordenar as operações antes de chegarem aos outros participantes",
+      "Fazer as operações comutarem: transformar operações concorrentes umas contra as outras (transformação operacional), ou dar a cada caractere um id único e imutável ordenado em relação aos vizinhos (um CRDT de sequência), para que as réplicas convirjam após ver as mesmas edições"
+    ],
+    "explanation": "Índices brutos só fazem sentido em relação ao estado do documento que o autor viu, então operações concorrentes precisam ser transformadas (OT, normalmente com um servidor central ordenando-as) ou expressas sobre ids estáveis de caractere (CRDTs, que também funcionam ponto a ponto). Travar remove a concorrência em vez de mesclá-la, last-write-wins do documento inteiro descarta o trabalho de um usuário, e reexecutar por timestamp só converge aplicando índices ao texto errado e depende de relógios que se desalinham."
+  }
+]

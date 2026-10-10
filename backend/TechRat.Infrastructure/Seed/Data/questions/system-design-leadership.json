@@ -27,10 +27,10 @@
       "Keep OFFSET but add a covering index so skipped rows no longer need to be computed",
       "Cache each page number in Redis so repeated deep page requests become constant time",
       "Increase the page size to 500 so users reach deep pages in fewer requests",
-      "Keyset pagination: return a cursor and query `WHERE created_at < :cursor`"
+      "Keyset pagination: return a cursor of (created_at, id) and fetch only older rows"
     ],
     "correctIndex": 3,
-    "explanation": "With OFFSET the database still has to produce and discard every skipped row, so cost grows with depth, and inserts shift every later page causing duplicates or gaps. A keyset cursor seeks directly via the index and is stable under inserts. Page caches go stale on every new post and bigger pages only reduce the request count, not the per-row cost.",
+    "explanation": "With OFFSET the database still has to produce and discard every skipped row, so cost grows with depth, and inserts shift every later page causing duplicates or gaps. A keyset cursor seeks directly via the index and is stable under inserts; the cursor includes a unique tie-breaker such as id so rows with equal timestamps are neither skipped nor repeated. Page caches go stale on every new post and bigger pages only reduce the request count, not the per-row cost.",
     "referenceUrl": "https://www.postgresql.org/docs/current/queries-limit.html"
   },
   {

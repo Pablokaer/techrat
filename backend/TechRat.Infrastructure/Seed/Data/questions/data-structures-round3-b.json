@@ -1,0 +1,274 @@
+[
+  {
+    "id": "ds3b-tree-deep-chain-stack",
+    "topic": "data-structures",
+    "subtopic": "trees",
+    "difficulty": "Medium",
+    "title": "Pre-order traversal on a degenerate tree",
+    "question": "A recursive pre-order traversal works on test data but crashes with a call-stack overflow on a production tree of 1,000,000 nodes where almost every node has only a left child. Which change keeps the same visiting order while removing the dependency on call-stack depth?",
+    "options": [
+      "Replace the recursion with a loop over a queue, enqueuing the left child and then the right child of every visited node, so no stack is needed at all",
+      "Add a visited set so that no node is processed twice, because repeated visits are what make the recursion depth grow past the stack limit",
+      "Replace the recursion with a loop over an explicit stack kept on the heap: pop a node, visit it, push its right child and then its left child",
+      "Switch the recursion to post-order, which visits children before the parent and therefore never needs more than one stack frame per tree level"
+    ],
+    "correctIndex": 2,
+    "explanation": "The depth of the recursion equals the height of the tree, which is about n for a chain, so the call stack overflows no matter how the code is organised. An explicit stack lives in heap memory, which is far larger, and pushing the right child before the left child preserves pre-order. A queue visits level by level (a different order), a visited set does nothing in a tree where nodes are never reached twice, and post-order recursion has exactly the same depth.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/preorderTraversal.html"
+  },
+  {
+    "id": "ds3b-tree-serialize-null-markers",
+    "topic": "data-structures",
+    "subtopic": "trees",
+    "difficulty": "Hard",
+    "title": "Reliable binary tree serialization",
+    "question": "A service saves a binary tree by writing only the node values in pre-order, such as `5, 3, 8`, and rebuilds it by reading them back. Two structurally different trees, one with 3 and 8 as left descendants and one with 3 as left child and 8 as right child of the root, produce the same file. Which fix restores an exact round trip with a single traversal and linear time?",
+    "options": [
+      "Write an explicit marker for every absent child during the same pre-order traversal, so the reader knows exactly where each subtree ends",
+      "Write the values in in-order instead of pre-order, because in-order output of any binary tree can only be read back as one tree shape",
+      "Write the values in post-order instead of pre-order, because visiting the root last makes the nesting of subtrees unambiguous without extra data",
+      "Write the values level by level, because breadth-first output records the depth of every node and therefore identifies each parent"
+    ],
+    "correctIndex": 0,
+    "explanation": "A bare sequence of values loses the shape: without knowing when a subtree is empty, the reader cannot tell where the left subtree ends and the right one begins. Adding a marker for each missing child makes pre-order self-delimiting, so the tree is rebuilt uniquely in O(n). In-order, post-order and level-order sequences of values are each ambiguous on their own for the same reason, so changing the traversal does not help.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/binarytree.html"
+  },
+  {
+    "id": "ds3b-tree-morris-traversal",
+    "topic": "data-structures",
+    "subtopic": "trees",
+    "difficulty": "Expert",
+    "title": "Constant-space in-order traversal trade-off",
+    "question": "An embedded team traverses a huge binary tree in-order with O(1) extra memory by temporarily pointing the right child of each in-order predecessor back at its ancestor, and restoring it afterwards. Total work stays O(n). Why is it risky to run this on a tree that other threads read at the same time?",
+    "options": [
+      "Each node is visited up to n times, so the traversal degrades to O(n squared) and holds the tree busy long enough for readers to starve",
+      "The technique stores a hidden parent pointer in every node, which doubles the memory per node and is not safe to update from several threads",
+      "The traversal sorts the node keys in place while it walks the tree, so concurrent readers may observe a partially sorted set of keys",
+      "The traversal temporarily rewrites child pointers, so a concurrent reader can follow a thread back to an ancestor and see a cycle or wrong shape"
+    ],
+    "correctIndex": 3,
+    "explanation": "This technique (Morris traversal) gets rid of the stack by creating temporary links from predecessors to ancestors and removing them when the walk returns, so the tree is modified while it is traversed. Readers running in parallel can follow those temporary links and loop or skip nodes, so it needs exclusive access. It is still O(n) overall because each edge is traversed a constant number of times, it adds no parent pointers, and it never moves or reorders keys.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/inorderTraversal.html"
+  },
+  {
+    "id": "ds3b-bst-successor-no-right",
+    "topic": "data-structures",
+    "subtopic": "binary-search-trees",
+    "difficulty": "Medium",
+    "title": "In-order successor without a right child",
+    "question": "Each node of a binary search tree has a parent pointer. To find the next larger key after a node that has no right child, which procedure is correct?",
+    "options": [
+      "Return the parent of the node, because the parent always holds the next larger key when the node has no right subtree to descend into",
+      "Walk up while the node is a right child; the first ancestor reached from a left child is the successor (none if the root is reached)",
+      "Return the maximum key of the node's left subtree, because that key is the closest value above the node among everything stored below it",
+      "Return the minimum key of the parent's right subtree, because that subtree holds the smallest keys that are larger than the current node"
+    ],
+    "correctIndex": 1,
+    "explanation": "With no right subtree, the next larger key must be an ancestor: the nearest one whose left subtree contains the node. Climbing while the node is a right child skips ancestors that are smaller, and stops at the first one that is larger. The parent is wrong when the node is a right child (it is smaller), the maximum of the left subtree is the predecessor, and the parent's right subtree may be empty and is not nearer than the parent when the node is a left child.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/binarySearchTree.html"
+  },
+  {
+    "id": "ds3b-bst-order-statistic",
+    "topic": "data-structures",
+    "subtopic": "binary-search-trees",
+    "difficulty": "Hard",
+    "title": "Fast k-th smallest with live updates",
+    "question": "A leaderboard keeps scores in a balanced search tree with frequent inserts and deletes, and it must answer \"what is the k-th smallest score?\" for arbitrary k about a million times per second. An in-order walk that stops after k nodes is too slow. Which design gives O(log n) per query?",
+    "options": [
+      "Keep a second sorted array next to the tree and read position k directly, updating the array with a binary search on every insert and delete",
+      "Keep a min-heap of the k smallest scores seen so far and read its root, rebuilding the heap whenever the requested k changes",
+      "Cache the full in-order sequence after each query and invalidate the cache whenever a score is inserted or deleted, rebuilding it lazily",
+      "Store the subtree size in every node, keep it updated on insert, delete and rotation, and descend comparing k with the left size"
+    ],
+    "correctIndex": 3,
+    "explanation": "Augmenting each node with its subtree size turns the search tree into an order-statistic tree: at a node with left size s, the answer is the node when k = s + 1, otherwise the descent goes left or right with an adjusted k, which costs O(height). The counts are cheap to maintain because only nodes on the update path (and rotated nodes) change. A sorted array makes every insert or delete O(n) because of shifting, a heap cannot serve arbitrary k, and a cache is rebuilt in O(n) after almost every update.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/binarySearchTree.html"
+  },
+  {
+    "id": "ds3b-bst-build-from-sorted",
+    "topic": "data-structures",
+    "subtopic": "binary-search-trees",
+    "difficulty": "Medium",
+    "title": "Building a balanced BST from sorted keys",
+    "question": "A loader receives n distinct keys already sorted in ascending order and must build a plain binary search tree (no rotations available) with the smallest possible height in O(n) time. Which approach does that?",
+    "options": [
+      "Make the middle key the root and build the left and right subtrees recursively from the keys below and above it",
+      "Insert the keys one by one in the given order, since each insertion goes to the correct side and the tree stays balanced on its own",
+      "Insert the smallest and the largest remaining key alternately, because filling both ends first keeps the left and right sides the same size",
+      "Insert the keys in a random order, which guarantees a height of at most log2 of n and costs only O(n) in total time"
+    ],
+    "correctIndex": 0,
+    "explanation": "Choosing the median as root at every step splits the remaining keys in half, so the height is floor(log2 n) and each key is placed once, giving O(n) overall. Inserting sorted keys in order creates a right-leaning chain of height n - 1 and O(n squared) work. Alternating smallest and largest builds a zigzag path that is just as tall, and random order only gives an expected height of O(log n) with O(n log n) work, not a guarantee.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/binarySearchTree.html"
+  },
+  {
+    "id": "ds3b-heap-dary-decrease-key",
+    "topic": "data-structures",
+    "subtopic": "heaps",
+    "difficulty": "Hard",
+    "title": "Tuning heap fan-out for a decrease-key workload",
+    "question": "A shortest-path service on a dense graph performs about 50 million priority decreases (sift-up from a node) but only 1 million extract-min operations on its binary heap. Profiling shows the heap dominates the run time. Which change is most likely to help?",
+    "options": [
+      "Keep the binary heap, because a fan-out of 2 gives the fewest comparisons for both sift-up and extract-min, so any larger fan-out is slower for every operation",
+      "Use a d-ary heap with fan-out 4 or 8: sift-up climbs only log base d of n levels, while the rarer extract-min pays about d comparisons per level",
+      "Use a d-ary heap with d close to n, so the tree has a single level and both decreasing a priority and extracting the minimum become constant-time",
+      "Replace the heap with a sorted array, because extract-min becomes constant-time and the 50 million priority decreases only need a binary search"
+    ],
+    "correctIndex": 1,
+    "explanation": "In a d-ary heap the height is log base d of n, so sift-up gets cheaper as d grows, while sift-down needs up to d comparisons per level, so extract-min grows to about d times log base d of n. When priority decreases outnumber extractions this heavily, a fan-out of 4 to 8 usually wins, and it is also friendlier to the cache. A huge d makes extract-min O(n), and a sorted array makes each decrease O(n) because elements must shift; a binary heap is not the best choice for this mix.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/heap.html"
+  },
+  {
+    "id": "ds3b-heap-cancel-index",
+    "topic": "data-structures",
+    "subtopic": "heaps",
+    "difficulty": "Medium",
+    "title": "Cancelling an arbitrary entry in a min-heap",
+    "question": "A timer service stores pending timers in an array-based min-heap. To cancel the timer at index i it copies the last array element into slot i, shrinks the array by one, and then sifts that element down. After many cancellations, timers occasionally fire out of order. What is the most likely cause?",
+    "options": [
+      "Shrinking the array before sifting down changes the parent-child index formulas, so the sift-down compares against the wrong neighbours",
+      "Cancellation should replace slot i with its smaller child and repeat from that child, since copying the last element always breaks the shape of the heap",
+      "A heap only guarantees order for the root, so arbitrary removals cannot be supported and the heap must be fully re-sorted after each cancellation",
+      "The element copied into slot i came from another branch and can be smaller than slot i's parent, so it sometimes has to be sifted up"
+    ],
+    "correctIndex": 3,
+    "explanation": "The last element belongs to a different subtree, so its value is not constrained by the ancestors of slot i: if it is smaller than the parent of slot i, sifting down leaves a violation higher up. After the swap the element must be sifted up or down, whichever applies (at most one of them moves it). The index formulas depend only on positions, and copying the last element keeps the array complete, which is why this removal is O(log n) and no re-sorting is needed.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/heap.html"
+  },
+  {
+    "id": "ds3b-heap-fibonacci-practice",
+    "topic": "data-structures",
+    "subtopic": "heaps",
+    "difficulty": "Expert",
+    "title": "Why a Fibonacci heap can lose in practice",
+    "question": "A team replaces the binary heap in Dijkstra's algorithm with a Fibonacci heap, hoping to profit from its O(1) amortized decrease-key. On a road network with 20 million nodes and an average degree of about 3, the run gets slower. What is the best explanation?",
+    "options": [
+      "Fibonacci heaps cannot decrease a key in place, so every update has to be emulated by deleting the entry and inserting it again",
+      "The amortized bounds of a Fibonacci heap only hold for integer priorities, and road distances are not integers, so the guarantees do not apply",
+      "On such a sparse graph the asymptotic gain is small, while pointer-heavy nodes, big constants and poor cache locality cost more",
+      "A Fibonacci heap's extract-min takes linear time even in the amortized sense, which is worse than the logarithmic cost of the binary heap"
+    ],
+    "correctIndex": 2,
+    "explanation": "A Fibonacci heap improves Dijkstra from O((V + E) log V) to O(E + V log V), which matters mainly when the graph is dense. With about three edges per node the saving is marginal, while its linked nodes, extra fields and scattered memory access make every operation slower than a compact array-based binary heap. It does support decrease-key in place, its bounds do not depend on integer keys, and extract-min is O(log n) amortized.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/fibonacciHeap.html"
+  },
+  {
+    "id": "ds3b-graph-bfs-mark-at-enqueue",
+    "topic": "data-structures",
+    "subtopic": "graphs",
+    "difficulty": "Medium",
+    "title": "When to mark a node visited in BFS",
+    "question": "A breadth-first search over a large state graph marks a node as visited only when it is removed from the queue. On a dense graph the queue grows to hundreds of millions of entries, far more than the number of distinct nodes. What is the fix and the reason?",
+    "options": [
+      "Mark a node as visited only after all its neighbours were processed, because earlier marking would hide shorter paths found later in the search",
+      "Mark a node as visited when it is added to the queue, otherwise every neighbour that finds it before it is dequeued adds another copy",
+      "Replace the queue with a priority queue ordered by distance, because a plain queue cannot avoid inserting the same node more than once",
+      "Mark a node as visited when it is removed from the queue but only if it was reached from the root, so that cycles no longer add copies"
+    ],
+    "correctIndex": 1,
+    "explanation": "Until a node is dequeued it is not marked, so each already-discovered neighbour that reaches it enqueues another copy, and the queue can hold up to one entry per edge instead of one per node. Marking at the moment of enqueue keeps the queue at O(V) entries, and the shortest distance is still correct because BFS reaches a node first through a shortest path. Delaying the mark makes the problem worse, a priority queue is unnecessary for unweighted edges, and the root condition has no effect on duplicates.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/breadthfirst.html"
+  },
+  {
+    "id": "ds3b-graph-bipartite-odd-cycle",
+    "topic": "data-structures",
+    "subtopic": "graphs",
+    "difficulty": "Medium",
+    "title": "Splitting conflicting items into two groups",
+    "question": "A scheduler must assign each of n exams to one of two rooms so that no two exams that share a student end up in the same room. Shared students are the edges of a conflict graph. Which statement describes a correct and efficient check?",
+    "options": [
+      "Two-colour the graph with BFS or DFS; the split is impossible exactly when some edge joins two nodes of the same colour (an odd cycle)",
+      "The split is possible only if the conflict graph has no cycles at all, so a single cycle of any length already proves that two rooms are not enough",
+      "Merge the endpoints of every conflict edge with union-find, and accept the split when the structure ends with at most two sets after all merges",
+      "Run a topological sort on the conflict graph and put the first half of the order in one room and the second half in the other"
+    ],
+    "correctIndex": 0,
+    "explanation": "This is two-colouring, tested in O(V + E) with a traversal per component: if an edge ever connects two nodes that already have the same colour, the graph contains an odd cycle and no valid split exists. Even cycles are fine, so requiring a forest is too strict. Union-find would put conflicting exams into the same set, the opposite of what is needed, and a topological sort is defined for directed acyclic graphs and says nothing about conflicts.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/breadthfirst.html"
+  },
+  {
+    "id": "ds3b-graph-scc-circular-deps",
+    "topic": "data-structures",
+    "subtopic": "graphs",
+    "difficulty": "Hard",
+    "title": "Finding groups of mutually dependent services",
+    "question": "An architecture team has a directed graph of 5,000 services where an edge A to B means A calls B. They want to list every group of services that can all reach each other through calls, to plan how to break the cycles. Which approach does it in O(V + E)?",
+    "options": [
+      "Run a topological sort and list the services it cannot place, since each unplaceable service forms its own circular dependency group",
+      "Run Dijkstra's algorithm from every service and group together the services whose shortest distance to each other is finite in both directions",
+      "Compute the strongly connected components with Tarjan's or Kosaraju's algorithm and report each component with more than one service",
+      "Merge the endpoints of every edge with union-find and report each resulting set, since each set is a group of services that depend on one another"
+    ],
+    "correctIndex": 2,
+    "explanation": "Strongly connected components are exactly the maximal groups whose members reach each other, and both Tarjan's and Kosaraju's algorithms find them in linear time. Components with more than one node (or a self-loop) are the cycles to break. A topological sort only detects that a cycle exists and does not partition the services, Dijkstra from every node is O(V(E + V log V)) and unnecessary, and union-find ignores edge direction, so it returns weakly connected sets that include services with one-way calls.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/directedGraph.html"
+  },
+  {
+    "id": "ds3b-trie-topk-autocomplete",
+    "topic": "data-structures",
+    "subtopic": "tries",
+    "difficulty": "Hard",
+    "title": "Top suggestions for a one-letter prefix",
+    "question": "An autocomplete service stores 20 million queries with popularity counts in a trie. For a one-letter prefix the current code walks the whole subtree and sorts every query found, which takes seconds. The service must return the 5 most popular completions within a few milliseconds for any prefix. Which design achieves that?",
+    "options": [
+      "Keep at each node the 5 most popular completions of its subtree, updated along the path when a count changes, and answer by walking the prefix",
+      "Order the children of every node by popularity and follow the first child down to the first word end, repeating from the next child to collect five answers",
+      "Keep the trie as it is but sort the whole dictionary by popularity at query time and scan it for the first five words that start with the prefix",
+      "Keep a counter of the words below each node and use it to stop the subtree walk early once five completions with a count above the average were found"
+    ],
+    "correctIndex": 0,
+    "explanation": "Precomputing the top 5 per node trades extra memory and some update work for a query cost of O(prefix length + 5), independent of the subtree size. Following the first child only finds a greedy path, not the top five overall, because a rare branch can hold more popular words deeper down. Sorting or scanning the dictionary at query time is O(n log n) or O(n), and stopping at an average threshold gives no guarantee of the true top five.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/trie.html"
+  },
+  {
+    "id": "ds3b-trie-longest-prefix-match",
+    "topic": "data-structures",
+    "subtopic": "tries",
+    "difficulty": "Expert",
+    "title": "Routing lookup with nested prefixes",
+    "question": "A router stores 900,000 IPv4 route prefixes such as 10.0.0.0/8 and 10.1.0.0/16, and for each packet it must pick the route with the longest prefix matching the destination address. Which structure and procedure give a lookup cost of at most 32 steps regardless of the table size?",
+    "options": [
+      "A hash table keyed by the full 32-bit destination address, filled with every route prefix, so that one lookup returns the matching route directly",
+      "A binary trie over the address bits where the walk stops and returns at the first node that marks a route, since that node is the best match",
+      "A binary trie over the address bits: walk the destination bits, remember the last node that marks a route and return it when the walk ends",
+      "An array of the prefixes sorted by their numeric start value, searched with binary search to find the closest prefix below the destination address"
+    ],
+    "correctIndex": 2,
+    "explanation": "Prefixes can be nested, so the right answer is the deepest marked node on the path of the address bits: the walk visits at most 32 nodes and the saved last match is the longest prefix. Stopping at the first marked node returns the shortest match, a hash table keyed by full addresses only knows exact keys (and would need every address covered), and a sorted list by start value can return a prefix that does not cover the address while a shorter enclosing one does. Real routers compress this trie (for example with path compression) to reduce memory and steps.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/patriciatree.html"
+  },
+  {
+    "id": "ds3b-dsu-offline-deletions",
+    "topic": "data-structures",
+    "subtopic": "disjoint-set",
+    "difficulty": "Hard",
+    "title": "Connectivity queries while links are removed",
+    "question": "A network operator knows in advance the full ordered list of events: links will fail one at a time, interleaved with questions of the form \"are A and B still connected?\". Union-find cannot split a set. How can all the questions be answered in nearly linear time?",
+    "options": [
+      "Keep one structure and, on each failure, call a split operation on the set that contains both endpoints, which path compression supports at constant amortized cost",
+      "Process the events in reverse: build the final network, then replay backwards, turning each failure into a union and answering each question then",
+      "Rebuild the structure from scratch after every failure using the links that remain, which costs O(m) per failure and is acceptable because the structure is almost linear",
+      "Run the events forwards, and on each failure undo the most recent union, since the last link added is always the first link that can fail"
+    ],
+    "correctIndex": 1,
+    "explanation": "Reversing time turns deletions into insertions, which union-find handles in near-constant amortized time, so the whole offline job costs about O((n + m) alpha(n)) plus the queries. Standard union-find has no split because merged representatives and compressed paths discard the original structure. Rebuilding after each failure costs O(m) every time, and failures are not guaranteed to come in the reverse order of the unions, so undoing the last union is wrong.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/kruskalsalgo.html"
+  },
+  {
+    "id": "ds3b-dsu-largest-component",
+    "topic": "data-structures",
+    "subtopic": "disjoint-set",
+    "difficulty": "Medium",
+    "title": "Largest group size after every new link",
+    "question": "A social app adds 5 million friendship edges one at a time among 2 million users and must report the size of the largest connected group after each edge in near-constant time. Which union-find design supports this?",
+    "options": [
+      "Keep a size counter in every node and, for each new edge, increase it only in the two users that the edge connects, then take the larger of the two",
+      "After each edge, scan all users, count the members of every root with a hash map, and take the largest count, which stays accurate but costs O(n) per edge",
+      "After each edge, run a breadth-first search from one endpoint and count the nodes reached, because that count is the size of the merged group",
+      "Keep a size counter in each root, add the two counters when a union joins different roots, and track a running maximum"
+    ],
+    "correctIndex": 3,
+    "explanation": "Component sizes only change when two different roots are merged, so storing the size at the root and adding the two sizes during union gives the new group size in O(alpha(n)), and a running maximum is enough because sizes never shrink. Updating only the endpoints leaves the other members and the root with stale numbers, while a full scan costs O(n) per edge and a search from an endpoint costs O(size of the component), both far too slow for 5 million edges.",
+    "referenceUrl": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.DisjointSet.html"
+  }
+]
