@@ -206,6 +206,8 @@ public class ResetEmailThrottleTests
             return Create();
             async Task<T> Create() { var v = await factory(ct); _values[key] = v!; return v; }
         }
+        public Task<T?> GetAsync<T>(string key, CancellationToken ct = default) => Task.FromResult(_values.TryGetValue(key, out var v) ? (T?)v : default);
+        public Task SetAsync<T>(string key, T value, TimeSpan ttl, CancellationToken ct = default) { _values[key] = value!; return Task.CompletedTask; }
         public Task RemoveAsync(string key, CancellationToken ct = default) { _values.Remove(key); return Task.CompletedTask; }
     }
 
@@ -261,6 +263,8 @@ public class ResetEmailThrottleTests
     {
         public async Task<T> GetOrCreateAsync<T>(string key, TimeSpan ttl, Func<CancellationToken, Task<T>> factory, CancellationToken ct = default) =>
             await factory(ct);
+        public Task<T?> GetAsync<T>(string key, CancellationToken ct = default) => Task.FromResult<T?>(default);
+        public Task SetAsync<T>(string key, T value, TimeSpan ttl, CancellationToken ct = default) => Task.CompletedTask;
         public Task RemoveAsync(string key, CancellationToken ct = default) => Task.CompletedTask;
     }
 }

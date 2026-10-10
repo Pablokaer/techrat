@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using TechRat.Application.Identity;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using Microsoft.AspNetCore.Hosting;
@@ -55,6 +57,19 @@ public class EmailDeliveryTests(TechRatFactory api) : IAsyncLifetime
         throw new TimeoutException($"No email to {to}");
     }
 
+    private async Task<JsonElement> WaitForSubjectAsync(string to, string subjectContains)
+    {
+        for (var i = 0; i < 60; i++)
+        {
+            var list = await _mailApi.GetFromJsonAsync<JsonElement>($"/api/v1/search?query={Uri.EscapeDataString($"to:{to}")}");
+            foreach (var m in list.GetProperty("messages").EnumerateArray())
+                if (m.GetProperty("Subject").GetString()!.Contains(subjectContains, StringComparison.OrdinalIgnoreCase))
+                    return await _mailApi.GetFromJsonAsync<JsonElement>($"/api/v1/message/{m.GetProperty("ID").GetString()}");
+            await Task.Delay(100);
+        }
+        throw new TimeoutException($"No email to {to} with '{subjectContains}' in the subject");
+    }
+
     [Fact]
     public async Task Admins_can_send_a_test_email_to_check_the_smtp_settings()
     {
@@ -88,6 +103,32 @@ public class EmailDeliveryTests(TechRatFactory api) : IAsyncLifetime
         Assert.Equal("Redefina sua senha do TechRat", message.GetProperty("Subject").GetString());
         Assert.Contains("https://techrat.test/reset-password?email=", message.GetProperty("HTML").GetString());
         Assert.Contains("https://techrat.test/reset-password?email=", message.GetProperty("Text").GetString());
+    }
+
+    [Fact]
+    public async Task Resetting_the_password_unlocks_the_account_and_tells_the_owner()
+    {
+        await using var factory = WithMailpit();
+        var client = factory.CreateClient();
+        var username = $"unlock_{Guid.NewGuid():N}"[..20];
+        var email = $"{username}@example.com";
+        (await client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Passw0rdX", username, displayName = "Unlock" })).EnsureSuccessStatusCode();
+        for (var i = 0; i < AuthPolicy.MaxFailedAccessAttempts; i++)
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "Wr0ngPassword" })).StatusCode);
+        // Locked: even the right password is refused now.
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "Passw0rdX" })).StatusCode);
+
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/v1/auth/forgot-password", new { email })).StatusCode);
+        var link = (await WaitForSubjectAsync(email, "Reset your TechRat password")).GetProperty("Text").GetString()!;
+        var code = Uri.UnescapeDataString(Regex.Match(link, @"code=([^\s&""<>]+)").Groups[1].Value);
+        Assert.False(string.IsNullOrEmpty(code));
+
+        var reset = await client.PostAsJsonAsync("/api/v1/auth/reset-password", new { email, resetCode = code, newPassword = "N3wPassw0rdZ" });
+
+        Assert.Equal(HttpStatusCode.NoContent, reset.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "N3wPassw0rdZ" })).StatusCode);
+        var notice = await WaitForSubjectAsync(email, "password was changed");
+        Assert.Contains("https://techrat.test/forgot-password", notice.GetProperty("Text").GetString());
     }
 
     [Fact]

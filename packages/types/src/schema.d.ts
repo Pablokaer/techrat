@@ -924,7 +924,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Sign in. Web uses useCookies=true (HttpOnly cookie); mobile/desktop receive bearer + refresh tokens */
+        /**
+         * Sign in. Web uses useCookies=true (HttpOnly cookie); mobile/desktop receive bearer + refresh tokens
+         * @description Bearer clients get an access token (30 minutes) and a single-use refresh token that belongs to a tracked session. An unknown email costs the same time as a wrong password. Responses are never cacheable; the body is limited to 8 KB.
+         */
         post: {
             parameters: {
                 query?: {
@@ -966,7 +969,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Exchange a refresh token for a new access token */
+        /**
+         * Exchange a refresh token for a new access token and a new refresh token
+         * @description Refresh tokens are single use: store the one returned. Presenting an older token again revokes that session (401 for it and for the newer token); the previous token is forgiven for a few seconds so a lost response can be retried. Other devices of the same person are not affected.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -1081,7 +1087,7 @@ export interface paths {
         put?: never;
         /**
          * Reset the password using the code from the email
-         * @description The code expires one hour after the email was sent. The new password follows the sign-up rules. A missing or wrong field answers 400 in the same shape for known and unknown accounts.
+         * @description The code expires one hour after the email was sent. The new password follows the sign-up rules. A missing or wrong field answers 400 in the same shape for known and unknown accounts. A successful reset lifts any lockout and emails the owner.
          */
         post: {
             parameters: {

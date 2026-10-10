@@ -406,6 +406,7 @@ If you build behind a TLS-inspecting corporate proxy, set `EXTRA_CA_CERT=/path/t
 | `Cors__AllowedOrigins__N` | API | Allowed origins (web, Tauri, Expo web) |
 | `Smtp__Host`, `Smtp__Port`, `Smtp__Security`, `Smtp__Username`, `Smtp__Password`, `Smtp__From`, `Smtp__ReplyTo` | API | Email delivery (Compose: `SMTP_*`; Mailpit locally). TLS is required unless `Security=None`. Setup per provider, DNS and testing: [docs/email.md](docs/email.md) |
 | `App__PublicWebUrl` | API | Base URL for password-reset links |
+| `Auth__RefreshGraceSeconds` | API | Seconds the previous refresh token is still accepted after a refresh (default 30; 0 revokes a session at the first replay) |
 | `DataProtection__CertificateBase64` (or `__CertificatePath`) / `DataProtection__CertificatePassword` | API | Certificate that encrypts the login keys stored in PostgreSQL (Compose: `DATAPROTECTION_CERT_BASE64` / `DATAPROTECTION_CERT_PASSWORD`). Recommended in production; the API warns at start without it and refuses to start when it is set but unreadable |
 | `Gamification__*` | API | XP values, level curve, step criteria, daily challenge (see `appsettings.json`) |
 | `RateLimiting__AuthPerMinute` / `RateLimiting__AnswersPerMinute` / `RateLimiting__UploadsPerMinute` | API | Rate limits per user or IP (uploads default to 10/min; Compose: `AUTH_RATE_LIMIT_PER_MINUTE`) |
@@ -500,7 +501,9 @@ CI (`.github/workflows/ci.yml`) runs the backend build (warnings as errors) and 
 * Identity password hashing, account lockout (8 attempts, then 15 minutes), security-stamp validation and persisted Data Protection keys, encrypted at rest with a certificate you provide (`DataProtection__CertificateBase64`; [docs/deploy.md](docs/deploy.md)).
 * Passwords: 8 to 128 characters with upper, lower and a digit, and not a very common one ("Password1", "Summer2024!"), nor built from the username or email.
 * Sign-in answers the same, in the same time, for an unknown email and a wrong password; password reset links last one hour, and at most one reset email per address per minute is sent, after the answer.
-* Login security decisions and what is still open (refresh-token rotation, sign-up enumeration, desktop token storage): [ADR-0029](docs/adr/0029-login-security-hardening.md).
+* Refresh tokens are single use: each refresh returns a new one, and presenting an old one revokes that session (a stolen token shows up as soon as both sides use it); the previous token is forgiven for 30 seconds for lost responses (`Auth__RefreshGraceSeconds`). Detection is paused, never harmful, when the cache loses a session.
+* Sign-in, token and account responses are `Cache-Control: no-store`; credential endpoints accept bodies of 8 KB at most; resetting a password lifts a lockout and emails the owner.
+* Login security decisions and what is still open (sign-up enumeration, desktop token storage, no second factor): [ADR-0029](docs/adr/0029-login-security-hardening.md), [ADR-0030](docs/adr/0030-refresh-token-rotation-and-uncacheable-auth-responses.md).
 * The web app uses an HttpOnly, SameSite=Strict cookie, so tokens are never readable by JavaScript.
 * Endpoints are rate limited: auth per IP, answers per user.
 * CORS uses an explicit origin list.
