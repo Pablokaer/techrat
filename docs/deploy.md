@@ -31,6 +31,26 @@ Internet ─► Apache :80/:443 (Let's Encrypt via certbot)
 5. HTTPS: `certbot --apache -d <domain> -d www.<domain> --redirect`. Renewal uses the existing certbot timer.
 6. Sign in with the admin account, change its password, and use **Admin → Send test email**.
 
+## Encrypt the login keys (recommended)
+
+The API signs and encrypts login cookies and bearer tokens with keys stored in PostgreSQL. Without a certificate they sit
+there as plain XML, so a leaked database backup would let someone forge a session for any account
+([ADR-0029](adr/0029-login-security-hardening.md)). Create a certificate **outside the repository and the database** and give it
+to the API:
+
+```bash
+PFX_PASSWORD="$(openssl rand -base64 24)"        # keep it: it is DATAPROTECTION_CERT_PASSWORD
+openssl req -x509 -newkey rsa:3072 -nodes -keyout dp-key.pem -out dp-cert.pem -days 3650 -subj "/CN=techrat-dataprotection"
+openssl pkcs12 -export -inkey dp-key.pem -in dp-cert.pem -out dp.pfx -password "pass:$PFX_PASSWORD"
+base64 -w0 dp.pfx                                 # value of DATAPROTECTION_CERT_BASE64
+shred -u dp-key.pem dp.pfx
+```
+
+Put `DATAPROTECTION_CERT_BASE64` and `DATAPROTECTION_CERT_PASSWORD` in the server's `.env` and redeploy. The API refuses to
+start when they are set but wrong; when they are missing it logs a warning. New keys are encrypted from then on; keys already in
+the database stay readable until they rotate (up to 90 days). To encrypt immediately, delete the rows of `DataProtectionKeys`
+(everyone has to sign in again). Keep the certificate: losing it makes the stored keys unreadable, which also signs everyone out.
+
 ## Updating: continuous deployment
 
 ### Branch flow and promotion gate

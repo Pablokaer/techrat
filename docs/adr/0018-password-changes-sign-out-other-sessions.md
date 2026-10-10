@@ -12,7 +12,7 @@ desktop and mobile (ADR-0008).
 ## Decision
 
 - `POST /api/v1/auth/change-password` (`{ currentPassword, newPassword }`) checks the current password **on the server**.
-  Wrong guesses count towards the Identity lockout (8 attempts, 5 minutes), like logins, and the endpoint shares the
+  Wrong guesses count towards the Identity lockout (8 attempts, then 15 minutes since ADR-0029), like logins, and the endpoint shares the
   `auth` rate limit. The new password goes through the same Identity password validators as sign-up and must differ
   from the current one. Passwords are never logged or returned.
 - `UserManager.ChangePasswordAsync` rotates the **security stamp**. Every refresh token issued before stops working, and

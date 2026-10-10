@@ -32,22 +32,29 @@ builder.Services.AddModules();
 builder.Services.AddSingleton<IRealtimePublisher, SignalRRealtimePublisher>();
 
 // ---------------------------------------------------------------- identity & auth
-builder.Services.AddDataProtection().PersistKeysToDbContext<AppDbContext>().SetApplicationName("TechRat");
+// The key ring that signs login cookies and tokens is stored in PostgreSQL; a certificate kept outside the database
+// encrypts it at rest (ADR-0029). Without one the keys are plain XML, which the start-up warning below points out.
+var keyRing = builder.Services.AddDataProtection().PersistKeysToDbContext<AppDbContext>().SetApplicationName("TechRat");
+var keyEncryptionCertificate = DataProtectionSetup.LoadKeyEncryptionCertificate(config);
+if (keyEncryptionCertificate is not null) keyRing.ProtectKeysWithCertificate(keyEncryptionCertificate);
 builder.Services
     .AddIdentityApiEndpoints<ApplicationUser>(o =>
     {
         o.User.RequireUniqueEmail = true;
-        o.Password.RequiredLength = 8;
+        o.Password.RequiredLength = AuthPolicy.MinPasswordLength;
         o.Password.RequireDigit = true;
         o.Password.RequireLowercase = true;
         o.Password.RequireUppercase = true;
         o.Password.RequireNonAlphanumeric = false;
-        o.Lockout.MaxFailedAccessAttempts = 8;
-        o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+        o.Lockout.MaxFailedAccessAttempts = AuthPolicy.MaxFailedAccessAttempts;
+        o.Lockout.DefaultLockoutTimeSpan = AuthPolicy.LockoutDuration;
     })
     .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<AppDbContext>()
+    .AddPasswordValidator<PasswordPolicyValidator>()
     .AddErrorDescriber<LocalizedIdentityErrorDescriber>();
+// The emailed reset link is short-lived (Identity's default is a day).
+builder.Services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = AuthPolicy.PasswordResetTokenLifetime);
 
 // ---------------------------------------------------------------- localization
 // The client sends Accept-Language (en or pt-BR); any Portuguese variant maps to pt-BR texts.
@@ -62,8 +69,8 @@ builder.Services.Configure<RequestLocalizationOptions>(o =>
 
 builder.Services.Configure<Microsoft.AspNetCore.Authentication.BearerToken.BearerTokenOptions>(IdentityConstants.BearerScheme, o =>
 {
-    o.BearerTokenExpiration = TimeSpan.FromMinutes(30);
-    o.RefreshTokenExpiration = TimeSpan.FromDays(14);
+    o.BearerTokenExpiration = AuthPolicy.AccessTokenLifetime;
+    o.RefreshTokenExpiration = AuthPolicy.RefreshTokenLifetime;
 });
 builder.Services.ConfigureApplicationCookie(o =>
 {
@@ -71,7 +78,7 @@ builder.Services.ConfigureApplicationCookie(o =>
     o.Cookie.HttpOnly = true;
     o.Cookie.SameSite = SameSiteMode.Strict;
     o.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
-    o.ExpireTimeSpan = TimeSpan.FromDays(14);
+    o.ExpireTimeSpan = AuthPolicy.RefreshTokenLifetime;
     o.SlidingExpiration = true;
     // APIs answer with status codes instead of redirecting to a login page.
     o.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; };
@@ -141,6 +148,10 @@ builder.Services.AddHealthChecks()
     .AddCheck<RedisHealthCheck>("redis", tags: ["ready"]);
 
 var app = builder.Build();
+
+if (keyEncryptionCertificate is null && !app.Environment.IsDevelopment())
+    app.Logger.LogWarning("Data Protection keys are stored unencrypted in the database: set DataProtection:CertificateBase64 (or " +
+                          "DataProtection:CertificatePath) and DataProtection:CertificatePassword so a leaked backup cannot be used to forge sessions (ADR-0029)");
 
 // ---------------------------------------------------------------- database
 if (config.GetValue("Database:MigrateOnStartup", false))

@@ -1,6 +1,7 @@
 import type { Messages } from "../en";
 
 export const validation: Messages["validation"] = {
+  passwordMax: "No máximo 128 caracteres",
   passwordMin: "Pelo menos 8 caracteres",
   passwordLower: "Inclua uma letra minúscula",
   passwordUpper: "Inclua uma letra maiúscula",
