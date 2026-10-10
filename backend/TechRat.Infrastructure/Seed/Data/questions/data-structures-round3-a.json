@@ -1,0 +1,257 @@
+[
+  {
+    "id": "ds3a-arr-dedup-sorted-in-place",
+    "topic": "data-structures",
+    "subtopic": "arrays",
+    "difficulty": "Medium",
+    "title": "Deduplicating a sorted array in place",
+    "question": "A sorted array of 5 million integers contains many duplicates and must be reduced to its distinct values in place, using O(1) extra memory. Which approach does this in the best time?",
+    "options": [
+      "Keep a read index and a write index, and copy an element forward only when it differs from the last value written, in a single pass of O(n)",
+      "Insert every element into a hash set and rebuild the array from the set, which is O(n) in time but needs O(n) extra memory and loses the sorted order",
+      "Scan from left to right and, whenever a duplicate appears, shift every later element one position to the left, which keeps order but costs O(n²) in the worst case",
+      "Sort the whole array again with a comparison sort and then drop equal neighbours, which costs O(n log n) and ignores that the data is already sorted"
+    ],
+    "correctIndex": 0,
+    "explanation": "Because equal values are adjacent in a sorted array, one pass with a write index is enough: each element is compared with the last value written and copied only when it is new, giving O(n) time and O(1) memory. A hash set breaks the O(1) memory requirement and does not preserve order. Shifting after every duplicate is O(n²) when many duplicates exist, and sorting again repeats work the input already did for free.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/array.html"
+  },
+  {
+    "id": "ds3a-arr-rotated-duplicates-search",
+    "topic": "data-structures",
+    "subtopic": "arrays",
+    "difficulty": "Hard",
+    "title": "Binary search on a rotated array with duplicates",
+    "question": "A sorted array was rotated at an unknown pivot, such as [4, 5, 1, 2, 3], and it may contain duplicates. A team finds the minimum with a binary search that compares a[mid] with a[hi]. On the input [1, 1, 1, 1, 0, 1, 1], what is the consequence?",
+    "options": [
+      "The search still finishes in O(log n), because every comparison rules out half of the remaining range no matter how many equal values the array holds, so duplicates only change which value is returned, never how long the search takes",
+      "When a[mid] equals a[hi] the comparison does not reveal which half holds the minimum, so only one element can be discarded per step and the worst case degrades to O(n)",
+      "The search never terminates, because a rotated array that contains duplicates has no well-defined minimum value to converge on",
+      "The search returns a wrong answer that no algorithm can avoid, because the minimum of a rotated array with duplicates cannot be found at all"
+    ],
+    "correctIndex": 1,
+    "explanation": "Here a[mid] = a[hi] = 1, and the minimum 0 could be on either side of mid, so the comparison gives no information; the safe move is to shrink the range by one element (hi = hi - 1). With long runs of equal values this removes one element per step and the cost becomes O(n). The minimum is well defined (0), the loop does terminate, and a linear scan always finds it, so only the logarithmic guarantee is lost.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/binarySearch.html"
+  },
+  {
+    "id": "ds3a-arr-range-add-point-query",
+    "topic": "data-structures",
+    "subtopic": "arrays",
+    "difficulty": "Expert",
+    "title": "Interleaved range updates and point reads",
+    "question": "A service keeps n = 10^6 counters and receives 10^6 operations in any interleaving: add v to every counter in positions l..r, or read counter i. A plain difference array makes an update O(1), but a read must sum a prefix. Which structure gives both operations in O(log n)?",
+    "options": [
+      "A prefix-sum array rebuilt after each update, so a read is a single lookup in O(1) while every range add pays O(n) to recompute all the sums, which suits read-heavy workloads but cannot meet the bound for the updates",
+      "A hash map that stores only the counters that were ever read, so a range add updates just those entries in O(log n) expected time",
+      "A Fenwick tree (binary indexed tree) over the difference array: a range add becomes two point updates at l and r + 1, and a read is the prefix sum up to i",
+      "A sorted array of the update intervals searched with binary search, so a read counts the intervals containing i in O(log n) time"
+    ],
+    "correctIndex": 2,
+    "explanation": "With a difference array D, adding v to l..r means D[l] += v and D[r + 1] -= v, and counter i equals the sum of D[0..i]. A Fenwick tree supports point updates and prefix sums in O(log n), so both operations meet the bound. Rebuilding prefix sums makes updates O(n); a map of read counters misses counters not yet read, and finding the intervals that contain i is not a single binary search because their values must all be summed.",
+    "referenceUrl": "https://en.wikipedia.org/wiki/Fenwick_tree"
+  },
+  {
+    "id": "ds3a-str-longest-unique-window",
+    "topic": "data-structures",
+    "subtopic": "strings",
+    "difficulty": "Medium",
+    "title": "Longest substring without repeated characters",
+    "question": "Given a string of length n, a function must return the length of the longest substring in which no character repeats. Which approach runs in O(n) time with extra memory bounded by the number of distinct characters?",
+    "options": [
+      "Test every possible substring with a set of seen characters and keep the longest repeat-free one, which is simple but costs O(n²) or worse",
+      "Sort the characters of the string and look for the longest run of different neighbours, because repeated characters end up grouped together after sorting, which turns the search for repeats into a simple scan of neighbours",
+      "Split the string at every repeated character and return the length of the longest piece, because each piece is then guaranteed to be free of repeats",
+      "Slide a window across the string, remember the last index of each character, and move the window start just past the previous occurrence whenever a character repeats"
+    ],
+    "correctIndex": 3,
+    "explanation": "The sliding window visits each character once: a map of last-seen indexes lets the window start jump past an earlier duplicate, so total work is O(n). Testing all substrings is quadratic or cubic. Sorting destroys the adjacency that defines a substring, and splitting at repeats misses windows that overlap the split point, such as the best window in a string where a repeated character sits in the middle of it.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/string.html"
+  },
+  {
+    "id": "ds3a-str-locale-case-keys",
+    "topic": "data-structures",
+    "subtopic": "strings",
+    "difficulty": "Hard",
+    "title": "Case-insensitive keys across locales",
+    "question": "A login service lowercases usernames with a locale-sensitive routine before using them as lookup keys. After a deployment to servers set to the Turkish locale, users whose names contain an uppercase 'I' cannot sign in, although the same code worked elsewhere. What is the most likely cause and fix?",
+    "options": [
+      "Locale-sensitive lowercasing maps 'I' to the dotless 'ı' under Turkish rules, so keys differ between servers; use locale-invariant case folding for identifiers",
+      "The lowercase routine drops characters outside the basic Latin alphabet there, so the fix is to reject any username with more than unaccented letters at signup",
+      "Strings in that locale are stored with a different byte order, so the fix is to convert every stored key to big-endian before comparing them, a problem that appears whenever the servers run on different hardware",
+      "The routine returns a different Unicode normalization form there, so the fix is to compare keys with a locale-aware collation that ignores accent differences"
+    ],
+    "correctIndex": 0,
+    "explanation": "Case mapping can depend on the locale: under Turkish rules the uppercase 'I' lowercases to the dotless 'ı', whereas other locales produce 'i', so the same username becomes two different keys. Identifiers should use a locale-invariant operation (or full Unicode case folding), ideally combined with normalization. Lowercasing does not discard non-Latin letters, text byte order is not locale dependent, and a collation-based comparison would not repair keys that were already stored differently.",
+    "referenceUrl": "https://unicode.org/faq/casemap_charprop.html"
+  },
+  {
+    "id": "ds3a-hash-equal-keys-equal-hashes",
+    "topic": "data-structures",
+    "subtopic": "hash-tables",
+    "difficulty": "Medium",
+    "title": "Equal keys with different hash values",
+    "question": "A team uses a hash map keyed by Point objects. Two Points are equal when their x and y match, but the hash function was never customised and still depends on object identity. After map.put(Point(1, 2), \"A\"), the call map.get(Point(1, 2)) returns nothing. Why?",
+    "options": [
+      "A Point holds two numbers, and hash maps accept only keys made of a single primitive value, so the entry was silently discarded when it was inserted and map.get cannot find what was never stored",
+      "Keys that are equal must produce equal hash values; the second Point hashes to another bucket, so the lookup probes a place where the entry is not stored",
+      "Two keys with the same coordinates form a collision, and collisions always make the table overwrite the older entry and then remove the new one",
+      "The table needs a resize after its first insertion, and lookups return nothing until the resize has been completed by a background process"
+    ],
+    "correctIndex": 1,
+    "explanation": "A hash table first uses the hash to choose a bucket and only then compares keys with the equality check. If equal keys can hash differently, the lookup goes to a bucket that never held the entry, so the equality check is never reached. The rule is that equal objects must have equal hashes (the reverse is not required). Composite keys are allowed, collisions are resolved by comparing keys rather than by deleting them, and resizing is not the cause.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/hashtab.html"
+  },
+  {
+    "id": "ds3a-hash-cuckoo-bounded-lookup",
+    "topic": "data-structures",
+    "subtopic": "hash-tables",
+    "difficulty": "Expert",
+    "title": "Bounded worst-case lookups in a hash table",
+    "question": "A packet-routing component reads a large in-memory table millions of times per second and must keep the worst-case number of memory probes per lookup bounded by a small constant, even at high load. Writes are rare and may be slower. Which scheme fits best?",
+    "options": [
+      "Separate chaining with the load factor kept below 0.5, which keeps chains short on average but still gives no constant bound on the worst-case lookup, at the price of more memory for the chains",
+      "Linear probing with a good hash function, whose clusters stay small enough that every lookup is guaranteed to finish within a few probes",
+      "Double hashing in an open-addressing table, which spreads probes evenly and therefore guarantees a fixed small number of probes per lookup",
+      "Cuckoo hashing: every key lives in one of two candidate positions, so a lookup checks at most two slots, while an insert may displace other keys and sometimes force a rehash"
+    ],
+    "correctIndex": 3,
+    "explanation": "Cuckoo hashing trades slower, occasionally disruptive inserts for a hard bound on reads: a key can only be in one of its two candidate slots (or a few slots per bucket in variants), so a lookup never needs more than that many probes. Chaining, linear probing and double hashing only have expected-case bounds; an unlucky key can still sit behind a long chain or probe sequence, and the bound does not hold at high load.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/cuckooHashing.html"
+  },
+  {
+    "id": "ds3a-ll-kth-from-end-one-pass",
+    "topic": "data-structures",
+    "subtopic": "linked-lists",
+    "difficulty": "Medium",
+    "title": "The k-th node from the end in one pass",
+    "question": "A singly linked list has unknown length. The task is to find the k-th node from the end in a single traversal, without modifying the list and using O(1) extra memory. Which technique works?",
+    "options": [
+      "Move a lead pointer k nodes ahead, then advance both pointers together until the lead falls off the end; the trailing pointer is then on the target node",
+      "Reverse the list while counting its nodes and then walk k steps from the new head, which touches nodes more than once and changes the list",
+      "Push every node onto a stack during the traversal and pop it k times afterwards, which works but uses O(n) extra memory instead of O(1), and the answer is then the element popped on the k-th step",
+      "Advance one pointer at twice the speed of another and stop when the faster one reaches the end, because the slower one is then k nodes from the end"
+    ],
+    "correctIndex": 0,
+    "explanation": "Keeping two pointers exactly k nodes apart means that when the lead pointer passes the last node, the trailing one is k nodes behind it, which is the k-th from the end; the list is read once and only two pointers are stored. Reversing mutates the list, a stack needs O(n) memory, and the fast and slow pointer pattern finds the middle (or a cycle), not a node at a fixed distance from the end.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/linkedList.html"
+  },
+  {
+    "id": "ds3a-ll-delete-given-node-copy",
+    "topic": "data-structures",
+    "subtopic": "linked-lists",
+    "difficulty": "Hard",
+    "title": "Deleting a node given only that node",
+    "question": "A singly linked list API exposes remove(node), but callers hold only a reference to the node itself, not to the head or the predecessor. An implementation copies the next node's value into the given node and unlinks the next node, in O(1). What is the main problem with it?",
+    "options": [
+      "It runs in O(n) in the worst case, because the copy forces a walk from the head to find and re-link the predecessor of the node",
+      "It cannot remove the last node, and any other reference to the old next node now points to a node that is no longer in the list",
+      "It breaks the ordering of every other node, because copying one value makes all later values move one place toward the head, even after the removal",
+      "It leaks the given node itself, because the node whose value was copied can never be released and stays reachable from the list"
+    ],
+    "correctIndex": 1,
+    "explanation": "The trick makes the node look deleted by overwriting it with its successor, which works in O(1) without a predecessor. But the last node has no successor to copy, and the real node that was unlinked is the old next node, so anyone holding a reference to it now holds a stale, detached node. No traversal or shifting of other nodes happens, and the node that gets unlinked is the one that can be released.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/linkedList.html"
+  },
+  {
+    "id": "ds3a-stack-infix-to-postfix",
+    "topic": "data-structures",
+    "subtopic": "stacks",
+    "difficulty": "Medium",
+    "title": "Converting infix to postfix with an operator stack",
+    "question": "A calculator converts the infix expression `2 + 3 * 4 - 1` to postfix with an operator stack. Operators of equal precedence associate left to right, and `*` binds tighter than `+` and `-`. Which postfix output does it produce?",
+    "options": [
+      "`2 3 + 4 * 1 -`, because every operator is emitted as soon as its right operand has been read",
+      "`2 3 4 1 - * +`, because each operator waits on the stack until all the operands have been read",
+      "`2 3 4 * + 1 -`, because the product and then the sum are popped before the minus is pushed",
+      "`2 3 4 * 1 + -`, because the plus is applied to the product and the next operand before the minus is applied"
+    ],
+    "correctIndex": 2,
+    "explanation": "Operands go straight to the output. The `*` is pushed above `+` because it binds tighter; when `-` arrives, `*` and then `+` (equal precedence, left to right) are popped before `-` is pushed, giving `2 3 4 * + 1 -`, which evaluates to 13. Emitting operators in reading order gives `2 3 + 4 * 1 -` (19), applying the last operator first gives `2 3 4 1 - * +` (11), and `2 3 4 * 1 + -` evaluates to -11.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/stack.html"
+  },
+  {
+    "id": "ds3a-stack-largest-rectangle-histogram",
+    "topic": "data-structures",
+    "subtopic": "stacks",
+    "difficulty": "Hard",
+    "title": "Largest rectangle in a histogram",
+    "question": "A histogram has bar heights [2, 1, 5, 6, 2, 3], each bar one unit wide. A function must find the area of the largest rectangle that fits inside the histogram in O(n) time. What is that area, and which technique reaches the bound?",
+    "options": [
+      "12, by multiplying the lowest height 2 by all six bars, then repeating the idea on each half with divide and conquer",
+      "8, by sliding a window of fixed width 4 over the bars and multiplying the window's lowest height by its width",
+      "6, by taking the tallest bar alone, since a taller bar always gives a larger rectangle than any group of shorter bars, which ignores that neighbouring bars can widen the rectangle",
+      "10, using a stack of bars with increasing heights: a lower bar pops the taller bars and fixes the width each popped bar can span"
+    ],
+    "correctIndex": 3,
+    "explanation": "The best rectangle uses the bars of height 5 and 6 with height 5 and width 2, giving 10; no rectangle of height 2 can span the bar of height 1, so 2 x 6 is impossible. A monotonic stack of increasing heights pops a bar when a lower one arrives, and the popped bar's width runs between the new top of the stack and the current index, so each bar is pushed and popped once. A fixed-width window and the tallest bar alone both miss the 10 (they give 8 and 6).",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/stack.html"
+  },
+  {
+    "id": "ds3a-queue-priority-starvation-aging",
+    "topic": "data-structures",
+    "subtopic": "queues",
+    "difficulty": "Medium",
+    "title": "Starvation in a priority queue",
+    "question": "A support system serves tickets from a priority queue ordered by severity. Under sustained load, low-severity tickets wait for days while new high-severity tickets keep arriving. Which change fixes this without abandoning priorities?",
+    "options": [
+      "Add aging: raise a ticket's effective priority the longer it waits, so old low-severity tickets eventually outrank newly arrived ones",
+      "Replace the priority queue with a plain FIFO queue for every ticket, which ends starvation by serving tickets strictly in arrival order but ignores severity, at the cost of treating a critical fault like a routine request",
+      "Switch the underlying heap to a sorted array, which makes removal of the highest priority faster but does not change the order in which tickets are served",
+      "Make the queue larger so it holds more tickets, because starvation happens only when the queue overflows and drops its oldest low-severity entries"
+    ],
+    "correctIndex": 0,
+    "explanation": "A priority queue always serves the highest priority first, so a steady stream of urgent items can postpone low-priority ones indefinitely. Aging gradually increases the priority of waiting items, bounding their wait while still favouring urgent work. A FIFO queue abandons priorities, changing the data structure behind the queue never changes the service order, and capacity has nothing to do with the starvation.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/priorityque.html"
+  },
+  {
+    "id": "ds3a-queue-littles-law-waiting",
+    "topic": "data-structures",
+    "subtopic": "queues",
+    "difficulty": "Hard",
+    "title": "Requests waiting in a queue (Little's law)",
+    "question": "A request queue receives on average 200 requests per second in steady state. Each request waits on average 0.4 s in the queue and is then served in 0.1 s on average. By Little's law, how many requests are on average waiting in the queue itself, not yet being served?",
+    "options": [
+      "100, because the average number equals the arrival rate times the full time in the system, 200 x (0.4 + 0.1)",
+      "80, because the average number waiting equals the arrival rate times the average waiting time, 200 x 0.4",
+      "20, because the average number equals the arrival rate times the average service time, 200 x 0.1",
+      "500, because the average number equals the arrival rate divided by the average waiting time, 200 / 0.4"
+    ],
+    "correctIndex": 1,
+    "explanation": "Little's law says L = lambda x W for any stable part of a system. Applied to the waiting line alone, L = 200 x 0.4 = 80 requests. The figure of 100 is the average number in the whole system (queue plus those in service), and 20 is the average number being served. Dividing the rate by the time gives a quantity with the wrong meaning and units.",
+    "referenceUrl": "https://en.wikipedia.org/wiki/Little%27s_law"
+  },
+  {
+    "id": "ds3a-matrix-2d-prefix-sums",
+    "topic": "data-structures",
+    "subtopic": "matrices",
+    "difficulty": "Medium",
+    "title": "Constant-time sums of rectangular blocks",
+    "question": "A grid of 1,000 x 1,000 numbers is fixed, and one million queries each ask for the sum of a rectangular block of cells. Which preprocessing makes each query O(1)?",
+    "options": [
+      "Precompute only per-row prefix sums, then add the row segments of the block, which still needs one addition per row spanned by the block; this is fast only for blocks that are one row tall",
+      "Sort the cells of the grid by value and keep a running total, so each query locates its block with a binary search over the sorted list",
+      "Precompute a table where each cell holds the sum of everything above and to its left, then combine four table entries with inclusion-exclusion for every query",
+      "Store the grid in a sparse structure that skips zero cells, so each query visits only the non-zero cells that fall inside the block"
+    ],
+    "correctIndex": 2,
+    "explanation": "With P[r][c] holding the sum of the top-left rectangle ending at (r, c), the sum of a block is P[r2][c2] - P[r1-1][c2] - P[r2][c1-1] + P[r1-1][c1-1], four lookups regardless of block size, after O(rows x cols) preprocessing. Row prefix sums leave O(rows) work per query, sorting by value discards the geometry of the grid, and a sparse layout still visits every non-zero cell in the block.",
+    "referenceUrl": "https://xlinux.nist.gov/dads/HTML/matrix.html"
+  },
+  {
+    "id": "ds3a-matrix-strassen-in-practice",
+    "topic": "data-structures",
+    "subtopic": "matrices",
+    "difficulty": "Expert",
+    "title": "Why Strassen is not the default in practice",
+    "question": "Strassen's algorithm multiplies two n x n matrices in about O(n^2.81) instead of O(n^3). A numerical-library team asks why dense linear-algebra libraries still use a blocked classical algorithm by default for matrices of a few hundred rows. What is the best answer?",
+    "options": [
+      "Strassen only works when every entry is an integer, so it cannot be used for the floating-point data that numerical libraries normally process and every library would first have to check that the entries are whole numbers",
+      "Strassen's bound holds only for sparse inputs, so on dense matrices it performs more operations than the classical O(n^3) method at every size",
+      "Strassen requires the matrix dimension to be a prime number, so most real shapes would first have to be padded to a size that is far too large",
+      "Strassen has a larger constant factor, needs temporary matrices and is less numerically stable, so it pays off only past a large crossover size, unlike cache-blocked code"
+    ],
+    "correctIndex": 3,
+    "explanation": "Strassen replaces 8 half-size multiplications with 7 (exponent log2 7, about 2.81), but it adds many matrix additions, allocates temporaries, has weaker error bounds in floating point, and loses to cache-blocked, vectorised code until matrices are quite large. It works for floating-point and dense matrices, and square sizes that are not powers of two can be handled by padding or peeling, so no primality or integer-only restriction applies.",
+    "referenceUrl": "https://en.wikipedia.org/wiki/Strassen_algorithm"
+  }
+]

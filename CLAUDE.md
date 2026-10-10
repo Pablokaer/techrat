@@ -40,4 +40,4 @@ The platform supports English (`en`) and Brazilian Portuguese (`pt-BR`). See "La
 
 - **Every question on the platform must be available in both English and Portuguese** (title, question text, all four options and the explanation). When you create or edit a question, write both versions and keep them equivalent: same correct option, same order of options, same technical meaning.
 - The same applies to anything else a learner sees: UI strings (`apps/web/src/i18n/messages/{en,pt-BR}`), catalog texts (`backend/TechRat.Infrastructure/Seed/Data/i18n/pt-BR.json`) and server messages (`backend/TechRat.Application/Common/Localization.cs`). Never add a user-facing text in only one language.
-- All 2,887 seed questions have a pt-BR translation (`validate_questions.py` enforces it); never merge a question without one.
+- All 2,950 seed questions have a pt-BR translation (`validate_questions.py` enforces it); never merge a question without one.

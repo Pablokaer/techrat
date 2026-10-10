@@ -1,0 +1,110 @@
+[
+  {
+    "id": "sd3c-repl-virtual-nodes",
+    "title": "Partes desiguais em um anel de hash",
+    "question": "Um anel de hash consistente coloca cada um dos 5 nós de cache em um único ponto. Um nó é dono de cerca de 40% das chaves, outro de apenas 6%, e o nó mais ocupado vive ficando sem memória. Qual mudança equilibra a carga sem remapear a maioria das chaves?",
+    "options": [
+      "Trocar para hash(key) mod N sobre os mesmos 5 nós, para cada nó receber exatamente um quinto do espaço de chaves por construção",
+      "Refazer o hash de todas as chaves com uma função mais forte, para as chaves se espalharem igualmente mesmo com cada nó em uma só posição",
+      "Dar a cada nó físico muitos pontos virtuais no anel (por exemplo 100 a 200), para cada um ser dono de muitos arcos pequenos",
+      "Adicionar um segundo anel com as mesmas posições de nós e guardar cada chave nos dois anéis para a cópia absorver o desequilíbrio"
+    ],
+    "explanation": "Com um ponto por nó, os arcos entre pontos aleatórios variam muito, então um nó pode ficar com várias vezes a sua parte justa. Nós virtuais dão a cada máquina muitos pontos, de modo que o comprimento total de arco por máquina se equilibra, e quando um nó entra ou sai só os seus arcos pequenos se movem. Uma regra mod N equilibra perfeitamente, mas remapeia quase todas as chaves sempre que N muda, um hash melhor espalha as chaves uniformemente mas não as posições dos nós, e um segundo anel com as mesmas posições repete o mesmo desequilíbrio."
+  },
+  {
+    "id": "sd3c-gw-trusted-network-header",
+    "title": "Confiar em um header dentro da rede",
+    "question": "Um API gateway valida JWTs e encaminha as requisições a serviços internos por uma rede privada. Os serviços confiam em qualquer chamador dessa rede e leem o header `X-User-Id` para decidir de quem devolver os dados. Um job interno comprometido chama o serviço de pedidos diretamente, com o id de outro cliente nesse header, e lê os pedidos dele. Qual é a melhor correção?",
+    "options": [
+      "Fazer cada serviço autenticar seus chamadores (mTLS ou credenciais de serviço) e verificar o usuário por um token assinado",
+      "Fazer o gateway remover `X-User-Id` das requisições dos clientes, o que barra quem está fora, mas não quem já está dentro",
+      "Criptografar o tráfego interno com TLS, para o header não poder mais ser lido nem alterado no caminho entre os serviços",
+      "Adicionar um rate limit ao serviço de pedidos para um chamador interno não conseguir ler os pedidos de muitos clientes em pouco tempo"
+    ],
+    "explanation": "Autenticar só na borda deixa cada serviço confiando na rede, então qualquer coisa dentro dela pode forjar o header. Um projeto zero trust faz cada serviço verificar quem está chamando (mTLS ou credenciais de serviço) e quem é o usuário final, a partir de um token assinado, de modo que um header simples não tem autoridade. Remover o header no gateway barra só clientes externos, o TLS sozinho criptografa mas não prova que o chamador pode agir como aquele usuário, e um rate limit atrasa o abuso sem impedi-lo."
+  },
+  {
+    "id": "sd3c-msg-prefetch-uneven-workers",
+    "title": "Workers ociosos ao lado de workers sobrecarregados",
+    "question": "Vinte workers consomem uma fila, e cada um pode reter até 1.000 mensagens entregues e ainda não confirmadas (o seu prefetch). Os jobs levam de 50 ms a 5 minutos. Alguns workers pegaram muitos jobs lentos e ficam ocupados por horas enquanto os outros ficam ociosos e a fila continua longa. Qual mudança corrige o desequilíbrio?",
+    "options": [
+      "Adicionar mais workers, para os jobs lentos se espalharem por mais máquinas e os novos tirarem trabalho dos ocupados",
+      "Aumentar o prefetch para cada worker reter ainda mais mensagens e o broker precisar de menos idas e voltas para alimentá-los",
+      "Trocar para auto-acknowledge, para as mensagens saírem do broker na entrega e não se acumularem em um único worker",
+      "Reduzir o prefetch para um número pequeno, como 1 a 10, para o worker receber a próxima mensagem só ao terminar uma"
+    ],
+    "explanation": "Prefetch é quantas mensagens o broker empurra para um consumidor com antecedência. Com 1.000, um worker que pega jobs lentos segura centenas como reféns enquanto os outros passam fome; um prefetch pequeno faz a entrega seguir a velocidade real de cada worker, ao custo de algum throughput em jobs muito curtos. Workers novos não conseguem pegar mensagens que já foram entregues, um prefetch maior piora o acúmulo, e o auto-acknowledge elimina a reentrega, então um worker que cai perde as suas mensagens."
+  },
+  {
+    "id": "sd3c-scale-autoscaling-flapping",
+    "title": "Um grupo de autoscaling que nunca se estabiliza",
+    "question": "Um grupo de autoscaling adiciona uma instância quando a CPU média passa de 60% e remove uma quando fica abaixo de 55%. Com carga estável, 4 instâncias rodam a 62% de CPU, então ele adiciona uma quinta; com 5 instâncias a CPU fica em cerca de 50%, então ele remove uma, e o ciclo se repete a cada poucos minutos, com picos de latência a cada mudança. O que estabiliza?",
+    "options": [
+      "Reduzir os dois limites em 10 pontos para o grupo manter mais capacidade sobrando, mantendo a mesma folga de 5 pontos entre eles",
+      "Ampliar a folga (reduzir só abaixo de 35%) e adicionar cooldowns, para uma remoção não empurrar a CPU de volta acima do limite",
+      "Encurtar o período da métrica para um minuto para o grupo reagir mais rápido a cada mudança na CPU média",
+      "Escalar pela CPU máxima entre as instâncias em vez da média, que é sempre maior e evita a oscilação"
+    ],
+    "explanation": "Remover uma de 5 instâncias eleva a utilização por um fator de 5/4, então o limite de redução precisa ficar abaixo de 60 / 1,25 = 48% para não disparar o aumento de novo; com 55% o grupo oscila. Uma folga maior (histerese) mais cooldowns ou janelas de estabilização quebram o ciclo. Mover os dois limites mantém a mesma falha, reagir mais rápido acelera a oscilação, e a métrica máxima só muda onde os limites ficam, sem corrigir a folga."
+  },
+  {
+    "id": "sd3c-cache-cdc-invalidation",
+    "title": "Cache desatualizado por escritas que ignoram o app",
+    "question": "Um serviço de produtos mantém linhas em cache no Redis (cache-aside) e invalida a chave no código da aplicação após cada atualização. Os preços ainda aparecem desatualizados por até uma hora, porque um job noturno de importação, um script SQL em massa e uma ferramenta de suporte escrevem direto no banco. Qual abordagem elimina toda essa classe de entradas desatualizadas?",
+    "options": [
+      "Reduzir todo TTL para 30 segundos para as entradas antigas expirarem logo, aceitando uma taxa de acerto menor e muito mais leituras no banco",
+      "Copiar as chamadas de invalidação para o job de importação e para a ferramenta de suporte, para todo escritor conhecer o cache",
+      "Dirigir a invalidação pelo log de mudanças do banco (CDC), para toda mudança confirmada, de quem for, disparar a invalidação",
+      "Trocar para cache write-behind, para a aplicação escrever primeiro no cache e descarregar no banco depois"
+    ],
+    "explanation": "Invalidar no código da aplicação só enxerga as escritas que passam por ela. O change data capture lê o log de commits do banco, então scripts em massa e ferramentas também são cobertos, na ordem do commit; um TTL continua como rede de segurança para eventos perdidos ou atrasados. Um TTL curto só estreita a janela, copiar chamadas para cada escritor quebra quando surge um escritor novo ou alguém esquece, e o write-behind faz do cache a porta de entrada das escritas, que o SQL direto ainda contorna."
+  },
+  {
+    "id": "sd3c-int-nearby-drivers",
+    "title": "Corrida por aplicativo: achar motoristas próximos",
+    "question": "Um serviço de corridas por aplicativo precisa mostrar os motoristas disponíveis mais próximos a até 2 km de um passageiro. Meio milhão de motoristas informa a localização a cada 5 segundos, e varrer todos os motoristas a cada requisição é lento demais. Qual projeto de dados serve?",
+    "options": [
+      "Indexar os motoristas por geohash ou célula de grade em memória, mover a entrada a cada ping e buscar na célula do passageiro e nas vizinhas",
+      "Manter latitude e longitude em dois índices B-tree separados e cruzar o resultado de duas varreduras por faixa a cada requisição",
+      "Manter os motoristas em uma tabela ordenada pelo horário do último ping e devolver ao passageiro os atualizados mais recentemente",
+      "Pré-calcular os motoristas mais próximos de cada endereço uma vez por hora e entregar essa lista guardada aos passageiros daquele endereço"
+    ],
+    "explanation": "Um índice espacial transforma 'a até 2 km' em uma consulta a poucas células, e um motorista em movimento muda uma entrada de célula por ping. Dois índices independentes de coordenadas devolvem, cada um, uma faixa enorme do mapa antes do cruzamento, ordenar pelo último ping ignora a localização, e listas por hora ficam desatualizadas para motoristas que se movem a cada poucos segundos."
+  },
+  {
+    "id": "sd3c-int-snowflake-clock-rollback",
+    "title": "Ids Snowflake e um relógio que anda para trás",
+    "question": "Um serviço emite ids de 64 bits em um layout estilo Snowflake: um timestamp em milissegundos, um id de worker e uma sequência por milissegundo. Depois de uma correção de NTP atrasar o relógio de um servidor em 3 ms, esse servidor passa a emitir ids que colidem com os que ele produziu instantes antes. Qual é o tratamento correto?",
+    "options": [
+      "Continuar emitindo a partir do relógio corrigido, porque o id do worker já torna todo id único entre servidores",
+      "Preencher o campo de sequência com bits aleatórios a cada chamada para ids com o mesmo timestamp saírem diferentes",
+      "Desligar o NTP nos servidores de id para os relógios nunca mais andarem para trás, seja qual for o hardware",
+      "Guardar o último timestamp; se o relógio estiver atrás, esperar ou fazer failover em vez de reutilizar milissegundos"
+    ],
+    "explanation": "A unicidade depende de (timestamp, worker, sequência) nunca se repetir. Se o relógio volta a um milissegundo anterior, os mesmos números de sequência são emitidos de novo para aquele worker, então o gerador nunca pode andar com o timestamp para trás: ele lembra o último, espera os desvios pequenos e rejeita ou faz failover nos grandes. O id do worker não ajuda dentro de um mesmo servidor, bits aleatórios na sequência tornam colisões improváveis e não impossíveis, e desligar o NTP deixa os relógios derivarem e não protege após um reinício."
+  },
+  {
+    "id": "sd3c-fund-averaging-percentiles",
+    "title": "Média de percentis entre instâncias",
+    "question": "Um dashboard mostra a latência da frota como a média dos valores de p99 que cada uma das 20 instâncias calcula para o último minuto. O número muitas vezes discorda do p99 de todas as requisições juntas, por exemplo quando uma instância atende muito pouco tráfego e tem algumas chamadas lentas. Por quê?",
+    "options": [
+      "Médias são sempre menores que percentis por um fator fixo, então o dashboard subestima a latência e um multiplicador constante resolve",
+      "Percentis não podem ser tirados em média: ela ignora quantas requisições cada instância atendeu; combine histogramas ou amostras brutas",
+      "Cada instância deveria informar o p100 em vez do p99, para a média delas dar o p99 verdadeiro da frota",
+      "A média é válida, mas os relógios das instâncias estão ligeiramente fora de sincronia, o que muda quais requisições caem em cada minuto"
+    ],
+    "explanation": "Um percentil é uma propriedade de uma distribuição, e não de uma soma, então a média dos p99 por instância dá um número que nenhuma requisição viveu: uma instância com 10 requisições pesa tanto quanto uma com 10 milhões. O p99 da frota precisa ser calculado a partir de histogramas (ou sketches) combinados ou de todas as amostras brutas. Não existe um fator constante entre a média de percentis e o percentil real, o p100 é só o máximo, e a diferença de relógio embaralharia as fronteiras dos minutos sem explicar a lacuna sistemática."
+  },
+  {
+    "id": "sd3c-cons-merkle-anti-entropy",
+    "title": "Achar chaves diferentes entre réplicas",
+    "question": "Duas réplicas de uma faixa de 2 TB de chaves podem ter divergido após uma partição de rede. Comparar cada chave e valor pela rede levaria horas. Qual técnica acha as chaves diferentes trocando muito pouco dado?",
+    "options": [
+      "Cada réplica envia um checksum da faixa inteira e, se não bater, as duas copiam a faixa completa do nó com o checksum maior",
+      "Cada réplica envia sua lista completa de chaves com timestamps, para o receptor escolher a versão mais nova de cada chave",
+      "Cada réplica resume suas faixas de chaves em uma árvore de Merkle, compara os hashes das raízes e desce só nas subárvores que diferem",
+      "As réplicas dependem só de read repair, porque toda diferença é achada quando um cliente lê a chave afetada"
+    ],
+    "explanation": "Uma árvore de Merkle resume faixas com hashes, então subárvores iguais são puladas e as faixas diferentes são localizadas com poucas comparações; só as chaves dessas faixas são trocadas (stores estilo Dynamo, como o Cassandra, usam isso para o reparo anti-entropy). Um único checksum da faixa inteira diz que algo difere mas não o quê, e força uma cópia completa; enviar todas as chaves e timestamps é tão grande quanto o próprio conjunto de chaves; e o read repair corrige só as chaves que os clientes por acaso leem, deixando divergidas as chaves raramente lidas."
+  }
+]

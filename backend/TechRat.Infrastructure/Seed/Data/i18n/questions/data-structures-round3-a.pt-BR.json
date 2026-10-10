@@ -1,0 +1,182 @@
+[
+  {
+    "id": "ds3a-arr-dedup-sorted-in-place",
+    "title": "Remover duplicatas de um array ordenado in-place",
+    "question": "Um array ordenado de 5 milhões de inteiros contém muitas duplicatas e precisa ser reduzido aos seus valores distintos in-place, usando O(1) de memória extra. Qual abordagem faz isso no menor tempo?",
+    "options": [
+      "Manter um índice de leitura e um de escrita, e copiar um elemento para frente apenas quando ele difere do último valor escrito, em uma única passagem de O(n)",
+      "Inserir cada elemento em um conjunto hash e reconstruir o array a partir do conjunto, o que é O(n) em tempo, mas exige O(n) de memória extra e perde a ordenação",
+      "Percorrer da esquerda para a direita e, sempre que aparecer uma duplicata, deslocar todos os elementos seguintes uma posição para a esquerda, o que mantém a ordem mas custa O(n²) no pior caso",
+      "Ordenar o array inteiro novamente com uma ordenação por comparação e depois descartar os vizinhos iguais, o que custa O(n log n) e ignora que os dados já estão ordenados"
+    ],
+    "explanation": "Como valores iguais são adjacentes em um array ordenado, uma passagem com um índice de escrita basta: cada elemento é comparado com o último valor escrito e só é copiado quando é novo, resultando em O(n) de tempo e O(1) de memória. Um conjunto hash viola o requisito de O(1) de memória e não preserva a ordem. Deslocar após cada duplicata é O(n²) quando há muitas duplicatas, e ordenar de novo repete um trabalho que a entrada já trazia pronto."
+  },
+  {
+    "id": "ds3a-arr-rotated-duplicates-search",
+    "title": "Busca binária em array rotacionado com duplicatas",
+    "question": "Um array ordenado foi rotacionado em um pivô desconhecido, como [4, 5, 1, 2, 3], e pode conter duplicatas. Uma equipe encontra o mínimo com uma busca binária que compara a[mid] com a[hi]. Na entrada [1, 1, 1, 1, 0, 1, 1], qual é a consequência?",
+    "options": [
+      "A busca ainda termina em O(log n), porque cada comparação elimina metade do intervalo restante, não importa quantos valores iguais o array tenha, então duplicatas só mudam qual valor é devolvido, nunca quanto a busca demora",
+      "Quando a[mid] é igual a a[hi], a comparação não revela qual metade contém o mínimo, então só um elemento pode ser descartado por passo e o pior caso degrada para O(n)",
+      "A busca nunca termina, porque um array rotacionado que contém duplicatas não tem um valor mínimo bem definido para o qual convergir",
+      "A busca devolve uma resposta errada que nenhum algoritmo consegue evitar, porque o mínimo de um array rotacionado com duplicatas simplesmente não pode ser encontrado"
+    ],
+    "explanation": "Aqui a[mid] = a[hi] = 1, e o mínimo 0 pode estar em qualquer lado de mid, então a comparação não traz informação; o movimento seguro é reduzir o intervalo em um elemento (hi = hi - 1). Com longas sequências de valores iguais isso remove um elemento por passo e o custo vira O(n). O mínimo é bem definido (0), o laço termina e uma varredura linear sempre o encontra, então só a garantia logarítmica se perde."
+  },
+  {
+    "id": "ds3a-arr-range-add-point-query",
+    "title": "Atualizações de intervalo e leituras pontuais intercaladas",
+    "question": "Um serviço mantém n = 10^6 contadores e recebe 10^6 operações em qualquer ordem: somar v a todos os contadores das posições l..r, ou ler o contador i. Um array de diferenças simples torna a atualização O(1), mas a leitura precisa somar um prefixo. Qual estrutura entrega as duas operações em O(log n)?",
+    "options": [
+      "Um array de somas de prefixo reconstruído após cada atualização, de modo que a leitura é uma única consulta em O(1) enquanto cada soma em intervalo paga O(n) para recalcular todas as somas, o que serve a cargas com muitas leituras, mas não cumpre o limite nas atualizações",
+      "Um mapa hash que guarda só os contadores que já foram lidos, de modo que uma soma em intervalo atualiza apenas essas entradas em O(log n) esperado",
+      "Uma árvore de Fenwick (binary indexed tree) sobre o array de diferenças: uma soma em intervalo vira duas atualizações pontuais em l e r + 1, e a leitura é a soma de prefixo até i",
+      "Um array ordenado dos intervalos de atualização pesquisado com busca binária, de modo que a leitura conta os intervalos que contêm i em tempo O(log n)"
+    ],
+    "explanation": "Com um array de diferenças D, somar v a l..r significa D[l] += v e D[r + 1] -= v, e o contador i é a soma de D[0..i]. Uma árvore de Fenwick faz atualizações pontuais e somas de prefixo em O(log n), então as duas operações cumprem o limite. Reconstruir somas de prefixo torna a atualização O(n); um mapa dos contadores lidos ignora os contadores ainda não lidos, e achar os intervalos que contêm i não é uma única busca binária, pois todos os seus valores precisam ser somados."
+  },
+  {
+    "id": "ds3a-str-longest-unique-window",
+    "title": "Maior substring sem caracteres repetidos",
+    "question": "Dada uma string de tamanho n, uma função deve devolver o tamanho da maior substring em que nenhum caractere se repete. Qual abordagem roda em O(n) de tempo com memória extra limitada pelo número de caracteres distintos?",
+    "options": [
+      "Testar todas as substrings possíveis com um conjunto de caracteres vistos e manter a maior sem repetições, o que é simples mas custa O(n²) ou pior",
+      "Ordenar os caracteres da string e procurar a maior sequência de vizinhos diferentes, porque os caracteres repetidos ficam agrupados depois da ordenação, o que transforma a busca por repetições em uma simples varredura de vizinhos",
+      "Dividir a string em cada caractere repetido e devolver o tamanho do maior pedaço, porque cada pedaço fica então garantidamente livre de repetições",
+      "Deslizar uma janela pela string, lembrar o último índice de cada caractere e mover o início da janela para logo depois da ocorrência anterior sempre que um caractere se repete"
+    ],
+    "explanation": "A janela deslizante visita cada caractere uma vez: um mapa de últimos índices vistos permite que o início da janela salte para depois de uma duplicata anterior, então o trabalho total é O(n). Testar todas as substrings é quadrático ou cúbico. Ordenar destrói a adjacência que define uma substring, e dividir nas repetições perde janelas que cruzam o ponto de divisão, como a melhor janela de uma string em que um caractere repetido está no meio dela."
+  },
+  {
+    "id": "ds3a-str-locale-case-keys",
+    "title": "Chaves sem distinção de maiúsculas entre locales",
+    "question": "Um serviço de login converte nomes de usuário para minúsculas com uma rotina sensível ao locale antes de usá-los como chaves de busca. Após a implantação em servidores configurados para o locale turco, usuários cujos nomes têm um 'I' maiúsculo não conseguem entrar, embora o mesmo código funcionasse em outros lugares. Qual é a causa mais provável e a correção?",
+    "options": [
+      "A conversão sensível ao locale mapeia 'I' para o 'ı' sem ponto pelas regras turcas, então as chaves diferem entre servidores; use case folding invariante ao locale para identificadores",
+      "A rotina de minúsculas descarta caracteres fora do alfabeto latino básico ali, então a correção é rejeitar no cadastro qualquer nome com mais do que letras sem acento",
+      "As strings nesse locale são armazenadas com outra ordem de bytes, então a correção é converter toda chave armazenada para big-endian antes de compará-las, um problema que aparece sempre que os servidores rodam em hardware diferente",
+      "A rotina devolve outra forma de normalização Unicode ali, então a correção é comparar as chaves com uma ordenação sensível ao locale que ignora diferenças de acento"
+    ],
+    "explanation": "O mapeamento de maiúsculas e minúsculas pode depender do locale: pelas regras turcas o 'I' maiúsculo vira o 'ı' sem ponto, enquanto outros locales produzem 'i', então o mesmo nome de usuário vira duas chaves diferentes. Identificadores devem usar uma operação invariante ao locale (ou case folding Unicode completo), de preferência combinada com normalização. A conversão para minúsculas não descarta letras não latinas, a ordem de bytes do texto não depende do locale, e uma comparação por ordenação não consertaria chaves que já foram armazenadas de forma diferente."
+  },
+  {
+    "id": "ds3a-hash-equal-keys-equal-hashes",
+    "title": "Chaves iguais com valores de hash diferentes",
+    "question": "Uma equipe usa um mapa hash cujas chaves são objetos Point. Dois Points são iguais quando seus x e y coincidem, mas a função de hash nunca foi personalizada e ainda depende da identidade do objeto. Depois de map.put(Point(1, 2), \"A\"), a chamada map.get(Point(1, 2)) não retorna nada. Por quê?",
+    "options": [
+      "Um Point guarda dois números, e mapas hash aceitam apenas chaves formadas por um único valor primitivo, então a entrada foi descartada silenciosamente na inserção e map.get não encontra o que nunca foi armazenado",
+      "Chaves iguais devem produzir valores de hash iguais; o segundo Point cai em outro bucket, então a busca olha um lugar onde a entrada não está armazenada",
+      "Duas chaves com as mesmas coordenadas formam uma colisão, e colisões sempre fazem a tabela sobrescrever a entrada mais antiga e depois remover a nova",
+      "A tabela precisa ser redimensionada após a primeira inserção, e as buscas não retornam nada até que o redimensionamento seja concluído por um processo em segundo plano"
+    ],
+    "explanation": "Uma tabela hash primeiro usa o hash para escolher um bucket e só então compara as chaves com a verificação de igualdade. Se chaves iguais podem ter hashes diferentes, a busca vai a um bucket que nunca guardou a entrada, e a verificação de igualdade nem chega a ser executada. A regra é que objetos iguais precisam ter hashes iguais (o inverso não é exigido). Chaves compostas são permitidas, colisões são resolvidas comparando chaves e não apagando-as, e o redimensionamento não é a causa."
+  },
+  {
+    "id": "ds3a-hash-cuckoo-bounded-lookup",
+    "title": "Buscas com pior caso limitado em uma tabela hash",
+    "question": "Um componente de roteamento de pacotes lê uma grande tabela em memória milhões de vezes por segundo e precisa manter o número de acessos à memória por busca, no pior caso, limitado por uma constante pequena, mesmo com carga alta. As escritas são raras e podem ser mais lentas. Qual esquema se encaixa melhor?",
+    "options": [
+      "Encadeamento separado com o fator de carga mantido abaixo de 0,5, o que mantém as cadeias curtas em média, mas ainda não dá um limite constante para a busca no pior caso, ao custo de mais memória para as cadeias",
+      "Sondagem linear com uma boa função de hash, cujos agrupamentos permanecem pequenos o bastante para que toda busca termine em poucas sondagens garantidamente",
+      "Hash duplo em uma tabela de endereçamento aberto, que espalha as sondagens de modo uniforme e, por isso, garante um número fixo e pequeno de sondagens por busca",
+      "Cuckoo hashing: cada chave vive em uma de duas posições candidatas, então uma busca verifica no máximo dois slots, enquanto uma inserção pode deslocar outras chaves e às vezes forçar um rehash"
+    ],
+    "explanation": "O cuckoo hashing troca inserções mais lentas e ocasionalmente disruptivas por um limite rígido nas leituras: uma chave só pode estar em uma de suas duas posições candidatas (ou em alguns slots por bucket em variantes), então uma busca nunca precisa de mais do que essa quantidade de sondagens. Encadeamento, sondagem linear e hash duplo têm apenas limites no caso esperado; uma chave azarada ainda pode ficar atrás de uma cadeia ou sequência de sondagem longa, e o limite não vale com carga alta."
+  },
+  {
+    "id": "ds3a-ll-kth-from-end-one-pass",
+    "title": "O k-ésimo nó a partir do fim em uma passagem",
+    "question": "Uma lista encadeada simples tem tamanho desconhecido. A tarefa é achar o k-ésimo nó a partir do fim em uma única travessia, sem modificar a lista e usando O(1) de memória extra. Qual técnica funciona?",
+    "options": [
+      "Mover um ponteiro líder k nós à frente e depois avançar os dois ponteiros juntos até o líder sair do fim; o ponteiro de trás fica então no nó procurado",
+      "Inverter a lista enquanto conta seus nós e depois andar k passos a partir da nova cabeça, o que toca nós mais de uma vez e altera a lista",
+      "Empilhar cada nó durante a travessia e desempilhar k vezes depois, o que funciona mas usa O(n) de memória extra em vez de O(1), e a resposta é então o elemento removido no k-ésimo passo",
+      "Avançar um ponteiro ao dobro da velocidade de outro e parar quando o mais rápido chegar ao fim, porque o mais lento fica então k nós antes do fim"
+    ],
+    "explanation": "Manter dois ponteiros exatamente k nós distantes significa que, quando o líder passa do último nó, o de trás está k nós atrás dele, que é o k-ésimo a partir do fim; a lista é lida uma vez e só dois ponteiros são guardados. Inverter modifica a lista, uma pilha exige O(n) de memória, e o padrão de ponteiros rápido e lento encontra o meio (ou um ciclo), não um nó a distância fixa do fim."
+  },
+  {
+    "id": "ds3a-ll-delete-given-node-copy",
+    "title": "Remover um nó dado apenas o próprio nó",
+    "question": "Uma API de lista encadeada simples expõe remove(node), mas quem chama possui apenas uma referência ao próprio nó, e não à cabeça ou ao antecessor. Uma implementação copia o valor do próximo nó para o nó dado e desliga o próximo nó, em O(1). Qual é o principal problema dela?",
+    "options": [
+      "Ela roda em O(n) no pior caso, porque a cópia obriga a percorrer a lista desde a cabeça para achar e religar o antecessor do nó",
+      "Ela não consegue remover o último nó, e qualquer outra referência ao antigo próximo nó passa a apontar para um nó que não está mais na lista",
+      "Ela quebra a ordem de todos os outros nós, porque copiar um valor faz todos os valores seguintes se moverem uma posição em direção à cabeça, mesmo depois da remoção",
+      "Ela vaza o próprio nó dado, porque o nó cujo valor foi copiado nunca pode ser liberado e continua acessível a partir da lista"
+    ],
+    "explanation": "O truque faz o nó parecer removido ao sobrescrevê-lo com o sucessor, o que funciona em O(1) sem antecessor. Mas o último nó não tem sucessor para copiar, e o nó realmente desligado é o antigo próximo, então quem guarda uma referência a ele passa a ter um nó obsoleto e solto. Não há travessia nem deslocamento dos outros nós, e o nó que é desligado é justamente o que pode ser liberado."
+  },
+  {
+    "id": "ds3a-stack-infix-to-postfix",
+    "title": "Converter infixa para pós-fixa com uma pilha de operadores",
+    "question": "Uma calculadora converte a expressão infixa `2 + 3 * 4 - 1` para pós-fixa com uma pilha de operadores. Operadores de mesma precedência associam da esquerda para a direita, e `*` tem precedência maior que `+` e `-`. Qual saída pós-fixa ela produz?",
+    "options": [
+      "`2 3 + 4 * 1 -`, porque todo operador é emitido assim que seu operando da direita foi lido",
+      "`2 3 4 1 - * +`, porque cada operador espera na pilha até que todos os operandos tenham sido lidos",
+      "`2 3 4 * + 1 -`, porque o produto e depois a soma são desempilhados antes de o menos ser empilhado",
+      "`2 3 4 * 1 + -`, porque a soma é aplicada ao produto e ao próximo operando antes de o menos ser aplicado"
+    ],
+    "explanation": "Operandos vão direto para a saída. O `*` é empilhado acima do `+` porque tem precedência maior; quando o `-` chega, `*` e depois `+` (mesma precedência, da esquerda para a direita) são desempilhados antes de o `-` ser empilhado, resultando em `2 3 4 * + 1 -`, que vale 13. Emitir os operadores na ordem de leitura dá `2 3 + 4 * 1 -` (19), aplicar primeiro o último operador dá `2 3 4 1 - * +` (11), e `2 3 4 * 1 + -` vale -11."
+  },
+  {
+    "id": "ds3a-stack-largest-rectangle-histogram",
+    "title": "Maior retângulo em um histograma",
+    "question": "Um histograma tem barras de alturas [2, 1, 5, 6, 2, 3], cada uma com largura de uma unidade. Uma função deve achar a área do maior retângulo que cabe dentro do histograma em tempo O(n). Qual é essa área e qual técnica atinge o limite?",
+    "options": [
+      "12, multiplicando a menor altura 2 pelas seis barras e repetindo a ideia em cada metade com divisão e conquista",
+      "8, deslizando uma janela de largura fixa 4 sobre as barras e multiplicando a menor altura da janela pela sua largura",
+      "6, tomando apenas a barra mais alta, já que uma barra mais alta sempre dá um retângulo maior que qualquer grupo de barras mais baixas, o que ignora que barras vizinhas podem alargar o retângulo",
+      "10, usando uma pilha de barras com alturas crescentes: uma barra mais baixa desempilha as mais altas e fixa a largura que cada barra removida consegue cobrir"
+    ],
+    "explanation": "O melhor retângulo usa as barras de altura 5 e 6 com altura 5 e largura 2, dando 10; nenhum retângulo de altura 2 pode atravessar a barra de altura 1, então 2 x 6 é impossível. Uma pilha monotônica de alturas crescentes desempilha uma barra quando chega uma mais baixa, e a largura da barra removida vai do novo topo da pilha até o índice atual, então cada barra é empilhada e desempilhada uma vez. Uma janela de largura fixa e a barra mais alta isolada perdem o 10 (dão 8 e 6)."
+  },
+  {
+    "id": "ds3a-queue-priority-starvation-aging",
+    "title": "Inanição em uma fila de prioridade",
+    "question": "Um sistema de suporte atende tickets de uma fila de prioridade ordenada por severidade. Sob carga contínua, tickets de baixa severidade esperam por dias enquanto novos tickets de alta severidade continuam chegando. Qual mudança resolve isso sem abandonar as prioridades?",
+    "options": [
+      "Adicionar envelhecimento (aging): aumentar a prioridade efetiva de um ticket quanto mais ele espera, para que tickets antigos de baixa severidade eventualmente superem os recém-chegados",
+      "Trocar a fila de prioridade por uma fila FIFO simples para todos os tickets, o que acaba com a inanição ao atender estritamente por ordem de chegada, mas ignora a severidade, ao custo de tratar uma falha crítica como um pedido rotineiro",
+      "Trocar o heap subjacente por um array ordenado, o que torna mais rápida a remoção da maior prioridade, mas não muda a ordem em que os tickets são atendidos",
+      "Aumentar a fila para que comporte mais tickets, porque a inanição só acontece quando a fila transborda e descarta suas entradas mais antigas de baixa severidade"
+    ],
+    "explanation": "Uma fila de prioridade sempre atende a maior prioridade primeiro, então um fluxo constante de itens urgentes pode adiar indefinidamente os de baixa prioridade. O envelhecimento aumenta gradualmente a prioridade dos itens que esperam, limitando sua espera sem deixar de favorecer o trabalho urgente. Uma fila FIFO abandona as prioridades, trocar a estrutura de dados por trás da fila nunca muda a ordem de atendimento, e a capacidade nada tem a ver com a inanição."
+  },
+  {
+    "id": "ds3a-queue-littles-law-waiting",
+    "title": "Requisições esperando em uma fila (lei de Little)",
+    "question": "Uma fila de requisições recebe em média 200 requisições por segundo em regime estável. Cada requisição espera em média 0,4 s na fila e depois é atendida em 0,1 s em média. Pela lei de Little, quantas requisições estão em média esperando na própria fila, ainda sem serem atendidas?",
+    "options": [
+      "100, porque o número médio é igual à taxa de chegada vezes o tempo total no sistema, 200 x (0,4 + 0,1)",
+      "80, porque o número médio esperando é igual à taxa de chegada vezes o tempo médio de espera, 200 x 0,4",
+      "20, porque o número médio é igual à taxa de chegada vezes o tempo médio de atendimento, 200 x 0,1",
+      "500, porque o número médio é igual à taxa de chegada dividida pelo tempo médio de espera, 200 / 0,4"
+    ],
+    "explanation": "A lei de Little diz que L = lambda x W para qualquer parte estável de um sistema. Aplicada só à fila de espera, L = 200 x 0,4 = 80 requisições. O valor de 100 é o número médio no sistema inteiro (fila mais as que estão sendo atendidas), e 20 é o número médio em atendimento. Dividir a taxa pelo tempo dá uma grandeza com significado e unidades errados."
+  },
+  {
+    "id": "ds3a-matrix-2d-prefix-sums",
+    "title": "Somas de blocos retangulares em tempo constante",
+    "question": "Uma grade de 1.000 x 1.000 números é fixa, e um milhão de consultas pedem, cada uma, a soma de um bloco retangular de células. Qual pré-processamento torna cada consulta O(1)?",
+    "options": [
+      "Pré-calcular apenas somas de prefixo por linha e somar os segmentos de linha do bloco, o que ainda exige uma adição por linha coberta pelo bloco; isso é rápido apenas para blocos de uma linha de altura",
+      "Ordenar as células da grade por valor e manter um total acumulado, de modo que cada consulta localize seu bloco com uma busca binária na lista ordenada",
+      "Pré-calcular uma tabela em que cada célula guarda a soma de tudo acima e à esquerda dela, e combinar quatro entradas da tabela por inclusão-exclusão em cada consulta",
+      "Guardar a grade em uma estrutura esparsa que ignora células zero, de modo que cada consulta visite só as células não nulas que caem dentro do bloco"
+    ],
+    "explanation": "Com P[r][c] guardando a soma do retângulo superior esquerdo que termina em (r, c), a soma de um bloco é P[r2][c2] - P[r1-1][c2] - P[r2][c1-1] + P[r1-1][c1-1], quatro acessos independentemente do tamanho do bloco, após um pré-processamento de O(linhas x colunas). Somas de prefixo por linha deixam O(linhas) de trabalho por consulta, ordenar por valor descarta a geometria da grade, e um layout esparso ainda visita toda célula não nula do bloco."
+  },
+  {
+    "id": "ds3a-matrix-strassen-in-practice",
+    "title": "Por que Strassen não é o padrão na prática",
+    "question": "O algoritmo de Strassen multiplica duas matrizes n x n em cerca de O(n^2,81) em vez de O(n^3). Uma equipe de biblioteca numérica pergunta por que bibliotecas de álgebra linear densa ainda usam por padrão um algoritmo clássico em blocos para matrizes de algumas centenas de linhas. Qual é a melhor resposta?",
+    "options": [
+      "Strassen só funciona quando toda entrada é inteira, então não pode ser usado nos dados de ponto flutuante que bibliotecas numéricas normalmente processam e a biblioteca teria de verificar antes que as entradas são números inteiros",
+      "O limite de Strassen vale apenas para entradas esparsas, então em matrizes densas ele faz mais operações do que o método clássico O(n^3) em qualquer tamanho",
+      "Strassen exige que a dimensão da matriz seja um número primo, então a maioria dos formatos reais teria de ser preenchida até um tamanho grande demais",
+      "Strassen tem fator constante maior, exige matrizes temporárias e é menos estável numericamente, então só compensa acima de um tamanho de cruzamento grande, ao contrário do código em blocos"
+    ],
+    "explanation": "Strassen troca 8 multiplicações de meio tamanho por 7 (expoente log2 7, cerca de 2,81), mas acrescenta muitas somas de matrizes, aloca temporários, tem limites de erro piores em ponto flutuante e perde para código vetorizado e em blocos até que as matrizes sejam bem grandes. Ele funciona com ponto flutuante e com matrizes densas, e dimensões que não são potências de dois podem ser tratadas com preenchimento ou remoção de bordas, então não há restrição de primalidade nem de apenas inteiros."
+  }
+]
