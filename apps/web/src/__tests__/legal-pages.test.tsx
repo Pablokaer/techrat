@@ -40,13 +40,13 @@ describe("legal configuration", () => {
 });
 
 describe("Privacy policy page", () => {
-  it("renders the policy in English, signed out, with the draft banner and the one open TODO marker", () => {
+  it("renders the policy in English, signed out, with the draft banner and no open TODO marker", () => {
     const { container } = renderApp(<PrivacyPage />, signedOut);
     expect(screen.getByRole("heading", { level: 1, name: "Privacy Policy" })).toBeInTheDocument();
     expect(screen.getByRole("note")).toHaveTextContent("Draft: pending legal review");
     expect(container.innerHTML).toContain("<!--");
-    expect(screen.getByText(/TODO\(owner\): state the country of the Hostinger data centre/)).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/TODO\(legal\)/);
+    expect(document.body.textContent).toContain("Manchester, United Kingdom");
+    expect(document.body.textContent).not.toMatch(/TODO\(/);
     expect(document.body.textContent).not.toContain("{{");
     expect(document.body.textContent).toContain(LEGAL.contactEmail);
   });
@@ -65,7 +65,7 @@ describe("Privacy policy page", () => {
     renderApp(<PrivacyPage />, signedOut, { locale: "pt-BR" });
     expect(screen.getByRole("heading", { level: 1, name: "Política de Privacidade" })).toBeInTheDocument();
     expect(screen.getByRole("note")).toHaveTextContent("Rascunho: aguardando revisão jurídica");
-    expect(screen.getByText(/TODO\(owner\): informar o país do data center da Hostinger/)).toBeInTheDocument();
+    expect(document.body.textContent).toContain("Manchester, Reino Unido");
     expect(document.body.textContent).not.toContain("{{");
     expectLegalLinks(screen, { privacy: "Política de Privacidade", terms: "Termos de Uso" });
   });

@@ -135,7 +135,7 @@ export const legal: Messages["legal"] = {
       },
       {
         heading: "7. Transferências internacionais",
-        paragraphs: ["Seus dados ficam armazenados no servidor da Hostinger descrito acima, em um data center em {{TODO(owner): informar o país do data center da Hostinger (hPanel, VPS, Visão geral)}}. Os e-mails são processados na Irlanda pela Resend, como descrito na seção 4. Quando um provedor estiver fora do Espaço Econômico Europeu, as transferências se apoiam em uma decisão de adequação ou nas cláusulas contratuais padrão da Comissão Europeia."],
+        paragraphs: ["Seus dados ficam armazenados no servidor da Hostinger descrito acima, em um data center em Manchester, Reino Unido. O Reino Unido está fora do Espaço Econômico Europeu, mas a Comissão Europeia o reconhece como detentor de um nível adequado de proteção de dados (decisão de adequação), então essa transferência não exige outra salvaguarda. Os e-mails são processados na Irlanda pela Resend, como descrito na seção 4. Quando outro provedor estiver fora do Espaço Econômico Europeu, as transferências se apoiam em uma decisão de adequação ou nas cláusulas contratuais padrão da Comissão Europeia."],
       },
       {
         heading: "8. Por quanto tempo guardamos os dados",
