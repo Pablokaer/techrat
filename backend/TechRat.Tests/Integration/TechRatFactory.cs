@@ -19,7 +19,7 @@ namespace TechRat.Tests.Integration;
 public sealed class TechRatFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     public const string AdminEmail = "admin@techrat.test";
-    public const string AdminPassword = "AdminPassw0rd";
+    public const string AdminPassword = "Orchard-Lantern-Zebra-7";
 
     private PostgreSqlContainer? _container;
     private string _connectionString = "";

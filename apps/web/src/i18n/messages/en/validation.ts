@@ -2,6 +2,7 @@ import type { ValidationMessageKey } from "@techrat/validation";
 
 // Client-side form validation messages, keyed like VALIDATION_MESSAGES in @techrat/validation.
 export const validation: Record<ValidationMessageKey, string> & { invalid: string } = {
+  passwordMax: "At most 128 characters",
   passwordMin: "At least 8 characters",
   passwordLower: "Include a lowercase letter",
   passwordUpper: "Include an uppercase letter",

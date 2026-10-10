@@ -91,6 +91,44 @@ public class EmailDeliveryTests(TechRatFactory api) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Password_reset_emails_are_limited_to_one_a_minute_per_address()
+    {
+        await using var factory = WithMailpit();
+        var client = factory.CreateClient();
+        var username = $"flood_{Guid.NewGuid():N}"[..20];
+        var email = $"{username}@example.com";
+        (await client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Passw0rdX", username, displayName = "Flood" })).EnsureSuccessStatusCode();
+
+        for (var i = 0; i < 4; i++)
+            Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/v1/auth/forgot-password", new { email })).StatusCode);
+
+        await WaitForMessageToAsync(email);
+        await Task.Delay(1500); // a second email, if one were going to be sent, would be here by now
+        var list = await _mailApi.GetFromJsonAsync<JsonElement>($"/api/v1/search?query={Uri.EscapeDataString($"to:{email}")}");
+        Assert.Equal(1, list.GetProperty("messages").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task Forgot_password_does_not_wait_for_the_mail_server()
+    {
+        // Nothing listens on port 1, so the send fails, but the answer comes back at once: the email is sent after it, so the
+        // response time says nothing about whether the address has an account.
+        await using var factory = WithSmtp("127.0.0.1", 1);
+        var client = factory.CreateClient();
+        var known = await Timed(client, TechRatFactory.AdminEmail);
+        var unknown = await Timed(client, $"nobody_{Guid.NewGuid():N}@example.com");
+
+        Assert.True(Math.Abs(known.TotalMilliseconds - unknown.TotalMilliseconds) < 1500, $"known {known.TotalMilliseconds:0} ms, unknown {unknown.TotalMilliseconds:0} ms");
+
+        static async Task<TimeSpan> Timed(HttpClient c, string email)
+        {
+            var start = System.Diagnostics.Stopwatch.GetTimestamp();
+            Assert.Equal(HttpStatusCode.Accepted, (await c.PostAsJsonAsync("/api/v1/auth/forgot-password", new { email })).StatusCode);
+            return System.Diagnostics.Stopwatch.GetElapsedTime(start);
+        }
+    }
+
+    [Fact]
     public async Task Forgot_password_answers_the_same_way_when_the_smtp_server_is_down()
     {
         // Nothing listens on port 1: the send fails, but the response must not reveal that the account exists.

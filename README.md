@@ -406,6 +406,7 @@ If you build behind a TLS-inspecting corporate proxy, set `EXTRA_CA_CERT=/path/t
 | `Cors__AllowedOrigins__N` | API | Allowed origins (web, Tauri, Expo web) |
 | `Smtp__Host`, `Smtp__Port`, `Smtp__Security`, `Smtp__Username`, `Smtp__Password`, `Smtp__From`, `Smtp__ReplyTo` | API | Email delivery (Compose: `SMTP_*`; Mailpit locally). TLS is required unless `Security=None`. Setup per provider, DNS and testing: [docs/email.md](docs/email.md) |
 | `App__PublicWebUrl` | API | Base URL for password-reset links |
+| `DataProtection__CertificateBase64` (or `__CertificatePath`) / `DataProtection__CertificatePassword` | API | Certificate that encrypts the login keys stored in PostgreSQL (Compose: `DATAPROTECTION_CERT_BASE64` / `DATAPROTECTION_CERT_PASSWORD`). Recommended in production; the API warns at start without it and refuses to start when it is set but unreadable |
 | `Gamification__*` | API | XP values, level curve, step criteria, daily challenge (see `appsettings.json`) |
 | `RateLimiting__AuthPerMinute` / `RateLimiting__AnswersPerMinute` / `RateLimiting__UploadsPerMinute` | API | Rate limits per user or IP (uploads default to 10/min; Compose: `AUTH_RATE_LIMIT_PER_MINUTE`) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | API | Enables OTLP export of traces and metrics |
@@ -496,11 +497,14 @@ CI (`.github/workflows/ci.yml`) runs the backend build (warnings as errors) and 
 
 ## Security
 
-* Identity password hashing, account lockout, security-stamp validation and persisted Data Protection keys.
+* Identity password hashing, account lockout (8 attempts, then 15 minutes), security-stamp validation and persisted Data Protection keys, encrypted at rest with a certificate you provide (`DataProtection__CertificateBase64`; [docs/deploy.md](docs/deploy.md)).
+* Passwords: 8 to 128 characters with upper, lower and a digit, and not a very common one ("Password1", "Summer2024!"), nor built from the username or email.
+* Sign-in answers the same, in the same time, for an unknown email and a wrong password; password reset links last one hour, and at most one reset email per address per minute is sent, after the answer.
+* Login security decisions and what is still open (refresh-token rotation, sign-up enumeration, desktop token storage): [ADR-0029](docs/adr/0029-login-security-hardening.md).
 * The web app uses an HttpOnly, SameSite=Strict cookie, so tokens are never readable by JavaScript.
 * Endpoints are rate limited: auth per IP, answers per user.
 * CORS uses an explicit origin list.
-* Security headers are set on both the API and the web app. A strict CSP is set on the API and in Tauri.
+* Security headers are set on both the API and the web app (CSP and HSTS on production web builds). A strict CSP is set on the API and in Tauri.
 * All queries go through EF Core and are parameterized.
 * Inputs are validated server-side and errors are returned as RFC 9457 problem details.
 * Logs never contain passwords, tokens or reset codes.

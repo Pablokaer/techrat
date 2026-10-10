@@ -881,7 +881,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create an account with email and password */
+        /**
+         * Create an account with email and password
+         * @description The password has 8 to 128 characters with an uppercase letter, a lowercase letter and a digit, is not a very common password ("Password1", "Summer2024!") and does not contain the username or the part of the email before the @.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -1035,7 +1038,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Send a password reset email. Always returns 202 to avoid account enumeration */
+        /**
+         * Send a password reset email. Always returns 202 to avoid account enumeration
+         * @description Answers 202 after the same work for every address, known or not; the email is sent afterwards, at most once a minute per address. The link in it works for one hour.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -1073,7 +1079,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Reset the password using the code from the email */
+        /**
+         * Reset the password using the code from the email
+         * @description The code expires one hour after the email was sent. The new password follows the sign-up rules. A missing or wrong field answers 400 in the same shape for known and unknown accounts.
+         */
         post: {
             parameters: {
                 query?: never;
