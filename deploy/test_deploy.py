@@ -84,6 +84,45 @@ class DeployScriptTest(unittest.TestCase):
         self.assertTrue(any("-f docker-compose.prod.yml up -d --build" in c for c in calls), calls)
         self.assertTrue(any(c.startswith("image prune") and "com.docker.compose.project=techrat" in c for c in calls), calls)
 
+    def add_cert_script(self, body):
+        """Puts a fake deploy/new-dataprotection-cert.sh in the origin and returns the commit that adds it."""
+        script = self.origin / "deploy" / "new-dataprotection-cert.sh"
+        script.parent.mkdir(exist_ok=True)
+        write_exe(script, body)
+        git(self.origin, "add", ".")
+        git(self.origin, "commit", "-qm", "cert script")
+        return git(self.origin, "rev-parse", "HEAD")
+
+    def test_creates_the_data_protection_certificate_on_the_first_deploy_that_finds_none(self):
+        v2 = self.add_cert_script('echo "DATAPROTECTION_CERT_BASE64=created" >> "$1"\n')
+        r = self.run_deploy(v2)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        text = (self.app / ".env").read_text()
+        self.assertIn("SECRET=keep-me\n", text)
+        self.assertEqual(text.count("DATAPROTECTION_CERT_BASE64=created"), 1)
+
+    def test_never_replaces_an_existing_data_protection_certificate(self):
+        (self.app / ".env").write_text("DATAPROTECTION_CERT_BASE64=mine\nDATAPROTECTION_CERT_PASSWORD=pw\n")
+        v2 = self.add_cert_script('echo "DATAPROTECTION_CERT_BASE64=overwritten" >> "$1"\n')
+        r = self.run_deploy(v2)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual((self.app / ".env").read_text(), "DATAPROTECTION_CERT_BASE64=mine\nDATAPROTECTION_CERT_PASSWORD=pw\n")
+
+    def test_a_failing_certificate_script_never_blocks_the_deploy(self):
+        v2 = self.add_cert_script("exit 1\n")
+        r = self.run_deploy(v2)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("could not create the Data Protection certificate", r.stdout + r.stderr)
+        self.assertEqual(self.head(), v2)
+        self.assertTrue(any("up -d --build" in c for c in self.docker_calls()))
+
+    def test_without_an_env_file_nothing_is_created(self):
+        (self.app / ".env").unlink()
+        v2 = self.add_cert_script('echo "DATAPROTECTION_CERT_BASE64=created" >> "$1"\n')
+        r = self.run_deploy(v2)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertFalse((self.app / ".env").exists())
+
     def test_the_command_can_come_from_the_ssh_forced_command(self):
         v2 = self.push_v2()
         r = self.run_deploy(SSH_ORIGINAL_COMMAND=v2)
