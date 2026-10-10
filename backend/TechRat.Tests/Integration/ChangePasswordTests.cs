@@ -150,7 +150,7 @@ public class ChangePasswordTests(TechRatFactory api)
         using var app = api.WithWebHostBuilder(b => b.ConfigureTestServices(s => s.AddSingleton<IAccountEmailSender>(sent)));
         var client = app.CreateClient();
         var username = $"pwm_{Guid.NewGuid():N}"[..20];
-        (await client.PostAsJsonAsync("/api/v1/auth/register", new { email = $"{username}@example.com", password = Old, username })).EnsureSuccessStatusCode();
+        await api.RegisterConfirmedAsync(client, $"{username}@example.com", Old, username);
         await TechRatFactory.LoginAsync(client, $"{username}@example.com", Old);
 
         (await client.PostAsJsonAsync(Url, new { currentPassword = Old, newPassword = New })).EnsureSuccessStatusCode();

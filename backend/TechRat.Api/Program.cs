@@ -48,13 +48,18 @@ builder.Services
         o.Password.RequireNonAlphanumeric = false;
         o.Lockout.MaxFailedAccessAttempts = AuthPolicy.MaxFailedAccessAttempts;
         o.Lockout.DefaultLockoutTimeSpan = AuthPolicy.LockoutDuration;
+        // Sign-in checks EmailConfirmed itself, after the password, so an unconfirmed account is only revealed to whoever knows
+        // the password (RequireConfirmedEmail would answer before checking it). ADR-0031.
+        o.Tokens.EmailConfirmationTokenProvider = EmailConfirmationTokenProvider.ProviderName;
     })
     .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddPasswordValidator<PasswordPolicyValidator>()
+    .AddTokenProvider<EmailConfirmationTokenProvider>(EmailConfirmationTokenProvider.ProviderName)
     .AddErrorDescriber<LocalizedIdentityErrorDescriber>();
 // The emailed reset link is short-lived (Identity's default is a day).
 builder.Services.Configure<DataProtectionTokenProviderOptions>(o => o.TokenLifespan = AuthPolicy.PasswordResetTokenLifetime);
+builder.Services.Configure<EmailConfirmationTokenProviderOptions>(o => o.TokenLifespan = AuthPolicy.EmailConfirmationTokenLifetime);
 
 // ---------------------------------------------------------------- localization
 // The client sends Accept-Language (en or pt-BR); any Portuguese variant maps to pt-BR texts.

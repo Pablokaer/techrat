@@ -108,7 +108,7 @@ export const legal: Messages["legal"] = {
       {
         heading: "4. E-mails",
         paragraphs: [
-          "Enviamos apenas e-mails de serviço: um link de redefinição de senha quando você pede, um aviso de que sua senha foi alterada e uma confirmação de que sua conta foi excluída. Não enviamos e-mails de marketing.",
+          "Enviamos apenas e-mails de serviço: um link para confirmar seu endereço de e-mail quando você se cadastra, um aviso se alguém tentar se cadastrar com um endereço que já tem conta, um link de redefinição de senha quando você pede, um aviso de que sua senha foi alterada e uma confirmação de que sua conta foi excluída. Não enviamos e-mails de marketing.",
           "Os e-mails são entregues por um provedor de e-mail SMTP que processa a mensagem por nós. {{TODO(legal): informar o provedor de e-mail (os exemplos de implantação usam Resend) e o país dele.}}",
         ],
       },

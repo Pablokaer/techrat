@@ -38,6 +38,17 @@ export const setLocale = (locale: Locale) => {
 };
 
 const en = {
+  emailConfirmation: {
+    registerIntro: "Join TechRat and start earning XP for everything you learn.",
+    checkTitle: "Check your email",
+    checkBody: (email: string) => `We sent a confirmation link to ${email}. It works for 24 hours. If you cannot find it, check your spam folder.`,
+    resend: "Resend the email",
+    resendSent: "If the address has an unconfirmed account, we sent a new link.",
+    resendFailed: "Could not send the email. Please try again in a minute.",
+    goToSignIn: "Go to sign in",
+    resendFromLogin: "Resend confirmation email",
+    enterEmail: "Enter your email above first.",
+  },
   profile: {
     version: (version: string) => `Version ${version}`,
     deleteAccountTitle: "Delete account",
@@ -91,6 +102,17 @@ const en = {
 export type Messages = typeof en;
 
 const ptBR: Messages = {
+  emailConfirmation: {
+    registerIntro: "Entre no TechRat e ganhe XP por tudo o que você aprende.",
+    checkTitle: "Confira seu e-mail",
+    checkBody: (email) => `Enviamos um link de confirmação para ${email}. Ele vale por 24 horas. Se não encontrar a mensagem, olhe na caixa de spam.`,
+    resend: "Reenviar o e-mail",
+    resendSent: "Se o endereço tiver uma conta não confirmada, enviamos um novo link.",
+    resendFailed: "Não foi possível enviar o e-mail. Tente novamente em um minuto.",
+    goToSignIn: "Ir para o login",
+    resendFromLogin: "Reenviar e-mail de confirmação",
+    enterEmail: "Digite seu e-mail acima primeiro.",
+  },
   profile: {
     version: (version) => `Versão ${version}`,
     deleteAccountTitle: "Excluir conta",

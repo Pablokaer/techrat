@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { confirmationLink } from "./email";
 
 /**
  * The Android app talks to https://techrat.io/api/v1/..., which is the Next.js `/api` proxy in front of the API. This
@@ -11,7 +12,13 @@ test("bearer login, authenticated calls and refresh work through the web /api pr
   const password = "Passw0rdX";
 
   const registered = await request.post("/api/v1/auth/register", { data: { email, username, password, displayName: "Bearer Rat" } });
-  expect(registered.status()).toBe(201);
+  expect(registered.status()).toBe(202);
+
+  // The account cannot sign in until its email is confirmed: the right password is answered with 403.
+  expect((await request.post("/api/v1/auth/login", { data: { email, password } })).status()).toBe(403);
+  const link = await confirmationLink(request, email);
+  const confirmed = await request.post("/api/v1/auth/confirm-email", { data: { email, code: link.searchParams.get("code") } });
+  expect(confirmed.status()).toBe(204);
 
   // Mobile does not pass useCookies: the response carries the tokens and sets no cookie.
   const login = await request.post("/api/v1/auth/login", { data: { email, password } });

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { confirmAndSignIn } from "./email";
 
 const password = "Passw0rdX";
 
@@ -31,7 +32,8 @@ test("register → login → practice Data Structures → earn XP → progress �
   await page.getByLabel("Display name").fill("E2E Rat");
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
+  // The account cannot sign in until the emailed link is followed.
+  await confirmAndSignIn(page, email, password);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("E2E Rat");
 
   // Logout + Login
@@ -103,7 +105,7 @@ test("mobile layout uses bottom navigation @mobile", async ({ page }) => {
   await page.getByLabel("Username").fill(username);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
+  await confirmAndSignIn(page, `${username}@example.com`, password);
   const bottomNav = page.locator("nav[aria-label='Main']").last();
   await expect(bottomNav).toBeVisible();
   await bottomNav.getByRole("link", { name: "Roadmaps" }).click();

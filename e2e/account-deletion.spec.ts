@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { confirmAndSignIn } from "./email";
 
 const password = "Passw0rdX";
 
@@ -11,7 +12,7 @@ async function register(page: Page) {
   await page.getByLabel("Display name").fill("Delete Me");
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
+  await confirmAndSignIn(page, email, password);
   return { username, email };
 }
 

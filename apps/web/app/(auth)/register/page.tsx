@@ -1,24 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { isApiError } from "@techrat/api";
 import { fieldErrors, registerSchema } from "@techrat/validation";
 import { AuthFooterLink, AuthLayout, Field, FormError, OAuthButtons } from "@/components/auth-ui";
-import { api, login, unwrap } from "@/lib/api";
-import { qk } from "@/lib/queries";
+import { ResendConfirmation } from "@/components/resend-confirmation";
+import { api, unwrap } from "@/lib/api";
 import { useT, useValidationTranslator } from "@/i18n";
 
 export default function RegisterPage() {
-  const router = useRouter();
-  const qc = useQueryClient();
   const t = useT();
   const translate = useValidationTranslator();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // The account cannot sign in until the emailed link is followed, so there is no automatic sign-in: the page says where it went.
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,9 +29,7 @@ export default function RegisterPage() {
     try {
       const { email, password, username, displayName } = parsed.data;
       await unwrap(api.POST("/api/v1/auth/register", { body: { email, password, username, displayName: displayName || null } }));
-      const me = await login(email, password);
-      qc.setQueryData(qk.me, me);
-      router.replace("/dashboard");
+      setSentTo(email);
     } catch (err) {
       if (isApiError(err) && err.errors) {
         setErrors(Object.fromEntries(Object.entries(err.errors).map(([k, v]) => [k, v[0]])));
@@ -42,6 +38,20 @@ export default function RegisterPage() {
       }
       setPending(false);
     }
+  }
+
+  if (sentTo) {
+    const notice = t.auth.register.checkEmail;
+    return (
+      <AuthLayout title={t.auth.register.title} subtitle={t.auth.register.subtitle}>
+        <div className="space-y-5">
+          <h2 className="text-xl font-bold">{notice.title}</h2>
+          <p className="text-sm text-text-secondary">{notice.text(sentTo)}</p>
+          <ResendConfirmation email={sentTo} label={notice.resend} />
+          <Link href="/login" className="btn-primary w-full">{notice.toSignIn}</Link>
+        </div>
+      </AuthLayout>
+    );
   }
 
   return (

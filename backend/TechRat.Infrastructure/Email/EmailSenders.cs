@@ -73,7 +73,7 @@ public static partial class EmailContent
 /// never the token itself. Delivery failures surface as <see cref="EmailDeliveryException"/>.
 /// </summary>
 public sealed class IdentityEmailSender(IOptions<SmtpOptions> options, IConfiguration config, TimeProvider clock, ILogger<IdentityEmailSender> logger)
-    : IEmailSender<ApplicationUser>, ITestEmailSender, IAccountEmailSender
+    : IEmailSender<ApplicationUser>, ITestEmailSender, IAccountEmailSender, IRegistrationEmailSender
 {
     private readonly SmtpOptions _o = options.Value;
 
@@ -93,6 +93,13 @@ public sealed class IdentityEmailSender(IOptions<SmtpOptions> options, IConfigur
         var resetLink = $"{(config["App:PublicWebUrl"] ?? "http://localhost:3000").TrimEnd('/')}/forgot-password";
         var when = clock.GetUtcNow().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         return SendAsync(email, Text.Get(Text.Keys.EmailPasswordChangedSubject), Text.Get(Text.Keys.EmailPasswordChangedBody, when, resetLink), ct);
+    }
+
+    public Task SendAlreadyRegisteredAsync(string email, CancellationToken ct)
+    {
+        var web = (config["App:PublicWebUrl"] ?? "http://localhost:3000").TrimEnd('/');
+        return SendAsync(email, Text.Get(Text.Keys.EmailAlreadyRegisteredSubject),
+            Text.Get(Text.Keys.EmailAlreadyRegisteredBody, $"{web}/login", $"{web}/forgot-password"), ct);
     }
 
     public Task SendAccountDeletedAsync(string email, CancellationToken ct)

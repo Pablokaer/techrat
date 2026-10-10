@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { followConfirmationLink } from "./email";
 
 // A browser set to Brazilian Portuguese gets the app in Portuguese; the EN/PT toggle switches it and the choice sticks.
 test.use({ locale: "pt-BR" });
@@ -25,6 +26,13 @@ test("Portuguese browser → app in Portuguese → switch to English → choice 
   await page.getByLabel("Nome de exibição").fill("Rato PT");
   await page.getByLabel("Senha").fill("Passw0rdX");
   await page.getByRole("button", { name: "Criar conta" }).click();
+  await expect(page.getByRole("heading", { name: "Confira seu e-mail" })).toBeVisible();
+  await followConfirmationLink(page, `${username}@example.com`);
+  await expect(page.getByRole("status")).toContainText("Seu e-mail foi confirmado");
+  await page.goto("/login");
+  await page.getByLabel("E-mail").fill(`${username}@example.com`);
+  await page.getByLabel("Senha").fill("Passw0rdX");
+  await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard/);
 
   // Catalog names come from the API in Portuguese.

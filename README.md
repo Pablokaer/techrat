@@ -315,7 +315,7 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 
 ```
             ┌───────────── Next.js web (cookie auth, /api proxy) ─────────────┐
-            │            Tauri desktop (static export, bearer tokens)         │
+            │      Tauri desktop (static export, bearer tokens, OS keychain)  │
  Clients ───┤            Expo mobile (bearer tokens, SecureStore)             │
             └───────────── generated OpenAPI types (@techrat/types) ──────────┘
                                          │ HTTPS / JSON · SignalR
@@ -490,7 +490,7 @@ The web and desktop apps support English (`en`) and Brazilian Portuguese (`pt-BR
 | Mobile release checks | `cd apps/mobile && npx expo-doctor` and `npm run check:production-config -w @techrat/mobile` | SDK-compatible dependencies without duplicates, and the production Expo config (package, version, https API URL); both also run in CI |
 | Seed scripts (unittest) | `python3 -m unittest discover -s scripts/seed-src -p "test_*.py"` | Question validator (translations, answer-length bias), catalog validator (scope ownership, reuse, cycles, capstones, easier-to-harder module order), roadmap module ordering, README catalog generator, and that the README catalog matches the seed |
 | Deploy script and promotion gate (unittest) | `python3 -m unittest discover -s deploy -p "test_*.py"` | `deploy/deploy.sh` against a throwaway git repo with fake docker/curl: deploys the CI-tested commit, keeps `.env`, rejects non-sha input, skips commits that are no longer the tip of main, rolls back when unhealthy; promotion gate accepts only `dev` of this repository into `main`; auto-merge skips drafts, forks and the opt-out label; auto-promotion skips when `dev` has nothing new, opens the PR when missing and reuses the open one; the dev sync fast-forwards `dev` to `main` and leaves `dev` alone when it has newer commits |
-| E2E (Playwright) | `docker compose up -d` and then `npx playwright test` | Register → logout/login → Learn → Data Structures → practice → answer → XP → topic progress → profile XP; Portuguese browser → app in Portuguese → EN/PT switch persists; mobile bottom navigation; account deletion (dialog, wrong password, public `/account/delete`, policy and terms links); bearer login, refresh and authenticated calls through the web `/api` proxy (the path the Android app uses) |
+| E2E (Playwright) | `docker compose up -d` and then `npx playwright test` (sign-up follows the confirmation link read from Mailpit) | Register → confirm the email → login → logout/login → Learn → Data Structures → practice → answer → XP → topic progress → profile XP; Portuguese browser → app in Portuguese → EN/PT switch persists; mobile bottom navigation; account deletion (dialog, wrong password, public `/account/delete`, policy and terms links); bearer login, refresh and authenticated calls through the web `/api` proxy (the path the Android app uses) |
 
 To reuse a running PostgreSQL instead of Testcontainers, set `TECHRAT_TEST_POSTGRES="Host=…;Username=…;Password=…"`.
 
@@ -503,7 +503,9 @@ CI (`.github/workflows/ci.yml`) runs the backend build (warnings as errors) and 
 * Sign-in answers the same, in the same time, for an unknown email and a wrong password; password reset links last one hour, and at most one reset email per address per minute is sent, after the answer.
 * Refresh tokens are single use: each refresh returns a new one, and presenting an old one revokes that session (a stolen token shows up as soon as both sides use it); the previous token is forgiven for 30 seconds for lost responses (`Auth__RefreshGraceSeconds`). Detection is paused, never harmful, when the cache loses a session.
 * Sign-in, token and account responses are `Cache-Control: no-store`; credential endpoints accept bodies of 8 KB at most; resetting a password lifts a lockout and emails the owner.
-* Login security decisions and what is still open (sign-up enumeration, desktop token storage, no second factor): [ADR-0029](docs/adr/0029-login-security-hardening.md), [ADR-0030](docs/adr/0030-refresh-token-rotation-and-uncacheable-auth-responses.md).
+* Sign-up needs a confirmed email and answers `202` the same for every address, so the form cannot be used to find out who is registered; an address that already has an account gets a notice by email instead. Accounts that existed before were marked confirmed by a migration ([ADR-0031](docs/adr/0031-email-confirmation-at-sign-up.md)).
+* The desktop app keeps its tokens in the OS credential store, not in `localStorage` ([ADR-0032](docs/adr/0032-desktop-tokens-in-the-os-keychain.md)).
+* Login security decisions and what is still open (no second factor): [ADR-0029](docs/adr/0029-login-security-hardening.md), [ADR-0030](docs/adr/0030-refresh-token-rotation-and-uncacheable-auth-responses.md).
 * The web app uses an HttpOnly, SameSite=Strict cookie, so tokens are never readable by JavaScript.
 * Endpoints are rate limited: auth per IP, answers per user.
 * CORS uses an explicit origin list.
