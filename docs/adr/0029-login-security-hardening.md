@@ -32,7 +32,7 @@ lockout, HttpOnly + SameSite=Strict cookies, short access tokens, security-stamp
   keyed by a hash of the address so the cache never holds it; a cache outage never blocks a reset).
 - **Key ring at rest:** when `DataProtection__CertificateBase64` (or `__CertificatePath`) and `__CertificatePassword`
   are set, the keys are encrypted with that certificate (`DataProtectionSetup`). A configured but unreadable
-  certificate stops the start instead of running unprotected. Without one, production logs a warning at start.
+  certificate stops the start instead of running unprotected. Without one, production logs a warning at start. The production deploy creates the certificate in the server's `.env` on its first run (`deploy/new-dataprotection-cert.sh`), never replacing an existing one; a failure there does not block the deploy.
 - **Inputs:** reset-password validates every field (400, same answer shape as a wrong code); sign-in turns away
   passwords over 1,024 characters without hashing them (generous, because older accounts may have longer ones).
 - **Web headers:** a CSP (own origin only for scripts, API and real-time channel; no framing, plugins, foreign `<base>`
