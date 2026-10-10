@@ -89,8 +89,8 @@ storage (`expo-secure-store`); neither has its own checkbox.
 - **Web URL (works without the app and while signed out):** `https://techrat.io/account/delete`
 - What is deleted: credentials, profile (name, email, username, bio), photo, progress, answers, XP, achievements,
   notifications and all sessions, immediately and irreversibly (ADR-0023).
-- Data kept: none about the person. Backups made before the deletion may keep a copy until they expire, and server logs
-  may keep the random internal account id; the page says so (the periods are still `TODO(legal)`).
+- Data kept: none about the person. Backups made before the deletion may keep a copy for up to 14 days, and server logs
+  may keep the random internal account id (Apache access logs at most 40 days); the page says so (ADR-0033).
 
 ## 6. Privacy policy
 
@@ -104,10 +104,10 @@ storage (`expo-secure-store`); neither has its own checkbox.
    `apps/web/src/lib/legal.ts`. Google rejects policies that are placeholders.
 2. **Company name and contact email** (`LEGAL` in `apps/web/src/lib/legal.ts`): currently `TechRat` and
    `privacy@techrat.io`. Make sure the mailbox exists. The Play listing's developer email should match.
-3. **Hosting provider and country, email provider, backup and log retention** are not stated anywhere in the repo
-   (`docs/deploy.md` only suggests a manual daily `pg_dump`). Fill the TODOs with real facts.
-4. **Which email provider runs in production?** The deployment examples use Resend (`.env.production.example`); confirm
-   and name it in the policy.
+3. **Hosting country.** The policy names Hostinger (VPS) and Resend (Ireland), and the backup and log periods are automatic
+   (`deploy/backup.sh`, ADR-0033); only the country of the Hostinger data centre is still a `TODO(owner)`.
+4. **Is Resend's data processing agreement in place?** The policy says transfers to Resend rely on it; check the Resend
+   dashboard.
 5. **IP addresses.** Any HTTPS request reveals the client IP to the server. It is kept in Apache access logs
    (`deploy/apache/techrat.conf`, combined format) and used as an in-memory rate-limit key. Play does not list "IP
    address" as its own data type; if you want to be conservative, read Google's Data safety FAQ and decide whether this
@@ -121,8 +121,7 @@ storage (`expo-secure-store`); neither has its own checkbox.
    it.
 9. **OpenTelemetry.** If production sets `OTEL_EXPORTER_OTLP_ENDPOINT`, traces go to that collector; then name it as a
    processor in the policy and reconsider the Diagnostics answer.
-10. **Minimum age / Families policy.** There is no age gate. Decide the minimum age (the policy has a `TODO(owner)`), and
-    answer the target-audience questions in Play Console to match (do not select "children").
+10. **Minimum age / Families policy.** There is no age gate. The policy sets the minimum age at 16 (the age of digital consent in Ireland); answer the target-audience questions in Play Console to match (do not select "children").
 11. **The delete-account promise for people who cannot sign in** ("write to the contact email") needs a real process
     behind it and a monitored mailbox.
 12. **Android-side screens.** Confirm the app has the Profile, Delete account screen and the consent line with links to

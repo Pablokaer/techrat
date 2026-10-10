@@ -51,6 +51,7 @@ main() {
   git reset --quiet --hard "$tip"
   echo "deploy: $previous -> $tip"
   ensure_dataprotection_cert "$app_dir/.env"
+  ensure_cron_jobs "$app_dir"
   if "${compose[@]}" up -d --build --remove-orphans && healthy "$health_urls" "$retries" "$interval"; then
     docker image prune -f --filter "label=com.docker.compose.project=techrat" >/dev/null || true
     echo "deploy: OK $tip"
@@ -72,6 +73,21 @@ ensure_dataprotection_cert() {
   if grep -Eq '^DATAPROTECTION_CERT_BASE64=.+' "$env_file"; then return 0; fi
   echo "deploy: creating the Data Protection certificate in $env_file"
   bash "$script" "$env_file" || echo "deploy: warning: could not create the Data Protection certificate; the API will warn at start" >&2
+}
+
+# Daily database backup (deploy/backup.sh, 14 days) and removal of Apache access logs older than 30 days. The privacy policy
+# states both periods. The file is rewritten only when its content changes; a failure here never blocks a deploy.
+ensure_cron_jobs() {
+  local app_dir="$1" cron_file="${CRON_FILE:-/etc/cron.d/techrat}" apache_logs="${APACHE_LOG_DIR:-/var/log/apache2}" want
+  want="# Managed by deploy/deploy.sh: edits are overwritten on the next deploy.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+15 3 * * * root bash $app_dir/deploy/backup.sh >> /var/log/techrat-backup.log 2>&1
+45 3 * * * root find $apache_logs -name 'techrat-*.log*' -mtime +30 -delete
+"
+  if [[ -f "$cron_file" && "$(cat "$cron_file"; echo x)" == "${want}x" ]]; then return 0; fi
+  echo "deploy: installing the cron jobs in $cron_file"
+  { printf '%s' "$want" > "$cron_file" && chmod 644 "$cron_file"; }     || echo "deploy: warning: could not install the cron jobs; backups will not run" >&2
 }
 
 # Waits until every URL answers 2xx.

@@ -131,8 +131,16 @@ start. The untracked `/opt/techrat/.env` is never touched. Log: `/var/log/techra
 
 - Logs: `docker compose -f docker-compose.prod.yml logs -f api` (JSON outside development), Apache logs in
   `/var/log/apache2/techrat-*.log`.
-- Backup: `docker compose -f docker-compose.prod.yml exec -T postgres pg_dump -U techrat techrat | gzip > techrat-$(date +%F).sql.gz`
-  daily via cron, copied off the server.
+- **Backups (automatic, ADR-0033):** every deploy installs `/etc/cron.d/techrat`, which runs `deploy/backup.sh` daily at
+  03:15 server time. It writes `/opt/techrat-backups/techrat-<timestamp>.sql.gz` (root only) and deletes dumps older than 14
+  days, but only after the new dump was written and checked. Log: `/var/log/techrat-backup.log`. Run it by hand with
+  `bash /opt/techrat/deploy/backup.sh`. Restore: `gunzip -c <file> | docker compose -f docker-compose.prod.yml exec -T postgres psql -U techrat techrat`
+  (into an empty database). The dumps stay on the same server, so they do not survive losing it: copy them elsewhere
+  (for example `rsync` to another machine) or turn on the Hostinger VPS backups as well. `.env` is not part of the dump
+  on purpose; keep it in a separate backup (see the certificate note above).
+- **Log retention (ADR-0033):** the containers keep 3 x 10 MB of logs each and overwrite them after that. The same cron file
+  deletes Apache `techrat-*.log*` files not written in the last 30 days (with the weekly logrotate of the Apache package,
+  an entry lives at most about 40 days). The privacy policy states these periods; change both together.
 - The API trusts `X-Forwarded-For`/`X-Forwarded-Proto` only from private-network proxies (`ReverseProxy__Enabled=true`),
   so rate limits apply per real client.
 - Security: prefer SSH keys over passwords for the server, keep `ufw` allowing only 22/80/443 if you enable it (the

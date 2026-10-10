@@ -49,12 +49,12 @@ export const legal: Messages["legal"] = {
     kept: [
       "Nada sobre você permanece na aplicação: a conta é removida, não apenas ocultada.",
       "O conteúdo de aprendizado (questões, tópicos e roadmaps) não é dado pessoal e não é afetado.",
-      "Os logs do servidor podem guardar um identificador interno aleatório da conta (sem nome e sem e-mail) até os logs expirarem. {{TODO(legal): informar o prazo de retenção dos logs.}}",
+      "Os logs do servidor podem guardar um identificador interno aleatório da conta (sem nome e sem e-mail) até os logs expirarem. Os logs de acesso do servidor web são apagados após no máximo 40 dias; os logs da aplicação são sobrescritos conforme os arquivos, de tamanho limitado, são rotacionados.",
     ],
     timingHeading: "Quanto tempo leva",
     timing: [
       "A exclusão é imediata e irreversível. Todas as sessões terminam na hora e enviamos uma confirmação para o e-mail da conta.",
-      "Backups do banco de dados feitos antes da exclusão ainda podem conter seus dados até expirarem. {{TODO(legal): confirmar se existem backups e por quanto tempo são mantidos.}}",
+      "Backups do banco de dados feitos antes da exclusão ainda podem conter seus dados até expirarem: os backups são feitos diariamente e apagados automaticamente após 14 dias.",
     ],
     signedOutHeading: "Entre para continuar",
     signedOutText: "Você precisa estar conectado para que somente você possa excluir a sua conta.",
@@ -64,7 +64,7 @@ export const legal: Messages["legal"] = {
   },
   privacyPage: (l) => ({
     intro: [
-      `${l.companyName} (“TechRat”, “nós”) opera a plataforma de aprendizado TechRat: o site techrat.io e o app TechRat para Android. Esta política explica quais dados pessoais coletamos, por quê, quem pode vê-los, por quanto tempo os mantemos e o que você pode fazer a respeito. {{TODO(owner): confirmar a razão social e o endereço postal do controlador.}}`,
+      `${l.companyName} (“TechRat”, “nós”) opera a plataforma de aprendizado TechRat: o site techrat.io e o app TechRat para Android. Esta política explica quais dados pessoais coletamos, por quê, quem pode vê-los, por quanto tempo os mantemos e o que você pode fazer a respeito. O controlador dos seus dados pessoais é ${l.companyName}, pessoa física residente na Irlanda, que pode ser contatada em ${l.contactEmail}.`,
     ],
     sections: [
       {
@@ -91,7 +91,7 @@ export const legal: Messages["legal"] = {
           "Para proteger o serviço: limite de requisições, bloqueio da conta após várias senhas erradas e correção de erros.",
         ],
         closing: [
-          "Não vendemos seus dados, não exibimos publicidade e não usamos seus dados para criar perfis publicitários. {{TODO(legal): confirmar a base legal de cada finalidade (por exemplo execução de contrato e legítimo interesse na LGPD e no GDPR).}}",
+          "Não vendemos seus dados, não exibimos publicidade e não usamos seus dados para criar perfis publicitários. Nossas bases legais no GDPR são o contrato com você (sua conta, seu progresso e os e-mails que os fazem funcionar) e o nosso legítimo interesse em manter o serviço seguro (limites de requisições, bloqueios e logs). Não dependemos do seu consentimento para isso.",
         ],
       },
       {
@@ -109,7 +109,7 @@ export const legal: Messages["legal"] = {
         heading: "4. E-mails",
         paragraphs: [
           "Enviamos apenas e-mails de serviço: um link para confirmar seu endereço de e-mail quando você se cadastra, um aviso se alguém tentar se cadastrar com um endereço que já tem conta, um link de redefinição de senha quando você pede, um aviso de que sua senha foi alterada e uma confirmação de que sua conta foi excluída. Não enviamos e-mails de marketing.",
-          "Os e-mails são entregues por um provedor de e-mail SMTP que processa a mensagem por nós. {{TODO(legal): informar o provedor de e-mail (os exemplos de implantação usam Resend) e o país dele.}}",
+          "Os e-mails são entregues pela Resend, que processa a mensagem por nós na sua região europeia, na Irlanda. A Resend é uma empresa dos Estados Unidos, então qualquer transferência para ela se apoia nas salvaguardas do seu acordo de processamento de dados.",
         ],
       },
       {
@@ -126,7 +126,7 @@ export const legal: Messages["legal"] = {
         heading: "6. Com quem compartilhamos dados",
         paragraphs: ["Não vendemos nem compartilhamos seus dados para publicidade. Usamos prestadores de serviço que apenas processam dados em nosso nome:"],
         items: [
-          "Hospedagem: o TechRat roda em um servidor privado virtual que guarda o banco de dados. {{TODO(legal): confirmar o provedor de hospedagem e o país.}}",
+          "Hospedagem: o TechRat roda em um servidor privado virtual da Hostinger que guarda o banco de dados (veja a seção 7 para saber onde ele fica).",
           "Envio de e-mails, como descrito acima.",
         ],
         closing: [
@@ -135,15 +135,15 @@ export const legal: Messages["legal"] = {
       },
       {
         heading: "7. Transferências internacionais",
-        paragraphs: ["Seus dados ficam armazenados onde o nosso provedor de hospedagem opera. {{TODO(legal): confirmar o país dos servidores, se há transferência internacional de dados e com quais salvaguardas.}}"],
+        paragraphs: ["Seus dados ficam armazenados no servidor da Hostinger descrito acima, em um data center em {{TODO(owner): informar o país do data center da Hostinger (hPanel, VPS, Visão geral)}}. Os e-mails são processados na Irlanda pela Resend, como descrito na seção 4. Quando um provedor estiver fora do Espaço Econômico Europeu, as transferências se apoiam em uma decisão de adequação ou nas cláusulas contratuais padrão da Comissão Europeia."],
       },
       {
         heading: "8. Por quanto tempo guardamos os dados",
         items: [
           "Guardamos seus dados enquanto a sua conta existir.",
           "Se você excluir a conta, suas credenciais, perfil, foto, progresso, XP, conquistas e notificações são apagados imediatamente e todas as sessões terminam.",
-          "Backups, se houver, podem manter cópias antigas até expirarem. {{TODO(legal): confirmar a frequência e o prazo de retenção dos backups.}}",
-          "Os logs do servidor podem guardar seu identificador interno aleatório (sem nome, sem e-mail) e, nos logs de acesso do servidor web, endereços IP e endereços requisitados até serem rotacionados. {{TODO(legal): confirmar os prazos de retenção dos logs.}}",
+          "Os backups são feitos diariamente no servidor e apagados automaticamente após 14 dias, então uma cópia antiga pode conter seus dados por até 14 dias depois de você excluir a conta.",
+          "Os logs do servidor podem guardar seu identificador interno aleatório (sem nome, sem e-mail) e, nos logs de acesso do servidor web, endereços IP e endereços requisitados até serem rotacionados: os logs de acesso do servidor web são apagados após no máximo 40 dias e os logs da aplicação são sobrescritos conforme os arquivos, de tamanho limitado, são rotacionados.",
         ],
       },
       {
@@ -155,7 +155,7 @@ export const legal: Messages["legal"] = {
       {
         heading: "10. Crianças",
         paragraphs: [
-          "{{TODO(owner): decidir e confirmar a idade mínima (por exemplo 13 anos, ou 16 onde a lei exigir).}} O TechRat não é direcionado a crianças abaixo dessa idade e não coleta conscientemente os dados delas. Hoje não há verificação de idade no cadastro. Se você acredita que uma criança criou uma conta, escreva para nós e a excluiremos.",
+          "O TechRat é destinado a pessoas com 16 anos ou mais (16 é a idade de consentimento digital na Irlanda) e não coleta conscientemente dados de crianças menores. Hoje não há verificação de idade no cadastro. Se você acredita que uma criança criou uma conta, escreva para nós e a excluiremos.",
         ],
       },
       {
@@ -163,7 +163,7 @@ export const legal: Messages["legal"] = {
         items: [
           "Acesso e correção: você vê seus dados no app e altera nome de exibição, bio, foto e senha em Configurações.",
           "Exclusão: em Configurações, Excluir conta (site), em Perfil, Excluir conta (app Android), ou em https://techrat.io/account/delete. Vale imediatamente.",
-          `Outros pedidos, como uma cópia dos seus dados, oposição ou restrição: escreva para ${l.contactEmail}. {{TODO(legal): listar os direitos e a autoridade de supervisão aplicáveis (por exemplo na LGPD e no GDPR) e o prazo de resposta.}}`,
+          `Outros pedidos, como uma cópia dos seus dados em formato portável, oposição ou restrição: escreva para ${l.contactEmail}; respondemos no prazo de um mês, como exige o GDPR. Você também pode reclamar à Data Protection Commission, a autoridade de supervisão da Irlanda (dataprotection.ie).`,
         ],
       },
       {
@@ -185,7 +185,7 @@ export const legal: Messages["legal"] = {
         heading: "1. Sua conta",
         items: [
           "Informe dados corretos e mantenha sua senha em segredo. Você é responsável pelo que acontece na sua conta.",
-          "Você deve ter idade suficiente para usar o TechRat segundo a lei aplicável a você. {{TODO(owner): informar a idade mínima, igual à da política de privacidade.}}",
+          "Você deve ter pelo menos 16 anos, como diz a Política de Privacidade.",
           "Você pode excluir sua conta a qualquer momento (veja a Política de Privacidade).",
         ],
       },
@@ -231,11 +231,11 @@ export const legal: Messages["legal"] = {
       },
       {
         heading: "9. Limitação de responsabilidade",
-        paragraphs: ["Na medida em que a lei permitir, não respondemos por perdas indiretas ou consequenciais, nem pela perda de dados ou de progresso. Nada aqui limita responsabilidade que a lei não permite limitar. {{TODO(legal): revisar esta cláusula conforme a lei aplicável e as regras de consumidor.}}"],
+        paragraphs: ["Não excluímos nem limitamos a responsabilidade que a lei não permite excluir ou limitar, inclusive por fraude, por morte ou lesão corporal causadas por negligência e os seus direitos legais de consumidor. Respeitado isso, e como o TechRat é gratuito, não respondemos por perdas indiretas ou consequenciais, nem pela perda de dados ou de progresso."],
       },
       {
         heading: "10. Lei aplicável",
-        paragraphs: ["{{TODO(legal): informar a lei aplicável e o foro competente.}}"],
+        paragraphs: ["Estes termos são regidos pelas leis da Irlanda e os tribunais da Irlanda têm competência. Se você é consumidor e mora em outro país da UE, mantém a proteção da lei de consumo obrigatória desse país e também pode ajuizar a ação nos tribunais dele."],
       },
       {
         heading: "11. Contato",

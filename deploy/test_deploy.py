@@ -116,6 +116,33 @@ class DeployScriptTest(unittest.TestCase):
         self.assertEqual(self.head(), v2)
         self.assertTrue(any("up -d --build" in c for c in self.docker_calls()))
 
+    def test_installs_the_backup_and_log_cleanup_cron_jobs(self):
+        cron = self.tmp / "cron.d" / "techrat"
+        cron.parent.mkdir()
+        r = self.run_deploy(CRON_FILE=str(cron), APACHE_LOG_DIR="/var/log/apache2")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        text = cron.read_text()
+        self.assertIn(f"root bash {self.app}/deploy/backup.sh", text)
+        self.assertIn("find /var/log/apache2 -name 'techrat-*.log*' -mtime +30 -delete", text)
+
+    def test_rewrites_a_stale_cron_file_and_leaves_a_current_one_alone(self):
+        cron = self.tmp / "cron.d" / "techrat"
+        cron.parent.mkdir()
+        cron.write_text("stale\n")
+        self.run_deploy(CRON_FILE=str(cron))
+        current = cron.read_text()
+        self.assertNotIn("stale", current)
+        mtime = cron.stat().st_mtime_ns
+        self.run_deploy(CRON_FILE=str(cron))
+        self.assertEqual(cron.read_text(), current)
+        self.assertEqual(cron.stat().st_mtime_ns, mtime)
+
+    def test_a_missing_cron_directory_never_blocks_the_deploy(self):
+        r = self.run_deploy(CRON_FILE=str(self.tmp / "nope" / "techrat"))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("could not install the cron jobs", r.stdout + r.stderr)
+        self.assertTrue(any("up -d --build" in c for c in self.docker_calls()))
+
     def test_without_an_env_file_nothing_is_created(self):
         (self.app / ".env").unlink()
         v2 = self.add_cert_script('echo "DATAPROTECTION_CERT_BASE64=created" >> "$1"\n')
