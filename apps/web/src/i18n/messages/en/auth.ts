@@ -61,7 +61,7 @@ export const auth = {
     subtitle: "One moment while we check your link.",
     working: "Confirming…",
     done: "Your email is confirmed. You can sign in now.",
-    failed: "This link is invalid, expired or already used. Sign in to get a new one.",
+    failed: "This link is invalid or has expired. Sign in to get a new one.",
     signIn: "Sign in",
   },
   forgotPassword: {

@@ -17,15 +17,17 @@ address, which in turn needs the account to be proven by the mailbox before it c
   tried to create an account with your email", with links to sign in and to reset the password) and nothing is created.
 - **Same work, same time.** The rules that do not depend on the address (format, username, the password policy) run first
   and fail alike for everybody; an existing address still pays for one password hash; both emails are sent after the answer
-  and at most one of each kind per address per minute (`ResetEmailThrottle`, with its own window per kind).
+  and at most one of each kind per address per minute (`ResetEmailThrottle`: confirmation, notice and resend each have
+  their own window, and the cache is asked once whichever the case).
 - **A taken username is still reported.** Usernames are public (profiles, leaderboards), so saying one is taken reveals
   nothing private.
 - **Sign-in checks the password first, then the confirmation.** `403` means "right password, email not confirmed yet", so
   only whoever knows the password learns that (Identity's `RequireConfirmedEmail` would answer before the password check
   and reveal unconfirmed accounts to anybody). The web and mobile login screens offer to send the link again.
-- **`POST /auth/confirm-email`** (`{email, code}`) answers 204, or one 400 shape for an unknown address and for a wrong,
-  expired or used code (following the link rotates the security stamp, so it works once). **`POST /auth/resend-confirmation`**
-  always answers 202 and sends only to an existing unconfirmed account.
+- **`POST /auth/confirm-email`** (`{email, code}`) answers 204, or one 400 shape for an unknown address and for a wrong or
+  expired code. Following the link again is harmless (it confirms an address that is already confirmed, which also covers a
+  double click), so it answers 204 again. **`POST /auth/resend-confirmation`** always answers 202 and sends only to an
+  existing unconfirmed account.
 - **A password reset also confirms the address** (the link went to that mailbox), so someone who lost the confirmation
   email can recover with "forgot password".
 - **Existing accounts are grandfathered:** a migration marks every account that exists when this deploys as confirmed;

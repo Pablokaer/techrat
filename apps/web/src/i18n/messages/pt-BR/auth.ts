@@ -62,7 +62,7 @@ export const auth: Messages["auth"] = {
     subtitle: "Um instante enquanto verificamos o seu link.",
     working: "Confirmando…",
     done: "Seu e-mail foi confirmado. Agora você pode entrar.",
-    failed: "Este link é inválido, expirou ou já foi usado. Entre para receber um novo.",
+    failed: "Este link é inválido ou expirou. Entre para receber um novo.",
     signIn: "Entrar",
   },
   forgotPassword: {

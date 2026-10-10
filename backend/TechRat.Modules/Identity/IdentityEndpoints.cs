@@ -80,7 +80,7 @@ public sealed class IdentityEndpoints : IEndpointModule
 
         auth.MapPost("/confirm-email", ConfirmEmailAsync).RequireRateLimiting("auth")
             .WithSummary("Confirm the email address with the code from the emailed link")
-            .WithDescription("Answers 204, or 400 in one shape for an unknown address, a wrong, expired or used code. After this the account can sign in.");
+            .WithDescription("Answers 204, or 400 in one shape for an unknown address and for a wrong or expired code. Following the link again is harmless. After this the account can sign in.");
 
         auth.MapPost("/resend-confirmation", ResendConfirmationAsync).RequireRateLimiting("auth")
             .WithSummary("Send the confirmation email again. Always returns 202 to avoid account enumeration")
@@ -170,8 +170,9 @@ public sealed class IdentityEndpoints : IEndpointModule
         var passwordCheck = await ValidatePasswordAsync(users, new ApplicationUser { UserName = username, Email = email }, request.Password);
         if (!passwordCheck.Succeeded) throw new RequestValidationException(GroupErrors(passwordCheck.Errors));
 
-        var mayEmail = await throttle.TryAcquireAsync(email, ct, purpose: "signup");
         var existing = await users.FindByEmailAsync(email);
+        // Each kind of email has its own window, and the cache is asked once whichever the case, so nothing differs in time.
+        var mayEmail = await throttle.TryAcquireAsync(email, ct, purpose: existing is null ? "signup" : "registered");
         Guid? createdId = null;
         if (existing is null)
         {
@@ -516,8 +517,8 @@ public sealed class IdentityEndpoints : IEndpointModule
     }
 
     /// <summary>
-    /// Confirms the address. One answer for an unknown address and for a wrong, expired or already used code (following the
-    /// link rotates the security stamp, so it works once).
+    /// Confirms the address. One answer for an unknown address and for a wrong or expired code. Following the link again is
+    /// harmless (it confirms an address that is already confirmed, which also covers a double click), so it answers 204 again.
     /// </summary>
     private static async Task<Results<NoContent, ValidationProblem>> ConfirmEmailAsync(ConfirmEmailRequest request, UserManager<ApplicationUser> users)
     {

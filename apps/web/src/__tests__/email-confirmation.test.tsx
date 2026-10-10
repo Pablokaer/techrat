@@ -176,18 +176,18 @@ describe("The confirmation page", () => {
     expect(window.location.search).not.toContain("alex");
   });
 
-  it("explains a link that is wrong, expired or already used, and points to sign-in to ask for a new one", async () => {
+  it("explains a link that is wrong or expired, and points to sign-in to ask for a new one", async () => {
     serve({ confirm: 400 });
     open("email=alex%40example.com&code=old");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("This link is invalid, expired or already used.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("This link is invalid or has expired.");
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
   });
 
   it("does not call the API when the address or the code is missing", async () => {
     open("email=alex%40example.com");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("This link is invalid, expired or already used.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("This link is invalid or has expired.");
     expect(called("/api/v1/auth/confirm-email")).toHaveLength(0);
   });
 

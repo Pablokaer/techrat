@@ -80,7 +80,7 @@ public class EmailDeliveryTests(TechRatFactory api) : IAsyncLifetime
         Uri.UnescapeDataString(Regex.Match(message.GetProperty("Text").GetString()!, @"code=([^\s&""<>]+)").Groups[1].Value);
 
     [Fact]
-    public async Task Signing_up_sends_a_confirmation_link_and_following_it_lets_the_account_sign_in_once()
+    public async Task Signing_up_sends_a_confirmation_link_and_following_it_lets_the_account_sign_in()
     {
         await using var factory = WithMailpit();
         var client = factory.CreateClient();
@@ -95,8 +95,8 @@ public class EmailDeliveryTests(TechRatFactory api) : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/confirm-email", new { email, code })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "Passw0rdX" })).StatusCode);
-        // Following the link rotates the security stamp, so the same link does nothing the second time.
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/confirm-email", new { email, code })).StatusCode);
+        // Following the link again (a double click) only confirms an address that is already confirmed.
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/confirm-email", new { email, code })).StatusCode);
     }
 
     [Fact]
