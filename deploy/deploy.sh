@@ -50,6 +50,7 @@ main() {
 
   git reset --quiet --hard "$tip"
   echo "deploy: $previous -> $tip"
+  ensure_dataprotection_cert "$app_dir/.env"
   if "${compose[@]}" up -d --build --remove-orphans && healthy "$health_urls" "$retries" "$interval"; then
     docker image prune -f --filter "label=com.docker.compose.project=techrat" >/dev/null || true
     echo "deploy: OK $tip"
@@ -60,6 +61,17 @@ main() {
   git reset --quiet --hard "$previous"
   "${compose[@]}" up -d --build --remove-orphans || true
   return 1
+}
+
+# The login keys stored in PostgreSQL are encrypted with a certificate that lives in .env, outside the database (ADR-0029).
+# The first deploy that finds none creates it; it is never replaced afterwards (losing it signs everybody out). A failure
+# here must not block a deploy: the API then runs as before and logs a warning.
+ensure_dataprotection_cert() {
+  local env_file="$1" script="deploy/new-dataprotection-cert.sh"
+  [[ -f "$env_file" && -f "$script" ]] || return 0
+  if grep -Eq '^DATAPROTECTION_CERT_BASE64=.+' "$env_file"; then return 0; fi
+  echo "deploy: creating the Data Protection certificate in $env_file"
+  bash "$script" "$env_file" || echo "deploy: warning: could not create the Data Protection certificate; the API will warn at start" >&2
 }
 
 # Waits until every URL answers 2xx.

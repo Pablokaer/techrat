@@ -31,25 +31,24 @@ Internet ─► Apache :80/:443 (Let's Encrypt via certbot)
 5. HTTPS: `certbot --apache -d <domain> -d www.<domain> --redirect`. Renewal uses the existing certbot timer.
 6. Sign in with the admin account, change its password, and use **Admin → Send test email**.
 
-## Encrypt the login keys (recommended)
+## Encrypt the login keys
 
 The API signs and encrypts login cookies and bearer tokens with keys stored in PostgreSQL. Without a certificate they sit
 there as plain XML, so a leaked database backup would let someone forge a session for any account
-([ADR-0029](adr/0029-login-security-hardening.md)). Create a certificate **outside the repository and the database** and give it
-to the API:
+([ADR-0029](adr/0029-login-security-hardening.md)). A certificate kept **outside the database** encrypts them.
 
-```bash
-PFX_PASSWORD="$(openssl rand -base64 24)"        # keep it: it is DATAPROTECTION_CERT_PASSWORD
-openssl req -x509 -newkey rsa:3072 -nodes -keyout dp-key.pem -out dp-cert.pem -days 3650 -subj "/CN=techrat-dataprotection"
-openssl pkcs12 -export -inkey dp-key.pem -in dp-cert.pem -out dp.pfx -password "pass:$PFX_PASSWORD"
-base64 -w0 dp.pfx                                 # value of DATAPROTECTION_CERT_BASE64
-shred -u dp-key.pem dp.pfx
-```
+**Nothing to do on the server.** The first deploy that finds no `DATAPROTECTION_CERT_BASE64` in `/opt/techrat/.env` runs
+`deploy/new-dataprotection-cert.sh`, which creates an RSA 3072 certificate, writes it and its random password into `.env`
+(mode 600, every other line kept) and never replaces an existing one. A failure there does not block the deploy: the API
+starts as before and logs a warning. Check with `grep -c '^DATAPROTECTION_CERT_BASE64=.' /opt/techrat/.env` (prints 1) and
+`docker compose -f docker-compose.prod.yml logs api | grep -i "Data Protection"` (no warning).
 
-Put `DATAPROTECTION_CERT_BASE64` and `DATAPROTECTION_CERT_PASSWORD` in the server's `.env` and redeploy. The API refuses to
-start when they are set but wrong; when they are missing it logs a warning. New keys are encrypted from then on; keys already in
-the database stay readable until they rotate (up to 90 days). To encrypt immediately, delete the rows of `DataProtectionKeys`
-(everyone has to sign in again). Keep the certificate: losing it makes the stored keys unreadable, which also signs everyone out.
+- New keys are encrypted from then on; keys already in the database stay readable until they rotate (up to 90 days). To
+  encrypt them immediately, delete the rows of `DataProtectionKeys` (everyone has to sign in again).
+- **Keep `.env` in your server backups, separate from the database backups.** Losing the certificate makes the stored keys
+  unreadable, which signs everybody out (nothing else is lost). Keeping both in the same backup would defeat the purpose.
+- Locally: `deploy/new-dataprotection-cert.sh .env` fills the two variables (the file is git-ignored).
+- To replace it on purpose: `deploy/new-dataprotection-cert.sh .env --force`, then redeploy.
 
 ## Updating: continuous deployment
 
