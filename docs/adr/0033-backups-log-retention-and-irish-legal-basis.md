@@ -34,5 +34,6 @@ Hostinger VPS, email through Resend's European region (Ireland), no wish for a c
 - Backups live on the same server: they protect against mistakes and a corrupted database, not against losing the
   server. Copy them elsewhere or enable the Hostinger VPS backups (documented in `docs/deploy.md`).
 - Deleted accounts remain in backups for up to 14 days; the policy says so.
-- Still open: the country of the Hostinger data centre (one `TODO(owner)`), a review by a solicitor, then
-  `LEGAL.draft = false`.
+- The server is in Manchester, United Kingdom: outside the EEA but covered by the European Commission's adequacy decision
+  for the UK, so the policy states no extra safeguard for it (revisit if the decision is withdrawn or the server moves).
+- Still open: a review by a solicitor, then `LEGAL.draft = false`.

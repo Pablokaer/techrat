@@ -100,13 +100,13 @@ storage (`expo-secure-store`); neither has its own checkbox.
 ## 7. Things the owner must double-check before submitting
 
 1. **The policy is a draft.** `/privacy`, `/terms` and `/account/delete` carry a "draft pending legal review" banner and
-   visible `TODO(legal)` / `TODO(owner)` markers. Resolve them, then set `LEGAL.draft = false` in
+   a legal review is pending. After the review, set `LEGAL.draft = false` in
    `apps/web/src/lib/legal.ts`. Google rejects policies that are placeholders.
 2. **Company name and contact email** (`LEGAL` in `apps/web/src/lib/legal.ts`): currently `Pablo Carvalho` and
    `pablo.luan.carvalho@gmail.com`. Make sure the mailbox is monitored; the Play listing's developer email should
    match it. Replace both with the company's legal name and a `privacy@techrat.io` mailbox if you create one.
-3. **Hosting country.** The policy names Hostinger (VPS) and Resend (Ireland), and the backup and log periods are automatic
-   (`deploy/backup.sh`, ADR-0033); only the country of the Hostinger data centre is still a `TODO(owner)`.
+3. **Hosting.** The policy names Hostinger (VPS, Manchester, United Kingdom, covered by the EU adequacy decision) and Resend
+   (Ireland); the backup and log periods are automatic (`deploy/backup.sh`, ADR-0033). Keep the policy in line if the server moves.
 4. **Is Resend's data processing agreement in place?** The policy says transfers to Resend rely on it; check the Resend
    dashboard.
 5. **IP addresses.** Any HTTPS request reveals the client IP to the server. It is kept in Apache access logs

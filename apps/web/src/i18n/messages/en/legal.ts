@@ -152,7 +152,7 @@ export const legal = {
       },
       {
         heading: "7. International transfers",
-        paragraphs: ["Your data is stored on the Hostinger server described above, in a data centre in {{TODO(owner): state the country of the Hostinger data centre (hPanel, VPS, Overview)}}. Emails are processed in Ireland by Resend, as described in section 4. Where a provider is outside the European Economic Area, transfers rely on an adequacy decision or on the European Commission’s standard contractual clauses."],
+        paragraphs: ["Your data is stored on the Hostinger server described above, in a data centre in Manchester, United Kingdom. The United Kingdom is outside the European Economic Area, but the European Commission recognises it as providing an adequate level of data protection (an adequacy decision), so no further safeguard is needed for that transfer. Emails are processed in Ireland by Resend, as described in section 4. Where another provider is outside the European Economic Area, transfers rely on an adequacy decision or on the European Commission’s standard contractual clauses."],
       },
       {
         heading: "8. How long we keep data",
