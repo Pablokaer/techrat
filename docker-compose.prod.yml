@@ -5,10 +5,17 @@
 # Required values come from .env (see .env.production.example); compose refuses to start when they are missing.
 name: techrat
 
+# Container logs are kept in small rotating files (3 x 10 MB per service) and overwritten after that: the privacy policy says
+# application logs are size-limited and not kept indefinitely (ADR-0033).
+x-logging: &default-logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+
 services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_DB: techrat
       POSTGRES_USER: techrat
@@ -23,6 +30,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    logging: *default-logging
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -35,6 +43,7 @@ services:
       context: ./backend
       secrets: [extra_ca]
     restart: unless-stopped
+    logging: *default-logging
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=techrat;Username=techrat;Password=${POSTGRES_PASSWORD}
@@ -74,6 +83,7 @@ services:
       args:
         API_INTERNAL_URL: http://api:8080
     restart: unless-stopped
+    logging: *default-logging
     environment:
       PUBLIC_WEB_URL: ${PUBLIC_WEB_URL}
     ports: ["127.0.0.1:${WEB_PORT:-3000}:3000"]

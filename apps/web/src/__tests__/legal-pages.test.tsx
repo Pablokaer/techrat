@@ -40,13 +40,13 @@ describe("legal configuration", () => {
 });
 
 describe("Privacy policy page", () => {
-  it("renders the policy in English, signed out, with the draft banner and visible TODO markers", () => {
+  it("renders the policy in English, signed out, with the draft banner and the one open TODO marker", () => {
     const { container } = renderApp(<PrivacyPage />, signedOut);
     expect(screen.getByRole("heading", { level: 1, name: "Privacy Policy" })).toBeInTheDocument();
     expect(screen.getByRole("note")).toHaveTextContent("Draft: pending legal review");
     expect(container.innerHTML).toContain("<!--");
-    expect(screen.getByText(/TODO\(legal\): confirm hosting provider and country\./)).toBeInTheDocument();
-    expect(screen.getByText(/TODO\(owner\): decide and confirm the minimum age/)).toBeInTheDocument();
+    expect(screen.getByText(/TODO\(owner\): state the country of the Hostinger data centre/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/TODO\(legal\)/);
     expect(document.body.textContent).not.toContain("{{");
     expect(document.body.textContent).toContain(LEGAL.contactEmail);
   });
@@ -65,9 +65,25 @@ describe("Privacy policy page", () => {
     renderApp(<PrivacyPage />, signedOut, { locale: "pt-BR" });
     expect(screen.getByRole("heading", { level: 1, name: "Política de Privacidade" })).toBeInTheDocument();
     expect(screen.getByRole("note")).toHaveTextContent("Rascunho: aguardando revisão jurídica");
-    expect(screen.getByText(/TODO\(legal\): confirmar o provedor de hospedagem e o país\./)).toBeInTheDocument();
+    expect(screen.getByText(/TODO\(owner\): informar o país do data center da Hostinger/)).toBeInTheDocument();
     expect(document.body.textContent).not.toContain("{{");
     expectLegalLinks(screen, { privacy: "Política de Privacidade", terms: "Termos de Uso" });
+  });
+
+  it("states the facts the owner confirmed: Irish controller, GDPR rights, DPC, Resend in Ireland, backups and log periods, age 16", () => {
+    renderApp(<PrivacyPage />, signedOut);
+    const text = document.body.textContent ?? "";
+    for (const fact of ["Data Protection Commission", "within one month", "Resend", "Ireland", "Hostinger", "deleted automatically after 14 days", "at most 40 days", "aged 16 or over"]) {
+      expect(text).toContain(fact);
+    }
+  });
+
+  it("states the same facts in Portuguese", () => {
+    renderApp(<PrivacyPage />, signedOut, { locale: "pt-BR" });
+    const text = document.body.textContent ?? "";
+    for (const fact of ["Data Protection Commission", "no prazo de um mês", "Resend", "Irlanda", "Hostinger", "apagados automaticamente após 14 dias", "no máximo 40 dias", "16 anos ou mais"]) {
+      expect(text).toContain(fact);
+    }
   });
 
   it("links to the terms and has a language switcher", () => {
@@ -78,18 +94,21 @@ describe("Privacy policy page", () => {
 });
 
 describe("Terms of service page", () => {
-  it("renders in English with the draft banner and the governing-law TODO", () => {
+  it("renders in English with the draft banner, Irish governing law and the age of 16", () => {
     renderApp(<TermsPage />, signedOut);
     expect(screen.getByRole("heading", { level: 1, name: "Terms of Service" })).toBeInTheDocument();
     expect(screen.getByRole("note")).toBeInTheDocument();
-    expect(screen.getByText(/TODO\(legal\): state the governing law/)).toBeInTheDocument();
+    expect(document.body.textContent).toContain("governed by the laws of Ireland");
+    expect(document.body.textContent).toContain("at least 16 years old");
+    expect(document.body.textContent).not.toMatch(/TODO\(/);
     expectLegalLinks(screen);
   });
 
   it("renders in Portuguese", () => {
     renderApp(<TermsPage />, signedOut, { locale: "pt-BR" });
     expect(screen.getByRole("heading", { level: 1, name: "Termos de Uso" })).toBeInTheDocument();
-    expect(screen.getByText(/TODO\(legal\): informar a lei aplicável/)).toBeInTheDocument();
+    expect(document.body.textContent).toContain("regidos pelas leis da Irlanda");
+    expect(document.body.textContent).toContain("pelo menos 16 anos");
   });
 });
 
@@ -101,7 +120,7 @@ describe("Public account deletion page", () => {
       expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
     }
     expect(screen.getByText(/immediate and irreversible/)).toBeInTheDocument();
-    expect(screen.getByText(/TODO\(legal\): confirm whether backups exist/)).toBeInTheDocument();
+    expect(screen.getByText(/deleted automatically after 14 days/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign in to delete your account" })).toHaveAttribute("href", "/login?next=/account/delete");
     expect(screen.getByText(new RegExp(`Cannot sign in any more\\? Write to ${LEGAL.contactEmail.replace(".", "\\.")}`))).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete my account" })).not.toBeInTheDocument();

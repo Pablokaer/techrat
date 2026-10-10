@@ -52,15 +52,14 @@ Today (`deploy/deploy.sh`, ADR-0013): if the new version is not healthy, the pre
 - [ ] **Smoke test after deploy** beyond `/health/ready` and the web root: sign in with a monitoring account and
   fetch one roadmap, so "healthy but broken" releases also roll back automatically.
 
-### 1.3 Backups are manual and unproven
+### 1.3 Backups are automatic but not yet off the server or restore-tested
 
-`docs/deploy.md` only suggests a daily `pg_dump` by cron; the Play Store document admits that backup retention is not
-defined, and the privacy policy depends on it.
+Done (ADR-0033): a daily `pg_dump` (`deploy/backup.sh`, installed in cron by every deploy), 14 days of retention, stated in
+the privacy policy.
 
-- [ ] Scheduled backup (cron or a `postgres-backup` container) **before every deploy** and daily, copied **off the
-  server** (object storage), with a retention period (for example 14 daily + 8 weekly).
+- [ ] Copy the dumps **off the server** (object storage or another machine): today they die with the VPS. Also take one
+  right **before every deploy**.
 - [ ] **Restore test**, written down and repeated (monthly). A backup that was never restored is a guess.
-- [ ] State the retention in the privacy policy (links to the `TODO(legal)` markers in the README limitations).
 - [ ] Later: continuous archiving (WAL) for point-in-time recovery, see stage 2.
 
 ### 1.4 Operational gaps found in the production compose file
