@@ -122,7 +122,12 @@ public class LoginSecurityApiTests(TechRatFactory api)
         var known = await api.CreateClient().PostAsJsonAsync("/api/v1/auth/reset-password", new { email = TechRatFactory.AdminEmail, newPassword = "Passw0rdY" });
         var unknown = await api.CreateClient().PostAsJsonAsync("/api/v1/auth/reset-password", new { email = "nobody@example.com", newPassword = "Passw0rdY" });
 
-        Assert.Equal(await known.Content.ReadAsStringAsync(), await unknown.Content.ReadAsStringAsync());
+        Assert.Equal(known.StatusCode, unknown.StatusCode);
+        // The trace id differs on every response; everything the caller can learn from is in "errors".
+        var knownBody = await known.Content.ReadFromJsonAsync<JsonElement>();
+        var unknownBody = await unknown.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(knownBody.GetProperty("errors").GetRawText(), unknownBody.GetProperty("errors").GetRawText());
+        Assert.Equal(knownBody.GetProperty("title").GetString(), unknownBody.GetProperty("title").GetString());
     }
 
     [Fact]
