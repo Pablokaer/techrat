@@ -3,13 +3,16 @@ import { useRouter } from "expo-router";
 import { spacing } from "@techrat/theme";
 import { loginSchema } from "@techrat/validation";
 import { useAuth } from "@/lib/auth";
+import { useT } from "@/lib/i18n";
 import { AppText, Button, Screen, TextField } from "@/components/ui";
 import { AuthHeader } from "@/components/auth/AuthHeader";
 import { useForm } from "@/components/auth/useForm";
+import { ResendConfirmation } from "@/components/auth/ResendConfirmation";
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
   const router = useRouter();
+  const t = useT().emailConfirmation;
   const form = useForm(loginSchema, { email: "", password: "" });
 
   return (
@@ -21,6 +24,11 @@ export default function LoginScreen() {
         <TextField label="Password" value={form.values.password} onChangeText={form.set("password")} error={form.errors.password}
           secureTextEntry autoComplete="password" textContentType="password" onSubmitEditing={() => void form.submit((d) => signIn(d.email, d.password))} />
         {form.formError && <AppText tone="error" accessibilityRole="alert">{form.formError}</AppText>}
+        {form.formError && form.errorStatus === 403 && (
+          form.values.email.trim()
+            ? <ResendConfirmation email={form.values.email} label={t.resendFromLogin} />
+            : <AppText tone="secondary">{t.enterEmail}</AppText>
+        )}
         <Button label="Sign in" icon="log-in-outline" loading={form.submitting} onPress={() => void form.submit((d) => signIn(d.email, d.password))} />
         <Button label="Create an account" variant="ghost" onPress={() => router.push("/register")} />
       </View>

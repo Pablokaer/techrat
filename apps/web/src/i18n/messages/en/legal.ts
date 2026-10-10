@@ -125,7 +125,7 @@ export const legal = {
       {
         heading: "4. Emails",
         paragraphs: [
-          "We send only service emails: a password reset link when you ask for one, a notice that your password was changed and a confirmation that your account was deleted. We send no marketing emails.",
+          "We send only service emails: a link to confirm your email address when you sign up, a notice if someone tries to sign up with an address that already has an account, a password reset link when you ask for one, a notice that your password was changed and a confirmation that your account was deleted. We send no marketing emails.",
           "Emails are delivered through an SMTP email provider that processes the message for us. {{TODO(legal): name the email provider (the deployment examples use Resend) and its country.}}",
         ],
       },

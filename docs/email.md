@@ -1,6 +1,6 @@
 # Email delivery (SMTP)
 
-TechRat sends transactional email for password resets (and account confirmation when enabled). The API speaks plain SMTP
+TechRat sends transactional email: the link that confirms a new account (sign-in needs it, so email must work for sign-up), password resets and security notices. The API speaks plain SMTP
 (MailKit), so any provider with SMTP works. Locally, Docker Compose uses **Mailpit** (http://localhost:8025): every email is
 captured there and nothing leaves your machine.
 

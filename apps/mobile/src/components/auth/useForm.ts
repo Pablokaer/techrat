@@ -12,6 +12,8 @@ export function useForm<In extends Record<string, string | undefined>, Out>(sche
   const [values, setValues] = useState<In>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  /** HTTP status of the last failed submit (the login screen offers a resend on 403). */
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const set = (key: keyof In & string) => (text: string) => {
@@ -21,6 +23,7 @@ export function useForm<In extends Record<string, string | undefined>, Out>(sche
 
   async function submit(action: (data: Out) => Promise<void>) {
     setFormError(null);
+    setErrorStatus(null);
     const parsed = schema.safeParse(values);
     if (!parsed.success) {
       setErrors(fieldErrors(parsed.error));
@@ -30,6 +33,7 @@ export function useForm<In extends Record<string, string | undefined>, Out>(sche
     try {
       await action(parsed.data);
     } catch (e) {
+      if (isApiError(e)) setErrorStatus(e.status);
       if (isApiError(e) && e.errors) {
         const mapped: Record<string, string> = {};
         for (const [k, msgs] of Object.entries(e.errors)) {
@@ -48,5 +52,5 @@ export function useForm<In extends Record<string, string | undefined>, Out>(sche
     }
   }
 
-  return { values, errors, formError, submitting, set, submit };
+  return { values, errors, formError, errorStatus, submitting, set, submit };
 }

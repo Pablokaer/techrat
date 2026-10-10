@@ -124,6 +124,14 @@ public class AuthPolicyTests
     }
 
     [Fact]
+    public void An_email_confirmation_link_lives_long_enough_to_be_read_but_not_for_ever()
+    {
+        Assert.True(AuthPolicy.EmailConfirmationTokenLifetime >= TimeSpan.FromHours(12));
+        Assert.True(AuthPolicy.EmailConfirmationTokenLifetime <= TimeSpan.FromDays(2));
+        Assert.True(AuthPolicy.EmailConfirmationTokenLifetime > AuthPolicy.PasswordResetTokenLifetime, "a reset link is the more dangerous of the two");
+    }
+
+    [Fact]
     public void Lockout_slows_guessing_to_a_few_hundred_attempts_a_day_per_account()
     {
         var attemptsPerDay = AuthPolicy.MaxFailedAccessAttempts * (TimeSpan.FromDays(1) / AuthPolicy.LockoutDuration);
@@ -169,6 +177,17 @@ public class AuthTimingTests
         AuthTiming.BurnPasswordCheck(hasher, "whatever-was-typed");
 
         Assert.Equal(1, hasher.Verifications);
+    }
+
+    [Fact]
+    public void Answering_a_sign_up_for_a_known_address_still_pays_for_one_password_hash()
+    {
+        var hasher = new CountingHasher();
+
+        AuthTiming.BurnPasswordHash(hasher, "Passw0rdX");
+
+        Assert.Equal(1, hasher.Hashes);
+        Assert.Equal(0, hasher.Verifications);
     }
 
     [Fact]
@@ -237,6 +256,18 @@ public class ResetEmailThrottleTests
 
         Assert.True(await throttle.TryAcquireAsync("ana@example.com", CancellationToken.None));
         Assert.True(await throttle.TryAcquireAsync("bia@example.com", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Each_kind_of_email_has_its_own_window_for_the_same_address()
+    {
+        var throttle = new ResetEmailThrottle(new DictionaryCache());
+
+        Assert.True(await throttle.TryAcquireAsync("ana@example.com", CancellationToken.None));
+        Assert.True(await throttle.TryAcquireAsync("ana@example.com", CancellationToken.None, purpose: "confirm"));
+        Assert.True(await throttle.TryAcquireAsync("ana@example.com", CancellationToken.None, purpose: "registered"));
+        Assert.False(await throttle.TryAcquireAsync("ana@example.com", CancellationToken.None, purpose: "confirm"));
+        Assert.False(await throttle.TryAcquireAsync("ana@example.com", CancellationToken.None));
     }
 
     [Fact]

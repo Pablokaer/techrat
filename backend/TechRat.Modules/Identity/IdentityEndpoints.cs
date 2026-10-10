@@ -25,6 +25,10 @@ public sealed record RegisterRequest(string Email, string Password, string Usern
 public sealed record LoginRequest(string Email, string Password);
 public sealed record RefreshRequest(string RefreshToken);
 public sealed record ForgotPasswordRequest(string Email);
+public sealed record ConfirmEmailRequest(string Email, string Code);
+public sealed record ResendConfirmationRequest(string Email);
+/// <param name="ConfirmationRequired">Always true: the account can sign in only after the emailed link is followed.</param>
+public sealed record RegistrationAcceptedDto(bool ConfirmationRequired);
 public sealed record ResetPasswordRequest(string Email, string ResetCode, string NewPassword);
 /// <param name="CurrentPassword">Required when the account has a password; omitted to set the first one (external sign-in).</param>
 public sealed record ChangePasswordRequest(string? CurrentPassword, string? NewPassword);
@@ -67,14 +71,26 @@ public sealed class IdentityEndpoints : IEndpointModule
         var auth = api.MapGroup("/auth").WithTags("Identity");
 
         auth.MapPost("/register", RegisterAsync).RequireRateLimiting("auth")
-            .WithSummary("Create an account with email and password")
-            .WithDescription("The password has 8 to 128 characters with an uppercase letter, a lowercase letter and a digit, is not a very " +
-                             "common password (\"Password1\", \"Summer2024!\") and does not contain the username or the part of the email before the @.");
+            .WithSummary("Create an account with email and password; it can sign in once the emailed link is followed")
+            .WithDescription("Answers 202 with the same body whether or not the email already has an account, so the form does not reveal who is " +
+                             "registered: a new address gets a confirmation link (valid 24 hours), an existing one gets a notice that someone tried. " +
+                             "A taken username is still reported (usernames are public). The password has 8 to 128 characters with an uppercase " +
+                             "letter, a lowercase letter and a digit, is not a very common password (\"Password1\", \"Summer2024!\") and does not " +
+                             "contain the username or the part of the email before the @.");
+
+        auth.MapPost("/confirm-email", ConfirmEmailAsync).RequireRateLimiting("auth")
+            .WithSummary("Confirm the email address with the code from the emailed link")
+            .WithDescription("Answers 204, or 400 in one shape for an unknown address and for a wrong or expired code. Following the link again is harmless. After this the account can sign in.");
+
+        auth.MapPost("/resend-confirmation", ResendConfirmationAsync).RequireRateLimiting("auth")
+            .WithSummary("Send the confirmation email again. Always returns 202 to avoid account enumeration")
+            .WithDescription("Sent only to an existing account that is not confirmed yet, at most once a minute per address, after the answer.");
 
         auth.MapPost("/login", LoginAsync).RequireRateLimiting("auth")
             .WithSummary("Sign in. Web uses useCookies=true (HttpOnly cookie); mobile/desktop receive bearer + refresh tokens")
             .WithDescription("Bearer clients get an access token (30 minutes) and a single-use refresh token that belongs to a tracked session. " +
-                             "An unknown email costs the same time as a wrong password. Responses are never cacheable; the body is limited to 8 KB.");
+                             "An unknown email costs the same time as a wrong password. 403 means the password is right but the email is not " +
+                             "confirmed yet (only whoever knows the password learns that). Responses are never cacheable; the body is limited to 8 KB.");
 
         auth.MapPost("/refresh", RefreshAsync).RequireRateLimiting("auth")
             .WithSummary("Exchange a refresh token for a new access token and a new refresh token")
@@ -131,41 +147,93 @@ public sealed class IdentityEndpoints : IEndpointModule
         }).WithSummary("External login providers and whether they are enabled");
     }
 
-    private static async Task<Created<UserSummaryDto>> RegisterAsync(
-        RegisterRequest request, UserManager<ApplicationUser> users, IAppDbContext db, ProfileService profiles,
-        TimeProvider clock, ILoggerFactory loggers, CancellationToken ct)
+    /// <summary>
+    /// Creates an account that cannot sign in until its email is confirmed, and answers 202 with the same body whether or
+    /// not the address already had an account, so the form cannot be used to find out who is registered (ADR-0031). The
+    /// checks that do not depend on the email run first and answer alike; a new address gets a confirmation link, an
+    /// existing one gets a notice that someone tried, both sent after the answer and at most once a minute per address.
+    /// </summary>
+    private static async Task<Accepted<RegistrationAcceptedDto>> RegisterAsync(
+        RegisterRequest request, UserManager<ApplicationUser> users, IAppDbContext db, ResetEmailThrottle throttle,
+        IServiceScopeFactory scopes, TimeProvider clock, ILoggerFactory loggers, CancellationToken ct)
     {
         AuthValidation.Validate(request);
         var username = request.Username.ToLowerInvariant();
         var email = request.Email.Trim();
+        var log = loggers.CreateLogger("TechRat.Identity");
 
+        // Usernames are public (profiles, leaderboards), so saying that one is taken reveals nothing private.
         if (await users.FindByNameAsync(username) is not null)
             throw RequestValidationException.For("username", Text.Get(Text.Keys.UsernameTaken));
-        if (await users.FindByEmailAsync(email) is not null)
-            throw RequestValidationException.For("email", Text.Get(Text.Keys.EmailTaken));
 
-        await using var tx = await db.BeginTransactionAsync(ct);
-        var account = new ApplicationUser { Id = Guid.CreateVersion7(), UserName = username, Email = email };
-        var result = await users.CreateAsync(account, request.Password);
-        if (!result.Succeeded)
-            throw new RequestValidationException(result.Errors
-                .GroupBy(e => e.Code.Contains("Password", StringComparison.Ordinal) ? "password" : e.Code.Contains("Email", StringComparison.Ordinal) ? "email" : "username")
-                .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray()));
+        // The password rules run before anything depends on the email, so a weak password gets the same answer either way.
+        var passwordCheck = await ValidatePasswordAsync(users, new ApplicationUser { UserName = username, Email = email }, request.Password);
+        if (!passwordCheck.Succeeded) throw new RequestValidationException(GroupErrors(passwordCheck.Errors));
 
-        db.UserProfiles.Add(new User
+        var existing = await users.FindByEmailAsync(email);
+        // Each kind of email has its own window, and the cache is asked once whichever the case, so nothing differs in time.
+        var mayEmail = await throttle.TryAcquireAsync(email, ct, purpose: existing is null ? "signup" : "registered");
+        Guid? createdId = null;
+        if (existing is null)
         {
-            Id = account.Id,
-            Username = username,
-            DisplayName = string.IsNullOrWhiteSpace(request.DisplayName) ? request.Username : request.DisplayName.Trim(),
-            Email = email,
-            CreatedAt = clock.GetUtcNow(),
-        });
-        await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
-        loggers.CreateLogger("Identity").LogInformation("User registered {UserId}", account.Id);
+            await using var tx = await db.BeginTransactionAsync(ct);
+            var account = new ApplicationUser { Id = Guid.CreateVersion7(), UserName = username, Email = email };
+            var result = await users.CreateAsync(account, request.Password);
+            if (result.Succeeded)
+            {
+                db.UserProfiles.Add(new User
+                {
+                    Id = account.Id,
+                    Username = username,
+                    DisplayName = string.IsNullOrWhiteSpace(request.DisplayName) ? request.Username : request.DisplayName.Trim(),
+                    Email = email,
+                    CreatedAt = clock.GetUtcNow(),
+                });
+                await db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+                createdId = account.Id;
+                log.LogInformation("User registered {UserId}; waiting for the email to be confirmed", account.Id);
+            }
+            else if (result.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.DuplicateEmail)))
+            {
+                // Another sign-up for the same address won the race: from here on this is the "already registered" case.
+                existing = await users.FindByEmailAsync(email);
+            }
+            else
+            {
+                throw new RequestValidationException(GroupErrors(result.Errors));
+            }
+        }
+        else
+        {
+            // Hashing the password is most of what creating an account costs; pay it too so the time does not tell the cases apart.
+            AuthTiming.BurnPasswordHash(users.PasswordHasher, request.Password);
+        }
 
-        return TypedResults.Created("/api/v1/users/me", await profiles.GetSummaryAsync(account.Id, false, ct));
+        if (mayEmail && createdId is { } newId)
+            RunInBackground(scopes, log, "confirmation email", p => SendConfirmationAsync(p, newId));
+        else if (mayEmail && existing is { } known)
+        {
+            var knownId = known.Id;
+            RunInBackground(scopes, log, "already-registered notice", p => SendAlreadyRegisteredAsync(p, knownId));
+        }
+        return TypedResults.Accepted((string?)null, new RegistrationAcceptedDto(true));
     }
+
+    private static async Task<IdentityResult> ValidatePasswordAsync(UserManager<ApplicationUser> users, ApplicationUser candidate, string password)
+    {
+        var errors = new List<IdentityError>();
+        foreach (var validator in users.PasswordValidators)
+        {
+            var result = await validator.ValidateAsync(users, candidate, password);
+            if (!result.Succeeded) errors.AddRange(result.Errors);
+        }
+        return errors.Count == 0 ? IdentityResult.Success : IdentityResult.Failed([.. errors]);
+    }
+
+    private static Dictionary<string, string[]> GroupErrors(IEnumerable<IdentityError> errors) =>
+        errors.GroupBy(e => e.Code.Contains("Password", StringComparison.Ordinal) ? "password" : e.Code.Contains("Email", StringComparison.Ordinal) ? "email" : "username")
+            .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
 
     private static async Task<Results<Ok<AccessTokenResponse>, SignInHttpResult, EmptyHttpResult, ProblemHttpResult>> LoginAsync(
         LoginRequest request, bool? useCookies, SignInManager<ApplicationUser> signIn, UserManager<ApplicationUser> users,
@@ -183,21 +251,14 @@ public sealed class IdentityEndpoints : IEndpointModule
             return TypedResults.Problem(Text.Get(Text.Keys.InvalidCredentials), statusCode: StatusCodes.Status401Unauthorized);
         }
 
-        // The web signs in with a cookie. Bearer clients (mobile, desktop) get tokens that belong to a tracked session, so a
-        // refresh token that is used twice can be noticed (ADR-0030); the checks and the lockout are the same for both.
-        Microsoft.AspNetCore.Identity.SignInResult result;
-        if (useCookies == true)
-        {
-            signIn.AuthenticationScheme = IdentityConstants.ApplicationScheme;
-            result = await signIn.PasswordSignInAsync(account.UserName!, request.Password ?? "", isPersistent: true, lockoutOnFailure: true);
-        }
-        else
-        {
-            result = await signIn.CheckPasswordSignInAsync(account, request.Password ?? "", lockoutOnFailure: true);
-        }
+        var result = await signIn.CheckPasswordSignInAsync(account, request.Password ?? "", lockoutOnFailure: true);
         if (!result.Succeeded)
             return TypedResults.Problem(Text.Get(result.IsLockedOut ? Text.Keys.LockedOut : Text.Keys.InvalidCredentials),
                 statusCode: StatusCodes.Status401Unauthorized);
+
+        // Only whoever knows the password learns that the account is still waiting for its email to be confirmed (ADR-0031).
+        if (!account.EmailConfirmed)
+            return TypedResults.Problem(Text.Get(Text.Keys.EmailNotConfirmed), statusCode: StatusCodes.Status403Forbidden);
 
         var profile = await db.UserProfiles.FindAsync([account.Id], ct);
         if (profile is not null)
@@ -205,8 +266,14 @@ public sealed class IdentityEndpoints : IEndpointModule
             profile.LastLoginAt = clock.GetUtcNow();
             await db.SaveChangesAsync(ct);
         }
-        // For the web the sign-in handler already wrote the cookie.
-        if (useCookies == true) return TypedResults.Empty;
+        // The web signs in with a cookie. Bearer clients (mobile, desktop) get tokens that belong to a tracked session, so a
+        // refresh token that is used twice can be noticed (ADR-0030).
+        if (useCookies == true)
+        {
+            signIn.AuthenticationScheme = IdentityConstants.ApplicationScheme;
+            await signIn.SignInAsync(account, isPersistent: true);
+            return TypedResults.Empty;
+        }
 
         var principal = await signIn.CreateUserPrincipalAsync(account);
         WithSession(principal, await sessions.StartAsync(ct));
@@ -394,37 +461,102 @@ public sealed class IdentityEndpoints : IEndpointModule
         if (user is not null && mayEmail)
         {
             var id = user.Id;
-            var log = loggers.CreateLogger("TechRat.Identity");
-            // The request's culture flows into the task, so the email is written in the language of the request.
-            _ = Task.Run(() => SendResetEmailAsync(scopes, id, log), CancellationToken.None);
+            RunInBackground(scopes, loggers.CreateLogger("TechRat.Identity"), "password reset email", p => SendResetAsync(p, id));
         }
         return TypedResults.Accepted((string?)null);
     }
 
-    private static async Task SendResetEmailAsync(IServiceScopeFactory scopes, Guid userId, ILogger log)
-    {
-        try
+    /// <summary>
+    /// Runs the work after the response has gone out: SMTP takes far longer than a lookup, so waiting for it would tell known
+    /// addresses from unknown ones. The request's culture flows into the task, so emails use the language of the request.
+    /// </summary>
+    private static void RunInBackground(IServiceScopeFactory scopes, ILogger log, string what, Func<IServiceProvider, Task> work) =>
+        _ = Task.Run(async () =>
         {
-            await using var scope = scopes.CreateAsyncScope();
-            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var email = scope.ServiceProvider.GetRequiredService<IEmailSender<ApplicationUser>>();
-            var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-            if (await users.FindByIdAsync(userId.ToString()) is not { Email: { } to } user) return;
+            try
+            {
+                await using var scope = scopes.CreateAsyncScope();
+                await work(scope.ServiceProvider);
+            }
+            catch (EmailDeliveryException)
+            {
+                // Already logged by the sender; nobody is waiting for the answer, so there is nothing more to do.
+                log.LogWarning("The {What} could not be delivered", what);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "The {What} failed", what);
+            }
+        }, CancellationToken.None);
 
-            var code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await users.GeneratePasswordResetTokenAsync(user)));
-            var baseUrl = (config["App:PublicWebUrl"] ?? "http://localhost:3000").TrimEnd('/');
-            var link = $"{baseUrl}/reset-password?email={Uri.EscapeDataString(to)}&code={Uri.EscapeDataString(code)}";
-            await email.SendPasswordResetLinkAsync(user, to, link);
-        }
-        catch (EmailDeliveryException)
+    private static string PublicWebUrl(IConfiguration config) => (config["App:PublicWebUrl"] ?? "http://localhost:3000").TrimEnd('/');
+
+    private static async Task SendResetAsync(IServiceProvider services, Guid userId)
+    {
+        var users = services.GetRequiredService<UserManager<ApplicationUser>>();
+        if (await users.FindByIdAsync(userId.ToString()) is not { Email: { } to } user) return;
+        var code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await users.GeneratePasswordResetTokenAsync(user)));
+        var link = $"{PublicWebUrl(services.GetRequiredService<IConfiguration>())}/reset-password?email={Uri.EscapeDataString(to)}&code={Uri.EscapeDataString(code)}";
+        await services.GetRequiredService<IEmailSender<ApplicationUser>>().SendPasswordResetLinkAsync(user, to, link);
+    }
+
+    private static async Task SendConfirmationAsync(IServiceProvider services, Guid userId)
+    {
+        var users = services.GetRequiredService<UserManager<ApplicationUser>>();
+        if (await users.FindByIdAsync(userId.ToString()) is not { Email: { } to } user || user.EmailConfirmed) return;
+        var code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await users.GenerateEmailConfirmationTokenAsync(user)));
+        var link = $"{PublicWebUrl(services.GetRequiredService<IConfiguration>())}/confirm-email?email={Uri.EscapeDataString(to)}&code={Uri.EscapeDataString(code)}";
+        await services.GetRequiredService<IEmailSender<ApplicationUser>>().SendConfirmationLinkAsync(user, to, link);
+    }
+
+    private static async Task SendAlreadyRegisteredAsync(IServiceProvider services, Guid userId)
+    {
+        var users = services.GetRequiredService<UserManager<ApplicationUser>>();
+        if (await users.FindByIdAsync(userId.ToString()) is not { Email: { } to }) return;
+        await services.GetRequiredService<IRegistrationEmailSender>().SendAlreadyRegisteredAsync(to, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Confirms the address. One answer for an unknown address and for a wrong or expired code. Following the link again is
+    /// harmless (it confirms an address that is already confirmed, which also covers a double click), so it answers 204 again.
+    /// </summary>
+    private static async Task<Results<NoContent, ValidationProblem>> ConfirmEmailAsync(ConfirmEmailRequest request, UserManager<ApplicationUser> users)
+    {
+        var user = string.IsNullOrWhiteSpace(request.Email) ? null : await users.FindByEmailAsync(request.Email.Trim());
+        var confirmed = false;
+        if (user is not null && !string.IsNullOrWhiteSpace(request.Code) && request.Code.Length <= MaxResetCodeLength)
         {
-            // Already logged by the sender; nobody is waiting for the answer, so there is nothing more to do.
-            log.LogWarning("Password reset email could not be delivered");
+            try
+            {
+                var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Code));
+                confirmed = (await users.ConfirmEmailAsync(user, code)).Succeeded;
+            }
+            catch (FormatException)
+            {
+                confirmed = false;
+            }
         }
-        catch (Exception ex)
+        return confirmed
+            ? TypedResults.NoContent()
+            : TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["code"] = [users.ErrorDescriber.InvalidToken().Description] });
+    }
+
+    /// <summary>Always 202, after the same work for every address; the email goes only to an account that is not confirmed yet.</summary>
+    private static async Task<Accepted> ResendConfirmationAsync(
+        ResendConfirmationRequest request, UserManager<ApplicationUser> users, ResetEmailThrottle throttle, IServiceScopeFactory scopes,
+        ILoggerFactory loggers, CancellationToken ct)
+    {
+        var address = request.Email?.Trim();
+        if (string.IsNullOrWhiteSpace(address) || address.Length > 256) return TypedResults.Accepted((string?)null);
+
+        var user = await users.FindByEmailAsync(address);
+        var mayEmail = await throttle.TryAcquireAsync(address, ct, purpose: "confirm");
+        if (user is { EmailConfirmed: false } && mayEmail)
         {
-            log.LogError(ex, "Password reset email failed for user {UserId}", userId);
+            var id = user.Id;
+            RunInBackground(scopes, loggers.CreateLogger("TechRat.Identity"), "confirmation email", p => SendConfirmationAsync(p, id));
         }
+        return TypedResults.Accepted((string?)null);
     }
 
     private static async Task<Results<NoContent, ValidationProblem>> ResetPasswordAsync(
@@ -457,6 +589,12 @@ public sealed class IdentityEndpoints : IEndpointModule
             // Following the link proves the owner controls the mailbox, so a lockout caused by someone else's guesses ends here.
             await users.SetLockoutEndDateAsync(user, null);
             await users.ResetAccessFailedCountAsync(user);
+            if (!user.EmailConfirmed)
+            {
+                // The link went to this mailbox, so it is proven too (someone who lost the confirmation email can recover this way).
+                user.EmailConfirmed = true;
+                await users.UpdateAsync(user);
+            }
             var log = loggers.CreateLogger("TechRat.Identity");
             log.LogInformation("Password reset completed for user {UserId}", user.Id);
             try

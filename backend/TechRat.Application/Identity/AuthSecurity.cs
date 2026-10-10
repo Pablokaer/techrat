@@ -24,6 +24,9 @@ public static class AuthPolicy
     /// <summary>The emailed reset link stops working after an hour (Identity's default is a day).</summary>
     public static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromHours(1);
 
+    /// <summary>The emailed link that confirms an address works for a day: people read their mail later than a reset link.</summary>
+    public static readonly TimeSpan EmailConfirmationTokenLifetime = TimeSpan.FromHours(24);
+
     /// <summary>At most one reset email per account in this window, so the form cannot flood an inbox.</summary>
     public static readonly TimeSpan ResetEmailCooldown = TimeSpan.FromMinutes(1);
 
@@ -114,6 +117,13 @@ public static class AuthTiming
     private static readonly ConditionalWeakTable<IPasswordHasher<ApplicationUser>, string> ReferenceHashes = new();
     private static readonly ApplicationUser Nobody = new() { UserName = "nobody", Email = "nobody@invalid" };
 
+    /// <summary>
+    /// Does the work of hashing a new password and discards it. Sign-up uses it when the email already has an account, so
+    /// that answering "accepted" costs as much as creating one and the response time does not reveal the difference.
+    /// </summary>
+    public static void BurnPasswordHash(IPasswordHasher<ApplicationUser> hasher, string password) =>
+        _ = hasher.HashPassword(Nobody, password);
+
     /// <summary>Does the work of checking a password against a stored hash and always returns false.</summary>
     public static bool BurnPasswordCheck(IPasswordHasher<ApplicationUser> hasher, string? typed)
     {
@@ -124,17 +134,18 @@ public static class AuthTiming
 }
 
 /// <summary>
-/// Allows one password-reset email per address per <see cref="AuthPolicy.ResetEmailCooldown"/>. It is keyed by the address
+/// Allows one email of each kind (reset, confirmation, "already registered") per address per
+/// <see cref="AuthPolicy.ResetEmailCooldown"/>. It is keyed by the address
 /// (hashed, so the cache never holds it) and asked for known and unknown addresses alike, so it adds no timing difference.
 /// </summary>
 public sealed class ResetEmailThrottle(ICacheService cache)
 {
     /// <summary>True when an email may be sent now. A cache outage reads as "not seen yet", so a real reset is never blocked by it.</summary>
-    public async Task<bool> TryAcquireAsync(string email, CancellationToken ct)
+    public async Task<bool> TryAcquireAsync(string email, CancellationToken ct, string purpose = "reset")
     {
         var key = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(email.Trim().ToUpperInvariant())));
         var first = false;
-        await cache.GetOrCreateAsync($"auth:reset-email:{key}", AuthPolicy.ResetEmailCooldown, _ =>
+        await cache.GetOrCreateAsync($"auth:{purpose}-email:{key}", AuthPolicy.ResetEmailCooldown, _ =>
         {
             first = true;
             return Task.FromResult(true);

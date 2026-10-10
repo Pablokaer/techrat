@@ -53,6 +53,6 @@ A second pass over the login system, looking at what ADR-0029 left open and at w
 
 ## Still open
 
-Sign-up reveals whether an email or username is taken (needs email verification), the desktop app keeps tokens in
+The desktop app keeps tokens in
 `localStorage` (ADR-0006: move to the OS keychain), there is no second factor, and the SignalR access token travels in the
 query string of the WebSocket URL (30 minutes, `/hubs` only).

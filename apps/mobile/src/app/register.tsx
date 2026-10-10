@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { useRouter } from "expo-router";
 import { spacing } from "@techrat/theme";
 import { registerSchema } from "@techrat/validation";
 import { useAuth } from "@/lib/auth";
@@ -7,16 +9,36 @@ import { useT } from "@/lib/i18n";
 import { openReference } from "@/lib/links";
 import { AppText, Button, Screen, TextField } from "@/components/ui";
 import { useForm } from "@/components/auth/useForm";
+import { ResendConfirmation } from "@/components/auth/ResendConfirmation";
 
 export default function RegisterScreen() {
   const { register } = useAuth();
-  const legal = useT().legal;
+  const t = useT();
+  const legal = t.legal;
+  const router = useRouter();
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const form = useForm(registerSchema, { email: "", username: "", displayName: "", password: "" });
-  const submit = () => void form.submit((d) => register(d));
+  const submit = () => void form.submit(async (d) => {
+    await register(d);
+    setSentTo(d.email.trim());
+  });
+
+  if (sentTo) {
+    return (
+      <Screen edges={[]}>
+        <View style={styles.form}>
+          <AppText variant="heading" accessibilityRole="header">{t.emailConfirmation.checkTitle}</AppText>
+          <AppText tone="secondary">{t.emailConfirmation.checkBody(sentTo)}</AppText>
+          <ResendConfirmation email={sentTo} label={t.emailConfirmation.resend} />
+          <Button label={t.emailConfirmation.goToSignIn} onPress={() => router.replace("/login")} />
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen edges={[]}>
-      <AppText tone="secondary">Join TechRat and start earning XP for everything you learn.</AppText>
+      <AppText tone="secondary">{t.emailConfirmation.registerIntro}</AppText>
       <View style={styles.form}>
         <TextField label="Email" value={form.values.email} onChangeText={form.set("email")} error={form.errors.email}
           autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />

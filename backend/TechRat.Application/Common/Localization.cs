@@ -42,6 +42,7 @@ public static class Text
         public const string UsernameInvalid = "auth.usernameInvalid";
         public const string DisplayNameLength = "auth.displayNameLength";
         public const string PasswordRequired = "auth.passwordRequired";
+        public const string EmailNotConfirmed = "auth.emailNotConfirmed";
         public const string PasswordTooCommon = "auth.passwordTooCommon";
         public const string PasswordContainsIdentity = "auth.passwordContainsIdentity";
         public const string PasswordTooLong = "auth.passwordTooLong";
@@ -83,6 +84,8 @@ public static class Text
         public const string EmailResetBody = "email.reset.body";
         public const string EmailResetCodeSubject = "email.resetCode.subject";
         public const string EmailResetCodeBody = "email.resetCode.body";
+        public const string EmailAlreadyRegisteredSubject = "email.alreadyRegistered.subject";
+        public const string EmailAlreadyRegisteredBody = "email.alreadyRegistered.body";
         public const string EmailPasswordChangedSubject = "email.passwordChanged.subject";
         public const string EmailPasswordChangedBody = "email.passwordChanged.body";
         public const string EmailAccountDeletedSubject = "email.accountDeleted.subject";
@@ -187,7 +190,10 @@ public static class Text
         [Keys.AchievementUnlockedBody] = "{0} +{1} XP",
 
         [Keys.EmailConfirmSubject] = "Confirm your TechRat account",
-        [Keys.EmailConfirmBody] = "<p>Welcome to TechRat!</p><p><a href=\"{0}\">Confirm your email</a></p>",
+        [Keys.EmailConfirmBody] = "<p>Welcome to TechRat!</p><p>Confirm your email address to start learning:</p><p><a href=\"{0}\">Confirm your email</a></p><p>The link works for 24 hours. If you did not create an account, you can ignore this email.</p>",
+        [Keys.EmailAlreadyRegisteredSubject] = "Someone tried to create a TechRat account with your email",
+        [Keys.EmailAlreadyRegisteredBody] = "<p>Someone (maybe you) tried to create a TechRat account with this email address, but it already has one.</p><p>If it was you, <a href=\"{0}\">sign in</a>, or <a href=\"{1}\">reset your password</a> if you forgot it.</p><p>If it was not you, you can ignore this email: nothing was changed.</p>",
+        [Keys.EmailNotConfirmed] = "Confirm your email first: we sent you a link when you signed up. You can ask for a new one.",
         [Keys.EmailResetSubject] = "Reset your TechRat password",
         [Keys.EmailResetBody] = "<p>Someone requested a password reset for your TechRat account.</p><p><a href=\"{0}\">Choose a new password</a></p><p>If this wasn't you, ignore this email.</p>",
         [Keys.EmailResetCodeSubject] = "Your TechRat password reset code",
@@ -282,7 +288,10 @@ public static class Text
         [Keys.AchievementUnlockedBody] = "{0} +{1} XP",
 
         [Keys.EmailConfirmSubject] = "Confirme sua conta no TechRat",
-        [Keys.EmailConfirmBody] = "<p>Boas-vindas ao TechRat!</p><p><a href=\"{0}\">Confirme seu e-mail</a></p>",
+        [Keys.EmailConfirmBody] = "<p>Boas-vindas ao TechRat!</p><p>Confirme seu endereço de e-mail para começar a aprender:</p><p><a href=\"{0}\">Confirme seu e-mail</a></p><p>O link vale por 24 horas. Se você não criou uma conta, pode ignorar este e-mail.</p>",
+        [Keys.EmailAlreadyRegisteredSubject] = "Alguém tentou criar uma conta no TechRat com o seu e-mail",
+        [Keys.EmailAlreadyRegisteredBody] = "<p>Alguém (talvez você) tentou criar uma conta no TechRat com este endereço de e-mail, mas ele já tem uma.</p><p>Se foi você, <a href=\"{0}\">entre</a> ou <a href=\"{1}\">redefina sua senha</a> se a esqueceu.</p><p>Se não foi você, ignore este e-mail: nada foi alterado.</p>",
+        [Keys.EmailNotConfirmed] = "Confirme seu e-mail primeiro: enviamos um link quando você se cadastrou. Você pode pedir um novo.",
         [Keys.EmailResetSubject] = "Redefina sua senha do TechRat",
         [Keys.EmailResetBody] = "<p>Alguém pediu para redefinir a senha da sua conta no TechRat.</p><p><a href=\"{0}\">Escolha uma nova senha</a></p><p>Se não foi você, ignore este e-mail.</p>",
         [Keys.EmailResetCodeSubject] = "Seu código para redefinir a senha do TechRat",
