@@ -102,8 +102,9 @@ storage (`expo-secure-store`); neither has its own checkbox.
 1. **The policy is a draft.** `/privacy`, `/terms` and `/account/delete` carry a "draft pending legal review" banner and
    visible `TODO(legal)` / `TODO(owner)` markers. Resolve them, then set `LEGAL.draft = false` in
    `apps/web/src/lib/legal.ts`. Google rejects policies that are placeholders.
-2. **Company name and contact email** (`LEGAL` in `apps/web/src/lib/legal.ts`): currently `TechRat` and
-   `privacy@techrat.io`. Make sure the mailbox exists. The Play listing's developer email should match.
+2. **Company name and contact email** (`LEGAL` in `apps/web/src/lib/legal.ts`): currently `Pablo Carvalho` and
+   `pablo.luan.carvalho@gmail.com`. Make sure the mailbox is monitored; the Play listing's developer email should
+   match it. Replace both with the company's legal name and a `privacy@techrat.io` mailbox if you create one.
 3. **Hosting provider and country, email provider, backup and log retention** are not stated anywhere in the repo
    (`docs/deploy.md` only suggests a manual daily `pg_dump`). Fill the TODOs with real facts.
 4. **Which email provider runs in production?** The deployment examples use Resend (`.env.production.example`); confirm
