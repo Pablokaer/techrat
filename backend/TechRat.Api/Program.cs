@@ -164,6 +164,8 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 if (!app.Environment.IsDevelopment()) app.UseHsts();
 app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseMiddleware<NoStoreMiddleware>();
+app.UseMiddleware<SmallBodyMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseCors();
 app.UseAuthentication();

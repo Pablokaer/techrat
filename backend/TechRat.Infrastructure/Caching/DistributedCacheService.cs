@@ -38,6 +38,33 @@ public sealed class DistributedCacheService(IDistributedCache cache, ILogger<Dis
         return value;
     }
 
+    public async Task<T?> GetAsync<T>(string key, CancellationToken ct = default)
+    {
+        try
+        {
+            var bytes = await cache.GetAsync(key, ct);
+            return bytes is null ? default : JsonSerializer.Deserialize<T>(bytes, Json);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Cache read failed for {CacheKey}", key);
+            return default;
+        }
+    }
+
+    public async Task SetAsync<T>(string key, T value, TimeSpan ttl, CancellationToken ct = default)
+    {
+        try
+        {
+            await cache.SetAsync(key, JsonSerializer.SerializeToUtf8Bytes(value, Json),
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl }, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Cache write failed for {CacheKey}", key);
+        }
+    }
+
     public async Task RemoveAsync(string key, CancellationToken ct = default)
     {
         try { await cache.RemoveAsync(key, ct); }

@@ -58,6 +58,12 @@ public interface ICurrentUser
 public interface ICacheService
 {
     Task<T> GetOrCreateAsync<T>(string key, TimeSpan ttl, Func<CancellationToken, Task<T>> factory, CancellationToken ct = default);
+    /// <summary>The cached value, or default when there is none (or the cache is down: callers must cope with a miss).</summary>
+    Task<T?> GetAsync<T>(string key, CancellationToken ct = default);
+
+    /// <summary>Stores a value that expires after <paramref name="ttl"/>. A cache failure is logged, never thrown.</summary>
+    Task SetAsync<T>(string key, T value, TimeSpan ttl, CancellationToken ct = default);
+
     Task RemoveAsync(string key, CancellationToken ct = default);
 }
 
