@@ -3,6 +3,7 @@
 import { createApiClient, unwrap, type TechRatClient } from "@techrat/api";
 import { BearerSession, type TokenStorage } from "@techrat/auth";
 import { localizedFetch } from "@/i18n/runtime";
+import { createDesktopTokenStorage, tauriInvoke } from "./desktop-token-storage";
 
 /**
  * Web: cookie mode against the same origin (Next rewrites /api → backend). Tokens never reach JavaScript.
@@ -13,15 +14,23 @@ export const API_BASE_URL = AUTH_MODE === "bearer"
   ? (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5080")
   : typeof window !== "undefined" ? window.location.origin : "";
 
-/** Desktop token storage. The Tauri webview is a single-user, app-private origin; see ADR-0006 for the upgrade path to the OS keychain. */
-const localTokenStorage: TokenStorage = {
-  async get(k) { try { return window.localStorage.getItem(k); } catch { return null; } },
-  async set(k, v) { try { window.localStorage.setItem(k, v); } catch { /* storage unavailable */ } },
-  async remove(k) { try { window.localStorage.removeItem(k); } catch { /* storage unavailable */ } },
-};
+/**
+ * Desktop token storage: the OS credential store through the Tauri shell (Windows Credential Manager, macOS Keychain, the
+ * Secret Service on Linux), and `localStorage` only outside the shell (ADR-0032). When the keychain cannot be used the tokens
+ * stay in memory and the person signs in again next time.
+ */
+function createTokenStorage(): TokenStorage {
+  let local: Storage | null = null;
+  try { local = window.localStorage; } catch { /* storage unavailable */ }
+  return createDesktopTokenStorage({
+    invoke: tauriInvoke(),
+    local,
+    onKeychainUnavailable: (error) => console.warn("The operating system keychain is not available; you will sign in again each time the app starts.", error),
+  });
+}
 
 export const bearerSession: BearerSession | null =
-  AUTH_MODE === "bearer" && typeof window !== "undefined" ? new BearerSession(API_BASE_URL, localTokenStorage, localizedFetch) : null;
+  AUTH_MODE === "bearer" && typeof window !== "undefined" ? new BearerSession(API_BASE_URL, createTokenStorage(), localizedFetch) : null;
 
 export const api: TechRatClient =
   bearerSession?.api ?? createApiClient({ baseUrl: API_BASE_URL, auth: { kind: "cookie" }, fetch: localizedFetch });

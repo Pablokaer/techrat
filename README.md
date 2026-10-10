@@ -315,7 +315,7 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 
 ```
             ┌───────────── Next.js web (cookie auth, /api proxy) ─────────────┐
-            │            Tauri desktop (static export, bearer tokens)         │
+            │      Tauri desktop (static export, bearer tokens, OS keychain)  │
  Clients ───┤            Expo mobile (bearer tokens, SecureStore)             │
             └───────────── generated OpenAPI types (@techrat/types) ──────────┘
                                          │ HTTPS / JSON · SignalR
@@ -504,7 +504,8 @@ CI (`.github/workflows/ci.yml`) runs the backend build (warnings as errors) and 
 * Refresh tokens are single use: each refresh returns a new one, and presenting an old one revokes that session (a stolen token shows up as soon as both sides use it); the previous token is forgiven for 30 seconds for lost responses (`Auth__RefreshGraceSeconds`). Detection is paused, never harmful, when the cache loses a session.
 * Sign-in, token and account responses are `Cache-Control: no-store`; credential endpoints accept bodies of 8 KB at most; resetting a password lifts a lockout and emails the owner.
 * Sign-up needs a confirmed email and answers `202` the same for every address, so the form cannot be used to find out who is registered; an address that already has an account gets a notice by email instead. Accounts that existed before were marked confirmed by a migration ([ADR-0031](docs/adr/0031-email-confirmation-at-sign-up.md)).
-* Login security decisions and what is still open (desktop token storage, no second factor): [ADR-0029](docs/adr/0029-login-security-hardening.md), [ADR-0030](docs/adr/0030-refresh-token-rotation-and-uncacheable-auth-responses.md).
+* The desktop app keeps its tokens in the OS credential store, not in `localStorage` ([ADR-0032](docs/adr/0032-desktop-tokens-in-the-os-keychain.md)).
+* Login security decisions and what is still open (no second factor): [ADR-0029](docs/adr/0029-login-security-hardening.md), [ADR-0030](docs/adr/0030-refresh-token-rotation-and-uncacheable-auth-responses.md).
 * The web app uses an HttpOnly, SameSite=Strict cookie, so tokens are never readable by JavaScript.
 * Endpoints are rate limited: auth per IP, answers per user.
 * CORS uses an explicit origin list.

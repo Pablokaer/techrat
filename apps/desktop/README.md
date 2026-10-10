@@ -27,5 +27,6 @@ NEXT_PUBLIC_API_URL=https://api.your-domain npm run build -w @techrat/desktop
 ## Security notes
 - The API must list the Tauri origins in `Cors:AllowedOrigins` (`tauri://localhost`, `http://tauri.localhost`) — already in `appsettings.json`.
 - CSP in `tauri.conf.json` restricts network access to the API hosts; update `connect-src` for your production API.
-- Tokens are kept in the webview's app-private storage. Upgrade path: OS keychain via a Tauri plugin (see docs/adr/0006).
+- Tokens are kept in the operating system's credential store (Windows Credential Manager, macOS Keychain, the Secret Service on Linux) through three Rust commands (`secure_get`, `secure_set`, `secure_remove`), never in `localStorage` (ADR-0032). Without a usable keychain (for example Linux without a Secret Service) they stay in memory and you sign in again each time the app starts. Tokens saved by an earlier version are moved into the keychain on the first run.
+- After changing `src-tauri`, run `cargo check --manifest-path src-tauri/Cargo.toml` (`npm run check -w @techrat/desktop`) and `cargo test --manifest-path src-tauri/Cargo.toml`; CI does not build the Rust side. On Linux the keychain needs a running Secret Service (GNOME Keyring or KWallet).
 - External documentation links open in the system browser through `tauri-plugin-opener`.
