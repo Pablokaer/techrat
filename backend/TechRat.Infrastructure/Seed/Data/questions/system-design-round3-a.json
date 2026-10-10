@@ -1,0 +1,189 @@
+[
+  {
+    "id": "sd3a-fund-littles-law-saturation",
+    "topic": "system-design",
+    "subtopic": "fundamentals",
+    "difficulty": "Medium",
+    "title": "Why slower dependencies exhaust a worker pool",
+    "question": "A service has 200 worker slots and handles a steady 1,200 requests/s. When a dependency slows down, mean request latency rises from 100 ms to 300 ms and the service starts queueing and timing out, although the request rate has not changed. Which reasoning explains it?",
+    "options": [
+      "By Little's law, requests in flight equal rate divided by latency, giving 4,000 in flight, so the 200-slot pool was always badly undersized and failed only by chance",
+      "Time spent waiting on a dependency does not occupy a worker slot, so concurrency stayed at 120 and the saturation must come from some unrelated resource",
+      "By Little's law, average requests in flight equal rate times latency, so they rose from 120 to 360, above the 200 slots, and the excess waits in a queue",
+      "Concurrency grew only by the extra 200 ms of latency times the rate, which is 240 in flight, so a pool about 20 percent larger would absorb it comfortably"
+    ],
+    "correctIndex": 2,
+    "explanation": "Little's law says the average number of requests in the system equals the arrival rate times the average time each one spends there: 1,200 x 0.1 s = 120 before and 1,200 x 0.3 s = 360 after. A worker that blocks on a slow call keeps its slot, so 360 demanded slots against 200 available means queueing. Dividing rate by latency is the wrong formula, and counting only the added latency (240) ignores the 120 already in flight, which is why the pool needs about 360 slots or the dependency call needs a tight timeout.",
+    "referenceUrl": "https://sre.google/sre-book/addressing-cascading-failures/"
+  },
+  {
+    "id": "sd3a-scale-amdahl-batch",
+    "topic": "system-design",
+    "subtopic": "scaling",
+    "difficulty": "Medium",
+    "title": "Why 10x more workers is not 10x faster",
+    "question": "A nightly report takes 400 minutes on one worker. Of that, 20 minutes is a final merge step that must run on a single worker, and the other 380 minutes parallelise perfectly. It currently runs on 10 workers; the team plans to move to 100 workers expecting a 10x speed-up. What will they get?",
+    "options": [
+      "About 10x faster: runtime goes from 58 to about 6 minutes, because the parallel part is 95 percent of the work and scales linearly with workers",
+      "About 2.4x faster: runtime goes from 58 to about 24 minutes, because the 20-minute serial step does not shrink however many workers are added",
+      "About 5x faster: runtime goes from 58 to about 12 minutes, because the serial merge also benefits from the extra workers by splitting its input",
+      "About 1.2x faster: runtime goes from 58 to about 48 minutes, because coordination overhead of 100 workers cancels most of the added parallelism"
+    ],
+    "correctIndex": 1,
+    "explanation": "With 10 workers the runtime is 20 + 380/10 = 58 minutes; with 100 workers it is 20 + 380/100 = 23.8 minutes, a speed-up of 58 / 23.8, about 2.4x, for ten times the cost. This is Amdahl's law: the serial fraction sets a floor (20 minutes here), so returns diminish quickly. The 10x and 5x answers assume the serial step scales, which it cannot by definition, and the 1.2x answer invents an overhead the scenario does not state.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/guide/design-principles/scale-out"
+  },
+  {
+    "id": "sd3a-scale-scheduled-prescale",
+    "topic": "system-design",
+    "subtopic": "scaling",
+    "difficulty": "Hard",
+    "title": "Autoscaling too slowly for a known traffic spike",
+    "question": "Every Friday at 12:00 a ticket sale opens and traffic grows 20x within 90 seconds. The fleet uses CPU target-tracking autoscaling, but new instances need about 4 minutes to boot, warm up and pass health checks, so users see errors for the first 5 minutes of every sale. What is the most effective change?",
+    "options": [
+      "Lower the CPU target from 60 percent to 30 percent so the fleet keeps twice the headroom and the reactive scaling has more time to catch up",
+      "Shorten the scaling evaluation period and cooldown so the alarm fires within seconds, which removes most of the delay before new instances launch",
+      "Switch to step scaling that adds a large fixed number of instances on the first alarm, so capacity arrives in one big batch instead of gradually",
+      "Add scheduled (or predictive) scaling that raises capacity ahead of 12:00, sized for the expected peak, and keep reactive scaling only for deviations"
+    ],
+    "correctIndex": 3,
+    "explanation": "The failure is a lead-time problem: a reactive policy cannot add capacity faster than instances take to become ready, and a 20x jump in 90 seconds outruns it however it is tuned. Because the spike is predictable, capacity must exist before it starts, which scheduled or predictive scaling provides. Twice the headroom covers only a 2x surge, faster alarms and bigger steps still wait the 4-minute boot time after traffic has already arrived.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/auto-scaling"
+  },
+  {
+    "id": "sd3a-cache-hot-key-local",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Hard",
+    "title": "One hot key saturating a single cache shard",
+    "question": "A feed service uses a 6-shard Redis Cluster. During a live event the key `trending:global` receives about 400,000 reads/s. The shard that owns it runs at 100 percent CPU and times out, while the other five shards sit at 15 percent. What is the most effective fix?",
+    "options": [
+      "Keep that value in each application instance's process memory with a TTL of a second or two, so most reads never reach the shard",
+      "Reshard the cluster from 6 to 12 shards so the load per shard is halved and the overloaded node gets lighter, with no change to the application",
+      "Move the key to a separate small Redis pool configured with `allkeys-lfu` eviction, so frequently used entries stay in memory and are served faster",
+      "Increase the client connection pool size on every application instance, so more commands are sent in parallel to the shard that owns the key"
+    ],
+    "correctIndex": 0,
+    "explanation": "A key lives in exactly one hash slot, so all 400,000 reads/s land on one node no matter how many shards exist; the problem is key skew, not total capacity. A tiny in-process cache (an L1 in front of Redis) absorbs most reads for a second or two of staleness, cutting traffic to the shard by orders of magnitude. Resharding does not split a single key, eviction policy does not reduce command rate on a key already in memory, and more parallel commands only deepen the CPU saturation.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/best-practices/caching"
+  },
+  {
+    "id": "sd3a-cache-cold-start-db-protection",
+    "topic": "system-design",
+    "subtopic": "caching",
+    "difficulty": "Expert",
+    "title": "Surviving a cold cache after cache nodes are lost",
+    "question": "A service handles 50,000 reads/s with a 98 percent cache hit rate, so its database normally sees 1,000 queries/s and is sized for roughly 3,000. A maintenance event replaces the whole cache fleet, the hit rate drops to near 0 percent, and the database receives about 50,000 queries/s and falls over. Without paying for a database 50x larger, which design response is best?",
+    "options": [
+      "Raise cache TTLs from 5 minutes to 1 hour, so that each entry stays valid for longer and a replaced node refills with far fewer database reads",
+      "Switch from cache-aside to write-through caching, so the cache is always kept populated and a replaced fleet no longer starts completely empty",
+      "Shield the database with per-key miss coalescing and load shedding, and replace cache nodes gradually or pre-warm them with the hottest keys before taking traffic",
+      "Increase the database connection pool and query timeout, so the burst of misses is queued inside the database instead of being rejected early at the application layer"
+    ],
+    "correctIndex": 2,
+    "explanation": "Losing the cache turns the database from a 2 percent miss path into the whole read path (50,000 / 1,000 = 50x), so the cache is effectively a capacity dependency. Coalescing concurrent misses for the same key, shedding or throttling excess database-bound requests, and bringing nodes in gradually or pre-warmed keep the load within the database's roughly 3,000 queries/s. Longer TTLs do not help when entries are physically gone, write-through only fills keys that are written (not the read set), and a bigger pool or timeout only moves the overload into the database.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/caching-challenges-and-strategies/"
+  },
+  {
+    "id": "sd3a-cdn-no-cache-etag-revalidation",
+    "topic": "system-design",
+    "subtopic": "cdn",
+    "difficulty": "Medium",
+    "title": "What no-cache means at a CDN",
+    "question": "A CDN sits in front of a JSON catalog API whose origin responds with `Cache-Control: no-cache` and an `ETag`. A developer assumes the CDN will therefore never keep a copy. According to the HTTP caching standard, what actually happens?",
+    "options": [
+      "The response is never stored, so every request is a full fetch from the origin, exactly as if `no-store` had been sent instead of `no-cache`",
+      "The cache may store it but must revalidate with the origin using `If-None-Match` before every reuse; a 304 saves the body transfer, not the round trip",
+      "The cache stores it and serves it without contacting the origin until the `ETag` changes, because the validator replaces the need for a lifetime",
+      "The cache stores it and serves it freely for a heuristic period, and `no-cache` only prevents browsers, not shared caches, from reusing the response"
+    ],
+    "correctIndex": 1,
+    "explanation": "`no-cache` does not forbid storing; it requires the cache to validate the stored response with the origin before each reuse, typically with a conditional request carrying `If-None-Match`. When the origin answers 304 Not Modified, the CDN reuses its copy and skips the body transfer, but the origin is still contacted on every request. Forbidding storage is what `no-store` does, a validator never lets a cache skip revalidation by itself, and `no-cache` applies to shared caches as well as browsers.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control"
+  },
+  {
+    "id": "sd3a-cdn-unkeyed-header-poisoning",
+    "topic": "system-design",
+    "subtopic": "cdn",
+    "difficulty": "Expert",
+    "title": "Web cache poisoning through an unkeyed header",
+    "question": "A CDN caches HTML pages using only the host and path as the cache key. The origin framework builds absolute asset URLs from the `X-Forwarded-Host` request header. A researcher sends one request with `X-Forwarded-Host: evil.example`, and afterwards ordinary visitors receive pages that load scripts from `evil.example`. What is the correct fix?",
+    "options": [
+      "Lower the page TTL to 30 seconds, so that any poisoned entry expires quickly and the window in which visitors are exposed becomes very small",
+      "Require HTTPS between the CDN and the origin, so the forwarded header can no longer be modified or injected while the request is in transit",
+      "Purge the whole CDN cache on a schedule of every hour, so poisoned copies are removed regularly even when nobody has noticed the attack yet",
+      "Stop trusting that header: strip or ignore it at the edge (or include it in the cache key) and build URLs from a configured canonical host"
+    ],
+    "correctIndex": 3,
+    "explanation": "The response varies by an input that is not part of the cache key, so one attacker-controlled request writes content that every later visitor receives. The fix is to remove the unkeyed influence: ignore or strip the header and derive URLs from configuration, or, if a header must affect output, make it part of the key. Shorter TTLs and periodic purges only shrink the window while the attacker can simply re-poison, and HTTPS to the origin protects transit but the attacker is the client who sends the header.",
+    "referenceUrl": "https://www.rfc-editor.org/rfc/rfc9111.html"
+  },
+  {
+    "id": "sd3a-lb-cross-zone-imbalance",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Medium",
+    "title": "Uneven targets per zone with cross-zone disabled",
+    "question": "A load balancer has one node in each of two availability zones and DNS splits client traffic 50/50 between them. Cross-zone load balancing is disabled, so each node only sends traffic to targets in its own zone. Zone A has 2 targets and zone B has 8. Roughly what share of total traffic does each target receive?",
+    "options": [
+      "Each zone-A target receives 25 percent and each zone-B target 6.25 percent, a 4x gap, so equalise targets per zone or enable cross-zone balancing",
+      "Each target receives 10 percent, because the balancer counts all 10 targets as one pool and divides the traffic evenly among them",
+      "Each zone-A target receives 6.25 percent and each zone-B target 25 percent, so the larger zone is the one that ends up overloaded while the two-target zone sits mostly idle",
+      "Each zone-A target receives 20 percent and each zone-B target 7.5 percent, because the balancer weights each node by its target count"
+    ],
+    "correctIndex": 0,
+    "explanation": "With cross-zone disabled, each balancer node distributes only its own 50 percent share among its local targets: 50 / 2 = 25 percent per zone-A target and 50 / 8 = 6.25 percent per zone-B target, a 4x difference. Balancing across all 10 targets (10 percent each) is exactly what enabling cross-zone does. The inverted answer reverses which zone is smaller, and the 20 and 7.5 percent values come from no real weighting rule.",
+    "referenceUrl": "https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/how-elastic-load-balancing-works.html"
+  },
+  {
+    "id": "sd3a-lb-retry-non-idempotent-post",
+    "topic": "system-design",
+    "subtopic": "load-balancing",
+    "difficulty": "Hard",
+    "title": "Duplicate orders from proxy-level retries",
+    "question": "A reverse proxy is configured to retry a request on another backend whenever the first attempt times out after 3 seconds, for all methods. During a slow-database incident, customers are charged twice: `POST /orders` timed out at the proxy while the first backend was still committing the order. What is the right correction?",
+    "options": [
+      "Raise the proxy timeout from 3 seconds to 30 seconds, so slow commits finish before the proxy decides to try another backend for the request",
+      "Switch the balancing algorithm from round robin to least connections, so that the retry is always sent to the least busy backend in the pool and finishes sooner",
+      "Limit automatic retries to idempotent methods or connection failures, and make order creation idempotent with a client-supplied idempotency key",
+      "Enable sticky sessions, so that the retried request lands on the same backend and that backend can recognise it as a duplicate on its own"
+    ],
+    "correctIndex": 2,
+    "explanation": "A timeout does not tell the proxy whether the backend did the work, so blindly retrying a non-idempotent `POST` can execute it twice. Safe retries need requests that are idempotent (or retries limited to failures where nothing was sent, such as connection errors) plus an idempotency key that lets the server deduplicate. A longer timeout only shifts the problem, a different balancing algorithm does not change retry semantics, and stickiness does not give the backend any memory of the earlier attempt.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/"
+  },
+  {
+    "id": "sd3a-rl-concurrency-limit",
+    "topic": "system-design",
+    "subtopic": "rate-limiting",
+    "difficulty": "Hard",
+    "title": "Rate limit that did not prevent overload",
+    "question": "An API caps traffic at 2,000 requests/s with a token bucket to protect its database. During an incident the database slows from 20 ms to 400 ms per query. Traffic stays under 2,000 requests/s, yet the service runs out of threads and connections and collapses. What addition best prevents this?",
+    "options": [
+      "Replace the token bucket with a sliding-window log, so that the request count is measured more precisely and the limit is enforced more strictly",
+      "Add a concurrency limit on in-flight requests (ideally adaptive), rejecting the excess quickly with 429 or 503 instead of letting work pile up",
+      "Increase the bucket capacity to allow larger bursts, so short slowdowns are absorbed without rejecting any of the requests that arrive meanwhile",
+      "Make clients retry timed-out requests with exponential backoff, so the pressure on the slow database is spread more evenly over time"
+    ],
+    "correctIndex": 1,
+    "explanation": "A rate limit bounds arrivals per second, not work in progress. By Little's law, 2,000 requests/s at 20 ms means about 40 in flight, but at 400 ms it means about 800, which exhausts threads and connections even though the rate never changed. A concurrency limit caps in-flight work whatever the latency, and fast rejection sheds the excess; a more precise counter measures the same rate, bigger bursts add load, and client retries add even more.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/using-load-shedding-to-avoid-overload/"
+  },
+  {
+    "id": "sd3a-rl-redis-incr-expire-atomic",
+    "topic": "system-design",
+    "subtopic": "rate-limiting",
+    "difficulty": "Medium",
+    "title": "Rate limit counters that never expire",
+    "question": "A fixed-window limiter in Redis runs `INCR rl:{key}` and, only when the result is 1, sends a separate `EXPIRE rl:{key} 60`. After an app instance crashed between the two commands, one customer was blocked permanently because that counter never expired. What is the correct fix?",
+    "options": [
+      "Set `maxmemory-policy allkeys-lru`, so that the orphaned counter is eventually evicted when memory runs short and the customer is unblocked without manual work",
+      "Call `EXPIRE` before `INCR` instead, so that the time-to-live is always attached to the counter before the increment is performed",
+      "Enable AOF with `appendfsync always`, so that a crash of the application can never lose the `EXPIRE` command that followed the increment",
+      "Run the increment and the expiry atomically, for example in a Lua script or a `MULTI`/`EXEC` transaction, so a key never exists without a TTL"
+    ],
+    "correctIndex": 3,
+    "explanation": "Two separate commands are not atomic, so a client crash between them leaves a counter with no TTL that will block the key forever. Running both in one Lua script or transaction guarantees the key never exists without an expiry. Eviction is not guaranteed to remove that key, `EXPIRE` on a key that does not exist yet does nothing, and AOF durability concerns Redis crashes, not a client that never sent the second command.",
+    "referenceUrl": "https://redis.io/docs/latest/commands/incr/"
+  }
+]

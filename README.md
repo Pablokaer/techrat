@@ -29,16 +29,16 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 
 ### Questions
 
-**2,887** multiple-choice questions: Easy 949 · Medium 963 · Hard 707 · Expert 268.
+**2,950** multiple-choice questions: Easy 949 · Medium 993 · Hard 728 · Expert 280.
 
 <details><summary>Questions per topic</summary>
 
 | Topic | Category | Subtopics | Questions |
 |---|---|---:|---:|
 | Programming Fundamentals | Computer Science | 11 | 102 |
-| Data Structures | Computer Science | 13 | 153 |
+| Data Structures | Computer Science | 13 | 184 |
 | Algorithms | Computer Science | 16 | 145 |
-| System Design | Architecture | 16 | 159 |
+| System Design | Architecture | 16 | 191 |
 | Backend Engineering | Engineering | 8 | 53 |
 | Databases | Data | 10 | 74 |
 | C# | Languages | 12 | 79 |
@@ -91,8 +91,8 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 
 | # | Roadmap | Português | Type | Category | Difficulty | Modules | Steps | Estimate | Questions | Prerequisites |
 |---:|---|---|---|---|---|---:|---:|---:|---:|---|
-| 1 | Computer Science Fundamentals | Fundamentos de Ciência da Computação | SkillTrack | Computer Science | Beginner | 6 | 16 | 9 h | 156 | — |
-| 2 | Data Structures and Algorithms | Estruturas de Dados e Algoritmos | SkillTrack | Computer Science | Intermediate | 12 | 29 | 22 h | 298 | Computer Science Fundamentals (50%) |
+| 1 | Computer Science Fundamentals | Fundamentos de Ciência da Computação | SkillTrack | Computer Science | Beginner | 6 | 16 | 9 h | 163 | — |
+| 2 | Data Structures and Algorithms | Estruturas de Dados e Algoritmos | SkillTrack | Computer Science | Intermediate | 12 | 29 | 22 h | 329 | Computer Science Fundamentals (50%) |
 | 3 | Operating Systems | Sistemas Operacionais | SkillTrack | Computer Science | Intermediate | 4 | 9 | 8 h | 64 | — |
 | 4 | Computer Networking | Redes de Computadores | SkillTrack | Computer Science | Intermediate | 4 | 9 | 6 h | 57 | — |
 | 5 | Git and Collaboration | Git e Colaboração | SkillTrack | Tools | Beginner | 4 | 9 | 6 h | 66 | — |
@@ -109,7 +109,7 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | 16 | Full Stack Developer | Desenvolvedor Full Stack | Role | Web Development | Intermediate | 12 (3 optional) | 19 | 12 h | 214 | JavaScript Developer (30%) |
 | 17 | Database Engineering | Engenharia de Bancos de Dados | SkillTrack | Data | Intermediate | 5 | 11 | 9 h | 80 | — |
 | 18 | SQL | SQL | SkillTrack | Data | Beginner | 4 | 8 | 6 h | 62 | — |
-| 19 | System Design | System Design | SkillTrack | Architecture | Advanced | 11 | 28 | 26 h | 246 | Data Structures and Algorithms (30%), Backend Developer (30%) |
+| 19 | System Design | System Design | SkillTrack | Architecture | Advanced | 11 | 28 | 26 h | 278 | Data Structures and Algorithms (30%), Backend Developer (30%) |
 | 20 | Software Architecture | Arquitetura de Software | SkillTrack | Architecture | Advanced | 5 | 16 | 15 h | 124 | — |
 | 21 | Testing and Quality Engineering | Engenharia de Testes e Qualidade | SkillTrack | Engineering | Intermediate | 4 | 8 | 6 h | 52 | — |
 | 22 | Security Fundamentals | Fundamentos de Segurança | SkillTrack | Security | Intermediate | 5 | 11 | 9 h | 81 | — |
@@ -117,9 +117,9 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | 24 | Docker | Docker | SkillTrack | Cloud & DevOps | Beginner | 3 | 7 | 5 h | 42 | — |
 | 25 | Kubernetes | Kubernetes | SkillTrack | Cloud & DevOps | Advanced | 3 | 8 | 8 h | 50 | Docker (50%) |
 | 26 | DevOps Engineer | Engenheiro DevOps | Role | Cloud & DevOps | Intermediate | 11 (3 optional) | 16 | 11 h | 186 | — |
-| 27 | Cloud Engineering | Engenharia de Cloud | Role | Cloud & DevOps | Intermediate | 6 (2 optional) | 10 | 7 h | 121 | — |
+| 27 | Cloud Engineering | Engenharia de Cloud | Role | Cloud & DevOps | Intermediate | 6 (2 optional) | 10 | 7 h | 122 | — |
 | 28 | Azure Developer | Desenvolvedor Azure | SkillTrack | Cloud & DevOps | Intermediate | 2 | 6 | 4 h | 36 | Cloud Engineering (30%) |
-| 29 | AWS Fundamentals | Fundamentos de AWS | SkillTrack | Cloud & DevOps | Beginner | 4 (1 optional) | 7 | 4 h | 83 | — |
+| 29 | AWS Fundamentals | Fundamentos de AWS | SkillTrack | Cloud & DevOps | Beginner | 4 (1 optional) | 7 | 4 h | 84 | — |
 | 30 | AI Engineering | Engenharia de IA | Role | AI & Data | Advanced | 6 (1 optional) | 13 | 12 h | 113 | Python Developer (30%) |
 | 31 | Machine Learning | Machine Learning | SkillTrack | AI & Data | Advanced | 3 | 9 | 8 h | 54 | — |
 | 32 | Data Engineering | Engenharia de Dados | Role | AI & Data | Intermediate | 7 (3 optional) | 9 | 7 h | 123 | — |
@@ -127,10 +127,10 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | 34 | Python for Data Analysis | Python para Análise de Dados | SkillTrack | AI & Data | Beginner | 4 | 17 | 10 h | 107 | — |
 | 35 | AI & Data Scientist | Cientista de Dados e IA | Role | AI & Data | Advanced | 13 (4 optional) | 29 | 23 h | 236 | Python for Data Analysis (30%) |
 | 36 | AI-Assisted Development (Claude Code) | Desenvolvimento Assistido por IA (Claude Code) | SkillTrack | AI & Data | Intermediate | 4 | 17 | 16 h | 102 | — |
-| 37 | Junior Software Engineer | Engenheiro de Software Júnior | Role | Career | Beginner | 19 (4 optional) | 32 | 17 h | 426 | — |
-| 38 | Senior Software Engineer | Engenheiro de Software Sênior | Role | Career | Expert | 18 (1 optional) | 47 | 46 h | 337 | System Design (30%) |
-| 39 | Technical Interview Preparation | Preparação para Entrevistas Técnicas | SkillTrack | Career | Advanced | 9 | 21 | 16 h | 224 | — |
-| 40 | Junior Interview Preparation | Preparação para Entrevistas Júnior | SkillTrack | Career | Intermediate | 12 (4 optional) | 25 | 15 h | 351 | — |
+| 37 | Junior Software Engineer | Engenheiro de Software Júnior | Role | Career | Beginner | 19 (4 optional) | 32 | 17 h | 439 | — |
+| 38 | Senior Software Engineer | Engenheiro de Software Sênior | Role | Career | Expert | 18 (1 optional) | 47 | 46 h | 349 | System Design (30%) |
+| 39 | Technical Interview Preparation | Preparação para Entrevistas Técnicas | SkillTrack | Career | Advanced | 9 | 21 | 16 h | 251 | — |
+| 40 | Junior Interview Preparation | Preparação para Entrevistas Júnior | SkillTrack | Career | Intermediate | 12 (4 optional) | 25 | 15 h | 364 | — |
 | 41 | Your First 90 Days | Seus Primeiros 90 Dias | SkillTrack | Career | Intermediate | 11 (4 optional) | 22 | 13 h | 251 | — |
 | 42 | API Security Best Practices | Boas Práticas de Segurança de APIs | BestPractices | Security | Advanced | 3 (1 optional) | 7 | 7 h | 48 | — |
 | 43 | Backend Performance Best Practices | Boas Práticas de Performance no Backend | BestPractices | Engineering | Advanced | 4 (1 optional) | 9 | 8 h | 73 | — |

@@ -1,0 +1,206 @@
+[
+  {
+    "id": "sd3b-gw-client-ip-behind-cdn",
+    "topic": "system-design",
+    "subtopic": "api-gateway",
+    "difficulty": "Medium",
+    "title": "Per-client rate limit behind a CDN",
+    "question": "A gateway limits each client to 100 requests per minute, keyed on the TCP source address. After a CDN was placed in front of it, thousands of unrelated users started receiving 429 responses, because the gateway only sees a few dozen CDN edge addresses. What is the right fix?",
+    "options": [
+      "Raise the per-address limit to 10,000 requests per minute so the CDN addresses stop being throttled, keeping the same key and accepting the weaker protection against abusive clients",
+      "Take the first (leftmost) `X-Forwarded-For` value from every request and use it as the key, since that entry always holds the original client address regardless of who sent the request, which also avoids having to maintain a list of trusted proxy address ranges",
+      "Derive the client address from `X-Forwarded-For`, trusting that header only when the request arrives from known CDN or load balancer ranges and counting hops from the trusted side, or key the limit on an authenticated API key",
+      "Remove the limit from the gateway and enforce it inside each backend service, which sees the same connection addresses but can count requests after authentication"
+    ],
+    "correctIndex": 2,
+    "explanation": "Behind a proxy the socket address is the proxy, so the real client has to come from `X-Forwarded-For` or from an identity such as an API key. Clients can send the header themselves, so it is only honoured when appended by a trusted hop, otherwise the leftmost entry is trivially spoofed to dodge the limit. Raising the limit just disables protection, and moving it to backends does not change what address they see.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For"
+  },
+  {
+    "id": "sd3b-res-breaker-min-calls",
+    "topic": "system-design",
+    "subtopic": "resilience",
+    "difficulty": "Medium",
+    "title": "Breaker trips on a quiet night",
+    "question": "A circuit breaker opens when 50% of calls in its sliding window fail. At 3 a.m. the service receives one call every few seconds, a single transient timeout leaves the window at 1 failure out of 2 calls, and the breaker opens for 30 seconds on a healthy dependency, rejecting valid requests. What is the best adjustment?",
+    "options": [
+      "Lower the failure-rate threshold to 20%, so the breaker reacts sooner and protects the dependency more aggressively once any real degradation begins",
+      "Require a minimum number of calls in the window, for example 20, before the failure rate is evaluated, so a handful of samples cannot trip the breaker",
+      "Shorten the open duration from 30 seconds to 1 second, so a wrongly opened breaker recovers almost immediately while the failure threshold stays untouched",
+      "Replace the breaker with unlimited retries and a long timeout, so isolated errors are absorbed silently and the dependency is never reported as unavailable"
+    ],
+    "correctIndex": 1,
+    "explanation": "A failure rate computed over two samples is statistical noise, so breakers need a minimum-throughput guard before they judge the rate. A lower threshold makes the quiet-hours problem worse, a 1-second open state removes most of the protection during a real outage, and unlimited retries are what turn a slow dependency into a retry storm.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker"
+  },
+  {
+    "id": "sd3b-res-hedged-requests",
+    "topic": "system-design",
+    "subtopic": "resilience",
+    "difficulty": "Hard",
+    "title": "Hedging reads to cut tail latency",
+    "question": "An idempotent read endpoint has p50 = 20 ms and p99 = 800 ms because a few replicas are occasionally slow. The client is changed to send a second request to a different replica when the first has not answered within the p95 latency, and to use whichever answer arrives first. What should the team expect?",
+    "options": [
+      "About 100% more requests, since every call is sent twice up front, which makes hedging suitable only for rare batch jobs where the doubled load is acceptable",
+      "No extra load at all, since the slower attempt is cancelled the instant the faster one answers and the backend never starts processing the duplicate",
+      "About 50% more requests, because the hedge fires after the median latency, with almost no change to the p99 because the slow replicas are still queried first",
+      "About 5% more requests, because only calls slower than the p95 trigger a second attempt, and a much lower p99, because two independent replicas are rarely slow for the same call"
+    ],
+    "correctIndex": 3,
+    "explanation": "Hedging after the p95 means roughly 5% of calls (those still pending at that point) spawn a second request, so the cost is small compared with the gain: the tail now needs both replicas to be slow. The duplicate is not free, because cancellation arrives after the work has begun, and hedging must stay limited to idempotent calls. Sending twice up front or hedging at the median would multiply load without the same payoff.",
+    "referenceUrl": "https://www.pollydocs.org/strategies/hedging.html"
+  },
+  {
+    "id": "sd3b-idem-concurrent-duplicate",
+    "topic": "system-design",
+    "subtopic": "idempotency",
+    "difficulty": "Medium",
+    "title": "Duplicate request while the first is running",
+    "question": "A payments API checks a table for the request's `Idempotency-Key`, and when it finds nothing it charges the card and then stores the result. A client times out and retries 20 ms later, while the first request is still calling the card processor, and the customer is charged twice. What closes this race?",
+    "options": [
+      "Atomically claim the key before any side effect, by inserting a row in an in-progress state under a unique constraint, so the second request gets a conflict or waits and then receives the stored result",
+      "Check the key table twice, once at the start and once just before charging, so a duplicate that arrived in the meantime is detected before the card processor is called",
+      "Hold a lock in the memory of each application instance keyed by the idempotency key, so concurrent requests with the same key are serialised inside the process that received them, which also keeps the hot path free of any extra round trip to the database",
+      "Store the response in a cache only after the charge completes and have retries read from that cache, so every later retry returns the original result without charging again"
+    ],
+    "correctIndex": 0,
+    "explanation": "Check-then-act is a race: both requests see an empty table and proceed. A unique constraint makes the claim atomic across all instances, and the in-progress marker lets the duplicate be rejected or told to wait. Checking twice only narrows the window, per-process locks do not span multiple instances, and storing the response after completion does nothing for retries that arrive before the charge finishes.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/"
+  },
+  {
+    "id": "sd3b-idem-key-retention",
+    "topic": "system-design",
+    "subtopic": "idempotency",
+    "difficulty": "Hard",
+    "title": "Offline retry after the key expired",
+    "question": "An orders API stores idempotency keys for 24 hours. A mobile app queues an unsent order while the phone is offline and replays it with the same key three days later, and a duplicate order is created because the key record was already purged. Which change removes this class of duplicates?",
+    "options": [
+      "Make the app generate a fresh idempotency key for every replay, so each attempt is treated as its own request and the server always knows which attempt is which",
+      "Persist a client-generated order identifier with the order under a unique constraint, so deduplication relies on durable business data instead of key records that expire",
+      "Reject any request whose client-supplied timestamp is older than 24 hours, so replays after the retention window are dropped before they can create a second order",
+      "Cut the retention to one hour to keep the key table small, since retries normally arrive within seconds and the table should only hold keys that are plausibly still active"
+    ],
+    "correctIndex": 1,
+    "explanation": "A TTL on key records is only safe if it is longer than any retry the client can produce, which an offline queue makes unbounded. Putting the identifier under a unique constraint with the order itself makes the duplicate fail forever without extra storage. A fresh key per replay defeats idempotency, a client timestamp can be wrong and would drop a legitimate order, and a shorter TTL widens the gap.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/"
+  },
+  {
+    "id": "sd3b-cons-optimistic-lock",
+    "topic": "system-design",
+    "subtopic": "consistency",
+    "difficulty": "Medium",
+    "title": "Two agents edit the same record",
+    "question": "Two support agents open the same customer record, each edits a different field, and whoever saves second silently erases the first agent's change, because the API replaces the whole record. The team wants to detect the conflict without locking records while people type. What should they do?",
+    "options": [
+      "Resolve conflicts with last-write-wins using a server timestamp, so the most recent save always becomes the stored value and no agent ever sees an error message",
+      "Take a pessimistic row lock when the form opens and hold it until the agent saves, so no second agent can read or edit the record in the meantime",
+      "Return a version or `ETag` with the record, require it back as `If-Match` (or in the update condition), and answer 412 Precondition Failed when the stored version has changed",
+      "Raise the database isolation level to read committed, because the database then rejects the later save whenever it overwrites a value that another transaction changed, which also avoids having to add a version column to the table"
+    ],
+    "correctIndex": 2,
+    "explanation": "Optimistic concurrency lets both agents work freely and only fails the save whose base version is stale, which then can reload and merge. Last-write-wins is exactly the lost-update bug, a lock held across human think time blocks others and leaks when the browser closes, and isolation levels only protect inside one transaction while the read and write here happen in separate requests.",
+    "referenceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-Match"
+  },
+  {
+    "id": "sd3b-cons-raft-read-index",
+    "topic": "system-design",
+    "subtopic": "consistency",
+    "difficulty": "Expert",
+    "title": "Linearizable reads in a Raft cluster",
+    "question": "A key-value store built on Raft must serve linearizable reads without appending a log entry for every read. A leader that answers straight from its local state machine can return stale data after a network partition elects a new leader elsewhere. Which technique restores linearizability cheaply?",
+    "options": [
+      "Let the leader answer immediately from local state, because Raft guarantees that whichever node believes it is the leader always holds every committed entry and cannot have been replaced, which avoids waiting for any heartbeat round trip and keeps read latency at a single local lookup",
+      "Read from any follower whose wall clock shows it received a heartbeat in the last second, since a recent heartbeat proves its state machine has applied every committed entry",
+      "Query a majority of followers and return the value with the newest timestamp, since Raft stamps each stored value with a wall-clock time that orders writes across nodes",
+      "Have the leader record its current commit index, confirm it is still the leader through a heartbeat acknowledged by a majority, wait until its state machine has applied that index, and only then answer (a leader lease can replace the heartbeat)"
+    ],
+    "correctIndex": 3,
+    "explanation": "A deposed leader may not know it was replaced, so before serving it must prove leadership at a point after the read began and apply up to the commit index it observed; this is the ReadIndex protocol, which etcd uses for linearizable reads, and lease reads trade the round trip for a clock assumption. Local reads on a node are only serializable. Follower recency does not prove it applied committed entries, and Raft orders entries by log index and term, not by timestamps.",
+    "referenceUrl": "https://etcd.io/docs/v3.5/learning/api_guarantees/"
+  },
+  {
+    "id": "sd3b-dt-compensation-retry",
+    "topic": "system-design",
+    "subtopic": "distributed-transactions",
+    "difficulty": "Hard",
+    "title": "A compensation call that times out",
+    "question": "In an order saga, payment was captured and then inventory reservation failed, so the orchestrator calls `RefundPayment`. That call times out, the orchestrator marks the saga as failed and stops, and customers end up charged for orders that do not exist. How should compensating steps be designed?",
+    "options": [
+      "Make every compensation idempotent and keep retrying it durably until it succeeds, escalating to an alert or manual queue only when retries are exhausted, because the saga cannot be considered rolled back before then",
+      "Treat compensations as best effort, attempting each once and logging failures, since the nightly reconciliation job can fix the rare refund that does not go through",
+      "Wrap the payment and inventory steps in a two-phase commit so no refund is ever needed, which gives atomicity without extra retry logic in the orchestrator, while the retry logic stays confined to the single service that owns the refund endpoint",
+      "Retry the original `CapturePayment` step until the inventory service recovers, so the saga eventually completes forward and no compensation is required at all"
+    ],
+    "correctIndex": 0,
+    "explanation": "Once a step has committed, the saga only reaches a consistent state if its compensation eventually succeeds, so compensations must be retryable and safe to run twice, with a persisted saga state to resume after crashes. Best-effort refunds leave customers charged, two-phase commit across independent services is the blocking approach sagas replace, and retrying the forward step is wrong when it fails for a business reason such as no stock.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/compensating-transaction"
+  },
+  {
+    "id": "sd3b-dt-tcc-empty-rollback",
+    "topic": "system-design",
+    "subtopic": "distributed-transactions",
+    "difficulty": "Expert",
+    "title": "Cancel arrives before Try",
+    "question": "A Try-Confirm/Cancel coupon service reserves a coupon in Try. The coordinator times out waiting for Try, sends Cancel, and the Cancel reaches the service first, finding nothing to undo and returning success. The delayed Try then arrives and reserves the coupon, which is never confirmed or cancelled. How should the participant be designed?",
+    "options": [
+      "Make Try idempotent on the transaction id, so a redelivered Try is ignored, which prevents the same reservation from being applied twice when messages are duplicated",
+      "Record the transaction id as cancelled when Cancel finds no reservation (an empty rollback) and make Try check that record and refuse to reserve for a transaction already cancelled",
+      "Have the coordinator send Cancel only after twice the Try timeout, so the Try has always arrived by then and Cancel always finds the reservation it needs to release",
+      "Shorten the coordinator timeout so that Try failures are detected quickly, before the network has time to deliver messages out of order and create this situation"
+    ],
+    "correctIndex": 1,
+    "explanation": "Networks can reorder and delay messages, so Cancel can legitimately precede Try. The participant needs durable per-transaction state so that an empty Cancel leaves a tombstone and a late Try is rejected (often called preventing suspension). Idempotent Try does not address ordering, waiting a multiple of the timeout is a timing assumption with no upper bound in an asynchronous network, and a shorter timeout makes spurious cancels more likely, not less.",
+    "referenceUrl": "https://learn.microsoft.com/en-us/azure/architecture/patterns/saga"
+  },
+  {
+    "id": "sd3b-ha-az-capacity-math",
+    "topic": "system-design",
+    "subtopic": "high-availability",
+    "difficulty": "Hard",
+    "title": "Sizing a fleet to survive an AZ loss",
+    "question": "A service peaks at 3,000 requests per second and each instance sustains at most 100 requests per second. It runs across 3 availability zones with equal instance counts and must keep serving the full peak after losing one zone, without waiting for autoscaling. What is the smallest fleet that meets this?",
+    "options": [
+      "30 instances, 10 per zone: this exactly covers the 3,000 requests per second peak, and after losing a zone the remaining 20 instances still serve about two thirds of it",
+      "45 instances, 15 per zone: after losing a zone the remaining 30 instances can carry 3,000 requests per second, so normal peak load runs at about 67% utilisation",
+      "36 instances, 12 per zone: a 20% buffer over the peak covers the usual traffic spikes, and the remaining 24 instances after a zone loss handle the extra load",
+      "60 instances, 20 per zone: each zone alone can carry the whole peak, which is the minimum needed so that any single zone failure leaves enough capacity"
+    ],
+    "correctIndex": 1,
+    "explanation": "The surviving zones must handle 3,000 requests per second alone: 3,000 / 100 = 30 instances across 2 zones, so 15 per zone and 45 in total (15 x 3). The 10 and 12 per zone sizes leave only 2,000 and 2,400 requests per second of capacity after the loss, and 60 instances works but is more than the minimum because only one zone must be lost, not two.",
+    "referenceUrl": "https://aws.amazon.com/builders-library/static-stability-using-availability-zones/"
+  },
+  {
+    "id": "sd3b-int-typeahead",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Medium",
+    "title": "Search autocomplete at 100k QPS",
+    "question": "In a system design interview you must build search-as-you-type suggestions: the top 10 completions per prefix, a p99 under 10 ms, 100,000 requests per second, and suggestions that may be up to an hour stale. Which design fits?",
+    "options": [
+      "Run `WHERE term LIKE 'pre%' ORDER BY count DESC LIMIT 10` against the table of all past queries on every keystroke, and add a read replica for each region to share the load, with a cache in front of the database to absorb the repeated popular prefixes",
+      "Ship the complete list of known terms to each browser and filter and rank it on the client, so the servers only need to distribute the file when it changes",
+      "Precompute the top 10 completions for every prefix from aggregated query logs in a periodic batch job, and serve them from an in-memory trie or key-value store that is refreshed on a schedule",
+      "Update a global popularity counter and re-sort the whole term list synchronously on every search request, so that suggestions always reflect the latest queries"
+    ],
+    "correctIndex": 2,
+    "explanation": "Because suggestions can be an hour old, the expensive ranking is moved off the request path: a batch job computes top-k per prefix and serving becomes a memory lookup, which meets the 10 ms budget. A `LIKE` plus sort scans huge ranges for short prefixes, a full term list on the client is far too large, and re-sorting synchronously on every search turns the write path into the bottleneck.",
+    "referenceUrl": "https://redis.io/docs/latest/develop/data-types/sorted-sets/"
+  },
+  {
+    "id": "sd3b-int-collab-editor",
+    "topic": "system-design",
+    "subtopic": "interview-scenarios",
+    "difficulty": "Expert",
+    "title": "Collaborative document editing",
+    "question": "Designing a Google Docs-style editor, you note that Alice inserts \"h\" at index 1 of \"cat\" while Bob concurrently deletes the \"a\" at index 1. Applying each other's operations by raw index makes the replicas diverge or lose intent. Which approach makes concurrent edits converge while preserving both users' intent?",
+    "options": [
+      "Lock the paragraph for the first user who starts typing, and reject or queue edits from everyone else until that user stops editing for a few seconds",
+      "Keep the whole document as one value and apply last-write-wins by timestamp, so the most recent save replaces the others and every replica ends up identical",
+      "Replay all operations in wall-clock timestamp order on every replica using their raw indexes, since a single total order is enough to preserve what each user meant, which also removes the need for any central server to order operations before they reach the other participants",
+      "Make operations commute: transform concurrent operations against each other (operational transformation), or give each character a unique immutable id ordered relative to its neighbours (a sequence CRDT), so replicas converge after seeing the same edits"
+    ],
+    "correctIndex": 3,
+    "explanation": "Raw indexes are only meaningful against the document state the author saw, so concurrent operations must be transformed (OT, usually with a central server ordering them) or expressed against stable character ids (CRDTs, which also work peer to peer). Locking removes concurrency rather than merging it, whole-document last-write-wins discards one user's work, and replaying by timestamp converges only by applying indexes to the wrong text and depends on clocks that skew.",
+    "referenceUrl": "https://crdt.tech/"
+  }
+]

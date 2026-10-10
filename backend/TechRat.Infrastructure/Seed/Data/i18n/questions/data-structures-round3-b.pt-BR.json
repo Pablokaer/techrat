@@ -1,0 +1,194 @@
+[
+  {
+    "id": "ds3b-tree-deep-chain-stack",
+    "title": "Percurso em pré-ordem em uma árvore degenerada",
+    "question": "Um percurso recursivo em pré-ordem funciona nos dados de teste, mas quebra com estouro da pilha de chamadas em uma árvore de produção com 1.000.000 de nós, na qual quase todo nó tem apenas filho esquerdo. Qual mudança mantém a mesma ordem de visita e elimina a dependência da profundidade da pilha de chamadas?",
+    "options": [
+      "Trocar a recursão por um laço sobre uma fila, enfileirando o filho esquerdo e depois o direito de cada nó visitado, de modo que nenhuma pilha seja necessária",
+      "Adicionar um conjunto de visitados para que nenhum nó seja processado duas vezes, já que as visitas repetidas é que fazem a profundidade da recursão passar do limite da pilha",
+      "Trocar a recursão por um laço com pilha explícita no heap: desempilhar um nó, visitá-lo e empilhar o filho direito e depois o esquerdo",
+      "Trocar a recursão para pós-ordem, que visita os filhos antes do pai e, por isso, nunca precisa de mais de um quadro de pilha por nível da árvore"
+    ],
+    "explanation": "A profundidade da recursão é igual à altura da árvore, que é cerca de n em uma cadeia, então a pilha de chamadas estoura não importa como o código seja organizado. Uma pilha explícita vive na memória do heap, muito maior, e empilhar o filho direito antes do esquerdo preserva a pré-ordem. Uma fila visita nível por nível (outra ordem), um conjunto de visitados não faz nada em uma árvore em que nenhum nó é alcançado duas vezes, e a recursão em pós-ordem tem exatamente a mesma profundidade."
+  },
+  {
+    "id": "ds3b-tree-serialize-null-markers",
+    "title": "Serialização confiável de árvore binária",
+    "question": "Um serviço salva uma árvore binária escrevendo apenas os valores dos nós em pré-ordem, como `5, 3, 8`, e a reconstrói lendo-os de volta. Duas árvores com estruturas diferentes, uma com 3 e 8 como descendentes à esquerda e outra com 3 como filho esquerdo e 8 como filho direito da raiz, geram o mesmo arquivo. Qual correção restaura uma ida e volta exata com um único percurso e tempo linear?",
+    "options": [
+      "Escrever um marcador explícito para cada filho ausente durante o mesmo percurso em pré-ordem, para que o leitor saiba exatamente onde cada subárvore termina",
+      "Escrever os valores em in-ordem em vez de pré-ordem, porque a saída em in-ordem de qualquer árvore binária só pode ser lida de volta como um único formato de árvore",
+      "Escrever os valores em pós-ordem em vez de pré-ordem, porque visitar a raiz por último torna o aninhamento das subárvores inequívoco sem dados adicionais",
+      "Escrever os valores nível por nível, porque a saída em largura registra a profundidade de cada nó e, portanto, identifica o pai de cada um"
+    ],
+    "explanation": "Uma sequência simples de valores perde o formato: sem saber quando uma subárvore é vazia, o leitor não consegue dizer onde a subárvore esquerda termina e a direita começa. Adicionar um marcador para cada filho ausente torna a pré-ordem autodelimitada, e a árvore é reconstruída de forma única em O(n). As sequências de valores em in-ordem, pós-ordem e por nível são ambíguas sozinhas pelo mesmo motivo, então trocar o percurso não ajuda."
+  },
+  {
+    "id": "ds3b-tree-morris-traversal",
+    "title": "Trade-off do percurso em in-ordem com espaço constante",
+    "question": "Uma equipe de sistemas embarcados percorre uma árvore binária enorme em in-ordem com memória extra O(1), apontando temporariamente o filho direito de cada predecessor in-ordem de volta para o seu ancestral e restaurando-o depois. O trabalho total continua O(n). Por que é arriscado executar isso em uma árvore que outras threads leem ao mesmo tempo?",
+    "options": [
+      "Cada nó é visitado até n vezes, então o percurso degrada para O(n ao quadrado) e mantém a árvore ocupada por tempo suficiente para os leitores sofrerem starvation",
+      "A técnica guarda um ponteiro oculto para o pai em cada nó, o que dobra a memória por nó e não é seguro de atualizar a partir de várias threads",
+      "O percurso ordena as chaves dos nós no próprio lugar enquanto caminha pela árvore, então leitores concorrentes podem observar um conjunto de chaves parcialmente ordenado",
+      "O percurso reescreve temporariamente ponteiros de filhos, então um leitor concorrente pode seguir um fio de volta a um ancestral e ver um ciclo ou formato errado"
+    ],
+    "explanation": "Essa técnica (travessia de Morris) elimina a pilha criando ligações temporárias de predecessores para ancestrais e removendo-as quando o percurso volta, ou seja, a árvore é modificada enquanto é percorrida. Leitores em paralelo podem seguir essas ligações temporárias e entrar em laço ou pular nós, então é preciso acesso exclusivo. Ainda assim é O(n) no total, porque cada aresta é percorrida um número constante de vezes, não adiciona ponteiros para o pai e nunca move nem reordena chaves."
+  },
+  {
+    "id": "ds3b-bst-successor-no-right",
+    "title": "Sucessor in-ordem sem filho direito",
+    "question": "Cada nó de uma árvore binária de busca tem um ponteiro para o pai. Para achar a próxima chave maior depois de um nó que não tem filho direito, qual procedimento é o correto?",
+    "options": [
+      "Retornar o pai do nó, porque o pai sempre guarda a próxima chave maior quando o nó não tem subárvore direita para descer",
+      "Subir enquanto o nó for filho direito; o primeiro ancestral alcançado por um filho esquerdo é o sucessor (nenhum se chegar à raiz)",
+      "Retornar a maior chave da subárvore esquerda do nó, porque essa chave é o valor mais próximo acima do nó entre tudo o que está armazenado abaixo dele",
+      "Retornar a menor chave da subárvore direita do pai, porque essa subárvore guarda as menores chaves que são maiores que o nó atual"
+    ],
+    "explanation": "Sem subárvore direita, a próxima chave maior precisa ser um ancestral: o mais próximo cuja subárvore esquerda contém o nó. Subir enquanto o nó é filho direito pula os ancestrais menores e para no primeiro maior. O pai está errado quando o nó é filho direito (ele é menor), o máximo da subárvore esquerda é o predecessor, e a subárvore direita do pai pode estar vazia e não é mais próxima que o próprio pai quando o nó é filho esquerdo."
+  },
+  {
+    "id": "ds3b-bst-order-statistic",
+    "title": "K-ésimo menor rápido com atualizações contínuas",
+    "question": "Um ranking guarda pontuações em uma árvore de busca balanceada com inserções e remoções frequentes, e precisa responder \"qual é a k-ésima menor pontuação?\" para k arbitrário cerca de um milhão de vezes por segundo. Um percurso em in-ordem que para após k nós é lento demais. Qual projeto dá O(log n) por consulta?",
+    "options": [
+      "Manter um segundo array ordenado ao lado da árvore e ler a posição k diretamente, atualizando o array com uma busca binária a cada inserção e remoção",
+      "Manter um min-heap com as k menores pontuações vistas até agora e ler sua raiz, reconstruindo o heap sempre que o k pedido mudar",
+      "Armazenar em cache a sequência completa em in-ordem após cada consulta e invalidar o cache sempre que uma pontuação for inserida ou removida, reconstruindo-o de forma preguiçosa",
+      "Guardar em cada nó o tamanho da subárvore, mantê-lo em cada inserção, remoção e rotação, e descer comparando k com o tamanho da esquerda"
+    ],
+    "explanation": "Aumentar cada nó com o tamanho da sua subárvore transforma a árvore de busca em uma árvore de estatística de ordem: em um nó com tamanho esquerdo s, a resposta é o próprio nó quando k = s + 1; caso contrário, a descida vai para a esquerda ou direita com k ajustado, o que custa O(altura). Os contadores são baratos de manter porque só mudam os nós do caminho da atualização (e os rotacionados). Um array ordenado torna cada inserção ou remoção O(n) por causa do deslocamento, um heap não atende k arbitrário, e o cache é reconstruído em O(n) após quase toda atualização."
+  },
+  {
+    "id": "ds3b-bst-build-from-sorted",
+    "title": "Construindo uma BST balanceada a partir de chaves ordenadas",
+    "question": "Um carregador recebe n chaves distintas já ordenadas de forma crescente e precisa construir uma árvore binária de busca simples (sem rotações disponíveis) com a menor altura possível em tempo O(n). Qual abordagem faz isso?",
+    "options": [
+      "Fazer da chave do meio a raiz e construir recursivamente as subárvores esquerda e direita com as chaves menores e maiores",
+      "Inserir as chaves uma a uma na ordem recebida, já que cada inserção vai para o lado correto e a árvore se mantém balanceada por conta própria",
+      "Inserir alternadamente a menor e a maior chave restantes, porque preencher as duas pontas primeiro mantém os lados esquerdo e direito do mesmo tamanho",
+      "Inserir as chaves em ordem aleatória, o que garante altura de no máximo log2 de n e custa apenas O(n) de tempo total"
+    ],
+    "explanation": "Escolher a mediana como raiz a cada passo divide as chaves restantes ao meio, então a altura é floor(log2 n) e cada chave é colocada uma vez, dando O(n) no total. Inserir chaves ordenadas na ordem cria uma cadeia inclinada à direita com altura n - 1 e trabalho O(n ao quadrado). Alternar menor e maior constrói um caminho em zigue-zague igualmente alto, e a ordem aleatória só dá altura esperada O(log n) com trabalho O(n log n), sem garantia."
+  },
+  {
+    "id": "ds3b-heap-dary-decrease-key",
+    "title": "Ajustando o fan-out do heap para uma carga de decrease-key",
+    "question": "Um serviço de caminho mínimo em um grafo denso faz cerca de 50 milhões de reduções de prioridade (sift-up a partir de um nó), mas apenas 1 milhão de operações extract-min em seu heap binário. O profiling mostra que o heap domina o tempo de execução. Qual mudança tem mais chance de ajudar?",
+    "options": [
+      "Manter o heap binário, porque um fan-out de 2 dá o menor número de comparações tanto no sift-up quanto no extract-min, então qualquer fan-out maior é mais lento em toda operação",
+      "Usar um heap d-ário com fan-out 4 ou 8: o sift-up sobe apenas log na base d de n níveis, e o extract-min, mais raro, paga cerca de d comparações por nível",
+      "Usar um heap d-ário com d próximo de n, de modo que a árvore tenha um único nível e tanto reduzir uma prioridade quanto extrair o mínimo virem operações de tempo constante",
+      "Trocar o heap por um array ordenado, porque o extract-min vira tempo constante e as 50 milhões de reduções de prioridade só precisam de uma busca binária"
+    ],
+    "explanation": "Em um heap d-ário a altura é log na base d de n, então o sift-up fica mais barato conforme d cresce, enquanto o sift-down precisa de até d comparações por nível, então o extract-min cresce para cerca de d vezes log na base d de n. Quando as reduções de prioridade superam tanto as extrações, um fan-out de 4 a 8 costuma vencer e ainda é mais amigável ao cache. Um d enorme torna o extract-min O(n), e um array ordenado torna cada redução O(n) porque os elementos precisam se deslocar; o heap binário não é a melhor escolha para essa mistura."
+  },
+  {
+    "id": "ds3b-heap-cancel-index",
+    "title": "Cancelando uma entrada arbitrária em um min-heap",
+    "question": "Um serviço de timers guarda os timers pendentes em um min-heap baseado em array. Para cancelar o timer no índice i, ele copia o último elemento do array para a posição i, reduz o array em um e depois faz sift-down desse elemento. Após muitos cancelamentos, os timers às vezes disparam fora de ordem. Qual é a causa mais provável?",
+    "options": [
+      "Reduzir o array antes do sift-down muda as fórmulas de índice de pai e filho, então o sift-down compara com os vizinhos errados",
+      "O cancelamento deveria substituir a posição i pelo filho menor e repetir a partir desse filho, já que copiar o último elemento sempre quebra o formato do heap",
+      "Um heap só garante ordem para a raiz, então remoções arbitrárias não podem ser suportadas e o heap precisa ser totalmente reordenado após cada cancelamento",
+      "O elemento copiado para a posição i veio de outro ramo e pode ser menor que o pai dessa posição, então às vezes precisa subir (sift-up)"
+    ],
+    "explanation": "O último elemento pertence a outra subárvore, então seu valor não é limitado pelos ancestrais da posição i: se ele for menor que o pai da posição i, o sift-down deixa uma violação mais acima. Depois da cópia, o elemento precisa subir ou descer, conforme o caso (no máximo um dos movimentos acontece). As fórmulas de índice dependem apenas de posições, e copiar o último elemento mantém o array completo, por isso essa remoção é O(log n) e não é preciso reordenar nada."
+  },
+  {
+    "id": "ds3b-heap-fibonacci-practice",
+    "title": "Por que um heap de Fibonacci pode perder na prática",
+    "question": "Uma equipe troca o heap binário do algoritmo de Dijkstra por um heap de Fibonacci, esperando aproveitar seu decrease-key O(1) amortizado. Em uma malha viária com 20 milhões de nós e grau médio em torno de 3, a execução fica mais lenta. Qual é a melhor explicação?",
+    "options": [
+      "Heaps de Fibonacci não conseguem reduzir uma chave no próprio lugar, então toda atualização precisa ser emulada removendo a entrada e inserindo-a de novo",
+      "Os limites amortizados de um heap de Fibonacci só valem para prioridades inteiras, e as distâncias viárias não são inteiras, então as garantias não se aplicam",
+      "Em um grafo tão esparso o ganho assintótico é pequeno, e nós cheios de ponteiros, constantes grandes e má localidade de cache custam mais",
+      "O extract-min de um heap de Fibonacci leva tempo linear mesmo no sentido amortizado, o que é pior que o custo logarítmico do heap binário"
+    ],
+    "explanation": "Um heap de Fibonacci melhora o Dijkstra de O((V + E) log V) para O(E + V log V), o que importa principalmente quando o grafo é denso. Com cerca de três arestas por nó a economia é marginal, enquanto seus nós encadeados, campos extras e acessos dispersos à memória deixam cada operação mais lenta que um heap binário compacto em array. Ele suporta decrease-key no próprio lugar, seus limites não dependem de chaves inteiras, e o extract-min é O(log n) amortizado."
+  },
+  {
+    "id": "ds3b-graph-bfs-mark-at-enqueue",
+    "title": "Quando marcar um nó como visitado na BFS",
+    "question": "Uma busca em largura sobre um grande grafo de estados marca um nó como visitado apenas quando ele é removido da fila. Em um grafo denso, a fila cresce para centenas de milhões de entradas, muito mais que o número de nós distintos. Qual é a correção e o motivo?",
+    "options": [
+      "Marcar o nó como visitado só depois de todos os seus vizinhos terem sido processados, porque uma marcação antecipada esconderia caminhos mais curtos encontrados depois na busca",
+      "Marcar o nó como visitado quando ele entra na fila, senão cada vizinho que o encontra antes de ele sair da fila adiciona outra cópia",
+      "Trocar a fila por uma fila de prioridade ordenada por distância, porque uma fila simples não consegue evitar inserir o mesmo nó mais de uma vez",
+      "Marcar o nó como visitado quando ele sai da fila, mas só se ele tiver sido alcançado a partir da raiz, de modo que os ciclos deixem de adicionar cópias"
+    ],
+    "explanation": "Enquanto um nó não sai da fila ele não está marcado, então cada vizinho já descoberto que o alcança enfileira outra cópia, e a fila pode chegar a uma entrada por aresta em vez de uma por nó. Marcar no momento de enfileirar mantém a fila em O(V) entradas, e a distância mínima continua correta porque a BFS alcança um nó primeiro por um caminho mais curto. Atrasar a marcação piora o problema, uma fila de prioridade é desnecessária para arestas sem peso, e a condição da raiz não afeta as duplicatas."
+  },
+  {
+    "id": "ds3b-graph-bipartite-odd-cycle",
+    "title": "Dividindo itens em conflito em dois grupos",
+    "question": "Um agendador precisa atribuir cada uma de n provas a uma entre duas salas, de modo que duas provas que compartilham algum aluno não fiquem na mesma sala. Os alunos compartilhados são as arestas de um grafo de conflitos. Qual afirmação descreve uma verificação correta e eficiente?",
+    "options": [
+      "Colorir o grafo com duas cores por BFS ou DFS; a divisão é impossível exatamente quando alguma aresta liga dois nós da mesma cor (ciclo ímpar)",
+      "A divisão só é possível se o grafo de conflitos não tiver nenhum ciclo, então um único ciclo de qualquer tamanho já prova que duas salas não bastam",
+      "Unir as pontas de cada aresta de conflito com union-find e aceitar a divisão quando a estrutura terminar com no máximo dois conjuntos após todas as uniões",
+      "Executar uma ordenação topológica no grafo de conflitos e colocar a primeira metade da ordem em uma sala e a segunda metade na outra"
+    ],
+    "explanation": "Isso é uma 2-coloração, verificada em O(V + E) com um percurso por componente: se alguma aresta ligar dois nós que já têm a mesma cor, o grafo contém um ciclo ímpar e não existe divisão válida. Ciclos pares são aceitáveis, então exigir uma floresta é rigoroso demais. O union-find colocaria provas em conflito no mesmo conjunto, o oposto do desejado, e a ordenação topológica é definida para grafos dirigidos acíclicos e nada diz sobre conflitos."
+  },
+  {
+    "id": "ds3b-graph-scc-circular-deps",
+    "title": "Encontrando grupos de serviços com dependência mútua",
+    "question": "Uma equipe de arquitetura tem um grafo dirigido de 5.000 serviços em que uma aresta de A para B significa que A chama B. Ela quer listar todo grupo de serviços que alcançam uns aos outros por meio de chamadas, para planejar como quebrar os ciclos. Qual abordagem faz isso em O(V + E)?",
+    "options": [
+      "Executar uma ordenação topológica e listar os serviços que ela não consegue posicionar, já que cada serviço não posicionável forma seu próprio grupo de dependência circular",
+      "Executar o algoritmo de Dijkstra a partir de cada serviço e agrupar os serviços cuja distância mínima entre si é finita nos dois sentidos",
+      "Calcular as componentes fortemente conexas com o algoritmo de Tarjan ou de Kosaraju e relatar cada componente com mais de um serviço",
+      "Unir as pontas de cada aresta com union-find e relatar cada conjunto resultante, já que cada conjunto é um grupo de serviços que dependem uns dos outros"
+    ],
+    "explanation": "As componentes fortemente conexas são exatamente os grupos máximos cujos membros se alcançam, e tanto o algoritmo de Tarjan quanto o de Kosaraju as encontram em tempo linear. Componentes com mais de um nó (ou com um laço) são os ciclos a quebrar. A ordenação topológica só detecta que existe um ciclo e não particiona os serviços, o Dijkstra a partir de cada nó custa O(V(E + V log V)) e é desnecessário, e o union-find ignora a direção das arestas, então devolve conjuntos fracamente conexos que incluem serviços com chamadas de mão única."
+  },
+  {
+    "id": "ds3b-trie-topk-autocomplete",
+    "title": "Principais sugestões para um prefixo de uma letra",
+    "question": "Um serviço de autocompletar guarda 20 milhões de consultas com contagens de popularidade em uma trie. Para um prefixo de uma letra, o código atual percorre a subárvore inteira e ordena todas as consultas encontradas, o que leva segundos. O serviço precisa devolver as 5 completações mais populares em poucos milissegundos para qualquer prefixo. Qual projeto consegue isso?",
+    "options": [
+      "Guardar em cada nó as 5 completações mais populares da subárvore, atualizadas ao longo do caminho quando uma contagem mudar, e responder percorrendo o prefixo",
+      "Ordenar os filhos de cada nó por popularidade e seguir o primeiro filho até o primeiro fim de palavra, repetindo a partir do filho seguinte para coletar cinco respostas",
+      "Manter a trie como está, mas ordenar todo o dicionário por popularidade no momento da consulta e varrê-lo atrás das cinco primeiras palavras que começam com o prefixo",
+      "Manter um contador de palavras abaixo de cada nó e usá-lo para interromper cedo a caminhada na subárvore quando cinco completações com contagem acima da média forem achadas"
+    ],
+    "explanation": "Pré-calcular as 5 melhores por nó troca memória extra e algum trabalho de atualização por um custo de consulta de O(tamanho do prefixo + 5), independente do tamanho da subárvore. Seguir só o primeiro filho encontra um caminho guloso, não as cinco melhores no geral, porque um ramo raro pode guardar palavras mais populares mais fundo. Ordenar ou varrer o dicionário na consulta custa O(n log n) ou O(n), e parar em um limiar médio não garante as cinco mais populares de verdade."
+  },
+  {
+    "id": "ds3b-trie-longest-prefix-match",
+    "title": "Consulta de roteamento com prefixos aninhados",
+    "question": "Um roteador guarda 900.000 prefixos de rota IPv4, como 10.0.0.0/8 e 10.1.0.0/16, e para cada pacote precisa escolher a rota com o maior prefixo que combine com o endereço de destino. Qual estrutura e procedimento dão um custo de consulta de no máximo 32 passos, independente do tamanho da tabela?",
+    "options": [
+      "Uma tabela hash indexada pelo endereço completo de 32 bits do destino, preenchida com todos os prefixos de rota, para que uma única consulta devolva a rota correspondente",
+      "Uma trie binária sobre os bits do endereço em que o percurso para e devolve no primeiro nó que marca uma rota, já que esse nó é a melhor correspondência",
+      "Uma trie binária sobre os bits do endereço: percorrer os bits do destino, lembrar o último nó que marca uma rota e devolvê-lo ao terminar",
+      "Um array dos prefixos ordenado pelo valor numérico de início, pesquisado com busca binária para achar o prefixo mais próximo abaixo do endereço de destino"
+    ],
+    "explanation": "Os prefixos podem ser aninhados, então a resposta certa é o nó marcado mais profundo no caminho dos bits do endereço: o percurso visita no máximo 32 nós e a última correspondência guardada é o maior prefixo. Parar no primeiro nó marcado devolve a correspondência mais curta, uma tabela hash por endereço completo só conhece chaves exatas (e precisaria cobrir todos os endereços), e uma lista ordenada pelo início pode devolver um prefixo que não cobre o endereço enquanto um prefixo mais curto o cobre. Roteadores reais comprimem essa trie (por exemplo, com compressão de caminho) para reduzir memória e passos."
+  },
+  {
+    "id": "ds3b-dsu-offline-deletions",
+    "title": "Consultas de conectividade enquanto enlaces são removidos",
+    "question": "Um operador de rede conhece antecipadamente a lista ordenada completa de eventos: enlaces vão falhar um de cada vez, intercalados com perguntas da forma \"A e B ainda estão conectados?\". O union-find não consegue dividir um conjunto. Como todas as perguntas podem ser respondidas em tempo quase linear?",
+    "options": [
+      "Manter uma única estrutura e, a cada falha, chamar uma operação de divisão no conjunto que contém as duas pontas, o que a compressão de caminho suporta com custo amortizado constante",
+      "Processar os eventos em ordem inversa: construir a rede final e reproduzir de trás para frente, transformando cada falha em uma união e respondendo cada pergunta na hora",
+      "Reconstruir a estrutura do zero após cada falha usando os enlaces que restam, o que custa O(m) por falha e é aceitável porque a estrutura é quase linear",
+      "Executar os eventos para frente e, a cada falha, desfazer a união mais recente, já que o último enlace adicionado é sempre o primeiro que pode falhar"
+    ],
+    "explanation": "Inverter o tempo transforma remoções em inserções, que o union-find trata em tempo amortizado quase constante, então todo o trabalho offline custa cerca de O((n + m) alfa(n)) mais as consultas. O union-find padrão não tem divisão porque representantes fundidos e caminhos comprimidos descartam a estrutura original. Reconstruir após cada falha custa O(m) toda vez, e não há garantia de que as falhas venham na ordem inversa das uniões, então desfazer a última união está errado."
+  },
+  {
+    "id": "ds3b-dsu-largest-component",
+    "title": "Tamanho do maior grupo após cada novo vínculo",
+    "question": "Um app social adiciona 5 milhões de arestas de amizade, uma de cada vez, entre 2 milhões de usuários e precisa informar o tamanho do maior grupo conexo após cada aresta em tempo quase constante. Qual projeto de union-find suporta isso?",
+    "options": [
+      "Manter um contador de tamanho em cada nó e, para cada nova aresta, aumentá-lo apenas nos dois usuários que a aresta conecta, depois tomar o maior dos dois",
+      "Após cada aresta, varrer todos os usuários, contar os membros de cada raiz com um mapa hash e tomar a maior contagem, o que continua correto mas custa O(n) por aresta",
+      "Após cada aresta, executar uma busca em largura a partir de uma das pontas e contar os nós alcançados, porque essa contagem é o tamanho do grupo unido",
+      "Manter um contador de tamanho em cada raiz, somar os dois quando uma união junta raízes diferentes e acompanhar um máximo corrente"
+    ],
+    "explanation": "Os tamanhos dos componentes só mudam quando duas raízes diferentes são unidas, então guardar o tamanho na raiz e somar os dois tamanhos na união dá o novo tamanho do grupo em O(alfa(n)), e um máximo corrente basta porque os tamanhos nunca diminuem. Atualizar só as pontas deixa os demais membros e a raiz com números desatualizados, enquanto uma varredura completa custa O(n) por aresta e uma busca a partir de uma ponta custa O(tamanho do componente), ambos lentos demais para 5 milhões de arestas."
+  }
+]

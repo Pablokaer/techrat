@@ -1,0 +1,134 @@
+[
+  {
+    "id": "sd3a-fund-littles-law-saturation",
+    "title": "Por que dependências lentas esgotam o pool de workers",
+    "question": "Um serviço tem 200 slots de worker e atende constantes 1.200 requisições/s. Quando uma dependência fica lenta, a latência média sobe de 100 ms para 300 ms e o serviço começa a enfileirar e dar timeout, embora a taxa de requisições não tenha mudado. Qual raciocínio explica isso?",
+    "options": [
+      "Pela lei de Little, as requisições em andamento são taxa dividida pela latência, o que dá 4.000 em andamento, então o pool de 200 slots sempre foi pequeno demais e só falhou por acaso",
+      "O tempo esperando uma dependência não ocupa um slot de worker, então a concorrência continuou em 120 e a saturação deve vir de algum recurso não relacionado",
+      "Pela lei de Little, as requisições em andamento são taxa vezes latência, então subiram de 120 para 360, acima dos 200 slots, e o excedente espera numa fila",
+      "A concorrência cresceu só pelos 200 ms extras de latência vezes a taxa, ou seja, 240 em andamento, então um pool cerca de 20 por cento maior absorveria tudo com folga"
+    ],
+    "explanation": "A lei de Little diz que o número médio de requisições no sistema é a taxa de chegada vezes o tempo médio que cada uma passa lá: 1.200 x 0,1 s = 120 antes e 1.200 x 0,3 s = 360 depois. Um worker bloqueado numa chamada lenta mantém o slot, então 360 slots demandados contra 200 disponíveis significa fila. Dividir taxa por latência é a fórmula errada, e contar só a latência adicional (240) ignora as 120 que já estavam em andamento, por isso o pool precisa de cerca de 360 slots ou a chamada à dependência precisa de um timeout curto."
+  },
+  {
+    "id": "sd3a-scale-amdahl-batch",
+    "title": "Por que 10x mais workers não é 10x mais rápido",
+    "question": "Um relatório noturno leva 400 minutos em um worker. Desses, 20 minutos são uma etapa final de merge que precisa rodar em um único worker, e os outros 380 minutos paralelizam perfeitamente. Hoje roda em 10 workers; o time planeja ir para 100 workers esperando 10x de ganho. O que eles vão obter?",
+    "options": [
+      "Cerca de 10x mais rápido: o tempo vai de 58 para cerca de 6 minutos, porque a parte paralela é 95 por cento do trabalho e escala linearmente com os workers",
+      "Cerca de 2,4x mais rápido: o tempo vai de 58 para cerca de 24 minutos, porque a etapa serial de 20 minutos não encolhe por mais workers que se adicionem",
+      "Cerca de 5x mais rápido: o tempo vai de 58 para cerca de 12 minutos, porque o merge serial também se beneficia dos workers extras ao dividir sua entrada",
+      "Cerca de 1,2x mais rápido: o tempo vai de 58 para cerca de 48 minutos, porque a sobrecarga de coordenação de 100 workers anula quase todo o paralelismo adicionado"
+    ],
+    "explanation": "Com 10 workers o tempo é 20 + 380/10 = 58 minutos; com 100 workers é 20 + 380/100 = 23,8 minutos, um ganho de 58 / 23,8, cerca de 2,4x, por dez vezes o custo. Essa é a lei de Amdahl: a fração serial define um piso (20 minutos aqui), então o retorno diminui rápido. As respostas de 10x e 5x supõem que a etapa serial escala, o que ela não pode por definição, e a de 1,2x inventa uma sobrecarga que o cenário não menciona."
+  },
+  {
+    "id": "sd3a-scale-scheduled-prescale",
+    "title": "Autoscaling lento demais para um pico de tráfego conhecido",
+    "question": "Toda sexta às 12:00 abre uma venda de ingressos e o tráfego cresce 20x em 90 segundos. A frota usa autoscaling por target tracking de CPU, mas instâncias novas levam cerca de 4 minutos para subir, aquecer e passar nos health checks, então os usuários veem erros nos primeiros 5 minutos de toda venda. Qual é a mudança mais eficaz?",
+    "options": [
+      "Baixar o alvo de CPU de 60 por cento para 30 por cento para que a frota mantenha o dobro de folga e o escalonamento reativo tenha mais tempo para alcançar",
+      "Encurtar o período de avaliação e o cooldown do escalonamento para o alarme disparar em segundos, o que elimina a maior parte do atraso antes de novas instâncias subirem",
+      "Trocar para step scaling que adiciona um grande número fixo de instâncias no primeiro alarme, para que a capacidade chegue num lote só em vez de gradualmente",
+      "Adicionar escalonamento agendado (ou preditivo) que eleva a capacidade antes das 12:00, dimensionada para o pico esperado, mantendo o reativo só para desvios"
+    ],
+    "explanation": "A falha é de tempo de antecedência: uma política reativa não consegue adicionar capacidade mais rápido do que as instâncias levam para ficar prontas, e um salto de 20x em 90 segundos a ultrapassa por mais que seja ajustada. Como o pico é previsível, a capacidade precisa existir antes dele começar, o que o escalonamento agendado ou preditivo entrega. O dobro de folga cobre só uma alta de 2x, e alarmes mais rápidos ou passos maiores ainda esperam os 4 minutos de boot depois que o tráfego já chegou."
+  },
+  {
+    "id": "sd3a-cache-hot-key-local",
+    "title": "Uma chave quente saturando um único shard de cache",
+    "question": "Um serviço de feed usa um Redis Cluster de 6 shards. Durante um evento ao vivo, a chave `trending:global` recebe cerca de 400.000 leituras/s. O shard dono dela roda a 100 por cento de CPU e dá timeout, enquanto os outros cinco ficam em 15 por cento. Qual é a correção mais eficaz?",
+    "options": [
+      "Manter esse valor na memória do processo de cada instância da aplicação com TTL de um ou dois segundos, para que a maioria das leituras nem chegue ao shard",
+      "Refazer o sharding de 6 para 12 shards para que a carga por shard caia pela metade e o nó sobrecarregado fique mais leve, sem mudar a aplicação",
+      "Mover a chave para um pequeno pool Redis separado configurado com eviction `allkeys-lfu`, para que as entradas mais usadas fiquem na memória e sejam servidas mais rápido",
+      "Aumentar o tamanho do pool de conexões do cliente em cada instância da aplicação, para que mais comandos sejam enviados em paralelo ao shard dono da chave"
+    ],
+    "explanation": "Uma chave vive em exatamente um hash slot, então todas as 400.000 leituras/s caem num só nó, não importa quantos shards existam; o problema é a assimetria da chave, não a capacidade total. Um cache minúsculo em processo (um L1 na frente do Redis) absorve a maioria das leituras com um ou dois segundos de defasagem, reduzindo o tráfego ao shard em ordens de grandeza. Refazer o sharding não divide uma única chave, a política de eviction não reduz a taxa de comandos numa chave já em memória, e mais comandos em paralelo só aprofundam a saturação de CPU."
+  },
+  {
+    "id": "sd3a-cache-cold-start-db-protection",
+    "title": "Sobrevivendo a um cache frio após perder os nós de cache",
+    "question": "Um serviço atende 50.000 leituras/s com 98 por cento de cache hit, então seu banco normalmente vê 1.000 consultas/s e é dimensionado para cerca de 3.000. Um evento de manutenção substitui toda a frota de cache, o hit rate cai para perto de 0 por cento, e o banco recebe cerca de 50.000 consultas/s e cai. Sem pagar por um banco 50x maior, qual resposta de projeto é a melhor?",
+    "options": [
+      "Aumentar os TTLs do cache de 5 minutos para 1 hora, para que cada entrada fique válida por mais tempo e um nó substituído se reabasteça com bem menos leituras no banco",
+      "Trocar de cache-aside para write-through, para que o cache esteja sempre populado com os dados mais recentes e uma frota substituída não comece completamente vazia",
+      "Proteger o banco com coalescência de misses por chave e load shedding, e substituir os nós de cache gradualmente ou pré-aquecê-los com as chaves mais quentes antes de receber tráfego",
+      "Aumentar o pool de conexões e o timeout de consulta do banco, para que a rajada de misses fique enfileirada dentro do banco em vez de ser rejeitada cedo na camada da aplicação, antes de sobrecarregar o banco"
+    ],
+    "explanation": "Perder o cache transforma o banco de um caminho de miss de 2 por cento em todo o caminho de leitura (50.000 / 1.000 = 50x), então o cache é na prática uma dependência de capacidade. Coalescer misses concorrentes da mesma chave, descartar ou limitar requisições em excesso destinadas ao banco e trazer os nós gradualmente ou pré-aquecidos mantêm a carga dentro das cerca de 3.000 consultas/s do banco. TTLs maiores não ajudam quando as entradas sumiram fisicamente, write-through só preenche chaves que são escritas (não o conjunto lido), e pool ou timeout maiores só movem a sobrecarga para dentro do banco."
+  },
+  {
+    "id": "sd3a-cdn-no-cache-etag-revalidation",
+    "title": "O que no-cache significa em uma CDN",
+    "question": "Uma CDN fica na frente de uma API JSON de catálogo cuja origem responde com `Cache-Control: no-cache` e um `ETag`. Um desenvolvedor supõe que a CDN, por isso, nunca guardará uma cópia. Segundo o padrão de cache HTTP, o que realmente acontece?",
+    "options": [
+      "A resposta nunca é armazenada, então toda requisição é uma busca completa na origem, exatamente como se `no-store` tivesse sido enviado no lugar de `no-cache`",
+      "O cache pode armazená-la, mas precisa revalidar com a origem usando `If-None-Match` antes de cada reutilização; um 304 poupa o corpo, não a ida e volta",
+      "O cache a armazena e a serve sem contatar a origem até o `ETag` mudar, porque o validador substitui a necessidade de um tempo de vida",
+      "O cache a armazena e a serve livremente por um período heurístico, e `no-cache` só impede que navegadores, não caches compartilhados, reutilizem a resposta"
+    ],
+    "explanation": "`no-cache` não proíbe armazenar; exige que o cache valide a resposta guardada com a origem antes de cada reutilização, normalmente com uma requisição condicional com `If-None-Match`. Quando a origem responde 304 Not Modified, a CDN reutiliza sua cópia e pula a transferência do corpo, mas a origem ainda é contatada em toda requisição. Proibir o armazenamento é o que `no-store` faz, um validador sozinho nunca deixa um cache dispensar a revalidação, e `no-cache` vale tanto para caches compartilhados quanto para navegadores."
+  },
+  {
+    "id": "sd3a-cdn-unkeyed-header-poisoning",
+    "title": "Envenenamento de cache web por cabeçalho fora da chave",
+    "question": "Uma CDN armazena páginas HTML usando apenas host e caminho como chave de cache. O framework da origem monta URLs absolutas de assets a partir do cabeçalho de requisição `X-Forwarded-Host`. Um pesquisador envia uma requisição com `X-Forwarded-Host: evil.example` e, depois disso, visitantes comuns recebem páginas que carregam scripts de `evil.example`. Qual é a correção certa?",
+    "options": [
+      "Reduzir o TTL das páginas para 30 segundos, para que qualquer entrada envenenada expire rápido e a janela em que os visitantes ficam expostos seja bem pequena",
+      "Exigir HTTPS entre a CDN e a origem, para que o cabeçalho encaminhado não possa mais ser modificado ou injetado enquanto a requisição está em trânsito",
+      "Limpar todo o cache da CDN em um agendamento de toda hora, para que cópias envenenadas sejam removidas regularmente mesmo sem que ninguém tenha notado o ataque",
+      "Parar de confiar nesse cabeçalho: removê-lo ou ignorá-lo na borda (ou incluí-lo na chave de cache) e montar URLs a partir de um host canônico configurado"
+    ],
+    "explanation": "A resposta varia por uma entrada que não faz parte da chave de cache, então uma requisição controlada pelo atacante grava conteúdo que todo visitante posterior recebe. A correção é remover a influência fora da chave: ignorar ou remover o cabeçalho e derivar as URLs da configuração ou, se um cabeçalho precisar afetar a saída, torná-lo parte da chave. TTLs menores e limpezas periódicas só encolhem a janela enquanto o atacante pode reenvenenar, e HTTPS até a origem protege o trânsito, mas o atacante é o cliente que envia o cabeçalho."
+  },
+  {
+    "id": "sd3a-lb-cross-zone-imbalance",
+    "title": "Alvos desiguais por zona com cross-zone desativado",
+    "question": "Um balanceador de carga tem um nó em cada uma de duas zonas de disponibilidade e o DNS divide o tráfego dos clientes 50/50 entre elas. O balanceamento cross-zone está desativado, então cada nó só envia tráfego a alvos da própria zona. A zona A tem 2 alvos e a zona B tem 8. Aproximadamente que fração do tráfego total cada alvo recebe?",
+    "options": [
+      "Cada alvo da zona A recebe 25 por cento e cada alvo da zona B 6,25 por cento, uma diferença de 4x, então equalize os alvos por zona ou ative o balanceamento cross-zone",
+      "Cada alvo recebe 10 por cento, porque o balanceador conta os 10 alvos como um único pool e divide o tráfego igualmente entre todos eles",
+      "Cada alvo da zona A recebe 6,25 por cento e cada alvo da zona B 25 por cento, então a zona maior é a que acaba sobrecarregada, enquanto a zona de dois alvos fica quase ociosa e com capacidade sobrando",
+      "Cada alvo da zona A recebe 20 por cento e cada alvo da zona B 7,5 por cento, porque o balanceador pondera cada nó pela quantidade de alvos"
+    ],
+    "explanation": "Com cross-zone desativado, cada nó do balanceador distribui apenas a sua parcela de 50 por cento entre os alvos locais: 50 / 2 = 25 por cento por alvo da zona A e 50 / 8 = 6,25 por cento por alvo da zona B, uma diferença de 4x. Balancear entre os 10 alvos (10 por cento cada) é exatamente o que ativar o cross-zone faz. A resposta invertida troca qual zona é menor, e os valores de 20 e 7,5 por cento não vêm de nenhuma regra real de ponderação."
+  },
+  {
+    "id": "sd3a-lb-retry-non-idempotent-post",
+    "title": "Pedidos duplicados por retentativas no proxy",
+    "question": "Um proxy reverso está configurado para repetir a requisição em outro backend sempre que a primeira tentativa dá timeout após 3 segundos, para todos os métodos. Durante um incidente de banco lento, clientes são cobrados duas vezes: o `POST /orders` deu timeout no proxy enquanto o primeiro backend ainda estava gravando o pedido. Qual é a correção certa?",
+    "options": [
+      "Aumentar o timeout do proxy de 3 segundos para 30 segundos, para que gravações lentas terminem antes de o proxy decidir tentar outro backend para a requisição",
+      "Trocar o algoritmo de balanceamento de round robin para menos conexões, para que a nova tentativa seja sempre enviada ao backend menos ocupado do pool e termine mais rápido",
+      "Limitar as retentativas automáticas a métodos idempotentes ou falhas de conexão, e tornar a criação de pedidos idempotente com uma chave de idempotência enviada pelo cliente",
+      "Ativar sessões persistentes (sticky), para que a requisição repetida caia no mesmo backend e ele consiga reconhecê-la como duplicada por conta própria"
+    ],
+    "explanation": "Um timeout não diz ao proxy se o backend executou o trabalho, então repetir às cegas um `POST` não idempotente pode executá-lo duas vezes. Retentativas seguras exigem requisições idempotentes (ou retentativas limitadas a falhas em que nada foi enviado, como erros de conexão) mais uma chave de idempotência que permita ao servidor deduplicar. Um timeout maior só desloca o problema, outro algoritmo de balanceamento não muda a semântica de retry, e a persistência de sessão não dá ao backend nenhuma memória da tentativa anterior."
+  },
+  {
+    "id": "sd3a-rl-concurrency-limit",
+    "title": "Rate limit que não evitou a sobrecarga",
+    "question": "Uma API limita o tráfego a 2.000 requisições/s com token bucket para proteger seu banco. Durante um incidente, o banco desacelera de 20 ms para 400 ms por consulta. O tráfego continua abaixo de 2.000 requisições/s, mas o serviço fica sem threads e conexões e entra em colapso. Qual adição melhor evita isso?",
+    "options": [
+      "Trocar o token bucket por um sliding-window log, para que a contagem de requisições seja medida com mais precisão e o limite seja aplicado com mais rigor",
+      "Adicionar um limite de concorrência de requisições em andamento (idealmente adaptativo), rejeitando o excesso rapidamente com 429 ou 503 em vez de deixar o trabalho se acumular",
+      "Aumentar a capacidade do bucket para permitir rajadas maiores, para que lentidões curtas sejam absorvidas sem rejeitar nenhuma das requisições que chegam nesse meio-tempo",
+      "Fazer os clientes repetirem requisições com timeout usando backoff exponencial, para que a pressão sobre o banco lento seja distribuída de forma mais uniforme no tempo"
+    ],
+    "explanation": "Um rate limit limita chegadas por segundo, não o trabalho em andamento. Pela lei de Little, 2.000 requisições/s a 20 ms são cerca de 40 em andamento, mas a 400 ms são cerca de 800, o que esgota threads e conexões mesmo sem a taxa mudar. Um limite de concorrência restringe o trabalho em andamento qualquer que seja a latência, e a rejeição rápida descarta o excesso; um contador mais preciso mede a mesma taxa, rajadas maiores adicionam carga e retentativas dos clientes adicionam ainda mais."
+  },
+  {
+    "id": "sd3a-rl-redis-incr-expire-atomic",
+    "title": "Contadores de rate limit que nunca expiram",
+    "question": "Um limitador de janela fixa no Redis executa `INCR rl:{key}` e, só quando o resultado é 1, envia um `EXPIRE rl:{key} 60` separado. Depois que uma instância da aplicação caiu entre os dois comandos, um cliente ficou bloqueado permanentemente porque aquele contador nunca expirou. Qual é a correção certa?",
+    "options": [
+      "Definir `maxmemory-policy allkeys-lru`, para que o contador órfão seja eventualmente removido quando a memória acabar e o cliente seja desbloqueado sem trabalho manual",
+      "Chamar `EXPIRE` antes de `INCR`, para que o tempo de vida seja sempre associado ao contador antes de o incremento ser executado",
+      "Ativar AOF com `appendfsync always`, para que uma queda da aplicação nunca possa perder o comando `EXPIRE` que veio depois do incremento",
+      "Executar o incremento e a expiração de forma atômica, por exemplo num script Lua ou numa transação `MULTI`/`EXEC`, para que uma chave nunca exista sem TTL"
+    ],
+    "explanation": "Dois comandos separados não são atômicos, então uma queda do cliente entre eles deixa um contador sem TTL que bloqueará a chave para sempre. Executar ambos num único script Lua ou transação garante que a chave nunca exista sem expiração. A eviction não tem garantia de remover essa chave, `EXPIRE` numa chave que ainda não existe não faz nada, e a durabilidade do AOF trata de quedas do Redis, não de um cliente que nunca enviou o segundo comando."
+  }
+]
