@@ -34,6 +34,9 @@ public static class DependencyInjection
         services.AddScoped<ProfileService>();
         services.AddScoped<AvatarService>();
         services.AddScoped<TechRat.Application.Resources.StudyResourceService>();
+        services.AddScoped<TechRat.Application.Identity.ResetEmailThrottle>();
+        services.Configure<TechRat.Application.Identity.AuthSessionOptions>(configuration.GetSection(TechRat.Application.Identity.AuthSessionOptions.Section));
+        services.AddScoped<TechRat.Application.Identity.RefreshSessions>();
         services.AddScoped<NotificationService>();
         services.AddScoped<AdminService>();
         services.AddScoped<IOutboxHandler, UserProgressChangedHandler>();

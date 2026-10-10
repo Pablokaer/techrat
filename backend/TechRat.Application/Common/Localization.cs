@@ -42,6 +42,9 @@ public static class Text
         public const string UsernameInvalid = "auth.usernameInvalid";
         public const string DisplayNameLength = "auth.displayNameLength";
         public const string PasswordRequired = "auth.passwordRequired";
+        public const string PasswordTooCommon = "auth.passwordTooCommon";
+        public const string PasswordContainsIdentity = "auth.passwordContainsIdentity";
+        public const string PasswordTooLong = "auth.passwordTooLong";
         public const string CurrentPasswordRequired = "auth.currentPasswordRequired";
         public const string CurrentPasswordIncorrect = "auth.currentPasswordIncorrect";
         public const string NewPasswordSameAsCurrent = "auth.newPasswordSameAsCurrent";
@@ -148,6 +151,9 @@ public static class Text
         [Keys.UsernameInvalid] = "Username must be 3-32 characters: letters, numbers or underscore.",
         [Keys.DisplayNameLength] = "Display name must have 2-40 characters.",
         [Keys.PasswordRequired] = "Password is required.",
+        [Keys.PasswordTooCommon] = "This password is too common. Choose one that is harder to guess, such as a few unrelated words.",
+        [Keys.PasswordContainsIdentity] = "The password cannot contain your username or the first part of your email.",
+        [Keys.PasswordTooLong] = "The password can have at most {0} characters.",
         [Keys.CurrentPasswordRequired] = "Enter your current password.",
         [Keys.CurrentPasswordIncorrect] = "The current password is incorrect.",
         [Keys.NewPasswordSameAsCurrent] = "The new password must be different from the current one.",
@@ -240,6 +246,9 @@ public static class Text
         [Keys.UsernameInvalid] = "O nome de usuário deve ter de 3 a 32 caracteres: letras, números ou sublinhado.",
         [Keys.DisplayNameLength] = "O nome de exibição deve ter de 2 a 40 caracteres.",
         [Keys.PasswordRequired] = "A senha é obrigatória.",
+        [Keys.PasswordTooCommon] = "Esta senha é comum demais. Escolha uma mais difícil de adivinhar, como algumas palavras sem relação.",
+        [Keys.PasswordContainsIdentity] = "A senha não pode conter seu nome de usuário nem a primeira parte do seu e-mail.",
+        [Keys.PasswordTooLong] = "A senha pode ter no máximo {0} caracteres.",
         [Keys.CurrentPasswordRequired] = "Digite sua senha atual.",
         [Keys.CurrentPasswordIncorrect] = "A senha atual está incorreta.",
         [Keys.NewPasswordSameAsCurrent] = "A nova senha deve ser diferente da atual.",

@@ -1,17 +1,11 @@
 import type { NextConfig } from "next";
+import { securityHeaders } from "./security-headers";
 
 // Two build targets share one codebase:
 //  - web (default): Node server, same-origin /api proxy to the backend so auth uses HttpOnly cookies.
 //  - desktop (BUILD_TARGET=desktop): static export loaded by Tauri; talks to the API with bearer tokens.
 const isDesktop = process.env.BUILD_TARGET === "desktop";
 const apiUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5080";
-
-const securityHeaders = [
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "DENY" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-];
 
 const config: NextConfig = {
   reactStrictMode: true,
@@ -28,7 +22,7 @@ const config: NextConfig = {
           ];
         },
         async headers() {
-          return [{ source: "/:path*", headers: securityHeaders }];
+          return [{ source: "/:path*", headers: securityHeaders(process.env.NODE_ENV === "production") }];
         },
       }),
 };

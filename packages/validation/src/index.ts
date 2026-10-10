@@ -3,6 +3,7 @@ import { z } from "zod";
 /** Every message the schemas can produce. Apps can translate them by key (see `fieldErrors`). */
 export const VALIDATION_MESSAGES = {
   passwordMin: "At least 8 characters",
+  passwordMax: "At most 128 characters",
   passwordLower: "Include a lowercase letter",
   passwordUpper: "Include an uppercase letter",
   passwordDigit: "Include a number",
@@ -27,6 +28,7 @@ const M = VALIDATION_MESSAGES;
 export const passwordSchema = z
   .string()
   .min(8, M.passwordMin)
+  .max(128, M.passwordMax)
   .regex(/[a-z]/, M.passwordLower)
   .regex(/[A-Z]/, M.passwordUpper)
   .regex(/[0-9]/, M.passwordDigit);

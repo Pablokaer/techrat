@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { VALIDATION_MESSAGES, changePasswordSchema, fieldErrors, loginSchema, registerSchema, resetPasswordSchema } from "../src";
+import { VALIDATION_MESSAGES, changePasswordSchema, fieldErrors, loginSchema, passwordSchema, registerSchema, resetPasswordSchema } from "../src";
 
 describe("validation", () => {
   it("accepts a valid registration", () => {
@@ -38,6 +38,13 @@ describe("changePasswordSchema", () => {
   it("requires the current password and reuses the sign-up rules for the new one", () => {
     expect(messages(changePasswordSchema(true), { ...ok, current: "" })).toMatchObject({ current: VALIDATION_MESSAGES.currentPasswordRequired });
     expect(messages(changePasswordSchema(true), { ...ok, password: "weak", confirm: "weak" })).toMatchObject({ password: VALIDATION_MESSAGES.passwordMin });
+  });
+
+  it("stops at the same length as the server, so a pasted wall of text is not sent just to be refused", () => {
+    const atLimit = "Aa1-" + "x".repeat(124);
+    expect(atLimit).toHaveLength(128);
+    expect(passwordSchema.safeParse(atLimit).success).toBe(true);
+    expect(passwordSchema.safeParse(atLimit + "y").error?.issues.map((i) => i.message)).toEqual([VALIDATION_MESSAGES.passwordMax]);
   });
 
   it("checks the confirmation and that the new password differs from the current one", () => {

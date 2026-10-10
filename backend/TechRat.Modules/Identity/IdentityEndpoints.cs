@@ -57,27 +57,43 @@ public static partial class AuthValidation
 
 public sealed class IdentityEndpoints : IEndpointModule
 {
+    /// <summary>Generous on purpose: accounts created before the password length limit may have longer passwords.</summary>
+    private const int MaxLoginPasswordLength = 1024;
+
+    private const int MaxResetCodeLength = 2048;
+
     public void Map(RouteGroupBuilder api)
     {
         var auth = api.MapGroup("/auth").WithTags("Identity");
 
         auth.MapPost("/register", RegisterAsync).RequireRateLimiting("auth")
-            .WithSummary("Create an account with email and password");
+            .WithSummary("Create an account with email and password")
+            .WithDescription("The password has 8 to 128 characters with an uppercase letter, a lowercase letter and a digit, is not a very " +
+                             "common password (\"Password1\", \"Summer2024!\") and does not contain the username or the part of the email before the @.");
 
         auth.MapPost("/login", LoginAsync).RequireRateLimiting("auth")
-            .WithSummary("Sign in. Web uses useCookies=true (HttpOnly cookie); mobile/desktop receive bearer + refresh tokens");
+            .WithSummary("Sign in. Web uses useCookies=true (HttpOnly cookie); mobile/desktop receive bearer + refresh tokens")
+            .WithDescription("Bearer clients get an access token (30 minutes) and a single-use refresh token that belongs to a tracked session. " +
+                             "An unknown email costs the same time as a wrong password. Responses are never cacheable; the body is limited to 8 KB.");
 
         auth.MapPost("/refresh", RefreshAsync).RequireRateLimiting("auth")
-            .WithSummary("Exchange a refresh token for a new access token");
+            .WithSummary("Exchange a refresh token for a new access token and a new refresh token")
+            .WithDescription("Refresh tokens are single use: store the one returned. Presenting an older token again revokes that session " +
+                             "(401 for it and for the newer token); the previous token is forgiven for a few seconds so a lost response can be retried. " +
+                             "Other devices of the same person are not affected.");
 
         auth.MapPost("/logout", LogoutAsync).RequireAuthorization()
             .WithSummary("Sign out (clears the cookie and invalidates refresh tokens)");
 
         auth.MapPost("/forgot-password", ForgotPasswordAsync).RequireRateLimiting("auth")
-            .WithSummary("Send a password reset email. Always returns 202 to avoid account enumeration");
+            .WithSummary("Send a password reset email. Always returns 202 to avoid account enumeration")
+            .WithDescription("Answers 202 after the same work for every address, known or not; the email is sent afterwards, at most once a minute " +
+                             "per address. The link in it works for one hour.");
 
         auth.MapPost("/reset-password", ResetPasswordAsync).RequireRateLimiting("auth")
-            .WithSummary("Reset the password using the code from the email");
+            .WithSummary("Reset the password using the code from the email")
+            .WithDescription("The code expires one hour after the email was sent. The new password follows the sign-up rules. A missing or wrong " +
+                             "field answers 400 in the same shape for known and unknown accounts. A successful reset lifts any lockout and emails the owner.");
 
         auth.MapGet("/password", async (UserManager<ApplicationUser> users, ICurrentUser current) =>
             TypedResults.Ok(new PasswordStatusDto(await users.HasPasswordAsync(await RequireAccountAsync(users, current)))))
@@ -151,16 +167,34 @@ public sealed class IdentityEndpoints : IEndpointModule
         return TypedResults.Created("/api/v1/users/me", await profiles.GetSummaryAsync(account.Id, false, ct));
     }
 
-    private static async Task<Results<Ok<AccessTokenResponse>, EmptyHttpResult, ProblemHttpResult>> LoginAsync(
+    private static async Task<Results<Ok<AccessTokenResponse>, SignInHttpResult, EmptyHttpResult, ProblemHttpResult>> LoginAsync(
         LoginRequest request, bool? useCookies, SignInManager<ApplicationUser> signIn, UserManager<ApplicationUser> users,
-        IAppDbContext db, TimeProvider clock, CancellationToken ct)
+        RefreshSessions sessions, IAppDbContext db, TimeProvider clock, CancellationToken ct)
     {
-        var account = string.IsNullOrWhiteSpace(request.Email) ? null : await users.FindByEmailAsync(request.Email.Trim());
-        if (account is null)
+        // Nobody's password is this long (sign-up stops at AuthPolicy.MaxPasswordLength), so don't spend time hashing it.
+        if (request.Password is { Length: > MaxLoginPasswordLength })
             return TypedResults.Problem(Text.Get(Text.Keys.InvalidCredentials), statusCode: StatusCodes.Status401Unauthorized);
 
-        signIn.AuthenticationScheme = useCookies == true ? IdentityConstants.ApplicationScheme : IdentityConstants.BearerScheme;
-        var result = await signIn.PasswordSignInAsync(account.UserName!, request.Password ?? "", isPersistent: useCookies == true, lockoutOnFailure: true);
+        var account = string.IsNullOrWhiteSpace(request.Email) ? null : await users.FindByEmailAsync(request.Email.Trim());
+        if (account is null)
+        {
+            // An unknown email must take as long as a wrong password, or the response time tells which emails are registered.
+            AuthTiming.BurnPasswordCheck(users.PasswordHasher, request.Password);
+            return TypedResults.Problem(Text.Get(Text.Keys.InvalidCredentials), statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        // The web signs in with a cookie. Bearer clients (mobile, desktop) get tokens that belong to a tracked session, so a
+        // refresh token that is used twice can be noticed (ADR-0030); the checks and the lockout are the same for both.
+        Microsoft.AspNetCore.Identity.SignInResult result;
+        if (useCookies == true)
+        {
+            signIn.AuthenticationScheme = IdentityConstants.ApplicationScheme;
+            result = await signIn.PasswordSignInAsync(account.UserName!, request.Password ?? "", isPersistent: true, lockoutOnFailure: true);
+        }
+        else
+        {
+            result = await signIn.CheckPasswordSignInAsync(account, request.Password ?? "", lockoutOnFailure: true);
+        }
         if (!result.Succeeded)
             return TypedResults.Problem(Text.Get(result.IsLockedOut ? Text.Keys.LockedOut : Text.Keys.InvalidCredentials),
                 statusCode: StatusCodes.Status401Unauthorized);
@@ -171,20 +205,47 @@ public sealed class IdentityEndpoints : IEndpointModule
             profile.LastLoginAt = clock.GetUtcNow();
             await db.SaveChangesAsync(ct);
         }
-        // The sign-in handler already wrote the bearer token response or the cookie.
-        return TypedResults.Empty;
+        // For the web the sign-in handler already wrote the cookie.
+        if (useCookies == true) return TypedResults.Empty;
+
+        var principal = await signIn.CreateUserPrincipalAsync(account);
+        WithSession(principal, await sessions.StartAsync(ct));
+        return TypedResults.SignIn(principal, authenticationScheme: IdentityConstants.BearerScheme);
     }
 
-    private static async Task<Results<SignInHttpResult, ChallengeHttpResult>> RefreshAsync(
-        RefreshRequest request, SignInManager<ApplicationUser> signIn, IOptionsMonitor<BearerTokenOptions> bearerOptions, TimeProvider clock)
+    private static void WithSession(System.Security.Claims.ClaimsPrincipal principal, RefreshTokenIds ids)
     {
+        var identity = (System.Security.Claims.ClaimsIdentity)principal.Identity!;
+        identity.AddClaim(new System.Security.Claims.Claim(SessionClaims.SessionId, ids.SessionId));
+        identity.AddClaim(new System.Security.Claims.Claim(SessionClaims.TokenId, ids.TokenId));
+    }
+
+    /// <summary>
+    /// Single-use refresh tokens: each refresh returns a new one and only the latest works. Presenting an older one means
+    /// two parties hold the session, so it is revoked and both are turned away (the person's other devices are not affected).
+    /// </summary>
+    private static async Task<Results<SignInHttpResult, ChallengeHttpResult>> RefreshAsync(
+        RefreshRequest request, SignInManager<ApplicationUser> signIn, IOptionsMonitor<BearerTokenOptions> bearerOptions,
+        RefreshSessions sessions, TimeProvider clock, ILoggerFactory loggers, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken)) return TypedResults.Challenge();
         var protector = bearerOptions.Get(IdentityConstants.BearerScheme).RefreshTokenProtector;
         var ticket = protector.Unprotect(request.RefreshToken);
         if (ticket?.Properties?.ExpiresUtc is not { } expires || clock.GetUtcNow() >= expires ||
             await signIn.ValidateSecurityStampAsync(ticket.Principal) is not { } user)
             return TypedResults.Challenge();
 
+        var decision = await sessions.RotateAsync(
+            ticket.Principal.FindFirst(SessionClaims.SessionId)?.Value, ticket.Principal.FindFirst(SessionClaims.TokenId)?.Value, ct);
+        if (decision.Verdict != RefreshVerdict.Issued)
+        {
+            if (decision.Verdict == RefreshVerdict.Reused)
+                loggers.CreateLogger("TechRat.Identity").LogWarning("A used refresh token was presented again: session revoked for user {UserId}", user.Id);
+            return TypedResults.Challenge();
+        }
+
         var principal = await signIn.CreateUserPrincipalAsync(user);
+        WithSession(principal, decision.Next!);
         return TypedResults.SignIn(principal, authenticationScheme: IdentityConstants.BearerScheme);
     }
 
@@ -316,35 +377,67 @@ public sealed class IdentityEndpoints : IEndpointModule
         return TypedResults.NoContent();
     }
 
+    /// <summary>
+    /// Always answers 202 after the same work, whether the address belongs to an account or not. The token and the email
+    /// are produced after the answer (SMTP takes far longer than the lookup, which would reveal the account), and at most
+    /// one email per address per minute goes out so the form cannot flood an inbox. See ADR-0029.
+    /// </summary>
     private static async Task<Accepted> ForgotPasswordAsync(
-        ForgotPasswordRequest request, UserManager<ApplicationUser> users, IEmailSender<ApplicationUser> email, IConfiguration config,
-        ILoggerFactory loggers)
+        ForgotPasswordRequest request, UserManager<ApplicationUser> users, ResetEmailThrottle throttle, IServiceScopeFactory scopes,
+        ILoggerFactory loggers, CancellationToken ct)
     {
-        var user = string.IsNullOrWhiteSpace(request.Email) ? null : await users.FindByEmailAsync(request.Email.Trim());
-        if (user is not null)
+        var address = request.Email?.Trim();
+        if (string.IsNullOrWhiteSpace(address) || address.Length > 256) return TypedResults.Accepted((string?)null);
+
+        var user = await users.FindByEmailAsync(address);
+        var mayEmail = await throttle.TryAcquireAsync(address, ct);
+        if (user is not null && mayEmail)
         {
-            var code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await users.GeneratePasswordResetTokenAsync(user)));
-            var baseUrl = (config["App:PublicWebUrl"] ?? "http://localhost:3000").TrimEnd('/');
-            var link = $"{baseUrl}/reset-password?email={Uri.EscapeDataString(user.Email!)}&code={Uri.EscapeDataString(code)}";
-            try
-            {
-                await email.SendPasswordResetLinkAsync(user, user.Email!, link);
-            }
-            catch (EmailDeliveryException)
-            {
-                // Already logged by the sender. Answer exactly like for unknown emails, so failures don't reveal accounts.
-                loggers.CreateLogger("TechRat.Identity").LogWarning("Password reset email could not be delivered");
-            }
+            var id = user.Id;
+            var log = loggers.CreateLogger("TechRat.Identity");
+            // The request's culture flows into the task, so the email is written in the language of the request.
+            _ = Task.Run(() => SendResetEmailAsync(scopes, id, log), CancellationToken.None);
         }
         return TypedResults.Accepted((string?)null);
     }
 
-    private static async Task<Results<NoContent, ValidationProblem>> ResetPasswordAsync(ResetPasswordRequest request, UserManager<ApplicationUser> users)
+    private static async Task SendResetEmailAsync(IServiceScopeFactory scopes, Guid userId, ILogger log)
     {
+        try
+        {
+            await using var scope = scopes.CreateAsyncScope();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var email = scope.ServiceProvider.GetRequiredService<IEmailSender<ApplicationUser>>();
+            var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+            if (await users.FindByIdAsync(userId.ToString()) is not { Email: { } to } user) return;
+
+            var code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(await users.GeneratePasswordResetTokenAsync(user)));
+            var baseUrl = (config["App:PublicWebUrl"] ?? "http://localhost:3000").TrimEnd('/');
+            var link = $"{baseUrl}/reset-password?email={Uri.EscapeDataString(to)}&code={Uri.EscapeDataString(code)}";
+            await email.SendPasswordResetLinkAsync(user, to, link);
+        }
+        catch (EmailDeliveryException)
+        {
+            // Already logged by the sender; nobody is waiting for the answer, so there is nothing more to do.
+            log.LogWarning("Password reset email could not be delivered");
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Password reset email failed for user {UserId}", userId);
+        }
+    }
+
+    private static async Task<Results<NoContent, ValidationProblem>> ResetPasswordAsync(
+        ResetPasswordRequest request, UserManager<ApplicationUser> users, IAccountEmailSender email, ILoggerFactory loggers, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(request.NewPassword))
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["newPassword"] = [Text.Get(Text.Keys.PasswordRequired)] });
+
         var user = string.IsNullOrWhiteSpace(request.Email) ? null : await users.FindByEmailAsync(request.Email.Trim());
         IdentityResult result;
-        if (user is null)
+        if (user is null || string.IsNullOrWhiteSpace(request.ResetCode) || request.ResetCode.Length > MaxResetCodeLength)
         {
+            // Unknown account, or no usable code: the same answer as a wrong code, so nothing reveals which emails exist.
             result = IdentityResult.Failed(users.ErrorDescriber.InvalidToken());
         }
         else
@@ -359,7 +452,24 @@ public sealed class IdentityEndpoints : IEndpointModule
                 result = IdentityResult.Failed(users.ErrorDescriber.InvalidToken());
             }
         }
-        if (result.Succeeded) return TypedResults.NoContent();
+        if (result.Succeeded && user is not null)
+        {
+            // Following the link proves the owner controls the mailbox, so a lockout caused by someone else's guesses ends here.
+            await users.SetLockoutEndDateAsync(user, null);
+            await users.ResetAccessFailedCountAsync(user);
+            var log = loggers.CreateLogger("TechRat.Identity");
+            log.LogInformation("Password reset completed for user {UserId}", user.Id);
+            try
+            {
+                // If it was not them (their mailbox was taken), this is how the owner finds out.
+                await email.SendPasswordChangedAsync(user.Email!, ct);
+            }
+            catch (EmailDeliveryException)
+            {
+                log.LogWarning("Password reset notice could not be delivered to user {UserId}", user.Id);
+            }
+            return TypedResults.NoContent();
+        }
         return TypedResults.ValidationProblem(result.Errors.GroupBy(e => e.Code.Contains("Password") ? "newPassword" : "resetCode")
             .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray()));
     }
