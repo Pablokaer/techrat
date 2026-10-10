@@ -52,8 +52,8 @@ lockout, HttpOnly + SameSite=Strict cookies, short access tokens, security-stamp
 
 ## Known limits (not changed here)
 
-- **Sign-up still tells whether an email or username is taken.** Closing it needs email verification with a neutral
-  answer, which changes the sign-up flow. Rate limiting is the mitigation today.
+- ~~**Sign-up still tells whether an email or username is taken.**~~ Closed for the email by [ADR-0031](0031-email-confirmation-at-sign-up.md)
+  (usernames are public, so that one is still reported).
 - ~~**Refresh tokens are stateless**~~ Closed by [ADR-0030](0030-refresh-token-rotation-and-uncacheable-auth-responses.md):
   refresh tokens are single use and a replay revokes the session.
 - **The desktop app keeps its tokens in `localStorage`** (the Tauri webview), as ADR-0006 notes; the upgrade path is the OS

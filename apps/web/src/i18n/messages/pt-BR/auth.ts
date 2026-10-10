@@ -32,6 +32,7 @@ export const auth: Messages["auth"] = {
     passwordUpdated: "Senha atualizada. Entre com sua nova senha.",
     accountDeleted: "Sua conta foi excluída. Tudo o que estava ligado a ela foi apagado.",
     forgotPassword: "Esqueceu a senha?",
+    resendConfirmation: "Enviar o e-mail de confirmação de novo",
     submit: "Entrar",
     submitting: "Entrando…",
     newHere: "Novo no TechRat?",
@@ -46,6 +47,22 @@ export const auth: Messages["auth"] = {
     submit: "Criar conta",
     submitting: "Criando conta…",
     haveAccount: "Já tem uma conta?",
+    signIn: "Entrar",
+    checkEmail: {
+      title: "Confira seu e-mail",
+      text: (email) =>
+        `Enviamos um link para ${email}. Abra-o para confirmar seu endereço e começar a aprender. Ele vale por 24 horas; olhe a caixa de spam se não o encontrar.`,
+      resend: "Enviar o e-mail de novo",
+      toSignIn: "Ir para o login",
+    },
+  },
+  confirmationResent: "Se esse endereço estiver aguardando confirmação, um novo link está a caminho.",
+  confirmEmail: {
+    title: "Confirme seu e-mail",
+    subtitle: "Um instante enquanto verificamos o seu link.",
+    working: "Confirmando…",
+    done: "Seu e-mail foi confirmado. Agora você pode entrar.",
+    failed: "Este link é inválido, expirou ou já foi usado. Entre para receber um novo.",
     signIn: "Entrar",
   },
   forgotPassword: {

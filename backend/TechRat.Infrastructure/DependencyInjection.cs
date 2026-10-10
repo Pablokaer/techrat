@@ -43,6 +43,7 @@ public static class DependencyInjection
         services.AddSingleton<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<IdentityEmailSender>());
         services.AddSingleton<ITestEmailSender>(sp => sp.GetRequiredService<IdentityEmailSender>());
         services.AddSingleton<IAccountEmailSender>(sp => sp.GetRequiredService<IdentityEmailSender>());
+        services.AddSingleton<IRegistrationEmailSender>(sp => sp.GetRequiredService<IdentityEmailSender>());
         services.AddSingleton<TechRat.Application.Resources.IStudyResourceCatalog, StudyResourceCatalog>();
         services.AddScoped<DatabaseSeeder>();
         return services;

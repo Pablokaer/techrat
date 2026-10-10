@@ -80,6 +80,16 @@ public interface IAccountEmailSender
     Task SendAccountDeletedAsync(string email, CancellationToken ct);
 }
 
+/// <summary>The email sent when someone signs up with an address that already has an account (ADR-0031).</summary>
+public interface IRegistrationEmailSender
+{
+    /// <summary>
+    /// Tells the owner that someone tried to create an account with their address, with links to sign in or reset the
+    /// password. Throws <see cref="EmailDeliveryException"/>.
+    /// </summary>
+    Task SendAlreadyRegisteredAsync(string email, CancellationToken ct);
+}
+
 /// <summary>Sends a test email so admins can check the SMTP settings of a deployment.</summary>
 public interface ITestEmailSender
 {

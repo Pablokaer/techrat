@@ -88,14 +88,26 @@ public sealed class TechRatFactory : WebApplicationFactory<Program>, IAsyncLifet
         while (await dispatcher.DispatchBatchAsync(CancellationToken.None) > 0) { }
     }
 
+    /// <summary>Marks an account's email as confirmed in the database: what following the emailed link does.</summary>
+    public Task ConfirmEmailAsync(string email) =>
+        WithDbAsync(db => db.Users.Where(u => u.Email == email).ExecuteUpdateAsync(s => s.SetProperty(u => u.EmailConfirmed, true)));
+
+    /// <summary>Signs an account up and confirms its email, like a person who followed the link (sign-in needs it).</summary>
+    public async Task<HttpResponseMessage> RegisterConfirmedAsync(HttpClient client, string email, string password, string username, string displayName = "Test User")
+    {
+        var res = await client.PostAsJsonAsync("/api/v1/auth/register", new { email, password, username, displayName });
+        res.EnsureSuccessStatusCode();
+        await ConfirmEmailAsync(email);
+        return res;
+    }
+
     /// <summary>Registers a fresh user and returns a client authenticated with a bearer token.</summary>
     public async Task<(HttpClient Client, string Username)> CreateUserAsync(string? prefix = null)
     {
         var username = $"{prefix ?? "u"}_{Guid.NewGuid():N}"[..20];
         var client = CreateClient();
         var email = $"{username}@example.com";
-        var register = await client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Passw0rdX", username, displayName = "Test User" });
-        register.EnsureSuccessStatusCode();
+        await RegisterConfirmedAsync(client, email, "Passw0rdX", username);
         await LoginAsync(client, email, "Passw0rdX");
         return (client, username);
     }

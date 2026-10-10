@@ -70,6 +70,104 @@ public class EmailDeliveryTests(TechRatFactory api) : IAsyncLifetime
         throw new TimeoutException($"No email to {to} with '{subjectContains}' in the subject");
     }
 
+    private async Task<int> CountMessagesToAsync(string to)
+    {
+        var list = await _mailApi.GetFromJsonAsync<JsonElement>($"/api/v1/search?query={Uri.EscapeDataString($"to:{to}")}");
+        return list.GetProperty("messages").GetArrayLength();
+    }
+
+    private static string CodeIn(JsonElement message) =>
+        Uri.UnescapeDataString(Regex.Match(message.GetProperty("Text").GetString()!, @"code=([^\s&""<>]+)").Groups[1].Value);
+
+    [Fact]
+    public async Task Signing_up_sends_a_confirmation_link_and_following_it_lets_the_account_sign_in_once()
+    {
+        await using var factory = WithMailpit();
+        var client = factory.CreateClient();
+        var username = $"verify_{Guid.NewGuid():N}"[..20];
+        var email = $"{username}@example.com";
+        Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Passw0rdX", username, displayName = "Verify" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "Passw0rdX" })).StatusCode);
+
+        var mail = await WaitForSubjectAsync(email, "Confirm your TechRat account");
+        Assert.Contains("https://techrat.test/confirm-email?email=", mail.GetProperty("Text").GetString());
+        var code = CodeIn(mail);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/v1/auth/confirm-email", new { email, code })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "Passw0rdX" })).StatusCode);
+        // Following the link rotates the security stamp, so the same link does nothing the second time.
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/auth/confirm-email", new { email, code })).StatusCode);
+    }
+
+    [Fact]
+    public async Task The_confirmation_email_arrives_in_the_language_of_the_request()
+    {
+        await using var factory = WithMailpit();
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("pt-BR");
+        var username = $"verpt_{Guid.NewGuid():N}"[..20];
+        var email = $"{username}@example.com";
+        await client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Passw0rdX", username, displayName = "Verify" });
+
+        var mail = await WaitForSubjectAsync(email, "Confirme sua conta no TechRat");
+
+        Assert.Contains("Confirme seu e-mail", mail.GetProperty("HTML").GetString());
+    }
+
+    [Fact]
+    public async Task Signing_up_with_an_address_that_has_an_account_sends_a_notice_instead_of_a_confirmation()
+    {
+        await using var factory = WithMailpit();
+        var client = factory.CreateClient();
+        var username = $"owner_{Guid.NewGuid():N}"[..20];
+        var email = $"{username}@example.com";
+        await api.RegisterConfirmedAsync(client, email, "Passw0rdX", username);
+
+        var again = await client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Passw0rdX", username = $"x{username}"[..20], displayName = "Other" });
+
+        Assert.Equal(HttpStatusCode.Accepted, again.StatusCode);
+        var notice = await WaitForSubjectAsync(email, "Someone tried to create a TechRat account");
+        var text = notice.GetProperty("Text").GetString()!;
+        Assert.Contains("https://techrat.test/login", text);
+        Assert.Contains("https://techrat.test/forgot-password", text);
+        Assert.Equal(1, await CountMessagesToAsync(email));   // the notice only: the owner got no confirmation link
+    }
+
+    [Fact]
+    public async Task A_new_confirmation_email_can_be_asked_for_once_a_minute()
+    {
+        await using var factory = WithMailpit();
+        var client = factory.CreateClient();
+        var username = $"resend_{Guid.NewGuid():N}"[..20];
+        var email = $"{username}@example.com";
+        await client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Passw0rdX", username, displayName = "Resend" });
+        await WaitForSubjectAsync(email, "Confirm your TechRat account");
+
+        for (var i = 0; i < 3; i++)
+            Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/v1/auth/resend-confirmation", new { email })).StatusCode);
+
+        await Task.Delay(1500);
+        Assert.Equal(2, await CountMessagesToAsync(email)); // the sign-up email and one resend, not three more
+    }
+
+    [Fact]
+    public async Task Resetting_the_password_also_confirms_the_email_because_the_link_went_to_that_mailbox()
+    {
+        await using var factory = WithMailpit();
+        var client = factory.CreateClient();
+        var username = $"recover_{Guid.NewGuid():N}"[..20];
+        var email = $"{username}@example.com";
+        await client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Passw0rdX", username, displayName = "Recover" });
+        // The confirmation email was lost: the person asks for a password reset instead.
+        await client.PostAsJsonAsync("/api/v1/auth/forgot-password", new { email });
+        var code = CodeIn(await WaitForSubjectAsync(email, "Reset your TechRat password"));
+
+        var reset = await client.PostAsJsonAsync("/api/v1/auth/reset-password", new { email, resetCode = code, newPassword = "N3wPassw0rdK" });
+
+        Assert.Equal(HttpStatusCode.NoContent, reset.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "N3wPassw0rdK" })).StatusCode);
+    }
+
     [Fact]
     public async Task Admins_can_send_a_test_email_to_check_the_smtp_settings()
     {
@@ -94,7 +192,7 @@ public class EmailDeliveryTests(TechRatFactory api) : IAsyncLifetime
         var client = factory.CreateClient();
         var username = $"mail_{Guid.NewGuid():N}"[..20];
         var email = $"{username}@example.com";
-        (await client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Passw0rdX", username, displayName = "Mail" })).EnsureSuccessStatusCode();
+        await api.RegisterConfirmedAsync(client, email, "Passw0rdX", username, "Mail");
 
         client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("pt-BR");
         Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/v1/auth/forgot-password", new { email })).StatusCode);
@@ -112,7 +210,7 @@ public class EmailDeliveryTests(TechRatFactory api) : IAsyncLifetime
         var client = factory.CreateClient();
         var username = $"unlock_{Guid.NewGuid():N}"[..20];
         var email = $"{username}@example.com";
-        (await client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Passw0rdX", username, displayName = "Unlock" })).EnsureSuccessStatusCode();
+        await api.RegisterConfirmedAsync(client, email, "Passw0rdX", username, "Unlock");
         for (var i = 0; i < AuthPolicy.MaxFailedAccessAttempts; i++)
             Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = "Wr0ngPassword" })).StatusCode);
         // Locked: even the right password is refused now.
@@ -138,7 +236,7 @@ public class EmailDeliveryTests(TechRatFactory api) : IAsyncLifetime
         var client = factory.CreateClient();
         var username = $"flood_{Guid.NewGuid():N}"[..20];
         var email = $"{username}@example.com";
-        (await client.PostAsJsonAsync("/api/v1/auth/register", new { email, password = "Passw0rdX", username, displayName = "Flood" })).EnsureSuccessStatusCode();
+        await api.RegisterConfirmedAsync(client, email, "Passw0rdX", username, "Flood");
 
         for (var i = 0; i < 4; i++)
             Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync("/api/v1/auth/forgot-password", new { email })).StatusCode);

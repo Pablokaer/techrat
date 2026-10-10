@@ -9,7 +9,10 @@ type Status = "restoring" | "signedIn" | "signedOut";
 interface AuthValue {
   status: Status;
   signIn(email: string, password: string): Promise<void>;
+  /** Creates the account. It does NOT sign in: the API answers 202 and the person must follow the emailed link first. */
   register(input: RegisterInput): Promise<void>;
+  /** Asks for the confirmation email again. The API always answers 202 (no account enumeration). */
+  resendConfirmation(email: string): Promise<void>;
   signOut(): Promise<void>;
   /** Changes (or sets, with no current password) the password; other sessions are signed out, this one keeps going. */
   changePassword(currentPassword: string | null, newPassword: string): Promise<void>;
@@ -50,7 +53,10 @@ export function AuthProvider({ session, children }: { session: BearerSession; ch
         body: { email: input.email, username: input.username, password: input.password, displayName: input.displayName || null },
       }),
     );
-    await session.login(input.email, input.password);
+  }, [session]);
+
+  const resendConfirmation = useCallback(async (email: string) => {
+    await unwrap(session.api.POST("/api/v1/auth/resend-confirmation", { body: { email: email.trim() } }));
   }, [session]);
 
   const signOut = useCallback(() => session.logout(), [session]);
@@ -61,8 +67,8 @@ export function AuthProvider({ session, children }: { session: BearerSession; ch
   const deleteAccount = useCallback((password: string | null, confirmation: string | null) =>
     session.deleteAccount(password, confirmation), [session]);
 
-  const value = useMemo(() => ({ status, signIn, register, signOut, changePassword, deleteAccount }),
-    [status, signIn, register, signOut, changePassword, deleteAccount]);
+  const value = useMemo(() => ({ status, signIn, register, resendConfirmation, signOut, changePassword, deleteAccount }),
+    [status, signIn, register, resendConfirmation, signOut, changePassword, deleteAccount]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

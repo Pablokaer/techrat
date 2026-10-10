@@ -31,6 +31,7 @@ export const auth = {
     passwordUpdated: "Password updated. Sign in with your new password.",
     accountDeleted: "Your account was deleted. Everything tied to it is gone.",
     forgotPassword: "Forgot password?",
+    resendConfirmation: "Send the confirmation email again",
     submit: "Sign in",
     submitting: "Signing in…",
     newHere: "New to TechRat?",
@@ -45,6 +46,22 @@ export const auth = {
     submit: "Create account",
     submitting: "Creating account…",
     haveAccount: "Already have an account?",
+    signIn: "Sign in",
+    checkEmail: {
+      title: "Check your email",
+      text: (email: string) =>
+        `We sent a link to ${email}. Open it to confirm your address and start learning. It works for 24 hours; look in your spam folder if you do not see it.`,
+      resend: "Send the email again",
+      toSignIn: "Go to sign in",
+    },
+  },
+  confirmationResent: "If that address is waiting for confirmation, a new link is on its way.",
+  confirmEmail: {
+    title: "Confirm your email",
+    subtitle: "One moment while we check your link.",
+    working: "Confirming…",
+    done: "Your email is confirmed. You can sign in now.",
+    failed: "This link is invalid, expired or already used. Sign in to get a new one.",
     signIn: "Sign in",
   },
   forgotPassword: {

@@ -56,3 +56,13 @@ describe("localizedFetch", () => {
     spy.mockRestore();
   });
 });
+
+describe("email confirmation texts", () => {
+  it("has natural Portuguese variants that mention the address and the 24 hours", () => {
+    const pt = translations["pt-BR"].emailConfirmation;
+    expect(pt.checkBody("a@b.com")).toContain("a@b.com");
+    expect(pt.checkBody("a@b.com")).toContain("24 horas");
+    expect(pt.resend).not.toBe(translations.en.emailConfirmation.resend);
+    expect(pt.resendSent).not.toBe(translations.en.emailConfirmation.resendSent);
+  });
+});

@@ -882,8 +882,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Create an account with email and password
-         * @description The password has 8 to 128 characters with an uppercase letter, a lowercase letter and a digit, is not a very common password ("Password1", "Summer2024!") and does not contain the username or the part of the email before the @.
+         * Create an account with email and password; it can sign in once the emailed link is followed
+         * @description Answers 202 with the same body whether or not the email already has an account, so the form does not reveal who is registered: a new address gets a confirmation link (valid 24 hours), an existing one gets a notice that someone tried. A taken username is still reported (usernames are public). The password has 8 to 128 characters with an uppercase letter, a lowercase letter and a digit, is not a very common password ("Password1", "Summer2024!") and does not contain the username or the part of the email before the @.
          */
         post: {
             parameters: {
@@ -898,14 +898,105 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Created */
-                201: {
+                /** @description Accepted */
+                202: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["UserSummaryDto"];
+                        "application/json": components["schemas"]["RegistrationAcceptedDto"];
                     };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/confirm-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm the email address with the code from the emailed link
+         * @description Answers 204, or 400 in one shape for an unknown address, a wrong, expired or used code. After this the account can sign in.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConfirmEmailRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/resend-confirmation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send the confirmation email again. Always returns 202 to avoid account enumeration
+         * @description Sent only to an existing account that is not confirmed yet, at most once a minute per address, after the answer.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResendConfirmationRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -926,7 +1017,7 @@ export interface paths {
         put?: never;
         /**
          * Sign in. Web uses useCookies=true (HttpOnly cookie); mobile/desktop receive bearer + refresh tokens
-         * @description Bearer clients get an access token (30 minutes) and a single-use refresh token that belongs to a tracked session. An unknown email costs the same time as a wrong password. Responses are never cacheable; the body is limited to 8 KB.
+         * @description Bearer clients get an access token (30 minutes) and a single-use refresh token that belongs to a tracked session. An unknown email costs the same time as a wrong password. 403 means the password is right but the email is not confirmed yet (only whoever knows the password learns that). Responses are never cacheable; the body is limited to 8 KB.
          */
         post: {
             parameters: {
@@ -2771,6 +2862,10 @@ export interface components {
             moduleSlug: string;
             moduleName: string;
         };
+        ConfirmEmailRequest: {
+            email: string;
+            code: string;
+        };
         DailyActivityDto: {
             /** Format: date */
             date: string;
@@ -3049,6 +3144,12 @@ export interface components {
             password: string;
             username: string;
             displayName: null | string;
+        };
+        RegistrationAcceptedDto: {
+            confirmationRequired: boolean;
+        };
+        ResendConfirmationRequest: {
+            email: string;
         };
         ResetPasswordRequest: {
             email: string;

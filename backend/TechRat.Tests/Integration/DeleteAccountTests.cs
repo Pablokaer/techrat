@@ -303,7 +303,7 @@ public class DeleteAccountTests(TechRatFactory api)
         using var app = api.WithWebHostBuilder(b => b.ConfigureTestServices(s => s.AddSingleton<IAccountEmailSender>(sent)));
         var client = app.CreateClient();
         var username = $"delm_{Guid.NewGuid():N}"[..20];
-        (await client.PostAsJsonAsync("/api/v1/auth/register", new { email = $"{username}@example.com", password = Password, username })).EnsureSuccessStatusCode();
+        await api.RegisterConfirmedAsync(client, $"{username}@example.com", Password, username);
         await TechRatFactory.LoginAsync(client, $"{username}@example.com", Password);
 
         (await DeleteAsync(client, new { password = Password })).EnsureSuccessStatusCode();
@@ -318,7 +318,7 @@ public class DeleteAccountTests(TechRatFactory api)
         using var app = api.WithWebHostBuilder(b => b.ConfigureTestServices(s => s.AddSingleton<IAccountEmailSender>(failing)));
         var client = app.CreateClient();
         var username = $"delf_{Guid.NewGuid():N}"[..20];
-        (await client.PostAsJsonAsync("/api/v1/auth/register", new { email = $"{username}@example.com", password = Password, username })).EnsureSuccessStatusCode();
+        await api.RegisterConfirmedAsync(client, $"{username}@example.com", Password, username);
         await TechRatFactory.LoginAsync(client, $"{username}@example.com", Password);
 
         Assert.Equal(HttpStatusCode.NoContent, (await DeleteAsync(client, new { password = Password })).StatusCode);
