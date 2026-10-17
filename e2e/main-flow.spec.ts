@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { confirmAndSignIn } from "./email";
 
 const password = "Passw0rdX";
@@ -8,17 +8,25 @@ async function topbarXp(page: Page) {
   return Number(text.replace(/[^0-9]/g, ""));
 }
 
-async function answer(page: Page, optionText?: string) {
+/** The text of an answer option, without its letter or the "Correct answer" / "Your answer" badge. */
+const optionText = async (option: Locator) => (await option.locator("span.flex-1").innerText()).trim();
+
+/**
+ * Answers the current question: the option whose text is exactly `knownAnswer`, or the first one. Matching the whole text
+ * matters, since one option can contain another's text (and options are shuffled on every question).
+ */
+async function answer(page: Page, knownAnswer?: string) {
   const options = page.getByRole("radiogroup", { name: "Answer options" }).getByRole("radio");
-  if (optionText) await options.filter({ hasText: optionText }).first().click();
-  else await options.first().click();
+  const texts = await Promise.all((await options.all()).map(optionText));
+  const pick = knownAnswer === undefined ? 0 : texts.indexOf(knownAnswer);
+  expect(pick, `"${knownAnswer}" should be one of ${JSON.stringify(texts)}`).toBeGreaterThanOrEqual(0);
+  await options.nth(pick).click();
   await page.getByRole("button", { name: /submit answer/i }).click();
   const status = page.getByRole("status").filter({ hasText: /Correct!|Incorrect/ });
   await expect(status).toBeVisible();
   const correct = (await status.innerText()).includes("Correct!");
-  const correctText = (await options.filter({ hasText: "Correct answer" }).innerText()).replace(/^[A-D]\s*/, "").replace(/\s*Correct answer\s*$/, "").trim();
-  const question = (await page.locator("h1, .text-lg.font-semibold, .sm\\:text-xl").first().innerText()).trim();
-  return { correct, correctText, question };
+  const correctText = await optionText(options.filter({ hasText: "Correct answer" }));
+  return { correct, correctText };
 }
 
 test("register → login → practice Data Structures → earn XP → progress → profile", async ({ page }) => {
@@ -57,29 +65,31 @@ test("register → login → practice Data Structures → earn XP → progress �
   await page.getByRole("button", { name: /start practice/i }).click();
   await expect(page).toHaveURL(/\/practice\/session/);
 
-  // Answer every question in the session, remembering the revealed correct answers.
+  // Answer every question, remembering the correct answers each one reveals. A question seen before is answered with
+  // its revealed answer, so it must be right. If luck fails, practise again until one answer is right: missed questions
+  // come back, but mixed with new ones and in any order.
   const learned = new Map<string, string>();
   let earned = false;
-  for (;;) {
-    const q = (await page.locator("main [class*='sm:text-xl']").first().innerText()).trim();
-    const r = await answer(page);
-    learned.set(q, r.correctText);
-    if (r.correct) earned = true;
-    const next = page.getByRole("button", { name: /next question|see results/i });
-    const last = (await next.innerText()).includes("See results");
-    await next.click();
-    if (last) break;
-  }
-  await expect(page.getByRole("heading", { name: "Session complete" })).toBeVisible();
-
-  // If luck failed, practise again: missed questions come back and we now know the answers.
-  if (!earned) {
-    await page.getByRole("link", { name: /practice again/i }).click();
-    await page.getByRole("button", { name: /start practice/i }).click();
-    await expect(page).toHaveURL(/\/practice\/session/);
-    const q = (await page.locator("main [class*='sm:text-xl']").first().innerText()).trim();
-    const r = await answer(page, learned.get(q));
-    expect(r.correct).toBe(true);
+  for (let session = 1; !earned; session++) {
+    expect(session, "no correct answer after 5 practice sessions").toBeLessThanOrEqual(5);
+    if (session > 1) {
+      await page.getByRole("link", { name: /practice again/i }).click();
+      await page.getByRole("button", { name: /start practice/i }).click();
+      await expect(page).toHaveURL(/\/practice\/session/);
+    }
+    for (;;) {
+      const q = (await page.locator("main [class*='sm:text-xl']").first().innerText()).trim();
+      const known = learned.get(q);
+      const r = await answer(page, known);
+      if (known !== undefined) expect(r.correct, `the remembered answer to "${q}"`).toBe(true);
+      learned.set(q, r.correctText);
+      if (r.correct) earned = true;
+      const next = page.getByRole("button", { name: /next question|see results/i });
+      const last = (await next.innerText()).includes("See results");
+      await next.click();
+      if (last) break;
+    }
+    await expect(page.getByRole("heading", { name: "Session complete" })).toBeVisible();
   }
 
   // Received XP (question XP + daily streak bonus) is reflected in the top bar.
