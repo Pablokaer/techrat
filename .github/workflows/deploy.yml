@@ -1,8 +1,9 @@
 name: Deploy
 
 # Continuous deployment to the production VPS (see docs/deploy.md): when CI passes on main, SSH into the server with a
-# key that can only run deploy/deploy.sh, passing the tested commit. The server pulls that commit, rebuilds the stack
-# and rolls back by itself if the new version is not healthy.
+# key that can only run deploy/deploy.sh, passing the tested commit (deploy/remote-deploy.sh). The server pulls that
+# commit, rebuilds the stack and rolls back by itself if the new version is not healthy. Some runners never reached the
+# SSH port while the site stayed up; when that happens the second job tries again from a fresh runner.
 # Manual run: Actions → Deploy → Run workflow (deploys the tip of main).
 #
 # Repository secrets: VPS_HOST (server IP), VPS_SSH_KEY (private deploy key), VPS_KNOWN_HOSTS (`ssh-keyscan <ip>`).
@@ -31,20 +32,51 @@ jobs:
     environment:
       name: production
       url: https://techrat.io
+    outputs:
+      unreachable: ${{ steps.deploy.outputs.unreachable }}
     steps:
-      - name: Configure SSH
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: deploy }
+      - name: Deploy
+        id: deploy
         env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          # The server ignores the remote command except for this sha (forced command); empty means the tip of main.
+          SHA: ${{ github.event.workflow_run.head_sha || '' }}
+        # Exit 75: the server's SSH port never answered this runner, so the next job deploys from another one. Any other
+        # failure (key refused, deploy.sh rolled back) is final.
         run: |
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          code=0
+          bash deploy/remote-deploy.sh "$SHA" || code=$?
+          if [ "$code" -eq 75 ]; then
+            echo "unreachable=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::The server did not answer this runner; deploying from another runner."
+            exit 0
+          fi
+          exit "$code"
+      - name: Smoke test
+        if: steps.deploy.outputs.unreachable != 'true'
+        run: curl -fsS --retry 5 --retry-delay 5 --retry-all-errors -o /dev/null https://techrat.io/
+
+  deploy-from-another-runner:
+    name: Deploy to production (another runner)
+    needs: deploy
+    if: needs.deploy.outputs.unreachable == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://techrat.io
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: deploy }
       - name: Deploy
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
           SHA: ${{ github.event.workflow_run.head_sha || '' }}
-        # The server ignores the remote command except for this sha (forced command); empty means the tip of main.
-        run: ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes -o BatchMode=yes "root@$VPS_HOST" "$SHA"
+        run: bash deploy/remote-deploy.sh "$SHA"
       - name: Smoke test
         run: curl -fsS --retry 5 --retry-delay 5 --retry-all-errors -o /dev/null https://techrat.io/
