@@ -8,4 +8,7 @@ module.exports = {
     "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@techrat/.*|openapi-fetch|zod))",
   ],
   testMatch: ["<rootDir>/src/**/*.test.ts?(x)"],
+  // The first render in a file loads and transforms the React Native and Expo modules it needs: about 5.4 s without
+  // jest's cache on two workers (as in CI), just over the 5 s default, while the next tests take milliseconds.
+  testTimeout: 30_000,
 };
