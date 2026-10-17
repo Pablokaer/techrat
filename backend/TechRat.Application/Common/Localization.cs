@@ -390,7 +390,7 @@ public sealed class ContentLocalizer(IAppDbContext db, ICacheService cache)
         if (locale == AppLocales.Default) return ContentTranslations.None;
         if (_loaded.TryGetValue(locale, out var loaded)) return loaded;
         // Question texts are loaded per session (LoadQuestionsAsync); the cached dictionary holds the small catalog only.
-        var values = await cache.GetOrCreateAsync(CacheKeys.Translations(locale), TimeSpan.FromMinutes(10), async c =>
+        var values = await cache.GetOrCreateWithLocalCopyAsync(CacheKeys.Translations(locale), TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(1), async c =>
             (await db.ContentTranslations.AsNoTracking()
                 .Where(t => t.Locale == locale && t.EntityType != TranslatableEntity.Question && t.EntityType != TranslatableEntity.QuestionOption)
                 .Select(t => new { t.EntityType, t.EntityId, t.Field, t.Value }).ToListAsync(c))

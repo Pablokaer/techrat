@@ -51,6 +51,8 @@ public static class LeaderboardPeriods
 public sealed class LeaderboardService(IAppDbContext db, ICacheService cache, TimeProvider clock)
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromSeconds(30);
+    // Each API instance also keeps a page in memory this long, so a page can be up to about 40 s old (ADR-0034).
+    private static readonly TimeSpan LocalTtl = TimeSpan.FromSeconds(10);
 
     private sealed record Page(List<Row> Rows, int Total);
 
@@ -85,10 +87,10 @@ public sealed class LeaderboardService(IAppDbContext db, ICacheService cache, Ti
                 ?? throw new NotFoundException("Topic", topicSlug);
         }
 
-        var cached = await cache.GetOrCreateAsync(CacheKeys.Leaderboard(scope.ToString(), topicSlug, p, size), Ttl,
+        var cached = await cache.GetOrCreateWithLocalCopyAsync(CacheKeys.Leaderboard(scope.ToString(), topicSlug, p, size), Ttl, LocalTtl,
             async c => await LoadPageAsync(scope, topicId, periodStart, p, size, c), ct);
         var (rows, total) = (cached.Rows, cached.Total);
-        // A page may be cached for 30 s: learners who opted out or deleted their account meanwhile disappear at once
+        // A page may be cached for up to about 40 s: learners who opted out or deleted their account meanwhile disappear at once
         // (coming back takes the TTL). Only profiles that still exist and take part stay.
         var ids = rows.Select(r => r.UserId).ToList();
         var visible = await db.UserProfiles.AsNoTracking().Where(u => ids.Contains(u.Id) && u.ShowOnLeaderboard).Select(u => u.Id).ToListAsync(ct);
