@@ -54,10 +54,26 @@ public interface ICurrentUser
     Guid RequireUserId() => UserId ?? throw new UnauthorizedAccessException();
 }
 
-/// <summary>Cache-aside abstraction backed by Redis (or in-memory when Redis is not configured).</summary>
+/// <summary>
+/// Cache-aside abstraction backed by Redis (or in-memory when Redis is not configured). GetOrCreate entries and Get/Set
+/// entries are stored differently (ADR-0034): never use both kinds on the same key.
+/// </summary>
 public interface ICacheService
 {
+    /// <summary>
+    /// The cached value, or the factory's result stored for <paramref name="ttl"/>. Every read asks the shared cache, so a
+    /// removal is seen by every API instance at once: use it for security state (account exists, email throttles).
+    /// </summary>
     Task<T> GetOrCreateAsync<T>(string key, TimeSpan ttl, Func<CancellationToken, Task<T>> factory, CancellationToken ct = default);
+
+    /// <summary>
+    /// Like <see cref="GetOrCreateAsync{T}"/>, but each API instance also keeps the value in its own memory for up to
+    /// <paramref name="localTtl"/>, so hot reads skip the trip to the shared cache. After a change another instance can
+    /// serve the old value for that long: only for content (catalog, translations, leaderboards), never for security state.
+    /// </summary>
+    Task<T> GetOrCreateWithLocalCopyAsync<T>(string key, TimeSpan ttl, TimeSpan localTtl, Func<CancellationToken, Task<T>> factory, CancellationToken ct = default) =>
+        GetOrCreateAsync(key, ttl, factory, ct);
+
     /// <summary>The cached value, or default when there is none (or the cache is down: callers must cope with a miss).</summary>
     Task<T?> GetAsync<T>(string key, CancellationToken ct = default);
 

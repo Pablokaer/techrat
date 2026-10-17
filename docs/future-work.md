@@ -168,6 +168,8 @@ Trigger: the load test shows API CPU as the bottleneck, or a single instance is 
 - [ ] **Read replica** for read-heavy endpoints (catalog, leaderboards, profiles), with the answer transaction staying on the primary.
 - [ ] **Cache the hot reads deliberately:** leaderboards and catalog in Redis with short TTLs and explicit invalidation
   from the outbox events that already exist; the home dashboard per user with a short TTL. Measure hit rate.
+  Done (ADR-0034): a two-level cache (HybridCache) with a short in-memory copy per instance for the catalog, translations
+  and leaderboards, and one query per expired key. Open: outbox invalidation, the dashboard and hit-rate metrics.
 - [ ] **Redis with persistence or replication** only if something starts depending on it beyond cache (rate limit
   counters can be lost safely; a lost cache must stay harmless).
 

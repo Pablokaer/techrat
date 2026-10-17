@@ -54,7 +54,7 @@ public sealed class CatalogService(IAppDbContext db, ICacheService cache, Conten
 
     /// <summary>Topics in the base language (cached once for every locale).</summary>
     private Task<List<TopicDto>> BaseTopicsAsync(CancellationToken ct) =>
-        cache.GetOrCreateAsync(CacheKeys.Topics, TimeSpan.FromMinutes(10), async c =>
+        cache.GetOrCreateWithLocalCopyAsync(CacheKeys.Topics, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(1), async c =>
         {
             var topics = await db.Topics.AsNoTracking().Where(t => t.IsActive).OrderBy(t => t.DisplayOrder)
                 .Select(t => new { t.Id, t.Slug, t.Name, t.Description, t.Category, t.Icon, t.DisplayOrder,
