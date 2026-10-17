@@ -110,6 +110,14 @@ push to main ─► CI (.github/workflows/ci.yml) ─► success ─► Deploy (
                                                               └─ ssh root@VPS "<sha>" ─► /opt/techrat/deploy/deploy.sh
 ```
 
+The runner side is `deploy/remote-deploy.sh`. It connects with a 20-second timeout and tries up to three times, but only
+when the connection never got through: a refused key or a failed deploy is final. Some runners have not reached port 22
+at all while the site stayed up (2026-10-06, 10-08 and 10-17; a re-run from another runner always worked). When that
+happens the script prints the runner's public IP and exits 75, and the workflow's second job deploys from a fresh runner.
+If the warning *"The server did not answer this runner"* shows up often, look for that IP in the server's firewall:
+`fail2ban-client status sshd` (if fail2ban is installed), `ufw status verbose`, `journalctl -u ssh --since "1 hour ago"`
+and the Hostinger panel firewall. A ban on a shared GitHub runner IP would explain the timeouts.
+
 `deploy/deploy.sh` runs on the server: it fetches `origin/main`, checks out the tested commit (skipped when a newer
 commit is already on `main`, whose own run will deploy it), runs `docker compose -f docker-compose.prod.yml up -d --build`,
 waits until `127.0.0.1:5080/health/ready` and `127.0.0.1:3000` answer, and prunes old TechRat images. If the new
