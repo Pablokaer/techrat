@@ -4,7 +4,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using TechRat.Infrastructure.Outbox;
 using TechRat.Infrastructure.Persistence;
@@ -66,6 +68,7 @@ public sealed class TechRatFactory : WebApplicationFactory<Program>, IAsyncLifet
         builder.UseSetting("RateLimiting:AnswersPerMinute", "10000");
         builder.UseSetting("RateLimiting:UploadsPerMinute", "10000");
         builder.UseSetting("Outbox:Enabled", "false"); // tests drive the dispatcher explicitly for determinism
+        builder.ConfigureTestServices(s => s.AddSingleton<IDistributedCache, RedisStandIn>());
     }
 
     public new async Task DisposeAsync()

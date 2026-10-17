@@ -25,12 +25,7 @@ public static class DependencyInjection
             .UseSnakeCaseNamingConvention());
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
 
-        var redis = configuration.GetConnectionString("Redis");
-        if (!string.IsNullOrWhiteSpace(redis))
-            services.AddStackExchangeRedisCache(o => { o.Configuration = redis; o.InstanceName = "techrat:"; });
-        else
-            services.AddDistributedMemoryCache();
-        services.AddSingleton<ICacheService, DistributedCacheService>();
+        services.AddCaching(configuration.GetConnectionString("Redis"));
 
         services.AddSingleton<OutboxSignal>();
         services.AddSingleton<IOutboxSignal>(sp => sp.GetRequiredService<OutboxSignal>());
@@ -73,5 +68,20 @@ public static class DependencyInjection
             await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_unlock(7428301)", ct);
             await db.Database.CloseConnectionAsync();
         }
+    }
+
+    /// <summary>
+    /// The shared cache (Redis, or in-memory without a connection string), HybridCache over it for the local copies, and
+    /// <see cref="ICacheService"/> (ADR-0034).
+    /// </summary>
+    public static IServiceCollection AddCaching(this IServiceCollection services, string? redisConnection)
+    {
+        if (!string.IsNullOrWhiteSpace(redisConnection))
+            services.AddStackExchangeRedisCache(o => { o.Configuration = redisConnection; o.InstanceName = "techrat:"; });
+        else
+            services.AddDistributedMemoryCache();
+        services.AddHybridCache();
+        services.AddSingleton<ICacheService, HybridCacheService>();
+        return services;
     }
 }

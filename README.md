@@ -299,7 +299,7 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | Layer | Technology | Why (ADR) |
 |---|---|---|
 | API | ASP.NET Core 10, EF Core 10 (Npgsql, snake_case naming), ASP.NET Core Identity, SignalR, OpenAPI + Scalar docs | Modular monolith (0001), business rules on the server (0007) |
-| Data | PostgreSQL 17 as the source of truth (including profile photos and Data Protection keys); Redis 7 as a cache only | 0002, 0003, 0017 |
+| Data | PostgreSQL 17 as the source of truth (including profile photos and Data Protection keys); Redis 7 as a cache only, with a short in-memory copy per instance (HybridCache) | 0002, 0003, 0017, 0034 |
 | Background work | Transactional outbox processed by a `BackgroundService`; email via MailKit (Mailpit in development) | 0009 |
 | Observability | OpenTelemetry (ASP.NET Core, HTTP, runtime, Npgsql) over OTLP, health checks, rate limiting | |
 | Web | Next.js 16, React 19, Tailwind CSS 4, TanStack Query, Recharts | 0004 |
@@ -330,7 +330,7 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 
 * **Backend:** a modular monolith. `Domain` holds the entities and pure rules, `Application` the use cases, `Infrastructure` EF Core, Redis, the outbox, email and seed, `Modules` the HTTP endpoints and `Api` the host. All business rules live in the backend (ADR-0007). Dependencies point inwards: `Domain` knows nothing, `Application` depends on `Domain` and on abstractions (`IAppDbContext`, `ICacheService`, `ICurrentUser`) that `Infrastructure` and `Modules` implement. Each feature area is an `IEndpointModule` mapped under `/api/v1`.
 * **Clients:** web, mobile and desktop hold no business rules. They render what the API returns (unlock state, step status, XP) and call it through the typed client generated from the OpenAPI document (`npm run generate:api`), so a contract change fails the type check in every client.
-* **Data and caching:** PostgreSQL is the only store of truth; Redis only caches (the catalog, leaderboards) and the API works without it. Content (topics, questions, roadmaps, achievements and their pt-BR translations) is seeded from JSON at startup and is idempotent.
+* **Data and caching:** PostgreSQL is the only store of truth; Redis only caches and the API works without it. The cache has two levels (HybridCache, ADR-0034): the catalog, translations and leaderboards also keep a short copy in each API instance's memory, concurrent misses run one query, and security state (deleted accounts, email throttles, refresh sessions) is always read from Redis. Content (topics, questions, roadmaps, achievements and their pt-BR translations) is seeded from JSON at startup and is idempotent.
 * **Delivery:** CI builds with warnings as errors and runs every suite; merges to `main` deploy to the VPS over a restricted SSH key, and `dev` is promoted to `main` through a gate (ADR-0013, ADR-0021).
 * **Answer flow:** grading, the attempt, the XP ledger, user and topic progress, the streak and roadmap steps are written in **one transaction**. Achievements, the rank snapshot and realtime notifications go through a **transactional outbox** (ADR-0009).
 * **Auth:** ASP.NET Core Identity. The web app uses an HttpOnly cookie. Mobile and desktop use bearer and refresh tokens (ADR-0008).
@@ -536,7 +536,7 @@ CI (`.github/workflows/ci.yml`) runs the backend build (warnings as errors) and 
 * **Question types:** only MultipleChoice is playable. The other types are modeled for future use.
 * On the very first startup, EF logs one expected `fail:` line while it probes for the migrations history table.
 * Social features (duels, friends, teams, community) and AI recommendations are P2 and not implemented. The Community page says so.
-* **Profile photos:** HEIC can be picked on iOS and in Safari; other browsers cannot decode it and ask for a JPG or PNG. Leaderboards cache rows for a few minutes, so other learners may see a new photo with that delay. The mobile photo screens are English-only, like the rest of the mobile app.
+* **Profile photos:** HEIC can be picked on iOS and in Safari; other browsers cannot decode it and ask for a JPG or PNG. Leaderboards cache rows for up to about 40 seconds, so other learners may see a new photo with that delay. The mobile photo screens are English-only, like the rest of the mobile app.
 * **Study resources** cover every roadmap and module, but links rot: re-run `python3 scripts/seed-src/validate_resources.py --check-urls` before releases. Microsoft Learn rate-limits scripts (HTTP 429), so check it slowly. The mobile app does not show them, nor the topic study library, yet.
 * **Junior recommendations** are curated in `scripts/seed-src/roadmaps.py` (`JUNIOR_TOP`) and have no admin screen. The mobile app receives `juniorRank` but has no "Recommended for juniors" filter yet (ADR-0015).
 * **Portuguese coverage:** the mobile app is translated only on its newest screens (version label, delete account, legal rows, register consent), and translations of questions and catalog texts can only be changed through the seed files (the admin area edits the English text).

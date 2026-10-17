@@ -60,7 +60,7 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
         int EstimatedHours, int StepsCount, string Icon, int XpReward, int DisplayOrder, int? JuniorRank, List<string> Prerequisites, List<LinkRow> Links);
 
     private Task<List<CatalogRow>> CatalogAsync(CancellationToken ct) =>
-        cache.GetOrCreateAsync(CacheKeys.Roadmaps, TimeSpan.FromMinutes(10), async c =>
+        cache.GetOrCreateWithLocalCopyAsync(CacheKeys.Roadmaps, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(1), async c =>
             await db.Roadmaps.AsNoTracking().Where(r => r.IsPublished).OrderBy(r => r.DisplayOrder)
                 .Select(r => new CatalogRow(r.Id, r.Slug, r.Name, r.Description, r.Category, r.Difficulty, r.EstimatedHours,
                     r.StepsCount, r.Icon, r.XPReward, r.DisplayOrder, r.JuniorRank,
