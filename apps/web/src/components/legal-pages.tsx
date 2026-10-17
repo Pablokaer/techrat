@@ -12,8 +12,11 @@ import type { LegalDocument } from "@/i18n/messages/en/legal";
 import { LEGAL } from "@/lib/legal";
 import { useMe } from "@/lib/queries";
 
-/** Highlights {{…}} spans (the TODO markers for the owner and the lawyer) and drops the braces. */
-function RichText({ text }: { text: string }) {
+/**
+ * Highlights {{…}} spans (the TODO markers for the owner and the lawyer) and drops the braces. Exported for its own test:
+ * no text uses a marker today, so the pages alone would not notice if it broke.
+ */
+export function RichText({ text }: { text: string }) {
   return (
     <>
       {text.split(/\{\{(.+?)\}\}/g).map((part, i) =>
@@ -29,7 +32,7 @@ function DraftNotice() {
   if (!LEGAL.draft) return null;
   return (
     <>
-      <div hidden dangerouslySetInnerHTML={{ __html: "<!-- DRAFT: pending legal review. Resolve every TODO(legal) / TODO(owner) and set LEGAL.draft to false (src/lib/legal.ts) before publishing. -->" }} />
+      <div hidden dangerouslySetInnerHTML={{ __html: "<!-- DRAFT: pending legal review. Set LEGAL.draft to false (src/lib/legal.ts) only after a lawyer has reviewed this page. -->" }} />
       <aside role="note" className="mt-6 rounded-xl border border-warning/50 bg-warning/10 px-4 py-3 text-sm">
         <p className="font-semibold text-warning">{t.title}</p>
         <p className="mt-1 text-text-secondary">{t.text}</p>

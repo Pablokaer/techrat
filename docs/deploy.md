@@ -135,9 +135,14 @@ start. The untracked `/opt/techrat/.env` is never touched. Log: `/var/log/techra
   03:15 server time. It writes `/opt/techrat-backups/techrat-<timestamp>.sql.gz` (root only) and deletes dumps older than 14
   days, but only after the new dump was written and checked. Log: `/var/log/techrat-backup.log`. Run it by hand with
   `bash /opt/techrat/deploy/backup.sh`. Restore: `gunzip -c <file> | docker compose -f docker-compose.prod.yml exec -T postgres psql -U techrat techrat`
-  (into an empty database). The dumps stay on the same server, so they do not survive losing it: copy them elsewhere
-  (for example `rsync` to another machine) or turn on the Hostinger VPS backups as well. `.env` is not part of the dump
-  on purpose; keep it in a separate backup (see the certificate note above).
+  (into an empty database). The dumps stay on the same server, so they do not survive losing it. A copy elsewhere is
+  worth having, but the privacy policy promises two things about it: the data stays in the United Kingdom (or the EEA)
+  and backups are deleted after 14 days. So keep any copy in the UK or the EEA and mirror the folder with deletions, for
+  example `rsync -a --delete /opt/techrat-backups/ <host>:<dir>/` after the daily backup, so the copy never holds a dump
+  older than 14 days. The Hostinger VPS backups are whole-server snapshots kept where and for as long as Hostinger
+  decides: turn them on only after checking both, and update sections 7 and 8 of the policy and the account-deletion page
+  (both languages) in the same change if they differ. `.env` is not part of the dump on purpose; keep it in a separate
+  backup (see the certificate note above).
 - **Log retention (ADR-0033):** the containers keep 3 x 10 MB of logs each and overwrite them after that. The same cron file
   deletes Apache `techrat-*.log*` files not written in the last 30 days (with the weekly logrotate of the Apache package,
   an entry lives at most about 40 days). The privacy policy states these periods; change both together.

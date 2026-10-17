@@ -113,8 +113,8 @@ eas build --platform android --profile production
 | Account deletion web link | `https://techrat.io/account/delete` |
 | Terms (store listing, optional) | `https://techrat.io/terms` |
 
-Both legal pages are **drafts that need legal review** (a banner says so; no `TODO` marker is left: the operator, contact email, Irish law, minimum age 16, Hostinger in
-Manchester (UK, EU adequacy decision), Resend in Ireland, backup and log periods are filled in, see [ADR-0033](adr/0033-backups-log-retention-and-irish-legal-basis.md)). Do not submit to production before a review.
+Both legal pages are **drafts that need legal review** (a banner says so; no `TODO` marker is left: the operator, contact email, Irish law, minimum age 16, Hostinger in the
+United Kingdom (EU adequacy decision until 27 December 2031), Resend in Ireland, backup and log periods are filled in, see [ADR-0033](adr/0033-backups-log-retention-and-irish-legal-basis.md)). Do not submit to production before a review.
 
 ## Automating later (not enabled)
 

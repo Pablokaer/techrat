@@ -32,8 +32,18 @@ Hostinger VPS, email through Resend's European region (Ireland), no wish for a c
 ## Consequences
 
 - Backups live on the same server: they protect against mistakes and a corrupted database, not against losing the
-  server. Copy them elsewhere or enable the Hostinger VPS backups (documented in `docs/deploy.md`).
+  server. Any copy elsewhere (an off-site mirror, the Hostinger VPS snapshots, a managed database later) must keep the
+  policy true: stored in the United Kingdom or the EEA and deleted after 14 days, or the policy changes in the same
+  change (`docs/deploy.md` shows a mirror that keeps both).
 - Deleted accounts remain in backups for up to 14 days; the policy says so.
 - The server is in Manchester, United Kingdom: outside the EEA but covered by the European Commission's adequacy decision
-  for the UK, so the policy states no extra safeguard for it (revisit if the decision is withdrawn or the server moves).
+  for the UK, renewed on 19 December 2025 and valid until 27 December 2031, so the policy states no extra safeguard for
+  it. The public text names only the country, which is what the GDPR transfer disclosure needs, so a move within the UK
+  does not change it. A test fails once 27 December 2031 has passed; revisit earlier if the decision is suspended or
+  withdrawn (the Commission's review is due four years after the renewal, around December 2029) or the server leaves
+  the UK.
+- The adequacy decision covers where the data goes, not the processing contract: Hostinger, like Resend, must process
+  data under a data processing agreement (GDPR Art. 28). Hostinger publishes one (`https://www.hostinger.com/legal/dpa`).
+  The policy says both providers work under one, and the Play checklist (`docs/play-store/data-safety.md`) asks the
+  owner to confirm it.
 - Still open: a review by a solicitor, then `LEGAL.draft = false`.

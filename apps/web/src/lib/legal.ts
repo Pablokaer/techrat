@@ -11,8 +11,9 @@ export const LEGAL = {
   effectiveDate: "2026-10-10",
   /**
    * While true, the privacy policy, the terms and the account-deletion page show a banner saying they are a draft that
-   * still needs legal review, so nobody publishes them unnoticed. Set to false only after the review, once every
-   * TODO(legal) marker in the messages has been resolved.
+   * still needs legal review, so nobody publishes them unnoticed. Set to false only after a lawyer has reviewed them
+   * (still open, ADR-0033): having no TODO marker left is not enough. The legal-pages tests expect the banner, so they
+   * have to change with it.
    */
   draft: true,
 };
