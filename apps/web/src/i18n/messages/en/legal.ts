@@ -17,8 +17,9 @@ export interface LegalDocument {
  * Privacy policy, terms and the public account-deletion page (and the links to them).
  *
  * Text written as {{TODO(legal): …}} / {{TODO(owner): …}} marks a fact the code cannot prove. The renderer highlights it
- * and keeps the "TODO" visible on purpose, so the draft cannot be published unnoticed. Resolve every marker (and set
- * LEGAL.draft to false in lib/legal.ts) only after legal review; keep the pt-BR file in step.
+ * and keeps the "TODO" visible on purpose, so the draft cannot be published unnoticed; the legal-pages tests fail while
+ * one is open. None is open today, but LEGAL.draft (lib/legal.ts) stays true until a lawyer has reviewed the texts.
+ * Keep the pt-BR file in step.
  * Facts here come from the code: see docs/play-store/data-safety.md for the evidence behind each statement.
  */
 export const legal = {
@@ -36,7 +37,7 @@ export const legal = {
   },
   draft: {
     title: "Draft: pending legal review",
-    text: "This text was prepared from how the product works today and has not been reviewed by a lawyer yet. Items marked TODO still need to be confirmed before this page is published as final.",
+    text: "This text was prepared from how the product works today and has not been reviewed by a lawyer yet. It may still change before it is published as final.",
   },
   consent: {
     before: "By creating an account you agree to the ",
@@ -141,7 +142,7 @@ export const legal = {
       },
       {
         heading: "6. Who we share data with",
-        paragraphs: ["We do not sell or share your data for advertising. We use service providers that only process data on our behalf:"],
+        paragraphs: ["We do not sell or share your data for advertising. We use service providers that only process data on our behalf, under a data processing agreement:"],
         items: [
           "Hosting: TechRat runs on a virtual private server from Hostinger that holds the database (see section 7 for where it is).",
           "Email delivery, as described above.",
@@ -152,7 +153,7 @@ export const legal = {
       },
       {
         heading: "7. International transfers",
-        paragraphs: ["Your data is stored on the Hostinger server described above, in a data centre in Manchester, United Kingdom. The United Kingdom is outside the European Economic Area, but the European Commission recognises it as providing an adequate level of data protection (an adequacy decision), so no further safeguard is needed for that transfer. Emails are processed in Ireland by Resend, as described in section 4. Where another provider is outside the European Economic Area, transfers rely on an adequacy decision or on the European Commission’s standard contractual clauses."],
+        paragraphs: ["Your data is stored on the Hostinger server described above, in a data centre in the United Kingdom. The United Kingdom is outside the European Economic Area, but the European Commission recognises it as providing an adequate level of data protection (an adequacy decision, renewed in December 2025 and valid until 27 December 2031), so no further safeguard is needed for that transfer. Emails are processed in Ireland by Resend; because Resend is a United States company, any transfer to it relies on the safeguards of its data processing agreement, as described in section 4."],
       },
       {
         heading: "8. How long we keep data",

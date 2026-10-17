@@ -57,8 +57,9 @@ Today (`deploy/deploy.sh`, ADR-0013): if the new version is not healthy, the pre
 Done (ADR-0033): a daily `pg_dump` (`deploy/backup.sh`, installed in cron by every deploy), 14 days of retention, stated in
 the privacy policy.
 
-- [ ] Copy the dumps **off the server** (object storage or another machine): today they die with the VPS. Also take one
-  right **before every deploy**.
+- [ ] Copy the dumps **off the server** (object storage or another machine): today they die with the VPS. The copy must
+  stay in the UK or the EEA and drop dumps older than 14 days, as the privacy policy promises (`docs/deploy.md`). Also
+  take one right **before every deploy**.
 - [ ] **Restore test**, written down and repeated (monthly). A backup that was never restored is a guess.
 - [ ] Later: continuous archiving (WAL) for point-in-time recovery, see stage 2.
 

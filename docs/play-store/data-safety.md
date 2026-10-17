@@ -105,10 +105,14 @@ storage (`expo-secure-store`); neither has its own checkbox.
 2. **Company name and contact email** (`LEGAL` in `apps/web/src/lib/legal.ts`): currently `Pablo Carvalho` and
    `pablo.luan.carvalho@gmail.com`. Make sure the mailbox is monitored; the Play listing's developer email should
    match it. Replace both with the company's legal name and a `privacy@techrat.io` mailbox if you create one.
-3. **Hosting.** The policy names Hostinger (VPS, Manchester, United Kingdom, covered by the EU adequacy decision) and Resend
-   (Ireland); the backup and log periods are automatic (`deploy/backup.sh`, ADR-0033). Keep the policy in line if the server moves.
-4. **Is Resend's data processing agreement in place?** The policy says transfers to Resend rely on it; check the Resend
-   dashboard.
+3. **Hosting.** The server is a Hostinger VPS in Manchester. The policy names Hostinger and only the country (United
+   Kingdom, covered by the EU adequacy decision until 27 December 2031), and Resend (Ireland); the backup and log periods
+   are automatic (`deploy/backup.sh`, ADR-0033). Keep the policy in line if the server leaves the UK, if backups are
+   copied elsewhere (they must stay in the UK or the EEA and follow the 14 days, `docs/deploy.md`) or when the adequacy
+   decision is renewed or ends.
+4. **Are the data processing agreements in place?** The policy says Hostinger and Resend process data under one (GDPR
+   Art. 28; the adequacy decision covers only where the data goes, not this contract). Confirm that Hostinger's
+   (`https://www.hostinger.com/legal/dpa`) applies to your account and that Resend's is accepted in the Resend dashboard.
 5. **IP addresses.** Any HTTPS request reveals the client IP to the server. It is kept in Apache access logs
    (`deploy/apache/techrat.conf`, combined format) and used as an in-memory rate-limit key. Play does not list "IP
    address" as its own data type; if you want to be conservative, read Google's Data safety FAQ and decide whether this

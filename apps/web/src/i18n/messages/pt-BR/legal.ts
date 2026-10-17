@@ -19,7 +19,7 @@ export const legal: Messages["legal"] = {
   },
   draft: {
     title: "Rascunho: aguardando revisão jurídica",
-    text: "Este texto foi preparado a partir do funcionamento atual do produto e ainda não foi revisado por um advogado. Os itens marcados com TODO precisam ser confirmados antes de esta página ser publicada como definitiva.",
+    text: "Este texto foi preparado a partir do funcionamento atual do produto e ainda não foi revisado por um advogado. Ele ainda pode mudar antes de ser publicado como definitivo.",
   },
   consent: {
     before: "Ao criar uma conta, você concorda com os ",
@@ -124,7 +124,7 @@ export const legal: Messages["legal"] = {
       },
       {
         heading: "6. Com quem compartilhamos dados",
-        paragraphs: ["Não vendemos nem compartilhamos seus dados para publicidade. Usamos prestadores de serviço que apenas processam dados em nosso nome:"],
+        paragraphs: ["Não vendemos nem compartilhamos seus dados para publicidade. Usamos prestadores de serviço que apenas processam dados em nosso nome, sob um acordo de processamento de dados:"],
         items: [
           "Hospedagem: o TechRat roda em um servidor privado virtual da Hostinger que guarda o banco de dados (veja a seção 7 para saber onde ele fica).",
           "Envio de e-mails, como descrito acima.",
@@ -135,7 +135,7 @@ export const legal: Messages["legal"] = {
       },
       {
         heading: "7. Transferências internacionais",
-        paragraphs: ["Seus dados ficam armazenados no servidor da Hostinger descrito acima, em um data center em Manchester, Reino Unido. O Reino Unido está fora do Espaço Econômico Europeu, mas a Comissão Europeia o reconhece como detentor de um nível adequado de proteção de dados (decisão de adequação), então essa transferência não exige outra salvaguarda. Os e-mails são processados na Irlanda pela Resend, como descrito na seção 4. Quando outro provedor estiver fora do Espaço Econômico Europeu, as transferências se apoiam em uma decisão de adequação ou nas cláusulas contratuais padrão da Comissão Europeia."],
+        paragraphs: ["Seus dados ficam armazenados no servidor da Hostinger descrito acima, em um data center no Reino Unido. O Reino Unido está fora do Espaço Econômico Europeu, mas a Comissão Europeia o reconhece como detentor de um nível adequado de proteção de dados (decisão de adequação, renovada em dezembro de 2025 e válida até 27 de dezembro de 2031), então essa transferência não exige outra salvaguarda. Os e-mails são processados na Irlanda pela Resend; como a Resend é uma empresa dos Estados Unidos, qualquer transferência para ela se apoia nas salvaguardas do seu acordo de processamento de dados, como descrito na seção 4."],
       },
       {
         heading: "8. Por quanto tempo guardamos os dados",
