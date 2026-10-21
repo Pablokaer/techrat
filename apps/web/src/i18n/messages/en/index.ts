@@ -17,6 +17,7 @@ import { roadmaps } from "./roadmaps";
 import { modules } from "./modules";
 import { admin } from "./admin";
 import { legal } from "./legal";
+import { catalog } from "./catalog";
 
 export const en = {
   common,
@@ -38,6 +39,7 @@ export const en = {
   modules,
   admin,
   legal,
+  catalog,
 };
 
 export type Messages = typeof en;

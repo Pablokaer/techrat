@@ -484,8 +484,9 @@ The web and desktop apps support English (`en`) and Brazilian Portuguese (`pt-BR
 What Google sees is decided in `apps/web` ([ADR-0035](docs/adr/0035-search-engine-indexing.md)):
 
 * **`/robots.txt`** (`app/robots.ts`) allows every page and points to the sitemap; only `/api/` and `/hubs/` are blocked. Private pages are not blocked there on purpose: they say `noindex`, which a crawler can only read on a page it may fetch.
-* **`/sitemap.xml`** (`app/sitemap.ts`) lists the public pages: the landing page in both languages, sign in, register, privacy, terms and account deletion.
+* **`/sitemap.xml`** (`app/sitemap.ts`) lists the public pages: the landing page and the catalog in both languages, every roadmap and topic, sign in, register, privacy, terms and account deletion.
 * **One URL per language for the landing page:** `/` is English for crawlers (they send no cookie or `Accept-Language`) and `/pt-BR` is always Portuguese. Both carry their canonical URL, reciprocal `hreflang` links (`en`, `pt-BR`, `x-default`) and JSON-LD (`WebSite` and `Organization`).
+* **Public catalog** ([ADR-0036](docs/adr/0036-public-catalog-pages.md)): `/catalog`, `/catalog/roadmaps/<slug>`, `/catalog/topics/<slug>` and the same under `/pt-BR/catalog`, rendered on the server from the API (cached 10 minutes) for anyone, with canonical, `hreflang`, JSON-LD (`Course`, `BreadcrumbList`) and a sign-up link. They are `page.web.tsx` files, routes of the web build only. The landing page links to them and the sitemap lists them all (rebuilt every 15 minutes).
 * **Out of the index:** the signed-in area (`noindex, nofollow`) and the confirm-email / password pages (`noindex, follow`). Sign in and register stay indexable with their own titles.
 * **Titles and descriptions** (`src/lib/site-metadata.ts`, `auth.meta` in the messages) use the words people search for, in both languages; the question count there follows the catalog above.
 * After a deploy that changes public pages, submit `https://techrat.io/sitemap.xml` in Google Search Console (and Bing Webmaster Tools).
