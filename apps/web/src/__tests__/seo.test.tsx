@@ -41,12 +41,17 @@ describe("robots.txt", () => {
 });
 
 describe("sitemap.xml", () => {
-  it("lists every public page with an absolute URL, and the landing in both languages", () => {
-    const entries = sitemap();
+  it("lists every public page with an absolute URL, and the landing in both languages", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new TypeError("no API in this test"))));
+    const entries = await sitemap();
+    vi.unstubAllGlobals();
     const urls = entries.map((e) => e.url);
+    // Without the API only the fixed pages are listed (public-catalog.test.tsx covers the roadmaps and topics).
     expect(urls).toEqual([
       "https://techrat.io/",
       "https://techrat.io/pt-BR",
+      "https://techrat.io/catalog",
+      "https://techrat.io/pt-BR/catalog",
       "https://techrat.io/register",
       "https://techrat.io/login",
       "https://techrat.io/privacy",

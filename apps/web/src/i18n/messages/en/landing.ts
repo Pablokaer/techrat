@@ -7,6 +7,8 @@ export const landing = {
   intro: "A gamified learning platform for tomorrow's builders — from your first variable to designing distributed systems and shipping AI.",
   startFree: "Start for free",
   haveAccount: "I have an account",
+  /** Link to the public catalog (/catalog), also how search engines find it. */
+  exploreCatalog: "Explore roadmaps and topics",
   navLabel: "Account",
   logoAlt: "TechRat logo: a green rat with sunglasses coding on a laptop",
   pillars: {

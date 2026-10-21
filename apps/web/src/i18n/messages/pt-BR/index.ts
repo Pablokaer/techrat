@@ -18,6 +18,7 @@ import { roadmaps } from "./roadmaps";
 import { modules } from "./modules";
 import { admin } from "./admin";
 import { legal } from "./legal";
+import { catalog } from "./catalog";
 
 export const ptBR: Messages = {
   common,
@@ -39,4 +40,5 @@ export const ptBR: Messages = {
   modules,
   admin,
   legal,
+  catalog,
 };
