@@ -12,6 +12,10 @@ export const auth: Messages["auth"] = {
       grow: { title: "Crescer", text: "Acompanhe seu progresso e suba no ranking" },
     },
   },
+  meta: {
+    login: { title: "Entrar", description: "Entre no TechRat para continuar praticando, seguir seus roadmaps e manter sua sequência." },
+    register: { title: "Crie sua conta grátis", description: "Crie uma conta grátis no TechRat: pratique questões de entrevista de tecnologia, siga roadmaps para devs e ganhe XP." },
+  },
   oauth: {
     or: "ou",
     continueWithGithub: "Continuar com GitHub",

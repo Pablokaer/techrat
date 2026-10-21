@@ -11,6 +11,11 @@ export const auth = {
       grow: { title: "Grow", text: "Track progress and rank up" },
     },
   },
+  // Search result title and snippet of the two auth pages that stay indexable.
+  meta: {
+    login: { title: "Sign in", description: "Sign in to TechRat to keep practising, follow your roadmaps and keep your streak alive." },
+    register: { title: "Create your free account", description: "Create a free TechRat account: practise tech interview questions, follow developer roadmaps and earn XP." },
+  },
   oauth: {
     or: "or",
     continueWithGithub: "Continue with GitHub",

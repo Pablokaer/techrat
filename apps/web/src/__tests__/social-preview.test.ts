@@ -25,8 +25,8 @@ describe("social link preview", () => {
   });
 
   it.each([
-    ["en", "en_US", "TechRat — Learn. Practice. Level Up."],
-    ["pt-BR", "pt_BR", "TechRat — Aprenda. Pratique. Suba de nível."],
+    ["en", "en_US", "TechRat — Tech interview practice and developer roadmaps"],
+    ["pt-BR", "pt_BR", "TechRat — Questões de entrevista e roadmaps para devs"],
   ] as const)("describes the page for %s in Open Graph and Twitter cards", (locale, ogLocale, title) => {
     const meta = buildMetadata(locale);
     expect(meta.openGraph).toMatchObject({ type: "website", siteName: "TechRat", locale: ogLocale, title, url: "/" });
