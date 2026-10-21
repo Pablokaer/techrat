@@ -15,6 +15,9 @@ const config: NextConfig = {
     ? { output: "export", images: { unoptimized: true }, trailingSlash: true }
     : {
         output: "standalone",
+        // Files named page.web.tsx are routes of the web build only: the public catalog (ADR-0036) renders on the server
+        // from the API, which the desktop static export cannot do.
+        pageExtensions: ["web.tsx", "web.ts", "tsx", "ts", "jsx", "js"],
         async rewrites() {
           return [
             { source: "/api/:path*", destination: `${apiUrl}/api/:path*` },

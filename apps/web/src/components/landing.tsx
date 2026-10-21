@@ -7,7 +7,8 @@ import { useEffect } from "react";
 import { ArrowRight, BarChart3, BookOpen, BrainCircuit, Code2, Map as MapIcon, Server, Trophy } from "lucide-react";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { LegalLinks } from "@/components/legal-links";
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
+import { catalogPath } from "@/lib/public-catalog";
 import { useMe } from "@/lib/queries";
 
 const PILLARS = [
@@ -29,6 +30,7 @@ export function Landing() {
   const { data: me } = useMe();
   const router = useRouter();
   const t = useT();
+  const { locale } = useLocale();
   useEffect(() => { if (me) router.replace("/dashboard"); }, [me, router]);
 
   return (
@@ -62,6 +64,7 @@ export function Landing() {
               <Link href="/register" className="btn-primary px-6 py-3 text-base">{t.landing.startFree} <ArrowRight className="h-5 w-5" aria-hidden /></Link>
               <Link href="/login" className="btn-secondary px-6 py-3 text-base">{t.landing.haveAccount}</Link>
             </div>
+            <Link href={catalogPath(locale)} className="mt-5 inline-block text-sm font-semibold text-primary hover:underline">{t.landing.exploreCatalog} <span aria-hidden>→</span></Link>
           </div>
         </section>
         <ul className="grid grid-cols-2 gap-6 border-y border-border-subtle py-10 md:grid-cols-4">

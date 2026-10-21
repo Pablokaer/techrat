@@ -9,6 +9,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => "/",
+  // Throws like Next.js does, so server pages can be tested for their 404.
+  notFound: () => {
+    throw Object.assign(new Error("NEXT_HTTP_ERROR_FALLBACK;404"), { digest: "NEXT_HTTP_ERROR_FALLBACK;404" });
+  },
 }));
 // jsdom has no layout: scrolling is a no-op that tests can spy on.
 Element.prototype.scrollIntoView = vi.fn();
