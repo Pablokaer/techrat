@@ -39,21 +39,8 @@ public sealed record RoadmapModuleDto(
 public sealed record RoadmapDetailDto(
     RoadmapSummaryDto Summary, IReadOnlyList<RoadmapPrerequisiteDto> Prerequisites, IReadOnlyList<RoadmapModuleDto> Modules, Guid? CurrentStepId);
 
-public static class StepStatus
-{
-    public const string Completed = "Completed";
-    public const string Current = "Current";
-    public const string Locked = "Locked";
-}
-
-public static class ModuleStatus
-{
-    public const string Completed = "Completed";
-    public const string Current = "Current";
-    public const string Locked = "Locked";
-}
-
-public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService progress, ICacheService cache, ContentLocalizer localizer, TimeProvider clock)
+public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService progress, LearnerSteps learnerSteps, ICacheService cache,
+    ContentLocalizer localizer, TimeProvider clock)
 {
     private sealed record LinkRow(Guid ModuleId, int Order, bool IsRequired);
     private sealed record CatalogRow(Guid Id, string Slug, string Name, string Description, string Category, RoadmapDifficulty Difficulty,
@@ -122,13 +109,6 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
         var moduleIds = links.Select(l => l.ModuleId).ToList();
 
         var modules = await db.LearningModules.AsNoTracking().Where(m => moduleIds.Contains(m.Id)).ToDictionaryAsync(m => m.Id, ct);
-        var steps = await (from s in db.ModuleSteps.AsNoTracking()
-                           where moduleIds.Contains(s.ModuleId) && s.IsActive
-                           join t in db.Topics on s.TopicId equals t.Id
-                           join st in db.Subtopics on s.SubtopicId equals st.Id into sts
-                           from st in sts.DefaultIfEmpty()
-                           select new { Step = s, TopicSlug = t.Slug, TopicName = t.Name, SubSlug = st != null ? st.Slug : null, SubName = st != null ? st.Name : null })
-                          .ToListAsync(ct);
         // "Also in": other published roadmaps containing each module.
         var usedIn = await (from l in db.RoadmapModuleLinks.AsNoTracking()
                             where moduleIds.Contains(l.ModuleId) && l.RoadmapId != catalog.Id
@@ -140,48 +120,33 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
         var deps = await db.RoadmapDependencies.AsNoTracking().Where(d => d.RoadmapId == catalog.Id)
             .Select(d => new { d.RequiredRoadmapId, d.MinimumPercent, d.RequiredRoadmap!.Slug, d.RequiredRoadmap.Name }).ToListAsync(ct);
 
-        var snapshot = new ModuleProgressSnapshot { StepsByModule = [], CompletedSteps = [], ModuleProgress = [] };
+        // Steps (status, new content, criteria, texts) come from the same place as the module page, so both always agree.
+        var view = await learnerSteps.ForRoadmapAsync(links, userId, isAdmin, ct);
+        var snapshot = view.Snapshot;
         UserRoadmapProgress? userProgress = null;
         Dictionary<Guid, double> depPercents = [];
         RoadmapUserStateDto? state = null;
         if (userId is { } uid)
         {
-            snapshot = await progress.SnapshotAsync(uid, moduleIds, track: false, ct);
             userProgress = await db.UserRoadmapProgress.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == uid && p.RoadmapId == catalog.Id, ct);
             depPercents = await progress.CompletionPercentAsync(uid, deps.Select(d => d.RequiredRoadmapId), ct);
             state = (await UserStatesAsync(uid, [catalog], isAdmin, ct))[catalog.Id];
         }
 
         var completedModules = snapshot.CompletedModules;
-        // Administrators review everything: every uncompleted module and step is open, whatever came before it.
+        // Administrators review everything: every uncompleted module is open, whatever came before it.
         var open = (isAdmin ? links.Select(l => l.ModuleId).Where(m => !completedModules.Contains(m))
             : RoadmapComposition.OpenModules(links, completedModules, snapshot.StartedModules)).ToHashSet();
-        var currentSteps = isAdmin
-            ? steps.Select(s => s.Step).Where(s => !snapshot.CompletedSteps.Contains(s.Id)).ToList()
-            : open.Select(m => RoadmapComposition.CurrentStep(steps.Where(s => s.Step.ModuleId == m).Select(s => s.Step), snapshot.CompletedSteps))
-                .Where(s => s is not null).Select(s => s!).ToList();
-        var criteria = userId is { } u2 ? await progress.EvaluateStepsAsync(u2, currentSteps, ct) : [];
-        var currentIds = currentSteps.Select(s => s.Id).ToHashSet();
 
         var moduleDtos = links.Select(link =>
         {
             var m = modules[link.ModuleId];
             snapshot.ModuleProgress.TryGetValue(m.Id, out var mp);
             var isCompleted = mp?.CompletedAt is not null;
-            var stepDtos = steps.Where(s => s.Step.ModuleId == m.Id).OrderBy(s => s.Step.Order).Select(s =>
-            {
-                var status = snapshot.CompletedSteps.Contains(s.Step.Id) ? StepStatus.Completed
-                    : currentIds.Contains(s.Step.Id) ? StepStatus.Current : StepStatus.Locked;
-                var isNew = isCompleted && mp!.CompletedVersion is { } v && s.Step.AddedInVersion > v;
-                return new RoadmapStepDto(s.Step.Id, tr.StepTitle(s.Step.Id, s.Step.Title), tr.StepDescription(s.Step.Id, s.Step.Description),
-                    s.Step.Order, s.Step.Difficulty.ToString(), s.Step.EstimatedMinutes, s.TopicSlug, tr.TopicName(s.Step.TopicId, s.TopicName),
-                    s.SubSlug, s.Step.SubtopicId is { } sid && s.SubName is not null ? tr.SubtopicName(sid, s.SubName) : s.SubName,
-                    s.Step.MinimumQuestions, s.Step.MinimumAccuracy, s.Step.XPReward, status, criteria.GetValueOrDefault(s.Step.Id), isNew);
-            }).ToList();
             // Credited from another roadmap: completed before this roadmap was started (or without starting it).
             var elsewhere = isCompleted && (userProgress is null || mp!.CompletedAt < userProgress.StartedAt);
-            var moduleStatus = isCompleted ? ModuleStatus.Completed : open.Contains(m.Id) ? ModuleStatus.Current : ModuleStatus.Locked;
-            return new RoadmapModuleDto(m.Id, tr.ModuleName(m.Id, m.Name), link.Order, m.XPReward, isCompleted, stepDtos,
+            var moduleStatus = isCompleted ? StepStatus.Completed : open.Contains(m.Id) ? StepStatus.Current : StepStatus.Locked;
+            return new RoadmapModuleDto(m.Id, tr.ModuleName(m.Id, m.Name), link.Order, m.XPReward, isCompleted, view.Steps(m.Id),
                 m.Slug, m.Kind.ToString(), link.IsRequired, tr.ModuleDescription(m.Id, m.Description),
                 usedIn.Where(x => x.ModuleId == m.Id).Select(x => new RoadmapRefDto(x.Slug, tr.RoadmapName(x.Id, x.Name))).ToList(),
                 elsewhere, m.Version, moduleStatus);
@@ -190,7 +155,7 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
         var prereqs = deps.Select(d =>
         {
             var pct = depPercents.GetValueOrDefault(d.RequiredRoadmapId);
-            return new RoadmapPrerequisiteDto(d.Slug, tr.RoadmapName(d.RequiredRoadmapId, d.Name), d.MinimumPercent, pct, pct >= d.MinimumPercent);
+            return new RoadmapPrerequisiteDto(d.Slug, tr.RoadmapName(d.RequiredRoadmapId, d.Name), d.MinimumPercent, pct, RoadmapUnlock.IsMet(d.MinimumPercent, pct));
         }).ToList();
 
         return new RoadmapDetailDto(ToSummary(catalog, state, tr), prereqs, moduleDtos, userProgress is null ? null : userProgress.CurrentStepId);

@@ -37,6 +37,14 @@ public class StepCriteriaTests
         Assert.False(RoadmapUnlock.IsUnlocked([(50, 49.9), (30, 90)]));
         Assert.True(RoadmapUnlock.IsUnlocked([(50, 0), (30, 0)], isAdmin: true)); // administrators bypass prerequisites
     }
+
+    [Fact]
+    public void A_prerequisite_is_met_at_its_minimum_percent()
+    {
+        Assert.True(RoadmapUnlock.IsMet(50, 50));
+        Assert.True(RoadmapUnlock.IsMet(0, 0));
+        Assert.False(RoadmapUnlock.IsMet(50, 49.9));
+    }
 }
 
 public class DifficultyRampTests
