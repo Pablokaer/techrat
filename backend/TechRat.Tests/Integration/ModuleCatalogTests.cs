@@ -97,7 +97,7 @@ public class ModuleCatalogTests(TechRatFactory api)
         Assert.True(sharedModule.IsCompleted);
         Assert.True(sharedModule.CompletedElsewhere);
         Assert.Contains(sharedModule.UsedInRoadmaps, r => r.Slug == f.Shared);
-        Assert.Equal(ModuleStatus.Current, other.Modules[1].Status);
+        Assert.Equal(StepStatus.Current, other.Modules[1].Status);
         Assert.Equal(StepStatus.Current, other.Modules[1].Steps[0].Status);
 
         // Finishing the context module completes the second roadmap: its own roadmap bonus, no second step/module XP.

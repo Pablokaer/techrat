@@ -386,7 +386,7 @@ public class RoadmapTests(TechRatFactory api)
         var admin = await AdminAsync();
         var roadmap = (await admin.GetFromJsonAsync<RoadmapDetailDto>("/api/v1/roadmaps/git-and-collaboration", TechRatFactory.Json))!;
         Assert.True(roadmap.Modules.Count > 0);
-        Assert.DoesNotContain(roadmap.Modules, m => m.Status == ModuleStatus.Locked);
+        Assert.DoesNotContain(roadmap.Modules, m => m.Status == StepStatus.Locked);
         Assert.DoesNotContain(roadmap.Modules.SelectMany(m => m.Steps), s => s.Status == StepStatus.Locked);
 
         var module = (await admin.GetFromJsonAsync<ModuleDetailDto>($"/api/v1/modules/{roadmap.Modules[0].ModuleSlug}", TechRatFactory.Json))!;

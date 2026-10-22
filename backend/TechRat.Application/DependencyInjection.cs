@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<XpService>();
         services.AddScoped<AchievementService>();
         services.AddScoped<RoadmapProgressService>();
+        services.AddScoped<LearnerSteps>();
         services.AddScoped<RoadmapService>();
         services.AddScoped<ModuleService>();
         services.AddScoped<PracticeService>();
