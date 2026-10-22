@@ -1,6 +1,6 @@
 # ADR-0034: Two-level cache with HybridCache
 
-**Status:** Accepted · Builds on ADR-0002 (PostgreSQL as the source of truth, Redis as a cache only) and ADR-0030 (refresh-session state in the cache)
+**Status:** Accepted · Enforcement amended by ADR-0041 (entries declared once; the never-mix rule is enforced by types) · Builds on ADR-0002 (PostgreSQL as the source of truth, Redis as a cache only) and ADR-0030 (refresh-session state in the cache)
 
 ## Context
 

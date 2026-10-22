@@ -8,7 +8,7 @@ namespace TechRat.Infrastructure.Caching;
 
 /// <summary>
 /// Two-level cache-aside (ADR-0034). GetOrCreate goes through <see cref="HybridCache"/>: one factory call per key at a time
-/// on each instance, and a copy in this instance's memory only when the caller asks for one. Get/Set read and write plain
+/// on each instance, and a copy in this instance's memory only when the entry declares one (ADR-0041). Get/Set read and write plain
 /// JSON in the shared cache (Redis in docker/production, in-memory otherwise), the format the refresh-session state has had
 /// since ADR-0030, so a deploy never loses it. Cache failures degrade to the database instead of failing the request.
 /// </summary>
@@ -20,39 +20,42 @@ public sealed class HybridCacheService(HybridCache hybrid, IDistributedCache sha
     // only cache of this single process, so entries without a local copy must still be kept there.
     private readonly HybridCacheEntryFlags _sharedOnly = shared is MemoryDistributedCache ? HybridCacheEntryFlags.None : HybridCacheEntryFlags.DisableLocalCache;
 
-    public Task<T> GetOrCreateAsync<T>(string key, TimeSpan ttl, Func<CancellationToken, Task<T>> factory, CancellationToken ct = default) =>
-        HybridGetOrCreateAsync(key, new HybridCacheEntryOptions { Expiration = ttl, LocalCacheExpiration = ttl, Flags = _sharedOnly }, factory, ct);
+    /// <summary>
+    /// The entry's declared policy becomes HybridCache options: with a local TTL the value is kept in this instance's memory
+    /// that long; without one it is shared only (except without Redis, see <see cref="_sharedOnly"/>).
+    /// </summary>
+    public async Task<T> GetOrCreateAsync<T>(ComputedEntry entry, Func<CancellationToken, Task<T>> factory, CancellationToken ct = default)
+    {
+        var options = entry.LocalTtl is { } localTtl
+            ? new HybridCacheEntryOptions { Expiration = entry.Ttl, LocalCacheExpiration = localTtl }
+            : new HybridCacheEntryOptions { Expiration = entry.Ttl, LocalCacheExpiration = entry.Ttl, Flags = _sharedOnly };
+        return await hybrid.GetOrCreateAsync(entry.Key, factory, static async (f, c) => await f(c), options, cancellationToken: ct);
+    }
 
-    public Task<T> GetOrCreateWithLocalCopyAsync<T>(string key, TimeSpan ttl, TimeSpan localTtl, Func<CancellationToken, Task<T>> factory, CancellationToken ct = default) =>
-        HybridGetOrCreateAsync(key, new HybridCacheEntryOptions { Expiration = ttl, LocalCacheExpiration = localTtl }, factory, ct);
-
-    private async Task<T> HybridGetOrCreateAsync<T>(string key, HybridCacheEntryOptions options, Func<CancellationToken, Task<T>> factory, CancellationToken ct) =>
-        await hybrid.GetOrCreateAsync(key, factory, static async (f, c) => await f(c), options, cancellationToken: ct);
-
-    public async Task<T?> GetAsync<T>(string key, CancellationToken ct = default)
+    public async Task<T?> GetAsync<T>(StateEntry entry, CancellationToken ct = default)
     {
         try
         {
-            var bytes = await shared.GetAsync(key, ct);
+            var bytes = await shared.GetAsync(entry.Key, ct);
             return bytes is null ? default : JsonSerializer.Deserialize<T>(bytes, Json);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "Cache read failed for {CacheKey}", key);
+            logger.LogWarning(ex, "Cache read failed for {CacheKey}", entry.Key);
             return default;
         }
     }
 
-    public async Task SetAsync<T>(string key, T value, TimeSpan ttl, CancellationToken ct = default)
+    public async Task SetAsync<T>(StateEntry entry, T value, CancellationToken ct = default)
     {
         try
         {
-            await shared.SetAsync(key, JsonSerializer.SerializeToUtf8Bytes(value, Json),
-                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl }, ct);
+            await shared.SetAsync(entry.Key, JsonSerializer.SerializeToUtf8Bytes(value, Json),
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = entry.Ttl }, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "Cache write failed for {CacheKey}", key);
+            logger.LogWarning(ex, "Cache write failed for {CacheKey}", entry.Key);
         }
     }
 
@@ -60,13 +63,13 @@ public sealed class HybridCacheService(HybridCache hybrid, IDistributedCache sha
     /// Removes the key from the shared cache and from this instance's memory (other instances keep a local copy until it
     /// expires). Both calls are needed: without Redis, HybridCache does not see the in-memory store that Get/Set use.
     /// </summary>
-    public async Task RemoveAsync(string key, CancellationToken ct = default)
+    public async Task RemoveAsync(CacheEntry entry, CancellationToken ct = default)
     {
         try
         {
-            await hybrid.RemoveAsync(key, ct);
-            await shared.RemoveAsync(key, ct);
+            await hybrid.RemoveAsync(entry.Key, ct);
+            await shared.RemoveAsync(entry.Key, ct);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException) { logger.LogWarning(ex, "Cache remove failed for {CacheKey}", key); }
+        catch (Exception ex) when (ex is not OperationCanceledException) { logger.LogWarning(ex, "Cache remove failed for {CacheKey}", entry.Key); }
     }
 }

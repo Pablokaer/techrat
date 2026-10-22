@@ -61,8 +61,8 @@ public sealed class AdminService(IAppDbContext db, ICacheService cache, IOptions
 
     private async Task InvalidateAsync(CancellationToken ct)
     {
-        await cache.RemoveAsync(CacheKeys.Topics, ct);
-        await cache.RemoveAsync(CacheKeys.Roadmaps, ct);
+        await cache.RemoveAsync(CacheEntries.Topics, ct);
+        await cache.RemoveAsync(CacheEntries.Roadmaps, ct);
     }
 
     public async Task<AdminStatsDto> StatsAsync(CancellationToken ct) => new(

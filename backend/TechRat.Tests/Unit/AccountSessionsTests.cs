@@ -272,7 +272,7 @@ public class AccountSessionsTests
     public async Task Ending_every_session_of_a_deleted_account_evicts_the_account_exists_answer_signs_out_and_tells_the_former_owner()
     {
         var id = Guid.NewGuid();
-        await _cache.SetAsync(CacheKeys.AccountExists(id), true, TimeSpan.FromMinutes(2));
+        await _cache.GetOrCreateAsync(CacheEntries.AccountExists(id), _ => Task.FromResult(true));
         var email = new RecordingAccountEmail();
 
         await Sessions(email).EndEverySessionAsync(id, "ana@example.com", CancellationToken.None);
@@ -299,7 +299,7 @@ public class AccountSessionsTests
     public async Task A_deletion_notice_that_cannot_be_delivered_is_only_logged()
     {
         var id = Guid.NewGuid();
-        await _cache.SetAsync(CacheKeys.AccountExists(id), true, TimeSpan.FromMinutes(2));
+        await _cache.GetOrCreateAsync(CacheEntries.AccountExists(id), _ => Task.FromResult(true));
 
         await Sessions(new RecordingAccountEmail(fail: true)).EndEverySessionAsync(id, "ana@example.com", CancellationToken.None);
 

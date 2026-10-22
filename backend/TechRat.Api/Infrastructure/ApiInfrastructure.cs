@@ -81,7 +81,7 @@ public sealed class RedisHealthCheck(IConfiguration config, IDistributedCache ca
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(TimeSpan.FromSeconds(2));
-            await cache.GetAsync("health:ping", cts.Token);
+            await cache.GetAsync(CacheEntries.HealthProbeKey, cts.Token);
             return HealthCheckResult.Healthy();
         }
         catch (Exception ex)
@@ -100,13 +100,11 @@ public sealed class RedisHealthCheck(IConfiguration config, IDistributedCache ca
 /// </summary>
 public sealed class AccountExistsMiddleware(RequestDelegate next)
 {
-    private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(2);
-
     public async Task InvokeAsync(HttpContext ctx, ICacheService cache, UserManager<ApplicationUser> users)
     {
         if (ctx.User.Identity?.IsAuthenticated == true && Guid.TryParse(ctx.User.FindFirstValue(ClaimTypes.NameIdentifier), out var id))
         {
-            var exists = await cache.GetOrCreateAsync(CacheKeys.AccountExists(id), Ttl,
+            var exists = await cache.GetOrCreateAsync(CacheEntries.AccountExists(id),
                 async _ => await users.FindByIdAsync(id.ToString()) is not null, ctx.RequestAborted);
             if (!exists) ctx.User = new ClaimsPrincipal(new ClaimsIdentity());
         }

@@ -49,7 +49,7 @@ public class ModuleCatalogTests(TechRatFactory api)
             return new Fixture(r1.Slug, r2.Slug, context.Slug, shared.Steps[0].Id, context.Steps[0].Id);
         });
         using var scope = api.Services.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<ICacheService>().RemoveAsync(CacheKeys.Roadmaps);
+        await scope.ServiceProvider.GetRequiredService<ICacheService>().RemoveAsync(CacheEntries.Roadmaps);
         return fixture;
     }
 

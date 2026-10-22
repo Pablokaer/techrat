@@ -141,7 +141,7 @@ public sealed class AccountSessions(
 
     public async Task EndEverySessionAsync(Guid deletedUserId, string? formerAddress, CancellationToken ct)
     {
-        await cache.RemoveAsync(CacheKeys.AccountExists(deletedUserId), ct);
+        await cache.RemoveAsync(CacheEntries.AccountExists(deletedUserId), ct);
         await cookie.SignOutAsync();
         _log.LogInformation("Account deleted {UserId}", deletedUserId);
         if (!string.IsNullOrWhiteSpace(formerAddress))
