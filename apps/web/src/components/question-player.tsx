@@ -6,9 +6,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, BookOpen, Check, ChevronRight, Clock, ExternalLink, Flame, Hexagon, PartyPopper, RotateCcw, Target, X } from "lucide-react";
 import { Card, DifficultyBadge, ProgressBar, XpPill, cx } from "@techrat/ui";
 import type { AnswerResult, PracticeSession, SessionQuestion } from "@techrat/types";
-import { isApiError } from "@techrat/api";
-import { api, unwrap } from "@/lib/api";
-import { invalidateProgress, qk, useMe } from "@/lib/queries";
+import { answerSender, isApiError, refreshAfterAnswer, submitAnswer, type AnswerSender } from "@techrat/api";
+import { api } from "@/lib/api";
+import { useMe } from "@/lib/queries";
 import { routes } from "@/lib/routes";
 import { RichText } from "./question-text";
 import { openExternal } from "@/lib/external";
@@ -74,15 +74,12 @@ export function QuestionPlayer({ session, onSubmitAnswer }: {
     if (!question || !selected || feedback || submitting) return;
     setSubmitting(true);
     try {
-      const r = onSubmitAnswer
-        ? await onSubmitAnswer(question.id, selected, seconds)
-        : await unwrap(api.POST("/api/v1/practice/sessions/{id}/answers", {
-            params: { path: { id: session.id } },
-            body: { questionId: question.id, selectedOptionId: selected, timeSpentSeconds: seconds },
-          }));
+      const send: AnswerSender = onSubmitAnswer
+        ? (_, a) => onSubmitAnswer(a.questionId, a.selectedOptionId, a.timeSpentSeconds)
+        : answerSender(api);
+      const r = await submitAnswer(qc, send, session.id, { questionId: question.id, selectedOptionId: selected, timeSpentSeconds: seconds });
       setResults((m) => ({ ...m, [question.id]: r }));
       setAnswers((m) => ({ ...m, [question.id]: r.feedback }));
-      qc.setQueryData(qk.me, (old: typeof me) => (old ? { ...old, level: r.level, currentStreak: r.currentStreak } : old));
       if (r.leveledUp) toast({ kind: "achievement", title: t.practice.player.toasts.levelUp(r.level.level) });
       if (r.topicLeveledUp) toast({ kind: "success", title: t.practice.player.toasts.topicLevel(r.topicLevel) });
       r.completedSteps.forEach((s) => toast({ kind: "success", title: t.practice.player.toasts.stepCompleted(s.stepTitle), body: t.practice.player.toasts.stepCompletedBody(s.xpEarned, s.roadmapName, s.moduleName || undefined) }));
@@ -98,7 +95,7 @@ export function QuestionPlayer({ session, onSubmitAnswer }: {
   const next = useCallback(() => {
     setSelected(null);
     setIndex((i) => i + 1);
-    if (index + 1 >= session.questions.length) invalidateProgress(qc);
+    if (index + 1 >= session.questions.length) void refreshAfterAnswer(qc);
   }, [index, session.questions.length, qc]);
 
   // Keyboard: 1-4 / A-D select, Enter submits or advances.
