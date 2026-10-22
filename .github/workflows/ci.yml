@@ -89,10 +89,18 @@ jobs:
           for i in $(seq 1 90); do curl -sf http://localhost:5080/health/ready && curl -sf -o /dev/null http://localhost:3000/login && exit 0; sleep 2; done
           docker compose logs api; exit 1
       - run: npm ci
-      # Downloads the browser and its system packages; a stalled download once held the job for over an hour.
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+      # The runner image ships Google Chrome, which playwright.config.ts takes through PW_CHROMIUM_PATH: nothing to download.
+      # `playwright install --with-deps` fetches ~26 MB from the Ubuntu mirror, which stalled twice on 2026-10-22; it is
+      # only the fallback for an image without Chrome.
+      - name: Browser for Playwright
         timeout-minutes: 10
+        run: |
+          if command -v google-chrome >/dev/null; then
+            echo "PW_CHROMIUM_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+            google-chrome --version
+          else
+            npx playwright install --with-deps chromium
+          fi
       - name: Playwright
         run: npx playwright test
       - uses: actions/upload-artifact@v4

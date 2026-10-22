@@ -53,12 +53,31 @@ class WorkflowTimeoutTest(unittest.TestCase):
                     self.assertIsNotNone(minutes, f"{path.name}: job '{name}' has no timeout-minutes")
                     self.assertLessEqual(minutes, 45)
 
-    def test_the_browser_download_has_its_own_short_timeout(self):
-        lines = jobs(WORKFLOWS / "ci.yml")["e2e"]
-        install = next(i for i, line in enumerate(lines) if "playwright install" in line)
-        step = lines[install - 3:install + 3]
+    def test_the_browser_step_has_its_own_short_timeout(self):
+        step = e2e_browser_step()
         self.assertTrue(any(re.match(r"^\s+timeout-minutes:\s*\d+\s*$", line) for line in step),
-                        "the playwright install step needs timeout-minutes")
+                        "the browser step needs timeout-minutes")
+
+    def test_e2e_uses_the_runner_s_chrome_and_downloads_a_browser_only_without_one(self):
+        # On 2026-10-22 the Ubuntu mirror served the ~26 MB that `playwright install --with-deps` needs at ~45 KB/s, twice.
+        # The runner image ships Google Chrome, which playwright.config.ts accepts through PW_CHROMIUM_PATH.
+        text = "\n".join(e2e_browser_step())
+        self.assertIn("google-chrome", text)
+        self.assertIn("PW_CHROMIUM_PATH", text)
+        self.assertIn('>> "$GITHUB_ENV"', text)
+        check, install = text.index("command -v google-chrome"), text.index("playwright install")
+        self.assertLess(check, install, "the download must only be the fallback")
+
+
+def e2e_browser_step() -> list[str]:
+    """The lines of the e2e step that provides the browser (the step mentioning `playwright install`)."""
+    lines = jobs(WORKFLOWS / "ci.yml")["e2e"]
+    starts = [i for i, line in enumerate(lines) if line.startswith("      - ")] + [len(lines)]
+    for begin, end in zip(starts, starts[1:]):
+        # Comments are ignored: one above a step belongs, line-wise, to the step before it.
+        if any("playwright install" in line and not line.lstrip().startswith("#") for line in lines[begin:end]):
+            return [line for line in lines[begin:end] if not line.lstrip().startswith("#")]
+    raise AssertionError("the e2e job has no step installing a browser")
 
 
 if __name__ == "__main__":
