@@ -411,7 +411,7 @@ If you build behind a TLS-inspecting corporate proxy, set `EXTRA_CA_CERT=/path/t
 | `Gamification__*` | API | XP values, level curve, step criteria, daily challenge (see `appsettings.json`) |
 | `RateLimiting__AuthPerMinute` / `RateLimiting__AnswersPerMinute` / `RateLimiting__UploadsPerMinute` | API | Rate limits per user or IP (uploads default to 10/min; Compose: `AUTH_RATE_LIMIT_PER_MINUTE`) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | API | Enables OTLP export of traces and metrics |
-| `PUBLIC_WEB_URL` | web (runtime), API | Public origin (e.g. `https://techrat.io`). The web app uses it as `metadataBase` so link previews (Open Graph / Twitter card, image `app/opengraph-image.png`) carry absolute URLs; defaults to `https://techrat.io`. `robots.txt` and `sitemap.xml` are built once, so they take the value present at build time |
+| `PUBLIC_WEB_URL` | web (runtime), API | Public origin (e.g. `https://techrat.io`). The web app uses it as `metadataBase` so link previews (Open Graph / Twitter card, image `app/opengraph-image.png`, named by `src/lib/public-pages.ts`) carry absolute URLs; defaults to `https://techrat.io`. `robots.txt` and `sitemap.xml` are built once, so they take the value present at build time |
 | `API_INTERNAL_URL` | web (build) | Backend URL the Next.js proxy forwards to |
 | `NEXT_PUBLIC_AUTH_MODE`, `NEXT_PUBLIC_API_URL` | desktop build | `bearer` mode and API URL for the static export |
 | `EXPO_PUBLIC_API_URL` | mobile (build) | API URL for the Expo app. **Required and `https://` in release builds** (they refuse to start otherwise); set by the `preview` and `production` EAS profiles to `https://techrat.io`. Development defaults to the emulator/localhost |
@@ -484,12 +484,14 @@ The web and desktop apps support English (`en`) and Brazilian Portuguese (`pt-BR
 
 What Google sees is decided in `apps/web` ([ADR-0035](docs/adr/0035-search-engine-indexing.md)):
 
+* **One module for the public pages** ([ADR-0042](docs/adr/0042-one-metadata-module-for-public-pages.md)): `src/lib/public-pages.ts` lists every public page with its URL in each language (only the landing page and the catalog have one per language) and builds from that both each page's metadata (title, description, canonical, `hreflang` with `x-default`, Open Graph and Twitter card) and its sitemap entries, so the two cannot disagree. A new public page is added there. The legal pages and the catalog share one frame (`src/components/public-frame.tsx`): a page with a URL per language links to its other URL, a page with one URL offers the language switcher.
+
 * **`/robots.txt`** (`app/robots.ts`) allows every page and points to the sitemap; only `/api/` and `/hubs/` are blocked. Private pages are not blocked there on purpose: they say `noindex`, which a crawler can only read on a page it may fetch.
 * **`/sitemap.xml`** (`app/sitemap.ts`) lists the public pages: the landing page and the catalog in both languages, every roadmap and topic, sign in, register, privacy, terms and account deletion.
 * **One URL per language for the landing page:** `/` is English for crawlers (they send no cookie or `Accept-Language`) and `/pt-BR` is always Portuguese, `<html lang="pt-BR">` included. Both carry their canonical URL, reciprocal `hreflang` links (`en`, `pt-BR`, `x-default`) and JSON-LD (`WebSite` and `Organization`).
 * **Public catalog** ([ADR-0036](docs/adr/0036-public-catalog-pages.md)): `/catalog`, `/catalog/roadmaps/<slug>`, `/catalog/topics/<slug>` and the same under `/pt-BR/catalog`, rendered on the server from the API (cached 10 minutes) for anyone, with canonical, `hreflang`, JSON-LD (`Course`, `BreadcrumbList`) and a sign-up link. They are `page.web.tsx` files, routes of the web build only. The landing page links to them and the sitemap lists them all (rebuilt every 15 minutes).
-* **Out of the index:** the signed-in area (`noindex, nofollow`) and the confirm-email / password pages (`noindex, follow`). Sign in and register stay indexable with their own titles.
-* **Titles and descriptions** (`src/lib/site-metadata.ts`, `auth.meta` in the messages) use the words people search for, in both languages; the question count there follows the catalog above.
+* **Out of the index:** the signed-in area (`noindex, nofollow`) and the confirm-email / password pages (`noindex, follow`). Sign in and register stay indexable with their own titles and link previews.
+* **Titles and descriptions** (`src/lib/public-pages.ts`, `auth.meta` and `legal.meta` in the messages) use the words people search for, in both languages; the question count there follows the catalog above.
 * After a deploy that changes public pages, submit `https://techrat.io/sitemap.xml` in Google Search Console (and Bing Webmaster Tools).
 
 ## Testing

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Landing } from "@/components/landing";
 import { LandingStructuredData } from "@/components/structured-data";
-import { landingMetadata } from "@/lib/site-metadata";
+import { landingMetadata } from "@/lib/public-pages";
 
 export const metadata: Metadata = landingMetadata("pt-BR");
 

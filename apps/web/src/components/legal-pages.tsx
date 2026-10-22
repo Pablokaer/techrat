@@ -1,15 +1,14 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { Card } from "@techrat/ui";
-import { LanguageSwitcher } from "@/components/language-switcher";
-import { LegalLinks } from "@/components/legal-links";
 import { DeleteAccountCard } from "@/components/delete-account";
-import { useFormat, useT } from "@/i18n";
+import { PublicFrame } from "@/components/public-frame";
+import { useFormat, useLocale, useT } from "@/i18n";
 import type { LegalDocument } from "@/i18n/messages/en/legal";
 import { LEGAL } from "@/lib/legal";
+import { publicPages, type PublicPage } from "@/lib/public-pages";
 import { useMe } from "@/lib/queries";
 
 /**
@@ -42,34 +41,20 @@ function DraftNotice() {
 }
 
 /**
- * Chrome shared by the public pages (privacy, terms, account deletion): language switcher and sign-in link on top,
- * legal links at the bottom, readable for signed-out visitors and without the app shell.
+ * The public frame (ADR-0042) around a legal page (privacy, terms, account deletion): each has one URL shown in the
+ * visitor's language, so the frame offers the language switcher. `page` is the page's entry in `publicPages`.
  */
-function PublicPage({ title, showUpdated = false, children }: { title: string; showUpdated?: boolean; children: ReactNode }) {
+function LegalPage({ page, title, showUpdated = false, children }: { page: PublicPage; title: string; showUpdated?: boolean; children: ReactNode }) {
   const t = useT().legal;
   const f = useFormat();
+  const { locale } = useLocale();
   return (
-    <div className="min-h-dvh">
-      <header className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-5">
-        <Link href="/" className="flex items-center gap-2" aria-label={t.page.home}>
-          <Image src="/brand/rat-192.png" alt="" width={36} height={36} />
-          <span className="text-xl font-extrabold">Tech<span className="text-primary">Rat</span></span>
-        </Link>
-        <div className="flex items-center gap-2">
-          <LanguageSwitcher compact />
-          <Link href="/login" className="btn-ghost">{t.page.signIn}</Link>
-        </div>
-      </header>
-      <main id="main" className="mx-auto max-w-3xl px-5 pb-16">
-        <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-        {showUpdated && <p className="mt-2 text-sm text-text-muted">{t.page.updated(f.date(`${LEGAL.effectiveDate}T00:00:00`, { dateStyle: "long" }))}</p>}
-        <DraftNotice />
-        <div className="mt-8 space-y-8">{children}</div>
-      </main>
-      <footer className="mx-auto max-w-3xl border-t border-border-subtle px-5 py-6">
-        <LegalLinks withDelete />
-      </footer>
-    </div>
+    <PublicFrame page={page} locale={locale} labels={{ home: t.page.home, signIn: t.page.signIn }}>
+      <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
+      {showUpdated && <p className="mt-2 text-sm text-text-muted">{t.page.updated(f.date(`${LEGAL.effectiveDate}T00:00:00`, { dateStyle: "long" }))}</p>}
+      <DraftNotice />
+      <div className="mt-8 space-y-8">{children}</div>
+    </PublicFrame>
   );
 }
 
@@ -91,9 +76,9 @@ function Bullets({ items }: { items?: string[] }) {
   return <ul className="list-disc space-y-1.5 pl-5">{items.map((text) => <li key={text}><RichText text={text} /></li>)}</ul>;
 }
 
-function Document({ title, doc }: { title: string; doc: LegalDocument }) {
+function Document({ page, title, doc }: { page: PublicPage; title: string; doc: LegalDocument }) {
   return (
-    <PublicPage title={title} showUpdated>
+    <LegalPage page={page} title={title} showUpdated>
       <div className="space-y-3 text-sm leading-relaxed text-text-secondary"><Paragraphs items={doc.intro} /></div>
       {doc.sections.map((section) => (
         <Section key={section.heading} heading={section.heading}>
@@ -102,20 +87,20 @@ function Document({ title, doc }: { title: string; doc: LegalDocument }) {
           <Paragraphs items={section.closing} />
         </Section>
       ))}
-    </PublicPage>
+    </LegalPage>
   );
 }
 
 /** /privacy */
 export function PrivacyContent() {
   const t = useT().legal;
-  return <Document title={t.meta.privacy.title} doc={t.privacyPage(LEGAL)} />;
+  return <Document page={publicPages.privacy} title={t.meta.privacy.title} doc={t.privacyPage(LEGAL)} />;
 }
 
 /** /terms */
 export function TermsContent() {
   const t = useT().legal;
-  return <Document title={t.meta.terms.title} doc={t.termsPage(LEGAL)} />;
+  return <Document page={publicPages.terms} title={t.meta.terms.title} doc={t.termsPage(LEGAL)} />;
 }
 
 /**
@@ -128,7 +113,7 @@ export function AccountDeleteContent() {
   const items = useT().settings.deleteAccount.items;
   const { data: me, isLoading } = useMe();
   return (
-    <PublicPage title={t.title}>
+    <LegalPage page={publicPages.accountDelete} title={t.title}>
       <p className="text-text-secondary">{t.lead}</p>
       {isLoading ? (
         <p role="status" className="text-sm text-text-muted">{t.checking}</p>
@@ -152,6 +137,6 @@ export function AccountDeleteContent() {
       </Section>
       <Section heading={t.keptHeading}><Bullets items={t.kept} /></Section>
       <Section heading={t.timingHeading}><Paragraphs items={t.timing} /></Section>
-    </PublicPage>
+    </LegalPage>
   );
 }
