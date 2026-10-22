@@ -7,7 +7,7 @@ import { Card, DifficultyBadge, cx } from "@techrat/ui";
 import { DIFFICULTIES, type AdminQuestion, type AdminQuestionInput, type Difficulty } from "@techrat/types";
 import { isApiError } from "@techrat/api";
 import { api, unwrap } from "@/lib/api";
-import { useMe, useRoadmaps, useTopics } from "@/lib/queries";
+import { qk, useMe, useRoadmaps, useTopics } from "@/lib/queries";
 import { EmptyState, PageHeader, Tabs } from "@/components/widgets";
 import { useToast } from "@/components/providers";
 import { useFormat, useT } from "@/i18n";
@@ -22,7 +22,7 @@ export default function AdminPage() {
   const f = useFormat();
   const { data: me } = useMe();
   const [tab, setTab] = useState<Tab>("questions");
-  const { data: stats } = useQuery({ queryKey: ["admin-stats"], queryFn: () => unwrap(api.GET("/api/v1/admin/stats")), enabled: !!me?.isAdmin });
+  const { data: stats } = useQuery({ queryKey: qk.adminStats, queryFn: () => unwrap(api.GET("/api/v1/admin/stats")), enabled: !!me?.isAdmin });
   const run = useAdminAction();
 
   if (!me?.isAdmin) return <EmptyState title={t.admin.adminsOnly} text={t.admin.adminsOnlyText} />;
@@ -74,7 +74,7 @@ function QuestionsAdmin() {
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
   const { data } = useQuery({
-    queryKey: ["admin-questions", filters],
+    queryKey: qk.adminQuestions(filters),
     queryFn: () => unwrap(api.GET("/api/v1/admin/questions", { params: { query: {
       topic: filters.topic || undefined, difficulty: filters.difficulty || undefined, search: filters.search || undefined, page: filters.page, pageSize: 20,
     } } })),
@@ -94,7 +94,7 @@ function QuestionsAdmin() {
       else await unwrap(api.POST("/api/v1/admin/questions", { body: editing.input }));
       toast({ kind: "success", title: m.saved });
       setEditing(null); setErrors({});
-      qc.invalidateQueries({ queryKey: ["admin-questions"] });
+      qc.invalidateQueries({ queryKey: qk.adminQuestionsAll });
     } catch (e) {
       if (isApiError(e) && e.errors) setErrors(e.errors);
       else toast({ kind: "error", title: isApiError(e) ? e.detail ?? e.title : m.saveFailed });
@@ -104,7 +104,7 @@ function QuestionsAdmin() {
   async function toggle(q: AdminQuestion) {
     const path = q.isActive ? "/api/v1/admin/questions/{id}/deactivate" : "/api/v1/admin/questions/{id}/activate";
     await api.POST(path, { params: { path: { id: q.id } } });
-    qc.invalidateQueries({ queryKey: ["admin-questions"] });
+    qc.invalidateQueries({ queryKey: qk.adminQuestionsAll });
   }
 
   const pages = data ? Math.max(1, Math.ceil(data.totalCount / data.pageSize)) : 1;
@@ -255,7 +255,7 @@ function UsersAdmin() {
   const f = useFormat();
   const m = t.admin.users;
   const [search, setSearch] = useState("");
-  const { data } = useQuery({ queryKey: ["admin-users", search], queryFn: () => unwrap(api.GET("/api/v1/admin/users", { params: { query: { search: search || undefined, pageSize: 50 } } })), placeholderData: keepPreviousData });
+  const { data } = useQuery({ queryKey: qk.adminUsers(search), queryFn: () => unwrap(api.GET("/api/v1/admin/users", { params: { query: { search: search || undefined, pageSize: 50 } } })), placeholderData: keepPreviousData });
   return (
     <div className="space-y-4">
       <input aria-label={m.search} className="input max-w-sm" placeholder={m.searchPlaceholder} value={search} onChange={(e) => setSearch(e.target.value)} />

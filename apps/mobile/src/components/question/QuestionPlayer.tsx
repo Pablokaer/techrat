@@ -1,11 +1,10 @@
 import { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
-import { unwrap } from "@techrat/api";
-import type { AnswerFeedback, AnswerResult, PracticeSession, UserSummary } from "@techrat/types";
+import { answerSender, refreshAfterAnswer, submitAnswer } from "@techrat/api";
+import type { AnswerFeedback, AnswerResult, PracticeSession } from "@techrat/types";
 import { useApi } from "@/lib/api-context";
 import { OPTION_LETTERS } from "@/lib/format";
-import { invalidateProgress, qk } from "@/lib/queries";
 import { AppText, Button, Card, DifficultyBadge, XpPill, errorMessage } from "@/components/ui";
 import { spacing } from "@techrat/theme";
 import { FeedbackPanel } from "./FeedbackPanel";
@@ -44,15 +43,9 @@ export function QuestionPlayer({ session, onExit, onPracticeAgain, restarting }:
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const r = await unwrap(
-        api.POST("/api/v1/practice/sessions/{id}/answers", {
-          params: { path: { id: session.id } },
-          body: { questionId: question.id, selectedOptionId: selected, timeSpentSeconds: seconds },
-        }),
-      );
+      const r = await submitAnswer(qc, answerSender(api), session.id, { questionId: question.id, selectedOptionId: selected, timeSpentSeconds: seconds });
       setResults((m) => ({ ...m, [question.id]: r }));
       setAnswers((m) => ({ ...m, [question.id]: r.feedback }));
-      qc.setQueryData<UserSummary>(qk.me, (old) => (old ? { ...old, level: r.level, currentStreak: r.currentStreak } : old));
     } catch (e) {
       setSubmitError(errorMessage(e, "Could not submit your answer"));
     } finally {
@@ -63,7 +56,7 @@ export function QuestionPlayer({ session, onExit, onPracticeAgain, restarting }:
   const next = useCallback(() => {
     setSelected(null);
     setIndex((i) => i + 1);
-    if (index + 1 >= session.questions.length) invalidateProgress(qc);
+    if (index + 1 >= session.questions.length) void refreshAfterAnswer(qc);
   }, [index, session.questions.length, qc]);
 
   if (!question) {

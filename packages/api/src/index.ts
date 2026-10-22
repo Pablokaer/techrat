@@ -11,8 +11,6 @@ export interface ApiClientOptions {
   /** e.g. "" for same-origin web, "https://api.techrat.dev" for native apps. */
   baseUrl: string;
   auth: AuthMode;
-  /** Called on 401 so the app can refresh or sign the user out. Return true to retry once. */
-  onUnauthorized?: () => Promise<boolean>;
   fetch?: typeof fetch;
 }
 
@@ -87,3 +85,5 @@ export function resolveMediaUrl(url: string | null | undefined, baseUrl: string)
   if (!url) return null;
   return url.startsWith("/") ? `${baseUrl.replace(/\/+$/, "")}${url}` : url;
 }
+
+export * from "./learning";

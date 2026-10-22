@@ -1,33 +1,23 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { isApiError } from "@techrat/api";
+import { isApiError, learnerKeys, refreshAfterRoadmapStart } from "@techrat/api";
 import type { LeaderboardScope, ModuleKind, StartPracticeRequest } from "@techrat/types";
 import { api, unwrap } from "./api";
 
+/**
+ * Query keys. The learner's data uses the keys it shares with the mobile app (`learnerKeys` in `@techrat/api`, which also
+ * knows what an answer makes stale); the web-only screens (admin, sign-in providers) add theirs here, so no screen builds
+ * a key inline that the shared refresh lists could miss.
+ */
 export const qk = {
-  me: ["me"] as const,
-  dashboard: ["dashboard"] as const,
-  topics: ["topics"] as const,
-  topic: (slug: string) => ["topic", slug] as const,
-  // Under ["topic"], so answering refreshes the statuses (invalidateProgress).
-  topicQuestions: (slug: string) => ["topic", slug, "questions"] as const,
-  roadmaps: (category?: string) => ["roadmaps", category ?? "all"] as const,
-  roadmap: (slug: string) => ["roadmap", slug] as const,
-  modules: (kind?: ModuleKind) => ["modules", kind ?? "all"] as const,
-  module: (slug: string) => ["module", slug] as const,
-  session: (id: string) => ["session", id] as const,
-  profile: (u: string) => ["profile", u] as const,
-  analytics: (days: number) => ["analytics", days] as const,
-  leaderboard: (scope: string, topic?: string, page = 1) => ["leaderboard", scope, topic ?? "", page] as const,
-  achievements: ["achievements"] as const,
-  notifications: ["notifications"] as const,
-  daily: ["daily"] as const,
-  search: (q: string) => ["search", q] as const,
-  passwordStatus: ["password-status"] as const,
-  roadmapResources: (slug: string) => ["roadmap-resources", slug] as const,
-  moduleResources: (slug: string) => ["module-resources", slug] as const,
-  topicResources: (slug: string) => ["topic-resources", slug] as const,
+  ...learnerKeys,
+  providers: ["providers"] as const,
+  adminStats: ["admin-stats"] as const,
+  /** Prefix of every page of the admin question list: invalidated after an edit. */
+  adminQuestionsAll: ["admin-questions"] as const,
+  adminQuestions: (filters: object) => ["admin-questions", filters] as const,
+  adminUsers: (search: string) => ["admin-users", search] as const,
 };
 
 /** Study resources are curated content: they change with deployments, not while the learner studies. */
@@ -62,6 +52,8 @@ export function useMe() {
 
 export const useDashboard = () => useQuery({ queryKey: qk.dashboard, queryFn: () => unwrap(api.GET("/api/v1/users/me/dashboard")) });
 export const useTopics = () => useQuery({ queryKey: qk.topics, queryFn: () => unwrap(api.GET("/api/v1/topics")), staleTime: 5 * 60_000 });
+/** The learner's level and completion per topic (the Learn page's cards); refreshed when a session ends. */
+export const useTopicProgress = () => useQuery({ queryKey: qk.topicProgress, queryFn: () => unwrap(api.GET("/api/v1/users/me/topic-progress")) });
 export const useTopic = (slug: string) =>
   useQuery({ queryKey: qk.topic(slug), queryFn: () => unwrap(api.GET("/api/v1/topics/{slug}", { params: { path: { slug } } })), enabled: !!slug });
 /** Learn: every question of a topic with the learner's latest result (filtered on the client). */
@@ -129,16 +121,7 @@ export function useStartRoadmap(slug: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => unwrap(api.POST("/api/v1/roadmaps/{slug}/start", { params: { path: { slug } } })),
-    onSuccess: (data) => {
-      qc.setQueryData(qk.roadmap(slug), data);
-      qc.invalidateQueries({ queryKey: ["roadmaps"] });
-      qc.invalidateQueries({ queryKey: qk.dashboard });
-    },
+    // Not awaited: the mutation settles as soon as the roadmap is stored, the lists refetch in the background.
+    onSuccess: (data) => void refreshAfterRoadmapStart(qc, slug, data),
   });
-}
-
-/** Everything that depends on XP / progress. Called after answering questions. */
-export function invalidateProgress(qc: ReturnType<typeof useQueryClient>) {
-  for (const key of [qk.me, qk.dashboard, qk.achievements, qk.notifications, qk.daily, ["profile"], ["analytics"], ["leaderboard"], ["topic"], ["roadmap"], ["roadmaps"], ["module"], ["modules"]])
-    qc.invalidateQueries({ queryKey: key });
 }

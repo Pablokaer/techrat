@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { ProgressBar, cx } from "@techrat/ui";
-import { api, unwrap } from "@/lib/api";
-import { useTopics } from "@/lib/queries";
+import { useTopicProgress, useTopics } from "@/lib/queries";
 import { routes } from "@/lib/routes";
 import { useT } from "@/i18n";
 import { TopicIcon } from "@/components/icons";
@@ -16,7 +14,7 @@ const ALL = "all";
 export default function LearnPage() {
   const t = useT();
   const { data: topics, isLoading } = useTopics();
-  const { data: progress } = useQuery({ queryKey: ["topic-progress"], queryFn: () => unwrap(api.GET("/api/v1/users/me/topic-progress")) });
+  const { data: progress } = useTopicProgress();
   const [category, setCategory] = useState(ALL);
 
   const categories = useMemo(() => [...new Set(topics?.map((topic) => topic.category) ?? [])], [topics]);

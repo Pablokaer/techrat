@@ -2,9 +2,10 @@ import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createApiClient } from "@techrat/api";
-import type { AnswerResult, PracticeSession, SessionQuestion } from "@techrat/types";
+import type { AnswerResult, PracticeSession, SessionQuestion, UserSummary } from "@techrat/types";
 import * as WebBrowser from "expo-web-browser";
 import { ApiProvider } from "@/lib/api-context";
+import { qk } from "@/lib/queries";
 import { QuestionPlayer } from "./QuestionPlayer";
 
 const question = (id: string, title: string): SessionQuestion => ({
@@ -84,10 +85,30 @@ async function setup() {
     </QueryClientProvider>
   );
   await render(<QuestionPlayer session={session} onExit={onExit} />, { wrapper });
-  return { fetchMock, bodies, onExit };
+  return { fetchMock, bodies, onExit, qc };
 }
 
 describe("QuestionPlayer", () => {
+  it("updates the cached learner's level and streak, and refreshes progress once the session ends", async () => {
+    const { qc } = await setup();
+    const me = { username: "rat", currentStreak: 1, level: { level: 2, totalXp: 500, xpIntoLevel: 0, xpForThisLevel: 400, xpToNextLevel: 400, progressPercent: 0 } } as unknown as UserSummary;
+    qc.setQueryData(qk.me, me);
+    qc.setQueryData(qk.topicProgress, []);
+
+    await fireEvent.press(screen.getByTestId("option-B"));
+    await fireEvent.press(screen.getByTestId("submit-button"));
+    expect(await screen.findByText("Correct!")).toBeTruthy();
+    expect(qc.getQueryData<UserSummary>(qk.me)).toMatchObject({ currentStreak: 4, level: { level: 3, totalXp: 1000 } });
+    expect(qc.getQueryState(qk.topicProgress)?.isInvalidated).toBe(false);
+
+    await fireEvent.press(screen.getByTestId("next-button"));
+    await fireEvent.press(screen.getByTestId("option-C"));
+    await fireEvent.press(screen.getByTestId("submit-button"));
+    await fireEvent.press(await screen.findByText("See results"));
+    await waitFor(() => expect(qc.getQueryState(qk.topicProgress)?.isInvalidated).toBe(true));
+    qc.clear(); // no garbage-collection timers left behind for jest
+  });
+
   it("grades a correct answer, then an incorrect one, and shows the summary", async () => {
     const { fetchMock, bodies, onExit } = await setup();
 
