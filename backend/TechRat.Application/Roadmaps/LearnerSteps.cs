@@ -118,7 +118,8 @@ public sealed class LearnerSteps(IAppDbContext db, RoadmapProgressService progre
             return g.OrderBy(r => r.Step.Order).Select(r =>
             {
                 var s = r.Step;
-                return new RoadmapStepDto(s.Id, tr.StepTitle(s.Id, s.Title), tr.StepDescription(s.Id, s.Description),
+                var texts = tr.Step(s.Id, new(s.Title, s.Description));
+                return new RoadmapStepDto(s.Id, texts.Title, texts.Description,
                     s.Order, s.Difficulty.ToString(), s.EstimatedMinutes, r.TopicSlug, tr.TopicName(s.TopicId, r.TopicName),
                     r.SubSlug, s.SubtopicId is { } sid && r.SubName is not null ? tr.SubtopicName(sid, r.SubName) : r.SubName,
                     s.MinimumQuestions, s.MinimumAccuracy, s.XPReward, LearnerStepRules.Status(s.Id, snapshot.CompletedSteps, open),

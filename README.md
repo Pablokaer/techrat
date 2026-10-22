@@ -307,7 +307,7 @@ _Generated from the seed data by `python3 scripts/seed-src/readme_catalog.py`. D
 | Desktop | Tauri 2 around the web static export | 0006 |
 | Shared packages | `@techrat/types` (generated from OpenAPI), `api` (openapi-fetch), `auth`, `validation` (zod), `theme`, `ui` | |
 | Auth | Cookie (web) and bearer + refresh tokens (mobile, desktop) | 0008 |
-| i18n | English and Brazilian Portuguese across UI, content and server messages | 0011 |
+| i18n | English and Brazilian Portuguese across UI, content and server messages | 0011, 0043 |
 | Tests | xUnit + Testcontainers (backend), Vitest + Testing Library (web, packages, mobile), Playwright (end to end) | |
 | Delivery | Docker Compose, GitHub Actions CI, continuous deployment to a VPS behind Apache, `dev` → `main` promotion gate | 0013, 0021 |
 
@@ -474,9 +474,9 @@ The web and desktop apps support English (`en`) and Brazilian Portuguese (`pt-BR
 * **Choosing the language:** the first visit follows the browser language (any Portuguese variant → `pt-BR`, anything else → English). The EN/PT toggle in the header, on the sign-in pages and in Settings saves the choice in the `techrat-locale` cookie (read by the web server for SSR) and in `localStorage` (desktop).
 * **UI strings:** `apps/web/src/i18n/messages/<locale>/<namespace>.ts`, one namespace per area. The pt-BR files are typed against the English ones, so a missing key fails `npm run typecheck`. Components use `const t = useT()` and `useFormat()` for numbers, dates and durations.
 * **API:** every request sends `Accept-Language`. The API (request localization) answers in that language: catalog names, validation and error messages (`TechRat.Application/Common/Localization.cs`, plus a localized Identity error describer), recommendation reasons, achievement notifications and emails. Unsupported languages fall back to English.
-* **Content translations:** stored in `content.content_translations`. Catalog texts are seeded from `backend/TechRat.Infrastructure/Seed/Data/i18n/pt-BR.json` (topics/subtopics by slug, modules with step titles keyed by `topic/subtopic`, roadmaps by slug, achievements by code); questions from `Seed/Data/i18n/questions/<group>.pt-BR.json` (by question id) and served per practice session. Seed-managed rows follow the files; rows customised by an admin are kept. The base (English) text lives on the entities; missing translations fall back to it.
+* **Content translations:** stored in `content.content_translations`. Catalog texts are seeded from `backend/TechRat.Infrastructure/Seed/Data/i18n/pt-BR.json` (topics/subtopics by slug, modules with step titles keyed by `topic/subtopic`, roadmaps by slug, achievements by code); questions from `Seed/Data/i18n/questions/<group>.pt-BR.json` (by question id) and served per practice session. Seed-managed rows follow the files; rows customised by an admin are kept. The base (English) text lives on the entities; missing translations fall back to it. The translatable fields of each content type are declared once (`TranslatableContent` in `Localization.cs`) and services translate a whole item at once (`tr.Topic(id, …)`, ADR-0043).
 * **Mobile:** `apps/mobile/src/lib/i18n.ts` (device language, English and Portuguese) serves only the screens written for the Android release (version label, delete account, legal rows, register consent); its test fails when the two languages differ. Every API request from the app sends `Accept-Language`.
-* **Design:** see [ADR-0011](docs/adr/0011-internationalization.md).
+* **Design:** see [ADR-0011](docs/adr/0011-internationalization.md) and [ADR-0043](docs/adr/0043-content-translations-per-content-type.md).
 * **Adding a language:** add the code to `LOCALES` (web) and `AppLocales.Supported` (API), add a `messages/<locale>` folder, the server texts in `Localization.cs` and a `Seed/Data/i18n/<locale>.json`.
 
 ## Search engines (SEO)

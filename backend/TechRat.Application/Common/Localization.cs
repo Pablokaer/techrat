@@ -347,34 +347,101 @@ public static class Text
         AppLocales.Current == AppLocales.PortugueseBrazil ? PtResources.GetValueOrDefault(resource, resource) : resource;
 }
 
-/// <summary>Translations of catalog texts for one locale. Missing entries fall back to the base (English) value.</summary>
+/// <summary>
+/// The translatable fields of every content type, declared once (ADR-0043). They mirror what the seed provides:
+/// <c>Seed/Data/i18n/&lt;locale&gt;.json</c> (topics with subtopic names, roadmaps, modules with step titles, achievements;
+/// step descriptions are generated from the topic translation) and the question files (title, text, explanation, options).
+/// A test checks every field in those files is declared here, so a seeded translation can never be silently ignored,
+/// and that each <c>*Texts</c> record below has exactly these fields.
+/// </summary>
+public static class TranslatableContent
+{
+    public static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> Fields = new Dictionary<string, IReadOnlyList<string>>
+    {
+        [TranslatableEntity.Topic] = [TranslatableField.Name, TranslatableField.Description, TranslatableField.Category],
+        [TranslatableEntity.Subtopic] = [TranslatableField.Name],
+        [TranslatableEntity.Roadmap] = [TranslatableField.Name, TranslatableField.Description, TranslatableField.Category],
+        [TranslatableEntity.Module] = [TranslatableField.Name, TranslatableField.Description],
+        [TranslatableEntity.ModuleStep] = [TranslatableField.Title, TranslatableField.Description],
+        [TranslatableEntity.Achievement] = [TranslatableField.Name, TranslatableField.Description, TranslatableField.Category],
+        [TranslatableEntity.Question] = [TranslatableField.Title, TranslatableField.Text, TranslatableField.Explanation],
+        [TranslatableEntity.QuestionOption] = [TranslatableField.Text],
+    };
+}
+
+/// <summary>Translatable texts of a topic (see <see cref="TranslatableContent"/>).</summary>
+public sealed record TopicTexts(string Name, string Description, string Category);
+
+/// <summary>Translatable texts of a roadmap (see <see cref="TranslatableContent"/>).</summary>
+public sealed record RoadmapTexts(string Name, string Description, string Category);
+
+/// <summary>Translatable texts of a learning module; its category is not translated (see <see cref="TranslatableContent"/>).</summary>
+public sealed record ModuleTexts(string Name, string Description);
+
+/// <summary>Translatable texts of a module step (see <see cref="TranslatableContent"/>).</summary>
+public sealed record StepTexts(string Title, string Description);
+
+/// <summary>Translatable texts of an achievement (see <see cref="TranslatableContent"/>).</summary>
+public sealed record AchievementTexts(string Name, string Description, string Category);
+
+/// <summary>Translatable texts of a question; its options are translated one by one with <see cref="ContentTranslations.OptionText"/>.</summary>
+public sealed record QuestionTexts(string Title, string Text, string Explanation);
+
+/// <summary>
+/// Translations of content texts for one locale, applied per content item: callers hand over the item's English texts
+/// and get them all back translated, so a new field cannot be shown in English by forgetting its translation. Each field
+/// falls back to its English value when its translation is missing or blank. The <c>*Name</c>/<c>*Title</c> operations
+/// are for references that carry only an item's label (a roadmap listed under "used in", a question in a list), where
+/// loading the other texts would only widen the query.
+/// </summary>
 public sealed class ContentTranslations(IReadOnlyDictionary<string, string> values)
 {
     public static readonly ContentTranslations None = new(new Dictionary<string, string>());
 
     public static string Key(string entityType, Guid id, string field) => $"{entityType}:{id:N}:{field}";
 
-    public string Get(string entityType, Guid id, string field, string fallback) =>
+    private string Get(string entityType, Guid id, string field, string fallback) =>
         values.TryGetValue(Key(entityType, id, field), out var v) && !string.IsNullOrWhiteSpace(v) ? v : fallback;
 
-    public string TopicName(Guid id, string fallback) => Get(TranslatableEntity.Topic, id, TranslatableField.Name, fallback);
-    public string TopicDescription(Guid id, string fallback) => Get(TranslatableEntity.Topic, id, TranslatableField.Description, fallback);
-    public string TopicCategory(Guid id, string fallback) => Get(TranslatableEntity.Topic, id, TranslatableField.Category, fallback);
-    public string SubtopicName(Guid id, string fallback) => Get(TranslatableEntity.Subtopic, id, TranslatableField.Name, fallback);
-    public string RoadmapName(Guid id, string fallback) => Get(TranslatableEntity.Roadmap, id, TranslatableField.Name, fallback);
-    public string RoadmapDescription(Guid id, string fallback) => Get(TranslatableEntity.Roadmap, id, TranslatableField.Description, fallback);
-    public string RoadmapCategory(Guid id, string fallback) => Get(TranslatableEntity.Roadmap, id, TranslatableField.Category, fallback);
-    public string ModuleName(Guid id, string fallback) => Get(TranslatableEntity.Module, id, TranslatableField.Name, fallback);
-    public string ModuleDescription(Guid id, string fallback) => Get(TranslatableEntity.Module, id, TranslatableField.Description, fallback);
-    public string StepTitle(Guid id, string fallback) => Get(TranslatableEntity.ModuleStep, id, TranslatableField.Title, fallback);
-    public string StepDescription(Guid id, string fallback) => Get(TranslatableEntity.ModuleStep, id, TranslatableField.Description, fallback);
-    public string AchievementName(Guid id, string fallback) => Get(TranslatableEntity.Achievement, id, TranslatableField.Name, fallback);
-    public string AchievementDescription(Guid id, string fallback) => Get(TranslatableEntity.Achievement, id, TranslatableField.Description, fallback);
-    public string AchievementCategory(Guid id, string fallback) => Get(TranslatableEntity.Achievement, id, TranslatableField.Category, fallback);
-    public string QuestionTitle(Guid id, string fallback) => Get(TranslatableEntity.Question, id, TranslatableField.Title, fallback);
-    public string QuestionText(Guid id, string fallback) => Get(TranslatableEntity.Question, id, TranslatableField.Text, fallback);
-    public string QuestionExplanation(Guid id, string fallback) => Get(TranslatableEntity.Question, id, TranslatableField.Explanation, fallback);
-    public string OptionText(Guid id, string fallback) => Get(TranslatableEntity.QuestionOption, id, TranslatableField.Text, fallback);
+    public TopicTexts Topic(Guid id, TopicTexts en) => new(
+        TopicName(id, en.Name),
+        Get(TranslatableEntity.Topic, id, TranslatableField.Description, en.Description),
+        Get(TranslatableEntity.Topic, id, TranslatableField.Category, en.Category));
+
+    public RoadmapTexts Roadmap(Guid id, RoadmapTexts en) => new(
+        RoadmapName(id, en.Name),
+        Get(TranslatableEntity.Roadmap, id, TranslatableField.Description, en.Description),
+        Get(TranslatableEntity.Roadmap, id, TranslatableField.Category, en.Category));
+
+    public ModuleTexts Module(Guid id, ModuleTexts en) => new(
+        ModuleName(id, en.Name),
+        Get(TranslatableEntity.Module, id, TranslatableField.Description, en.Description));
+
+    public StepTexts Step(Guid id, StepTexts en) => new(
+        StepTitle(id, en.Title),
+        Get(TranslatableEntity.ModuleStep, id, TranslatableField.Description, en.Description));
+
+    public AchievementTexts Achievement(Guid id, AchievementTexts en) => new(
+        Get(TranslatableEntity.Achievement, id, TranslatableField.Name, en.Name),
+        Get(TranslatableEntity.Achievement, id, TranslatableField.Description, en.Description),
+        Get(TranslatableEntity.Achievement, id, TranslatableField.Category, en.Category));
+
+    public QuestionTexts Question(Guid id, QuestionTexts en) => new(
+        QuestionTitle(id, en.Title),
+        Get(TranslatableEntity.Question, id, TranslatableField.Text, en.Text),
+        Get(TranslatableEntity.Question, id, TranslatableField.Explanation, en.Explanation));
+
+    /// <summary>A subtopic's only translatable text is its name.</summary>
+    public string SubtopicName(Guid id, string en) => Get(TranslatableEntity.Subtopic, id, TranslatableField.Name, en);
+
+    /// <summary>An option's only translatable text.</summary>
+    public string OptionText(Guid id, string en) => Get(TranslatableEntity.QuestionOption, id, TranslatableField.Text, en);
+
+    public string TopicName(Guid id, string en) => Get(TranslatableEntity.Topic, id, TranslatableField.Name, en);
+    public string RoadmapName(Guid id, string en) => Get(TranslatableEntity.Roadmap, id, TranslatableField.Name, en);
+    public string ModuleName(Guid id, string en) => Get(TranslatableEntity.Module, id, TranslatableField.Name, en);
+    public string StepTitle(Guid id, string en) => Get(TranslatableEntity.ModuleStep, id, TranslatableField.Title, en);
+    public string QuestionTitle(Guid id, string en) => Get(TranslatableEntity.Question, id, TranslatableField.Title, en);
 }
 
 /// <summary>Loads catalog translations for the current locale (cached; English needs none).</summary>

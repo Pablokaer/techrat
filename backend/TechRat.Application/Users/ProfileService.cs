@@ -135,9 +135,12 @@ public sealed class ProfileService(
             .ToDictionaryAsync(x => x.AchievementId, x => x.UnlockedAt, ct);
         var all = await db.Achievements.AsNoTracking().Where(a => a.IsActive).ToListAsync(ct);
         var tr = await localizer.LoadAsync(ct);
-        return all.Select(a => (a.Tier, Dto: new AchievementDto(a.Code, tr.AchievementName(a.Id, a.Name), tr.AchievementDescription(a.Id, a.Description),
-                tr.AchievementCategory(a.Id, a.Category), a.Icon, a.Tier.ToString(), a.XPReward,
-                unlocked.ContainsKey(a.Id), unlocked.TryGetValue(a.Id, out var at) ? at : null)))
+        return all.Select(a =>
+            {
+                var texts = tr.Achievement(a.Id, new(a.Name, a.Description, a.Category));
+                return (a.Tier, Dto: new AchievementDto(a.Code, texts.Name, texts.Description, texts.Category, a.Icon, a.Tier.ToString(), a.XPReward,
+                    unlocked.ContainsKey(a.Id), unlocked.TryGetValue(a.Id, out var at) ? at : null));
+            })
             .OrderByDescending(x => x.Dto.Unlocked).ThenBy(x => x.Tier).ThenBy(x => x.Dto.Name, StringComparer.CurrentCulture)
             .Select(x => x.Dto).ToList();
     }
@@ -149,14 +152,18 @@ public sealed class ProfileService(
                           join r in db.Roadmaps on p.RoadmapId equals r.Id
                           join s in db.ModuleSteps on p.CurrentStepId equals s.Id into ss
                           from s in ss.DefaultIfEmpty()
-                          select new { r.Id, r.Slug, r.Name, r.Icon, r.Category, p.CompletedSteps, r.StepsCount, StepTitle = s != null ? s.Title : null,
+                          select new { r.Id, r.Slug, r.Name, r.Description, r.Icon, r.Category, p.CompletedSteps, r.StepsCount, StepTitle = s != null ? s.Title : null,
                               p.CurrentStepId, p.CompletedAt, p.LastActivityAt })
                          .ToListAsync(ct);
         var tr = await localizer.LoadAsync(ct);
-        return rows.Select(r => new RoadmapProgressSummaryDto(r.Slug, tr.RoadmapName(r.Id, r.Name), r.Icon, tr.RoadmapCategory(r.Id, r.Category),
-                r.CompletedSteps, r.StepsCount, r.StepsCount == 0 ? 0 : Math.Round(100.0 * r.CompletedSteps / r.StepsCount, 1),
-                r.CurrentStepId is { } sid && r.StepTitle is not null ? tr.StepTitle(sid, r.StepTitle) : r.StepTitle, r.CurrentStepId,
-                r.CompletedAt is not null, r.LastActivityAt))
+        return rows.Select(r =>
+            {
+                var texts = tr.Roadmap(r.Id, new(r.Name, r.Description, r.Category));
+                return new RoadmapProgressSummaryDto(r.Slug, texts.Name, r.Icon, texts.Category,
+                    r.CompletedSteps, r.StepsCount, r.StepsCount == 0 ? 0 : Math.Round(100.0 * r.CompletedSteps / r.StepsCount, 1),
+                    r.CurrentStepId is { } sid && r.StepTitle is not null ? tr.StepTitle(sid, r.StepTitle) : r.StepTitle, r.CurrentStepId,
+                    r.CompletedAt is not null, r.LastActivityAt);
+            })
             .OrderByDescending(r => r.LastActivityAt).ToList();
     }
 
