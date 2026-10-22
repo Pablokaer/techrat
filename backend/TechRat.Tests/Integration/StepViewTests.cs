@@ -51,7 +51,7 @@ public class StepViewTests(TechRatFactory api)
     private async Task ClearRoadmapCatalogAsync()
     {
         using var scope = api.Services.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<ICacheService>().RemoveAsync(CacheKeys.Roadmaps);
+        await scope.ServiceProvider.GetRequiredService<ICacheService>().RemoveAsync(CacheEntries.Roadmaps);
     }
 
     /// <summary>New content: a second step added to the first module after learners completed version 1.</summary>

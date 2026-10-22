@@ -13,8 +13,13 @@ namespace TechRat.Tests.Unit;
 /// </summary>
 public class HybridCacheServiceTests
 {
-    private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(10);
-    private static readonly TimeSpan Local = TimeSpan.FromMinutes(1);
+    // Real declared entries (ADR-0041): the catalog keeps a local copy, the security state does not.
+    private static readonly ComputedEntry Catalog = CacheEntries.Topics;
+    private static readonly ComputedEntry OtherCatalog = CacheEntries.Translations("pt-BR");
+    private static readonly ComputedEntry Leaderboard = CacheEntries.Leaderboard("AllTime", null, 1, 100);
+    private static readonly ComputedEntry AccountExists = CacheEntries.AccountExists(Guid.Empty);
+    private static readonly ComputedEntry ResetEmail = CacheEntries.EmailThrottle("reset", "k");
+    private static readonly StateEntry Session = CacheEntries.RefreshSession("s");
     private static readonly JsonSerializerOptions WebJson = new(JsonSerializerDefaults.Web);
 
     private sealed record SessionState(string Current, bool Revoked);
@@ -34,7 +39,7 @@ public class HybridCacheServiceTests
         var shared = new CountingCache();
         var cache = Instance(shared);
         var calls = 0;
-        Task<string> Read() => cache.GetOrCreateWithLocalCopyAsync("catalog:k", Ttl, Local, _ => { calls++; return Task.FromResult("catalog"); });
+        Task<string> Read() => cache.GetOrCreateAsync(Catalog, _ => { calls++; return Task.FromResult("catalog"); });
         await Read();
         var readsAfterTheMiss = shared.Reads;
         Assert.Equal("catalog", await Read());
@@ -49,7 +54,7 @@ public class HybridCacheServiceTests
         var shared = new CountingCache();
         var cache = Instance(shared);
         var calls = 0;
-        Task<bool> Read() => cache.GetOrCreateAsync("account:exists:k", Ttl, _ => { calls++; return Task.FromResult(true); });
+        Task<bool> Read() => cache.GetOrCreateAsync(AccountExists, _ => { calls++; return Task.FromResult(true); });
         await Read();
         var readsAfterTheMiss = shared.Reads;
         Assert.True(await Read());
@@ -65,11 +70,11 @@ public class HybridCacheServiceTests
         // exists" check must keep working in that setup (development, no ConnectionStrings:Redis).
         var cache = Instance(new MemoryDistributedCache(Options.Create(new Microsoft.Extensions.Caching.Memory.MemoryDistributedCacheOptions())));
         var calls = 0;
-        Task<bool> Read() => cache.GetOrCreateAsync("auth:reset-email:k", Ttl, _ => { calls++; return Task.FromResult(true); });
+        Task<bool> Read() => cache.GetOrCreateAsync(ResetEmail, _ => { calls++; return Task.FromResult(true); });
         await Read();
         await Read();
         Assert.Equal(1, calls);
-        await cache.RemoveAsync("auth:reset-email:k");
+        await cache.RemoveAsync(ResetEmail);
         await Read();
         Assert.Equal(2, calls);
     }
@@ -80,9 +85,9 @@ public class HybridCacheServiceTests
         foreach (var shared in new IDistributedCache[] { new CountingCache(), new MemoryDistributedCache(Options.Create(new Microsoft.Extensions.Caching.Memory.MemoryDistributedCacheOptions())) })
         {
             var cache = Instance(shared);
-            await cache.SetAsync("auth:refresh:s", new SessionState("t1", false), Ttl);
-            await cache.RemoveAsync("auth:refresh:s");
-            Assert.Null(await cache.GetAsync<SessionState>("auth:refresh:s"));
+            await cache.SetAsync(Session, new SessionState("t1", false));
+            await cache.RemoveAsync(Session);
+            Assert.Null(await cache.GetAsync<SessionState>(Session));
         }
     }
 
@@ -92,7 +97,7 @@ public class HybridCacheServiceTests
         var cache = Instance(new CountingCache());
         var calls = 0;
         var gate = new TaskCompletionSource();
-        var readers = Enumerable.Range(0, 20).Select(_ => cache.GetOrCreateWithLocalCopyAsync("leaderboard:k", Ttl, Local, async c =>
+        var readers = Enumerable.Range(0, 20).Select(_ => cache.GetOrCreateAsync(Leaderboard, async c =>
         {
             Interlocked.Increment(ref calls);
             await gate.Task;
@@ -108,10 +113,10 @@ public class HybridCacheServiceTests
     {
         var cache = Instance(new CountingCache());
         var version = 0;
-        Task<int> Read() => cache.GetOrCreateWithLocalCopyAsync("catalog:k", Ttl, Local, _ => Task.FromResult(++version));
+        Task<int> Read() => cache.GetOrCreateAsync(Catalog, _ => Task.FromResult(++version));
         Assert.Equal(1, await Read());
         Assert.Equal(1, await Read());
-        await cache.RemoveAsync("catalog:k");
+        await cache.RemoveAsync(Catalog);
         Assert.Equal(2, await Read());
     }
 
@@ -122,18 +127,18 @@ public class HybridCacheServiceTests
         var shared = new CountingCache();
         var deleting = Instance(shared);
         var other = Instance(shared);
-        Assert.True(await other.GetOrCreateAsync("account:exists:k", Ttl, _ => Task.FromResult(true)));
-        await deleting.RemoveAsync("account:exists:k");
-        Assert.False(await other.GetOrCreateAsync("account:exists:k", Ttl, _ => Task.FromResult(false)));
+        Assert.True(await other.GetOrCreateAsync(AccountExists, _ => Task.FromResult(true)));
+        await deleting.RemoveAsync(AccountExists);
+        Assert.False(await other.GetOrCreateAsync(AccountExists, _ => Task.FromResult(false)));
     }
 
     [Fact]
     public async Task Get_and_set_share_state_between_instances_at_once()
     {
         var shared = new CountingCache();
-        await Instance(shared).SetAsync("auth:refresh:s", new SessionState("t1", Revoked: true), Ttl);
-        Assert.Equal(new SessionState("t1", true), await Instance(shared).GetAsync<SessionState>("auth:refresh:s"));
-        Assert.Null(await Instance(shared).GetAsync<SessionState>("auth:refresh:missing"));
+        await Instance(shared).SetAsync(Session, new SessionState("t1", Revoked: true));
+        Assert.Equal(new SessionState("t1", true), await Instance(shared).GetAsync<SessionState>(Session));
+        Assert.Null(await Instance(shared).GetAsync<SessionState>(CacheEntries.RefreshSession("missing")));
     }
 
     [Fact]
@@ -143,26 +148,26 @@ public class HybridCacheServiceTests
         // keep the plain JSON the previous cache code wrote.
         var shared = new CountingCache();
         await shared.SetAsync("auth:refresh:s", JsonSerializer.SerializeToUtf8Bytes(new SessionState("t1", Revoked: true), WebJson));
-        Assert.Equal(new SessionState("t1", true), await Instance(shared).GetAsync<SessionState>("auth:refresh:s"));
+        Assert.Equal(new SessionState("t1", true), await Instance(shared).GetAsync<SessionState>(Session));
     }
 
     [Fact]
     public async Task A_catalog_entry_in_the_previous_format_is_rebuilt_not_misread()
     {
         var shared = new CountingCache();
-        await shared.SetAsync("catalog:k", JsonSerializer.SerializeToUtf8Bytes(new[] { "old" }, WebJson));
-        Assert.Equal(["new"], await Instance(shared).GetOrCreateWithLocalCopyAsync("catalog:k", Ttl, Local, _ => Task.FromResult<string[]>(["new"])));
+        await shared.SetAsync(Catalog.Key, JsonSerializer.SerializeToUtf8Bytes(new[] { "old" }, WebJson));
+        Assert.Equal(["new"], await Instance(shared).GetOrCreateAsync(Catalog, _ => Task.FromResult<string[]>(["new"])));
     }
 
     [Fact]
     public async Task A_shared_cache_outage_never_fails_a_request()
     {
         var cache = Instance(new FailingCache());
-        Assert.Equal(7, await cache.GetOrCreateAsync("account:exists:k", Ttl, _ => Task.FromResult(7)));
-        Assert.Equal(8, await cache.GetOrCreateWithLocalCopyAsync("catalog:k", Ttl, Local, _ => Task.FromResult(8)));
-        Assert.Null(await cache.GetAsync<SessionState>("auth:refresh:s"));
-        await cache.SetAsync("auth:refresh:s", new SessionState("t1", false), Ttl);
-        await cache.RemoveAsync("catalog:k");
+        Assert.Equal(7, await cache.GetOrCreateAsync(AccountExists, _ => Task.FromResult(7)));
+        Assert.Equal(8, await cache.GetOrCreateAsync(Catalog, _ => Task.FromResult(8)));
+        Assert.Null(await cache.GetAsync<SessionState>(Session));
+        await cache.SetAsync(Session, new SessionState("t1", false));
+        await cache.RemoveAsync(Catalog);
     }
 
     [Fact]
@@ -170,8 +175,8 @@ public class HybridCacheServiceTests
     {
         var cache = Instance(new CountingCache());
         var calls = 0;
-        await Assert.ThrowsAsync<KeyNotFoundException>(() => cache.GetOrCreateAsync<int>("catalog:k", Ttl, _ => { calls++; throw new KeyNotFoundException(); }));
-        await Assert.ThrowsAsync<KeyNotFoundException>(() => cache.GetOrCreateWithLocalCopyAsync<int>("catalog:k2", Ttl, Local, _ => { calls++; throw new KeyNotFoundException(); }));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => cache.GetOrCreateAsync<int>(Catalog, _ => { calls++; throw new KeyNotFoundException(); }));
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => cache.GetOrCreateAsync<int>(OtherCatalog, _ => { calls++; throw new KeyNotFoundException(); }));
         Assert.Equal(2, calls);
     }
 

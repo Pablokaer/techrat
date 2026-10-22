@@ -18,7 +18,7 @@ public class CachingTests(TechRatFactory api)
         (await client.GetAsync("/api/v1/roadmaps")).EnsureSuccessStatusCode();
 
         var shared = api.Services.GetRequiredService<IDistributedCache>();
-        foreach (var key in new[] { CacheKeys.Topics, CacheKeys.Roadmaps, CacheKeys.Translations("pt-BR") })
+        foreach (var key in new[] { CacheEntries.Topics.Key, CacheEntries.Roadmaps.Key, CacheEntries.Translations("pt-BR").Key })
             Assert.True(await shared.GetAsync(key) is { Length: > 0 }, $"{key} is not in the shared cache");
     }
 }

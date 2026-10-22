@@ -14,23 +14,24 @@ internal sealed class MemoryCache : ICacheService
     private readonly Dictionary<string, object> _values = [];
     public int Entries => _values.Count;
 
-    public Task<T> GetOrCreateAsync<T>(string key, TimeSpan ttl, Func<CancellationToken, Task<T>> factory, CancellationToken ct = default)
+    public Task<T> GetOrCreateAsync<T>(ComputedEntry entry, Func<CancellationToken, Task<T>> factory, CancellationToken ct = default)
     {
+        var key = entry.Key;
         if (_values.TryGetValue(key, out var existing)) return Task.FromResult((T)existing);
         return Create();
         async Task<T> Create() { var v = await factory(ct); _values[key] = v!; return v; }
     }
 
-    public Task<T?> GetAsync<T>(string key, CancellationToken ct = default) =>
-        Task.FromResult(_values.TryGetValue(key, out var v) ? (T?)v : default);
+    public Task<T?> GetAsync<T>(StateEntry entry, CancellationToken ct = default) =>
+        Task.FromResult(_values.TryGetValue(entry.Key, out var v) ? (T?)v : default);
 
-    public Task SetAsync<T>(string key, T value, TimeSpan ttl, CancellationToken ct = default)
+    public Task SetAsync<T>(StateEntry entry, T value, CancellationToken ct = default)
     {
-        _values[key] = value!;
+        _values[entry.Key] = value!;
         return Task.CompletedTask;
     }
 
-    public Task RemoveAsync(string key, CancellationToken ct = default) { _values.Remove(key); return Task.CompletedTask; }
+    public Task RemoveAsync(CacheEntry entry, CancellationToken ct = default) { _values.Remove(entry.Key); return Task.CompletedTask; }
     public void Forget() => _values.Clear();
 }
 

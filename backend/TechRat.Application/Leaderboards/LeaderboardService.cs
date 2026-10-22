@@ -50,10 +50,6 @@ public static class LeaderboardPeriods
 /// </summary>
 public sealed class LeaderboardService(IAppDbContext db, ICacheService cache, TimeProvider clock)
 {
-    private static readonly TimeSpan Ttl = TimeSpan.FromSeconds(30);
-    // Each API instance also keeps a page in memory this long, so a page can be up to about 40 s old (ADR-0034).
-    private static readonly TimeSpan LocalTtl = TimeSpan.FromSeconds(10);
-
     private sealed record Page(List<Row> Rows, int Total);
 
     // Member-init class (not a positional record) so EF Core can translate filters/orderings on the projection.
@@ -87,7 +83,7 @@ public sealed class LeaderboardService(IAppDbContext db, ICacheService cache, Ti
                 ?? throw new NotFoundException("Topic", topicSlug);
         }
 
-        var cached = await cache.GetOrCreateWithLocalCopyAsync(CacheKeys.Leaderboard(scope.ToString(), topicSlug, p, size), Ttl, LocalTtl,
+        var cached = await cache.GetOrCreateAsync(CacheEntries.Leaderboard(scope.ToString(), topicSlug, p, size),
             async c => await LoadPageAsync(scope, topicId, periodStart, p, size, c), ct);
         var (rows, total) = (cached.Rows, cached.Total);
         // A page may be cached for up to about 40 s: learners who opted out or deleted their account meanwhile disappear at once
