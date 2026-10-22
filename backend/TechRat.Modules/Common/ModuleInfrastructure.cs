@@ -32,6 +32,7 @@ public static class ModuleRegistration
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, HttpCurrentUser>();
+        services.AddScoped<ISessionCookie, TechRat.Modules.Identity.IdentitySessionCookie>();
         return services;
     }
 

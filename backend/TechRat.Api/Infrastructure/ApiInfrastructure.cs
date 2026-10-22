@@ -95,7 +95,7 @@ public sealed class RedisHealthCheck(IConfiguration config, IDistributedCache ca
 /// <summary>
 /// Bearer access tokens are stateless, so on their own they would keep working until they expire after the account
 /// was deleted. This treats a request whose account no longer exists as signed out. The answer is cached for a couple
-/// of minutes (one lookup per user, not per request) and evicted when the account is deleted, so the cut-off is
+/// of minutes (one lookup per user, not per request) and evicted when the account is deleted (IAccountSessions.EndEverySessionAsync), so the cut-off is
 /// immediate on every instance that shares the cache. See ADR-0023.
 /// </summary>
 public sealed class AccountExistsMiddleware(RequestDelegate next)
