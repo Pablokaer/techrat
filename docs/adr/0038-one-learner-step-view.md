@@ -1,4 +1,4 @@
-# ADR-0037: One place builds a learner's steps for roadmaps and modules
+# ADR-0038: One place builds a learner's steps for roadmaps and modules
 
 **Status:** Accepted · Builds on ADR-0012 (reusable module catalog); its progress rules are unchanged
 

@@ -30,9 +30,11 @@ public class StepViewTests(TechRatFactory api)
                 ModuleId = moduleId, Order = 1, Title = $"Step {i}", Difficulty = Difficulty.Easy, EstimatedMinutes = 30,
                 TopicId = scopes[i].TopicId, SubtopicId = scopes[i].SubtopicId, MinimumQuestions = 3, MinimumAccuracy = 70, XPReward = 50,
             };
-            // Test fixtures use the "t-" slug prefix (excluded from catalog coverage checks).
-            var first = new LearningModule { Slug = $"t-view-a-{suffix}", Name = "First", Kind = ModuleKind.Core, XPReward = 150 };
-            var second = new LearningModule { Slug = $"t-view-b-{suffix}", Name = "Second", Kind = ModuleKind.Core, XPReward = 150 };
+            // Test fixtures use the "t-" slug prefix (excluded from catalog coverage checks). They are not Beginner modules:
+            // RoadmapStructureTests checks the seeded difficulty of every Beginner module's first step in the shared database,
+            // and the seeder never touches fixtures, so a Beginner fixture would count as unstructured content there.
+            var first = new LearningModule { Slug = $"t-view-a-{suffix}", Name = "First", Kind = ModuleKind.Core, Level = RoadmapDifficulty.Intermediate, XPReward = 150 };
+            var second = new LearningModule { Slug = $"t-view-b-{suffix}", Name = "Second", Kind = ModuleKind.Core, Level = RoadmapDifficulty.Intermediate, XPReward = 150 };
             first.Steps.Add(Step(first.Id, 0));
             second.Steps.Add(Step(second.Id, 1));
             var roadmap = new Roadmap { Slug = $"t-view-{suffix}", Name = "View", XPReward = 1000, StepsCount = 2, DisplayOrder = 950 };
@@ -62,7 +64,7 @@ public class StepViewTests(TechRatFactory api)
             module.Version = 2;
             var step = new ModuleStep
             {
-                ModuleId = module.Id, Order = 2, Title = "Added later", Difficulty = Difficulty.Easy, EstimatedMinutes = 30,
+                ModuleId = module.Id, Order = 2, Title = "Added later", Difficulty = Difficulty.Medium, EstimatedMinutes = 30,
                 TopicId = scope.TopicId, SubtopicId = scope.SubtopicId, MinimumQuestions = 3, MinimumAccuracy = 70, XPReward = 50, AddedInVersion = 2,
             };
             db.ModuleSteps.Add(step);

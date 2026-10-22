@@ -33,9 +33,10 @@ public class ModuleCatalogTests(TechRatFactory api)
                 ModuleId = moduleId, Order = 1, Title = $"Step {i}", Difficulty = Difficulty.Easy, EstimatedMinutes = 30,
                 TopicId = scopes[i].TopicId, SubtopicId = scopes[i].SubtopicId, MinimumQuestions = 3, MinimumAccuracy = 70, XPReward = 50,
             };
-            // Test fixtures use the "t-" slug prefix (excluded from catalog coverage checks).
-            var shared = new LearningModule { Slug = $"t-shared-{suffix}", Name = "Shared", Kind = ModuleKind.Core, XPReward = 150 };
-            var context = new LearningModule { Slug = $"t-context-{suffix}", Name = "Context", Kind = ModuleKind.Context, XPReward = 150 };
+            // Test fixtures use the "t-" slug prefix (excluded from catalog coverage checks). Not Beginner modules, so the seeded
+            // structure checks on Beginner modules (RoadmapStructureTests) never see them in the shared database.
+            var shared = new LearningModule { Slug = $"t-shared-{suffix}", Name = "Shared", Kind = ModuleKind.Core, Level = RoadmapDifficulty.Intermediate, XPReward = 150 };
+            var context = new LearningModule { Slug = $"t-context-{suffix}", Name = "Context", Kind = ModuleKind.Context, Level = RoadmapDifficulty.Intermediate, XPReward = 150 };
             shared.Steps.Add(Step(shared.Id, 0));
             context.Steps.Add(Step(context.Id, 1));
             var r1 = new Roadmap { Slug = $"t-one-{suffix}", Name = "One", XPReward = 1000, StepsCount = 1, DisplayOrder = 900 };
