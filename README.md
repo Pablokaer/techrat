@@ -357,7 +357,7 @@ apps/
   desktop/    Tauri 2 shell around the web static export
 packages/
   types/      generated OpenAPI contracts (schema.d.ts) + friendly aliases
-  api/        typed API client (openapi-fetch) + ApiError, and the learner-data cache rules both apps share (query keys, what to refresh after answering, answer submission; ADR-0037)
+  api/        typed API client (openapi-fetch) + ApiError, and the learner-data cache rules both apps share (query keys, what to refresh after answering, answer submission; ADR-0039)
   auth/       BearerSession (login, single-flight refresh, logout) + TokenStorage
   validation/ zod schemas mirroring server rules
   theme/      design tokens (colors, difficulty/tier colors, radii, fonts)

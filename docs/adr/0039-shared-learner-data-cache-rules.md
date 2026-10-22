@@ -1,4 +1,4 @@
-# ADR-0037: One shared module for the learner's cached data
+# ADR-0039: One shared module for the learner's cached data
 
 **Status:** Accepted · Builds on ADR-0004 (web stack) and ADR-0005 (React Native / Expo)
 
