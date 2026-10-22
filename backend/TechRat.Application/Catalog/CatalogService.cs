@@ -44,13 +44,17 @@ public sealed class CatalogService(IAppDbContext db, ICacheService cache, Conten
         return ReferenceEquals(tr, ContentTranslations.None) ? topics : topics.Select(t => Localize(t, tr)).ToList();
     }
 
-    private static TopicDto Localize(TopicDto t, ContentTranslations tr) => t with
+    private static TopicDto Localize(TopicDto t, ContentTranslations tr)
     {
-        Name = tr.TopicName(t.Id, t.Name),
-        Description = tr.TopicDescription(t.Id, t.Description),
-        Category = tr.TopicCategory(t.Id, t.Category),
-        Subtopics = t.Subtopics.Select(s => s with { Name = tr.SubtopicName(s.Id, s.Name) }).ToList(),
-    };
+        var texts = tr.Topic(t.Id, new(t.Name, t.Description, t.Category));
+        return t with
+        {
+            Name = texts.Name,
+            Description = texts.Description,
+            Category = texts.Category,
+            Subtopics = t.Subtopics.Select(s => s with { Name = tr.SubtopicName(s.Id, s.Name) }).ToList(),
+        };
+    }
 
     /// <summary>Topics in the base language (cached once for every locale).</summary>
     private Task<List<TopicDto>> BaseTopicsAsync(CancellationToken ct) =>
@@ -176,11 +180,11 @@ public sealed class CatalogService(IAppDbContext db, ICacheService cache, Conten
             .Select(s => new SearchResultDto("Subtopic", s.Second.Slug, s.Second.Name, t.Loc.Name, t.Loc.Icon, $"/topics/{t.Loc.Slug}?subtopic={s.Second.Slug}"))));
 
         var roadmaps = await db.Roadmaps.AsNoTracking().Where(r => r.IsPublished)
-            .Select(r => new { r.Id, r.Slug, r.Name, r.Category, r.Icon }).ToListAsync(ct);
+            .Select(r => new { r.Id, r.Slug, r.Name, r.Description, r.Category, r.Icon }).ToListAsync(ct);
         results.AddRange(roadmaps
-            .Select(r => (Base: r, Name: tr.RoadmapName(r.Id, r.Name), Category: tr.RoadmapCategory(r.Id, r.Category)))
-            .Where(r => Match(r.Base.Name, r.Name, r.Base.Slug, r.Base.Category, r.Category))
-            .Select(r => new SearchResultDto("Roadmap", r.Base.Slug, r.Name, r.Category, r.Base.Icon, $"/roadmaps/{r.Base.Slug}")));
+            .Select(r => (Base: r, Loc: tr.Roadmap(r.Id, new(r.Name, r.Description, r.Category))))
+            .Where(r => Match(r.Base.Name, r.Loc.Name, r.Base.Slug, r.Base.Category, r.Loc.Category))
+            .Select(r => new SearchResultDto("Roadmap", r.Base.Slug, r.Loc.Name, r.Loc.Category, r.Base.Icon, $"/roadmaps/{r.Base.Slug}")));
 
         var modules = await db.LearningModules.AsNoTracking().Where(m => m.IsPublished)
             .Select(m => new { m.Id, m.Slug, m.Name, m.Category, m.Icon }).ToListAsync(ct);

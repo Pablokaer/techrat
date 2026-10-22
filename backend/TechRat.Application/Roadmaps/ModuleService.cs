@@ -66,7 +66,8 @@ public sealed class ModuleService(IAppDbContext db, RoadmapProgressService progr
                 state = new ModuleUserStateDto(mp is not null, mp?.CompletedAt is not null,
                     snapshot.Steps(m.Id).Count(s => snapshot.CompletedSteps.Contains(s.Id)), mp?.CompletedVersion);
             }
-            return new ModuleSummaryDto(m.Id, m.Slug, tr.ModuleName(m.Id, m.Name), tr.ModuleDescription(m.Id, m.Description), m.Kind.ToString(),
+            var texts = tr.Module(m.Id, new(m.Name, m.Description));
+            return new ModuleSummaryDto(m.Id, m.Slug, texts.Name, texts.Description, m.Kind.ToString(),
                 m.Category, m.Level.ToString(), m.Icon, stepCounts.GetValueOrDefault(m.Id), m.EstimatedMinutes, m.XPReward, m.Version,
                 usedIn.Where(x => x.ModuleId == m.Id).Select(x => new RoadmapRefDto(x.Slug, tr.RoadmapName(x.Id, x.Name))).ToList(), state);
         }).ToList();
