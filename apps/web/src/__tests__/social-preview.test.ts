@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildMetadata, siteUrl } from "@/lib/site-metadata";
+import { siteMetadata as buildMetadata, siteUrl } from "@/lib/public-pages";
 
 const appDir = path.resolve(__dirname, "../../app");
 

@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { siteUrl } from "@/lib/site-metadata";
+import { siteUrl } from "@/lib/public-pages";
 
 // Built once (it only depends on PUBLIC_WEB_URL); the desktop static export requires saying so.
 export const dynamic = "force-static";

@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { messages } from "@/i18n/messages";
 import { pageLocale } from "@/i18n/server";
+import { accountPageMetadata } from "@/lib/public-pages";
 
-/** Stays indexable (people search for "TechRat register"), unlike the other account pages, with a title in the visitor's language. */
+/** Indexable, with its own title and link preview in the visitor's language (see accountPageMetadata). */
 export async function generateMetadata(): Promise<Metadata> {
-  const { title, description } = messages[(await pageLocale()).locale].auth.meta.register;
-  return { title, description, robots: { index: true, follow: true }, alternates: { canonical: "/register" } };
+  return accountPageMetadata((await pageLocale()).locale, "register");
 }
 
 export default function RegisterLayout({ children }: { children: React.ReactNode }) {
