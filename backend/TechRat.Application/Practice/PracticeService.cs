@@ -212,13 +212,13 @@ public sealed class PracticeService(
         var items = s.QuestionIds.Where(byId.ContainsKey).Select((id, index) =>
         {
             var q = byId[id];
+            var texts = qtr.Question(q.Id, new(q.Title, q.QuestionText, q.Explanation));
             AnswerFeedbackDto? answer = null;
             if (attempts.TryGetValue(id, out var a))
                 answer = new AnswerFeedbackDto(a.SelectedOptionId, q.Options.First(o => o.IsCorrect).Id, a.IsCorrect,
-                    qtr.QuestionExplanation(q.Id, q.Explanation), q.ReferenceUrl, a.XpEarned);
+                    texts.Explanation, q.ReferenceUrl, a.XpEarned);
             return new SessionQuestionDto(q.Id, index + 1, q.TopicSlug, tr.TopicName(q.TopicId, q.TopicName), q.SubSlug,
-                tr.SubtopicName(q.SubtopicId, q.SubName), q.Difficulty, qtr.QuestionTitle(q.Id, q.Title),
-                qtr.QuestionText(q.Id, q.QuestionText), q.XPReward,
+                tr.SubtopicName(q.SubtopicId, q.SubName), q.Difficulty, texts.Title, texts.Text, q.XPReward,
                 // Each session shows its own stable random order (ADR-0019); answers are graded by option id.
                 OptionShuffle.Order(q.Options, o => o.Text, OptionShuffle.Seed(s.Id, q.Id))
                     .Select(o => new OptionDto(o.Id, qtr.OptionText(o.Id, o.Text))).ToList(), answer);
@@ -368,7 +368,8 @@ public sealed class PracticeService(
         var levelInfo = levels.Evaluate(user.CurrentGlobalXP);
         return new AnswerResultDto(
             new AnswerFeedbackDto(selected.Id, correct.Id, isCorrect,
-                (await localizer.LoadQuestionsAsync([question.Id], [], ct)).QuestionExplanation(question.Id, question.Explanation),
+                (await localizer.LoadQuestionsAsync([question.Id], [], ct))
+                    .Question(question.Id, new(question.Title, question.QuestionText, question.Explanation)).Explanation,
                 question.ReferenceUrl, questionXp),
             bonusXp,
             user.CurrentGlobalXP,

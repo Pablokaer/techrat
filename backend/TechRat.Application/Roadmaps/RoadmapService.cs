@@ -47,7 +47,7 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
         int EstimatedHours, int StepsCount, string Icon, int XpReward, int DisplayOrder, int? JuniorRank, List<string> Prerequisites, List<LinkRow> Links);
 
     private Task<List<CatalogRow>> CatalogAsync(CancellationToken ct) =>
-        cache.GetOrCreateWithLocalCopyAsync(CacheKeys.Roadmaps, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(1), async c =>
+        cache.GetOrCreateAsync(CacheEntries.Roadmaps, async c =>
             await db.Roadmaps.AsNoTracking().Where(r => r.IsPublished).OrderBy(r => r.DisplayOrder)
                 .Select(r => new CatalogRow(r.Id, r.Slug, r.Name, r.Description, r.Category, r.Difficulty, r.EstimatedHours,
                     r.StepsCount, r.Icon, r.XPReward, r.DisplayOrder, r.JuniorRank,
@@ -64,16 +64,21 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
         // Accept the category in English or in the request language.
         if (!string.IsNullOrWhiteSpace(category))
             rows = rows.Where(r => string.Equals(r.Category, category, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(tr.RoadmapCategory(r.Id, r.Category), category, StringComparison.OrdinalIgnoreCase)).ToList();
+                || string.Equals(tr.Roadmap(r.Id, Texts(r)).Category, category, StringComparison.OrdinalIgnoreCase)).ToList();
 
         Dictionary<Guid, RoadmapUserStateDto> states = [];
         if (userId is { } uid) states = await UserStatesAsync(uid, rows, isAdmin, ct);
         return rows.Select(r => ToSummary(r, states.GetValueOrDefault(r.Id), tr)).ToList();
     }
 
-    private static RoadmapSummaryDto ToSummary(CatalogRow r, RoadmapUserStateDto? state, ContentTranslations tr) =>
-        new(r.Id, r.Slug, tr.RoadmapName(r.Id, r.Name), tr.RoadmapDescription(r.Id, r.Description), tr.RoadmapCategory(r.Id, r.Category),
+    private static RoadmapTexts Texts(CatalogRow r) => new(r.Name, r.Description, r.Category);
+
+    private static RoadmapSummaryDto ToSummary(CatalogRow r, RoadmapUserStateDto? state, ContentTranslations tr)
+    {
+        var texts = tr.Roadmap(r.Id, Texts(r));
+        return new(r.Id, r.Slug, texts.Name, texts.Description, texts.Category,
             r.Difficulty.ToString(), r.EstimatedHours, r.StepsCount, r.Links.Count, r.Icon, r.XpReward, r.Prerequisites, state, r.JuniorRank);
+    }
 
     private async Task<Dictionary<Guid, RoadmapUserStateDto>> UserStatesAsync(Guid userId, List<CatalogRow> rows, bool isAdmin, CancellationToken ct)
     {
@@ -146,8 +151,9 @@ public sealed class RoadmapService(IAppDbContext db, RoadmapProgressService prog
             // Credited from another roadmap: completed before this roadmap was started (or without starting it).
             var elsewhere = isCompleted && (userProgress is null || mp!.CompletedAt < userProgress.StartedAt);
             var moduleStatus = isCompleted ? StepStatus.Completed : open.Contains(m.Id) ? StepStatus.Current : StepStatus.Locked;
-            return new RoadmapModuleDto(m.Id, tr.ModuleName(m.Id, m.Name), link.Order, m.XPReward, isCompleted, view.Steps(m.Id),
-                m.Slug, m.Kind.ToString(), link.IsRequired, tr.ModuleDescription(m.Id, m.Description),
+            var texts = tr.Module(m.Id, new(m.Name, m.Description));
+            return new RoadmapModuleDto(m.Id, texts.Name, link.Order, m.XPReward, isCompleted, view.Steps(m.Id),
+                m.Slug, m.Kind.ToString(), link.IsRequired, texts.Description,
                 usedIn.Where(x => x.ModuleId == m.Id).Select(x => new RoadmapRefDto(x.Slug, tr.RoadmapName(x.Id, x.Name))).ToList(),
                 elsewhere, m.Version, moduleStatus);
         }).ToList();

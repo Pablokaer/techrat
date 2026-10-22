@@ -1,6 +1,7 @@
 # ADR-0011: Internationalization (English + Brazilian Portuguese)
 
-**Status:** Accepted
+**Status:** Accepted · Superseded in part by [ADR-0040](0040-one-owner-of-the-page-language.md): the public SEO pages
+(`/pt-BR/**`, `/catalog/**`) have a URL-fixed language; the cookie / `Accept-Language` rule below still applies elsewhere.
 
 TechRat serves English (`en`) and Brazilian Portuguese (`pt-BR`). Every learner-facing text must exist in both languages (see `CLAUDE.md`).
 

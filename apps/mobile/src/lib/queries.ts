@@ -1,21 +1,13 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { unwrap } from "@techrat/api";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { learnerKeys, refreshAfterRoadmapStart, unwrap } from "@techrat/api";
 import type { LeaderboardScope, PracticeSession, StartPracticeRequest } from "@techrat/types";
 import { useApi } from "./api-context";
 
-export const qk = {
-  me: ["me"] as const,
-  dashboard: ["dashboard"] as const,
-  topics: ["topics"] as const,
-  topicProgress: ["topic-progress"] as const,
-  topic: (slug: string) => ["topic", slug] as const,
-  roadmaps: ["roadmaps"] as const,
-  roadmap: (slug: string) => ["roadmap", slug] as const,
-  session: (id: string) => ["session", id] as const,
-  profile: (username: string) => ["profile", username] as const,
-  leaderboard: (scope: LeaderboardScope) => ["leaderboard", scope] as const,
-  passwordStatus: ["password-status"] as const,
-};
+/**
+ * Query keys: the ones the web app uses too (`learnerKeys` in `@techrat/api`), so the shared refresh after answering
+ * (`refreshAfterAnswer`) reaches every screen here.
+ */
+export const qk = learnerKeys;
 
 /** Whether the account has a password (change it) or signed up through a provider (set one). */
 export function usePasswordStatus() {
@@ -54,7 +46,7 @@ export function useTopic(slug: string) {
 
 export function useRoadmaps() {
   const api = useApi();
-  return useQuery({ queryKey: qk.roadmaps, queryFn: () => unwrap(api.GET("/api/v1/roadmaps")) });
+  return useQuery({ queryKey: qk.roadmaps(), queryFn: () => unwrap(api.GET("/api/v1/roadmaps")) });
 }
 
 export function useRoadmap(slug: string) {
@@ -112,16 +104,6 @@ export function useStartRoadmap(slug: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => unwrap(api.POST("/api/v1/roadmaps/{slug}/start", { params: { path: { slug } } })),
-    onSuccess: (data) => {
-      qc.setQueryData(qk.roadmap(slug), data);
-      void qc.invalidateQueries({ queryKey: qk.roadmaps });
-      void qc.invalidateQueries({ queryKey: qk.dashboard });
-    },
+    onSuccess: (data) => void refreshAfterRoadmapStart(qc, slug, data),
   });
-}
-
-/** Everything that depends on XP / progress; called when a session finishes. */
-export function invalidateProgress(qc: QueryClient) {
-  for (const key of [qk.me, qk.dashboard, qk.topicProgress, qk.roadmaps, ["profile"], ["leaderboard"], ["topic"], ["roadmap"]])
-    void qc.invalidateQueries({ queryKey: key });
 }

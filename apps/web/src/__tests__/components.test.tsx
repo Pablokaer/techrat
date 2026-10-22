@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 import { DifficultyBadge, ProgressBar } from "@techrat/ui";
 import { RichText, splitBlocks } from "@/components/question-text";
 import { RoadmapChain } from "@/components/widgets";
-import LoginPage from "../../app/(auth)/login/page";
-import RegisterPage from "../../app/(auth)/register/page";
+import LoginPage from "../../app/(visitor-language)/(auth)/login/page";
+import RegisterPage from "../../app/(visitor-language)/(auth)/register/page";
 import { renderApp } from "@/test/utils";
 import { searchHref } from "@/lib/routes";
 

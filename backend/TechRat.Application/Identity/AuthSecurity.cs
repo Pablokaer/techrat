@@ -145,7 +145,7 @@ public sealed class ResetEmailThrottle(ICacheService cache)
     {
         var key = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(email.Trim().ToUpperInvariant())));
         var first = false;
-        await cache.GetOrCreateAsync($"auth:{purpose}-email:{key}", AuthPolicy.ResetEmailCooldown, _ =>
+        await cache.GetOrCreateAsync(CacheEntries.EmailThrottle(purpose, key), _ =>
         {
             first = true;
             return Task.FromResult(true);

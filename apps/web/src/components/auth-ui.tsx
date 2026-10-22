@@ -6,6 +6,7 @@ import { Fragment, type ReactNode } from "react";
 import { BarChart3, BookOpen, Code2, KeyRound, Trophy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api, unwrap } from "@/lib/api";
+import { qk } from "@/lib/queries";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { LegalLinks } from "@/components/legal-links";
 import { useT } from "@/i18n";
@@ -86,7 +87,7 @@ export function FormError({ message }: { message?: string | null }) {
 /** External providers (OAuth). GitHub is featured; disabled until configured in the backend. */
 export function OAuthButtons() {
   const t = useT();
-  const { data } = useQuery({ queryKey: ["providers"], queryFn: () => unwrap(api.GET("/api/v1/auth/providers")), staleTime: Infinity });
+  const { data } = useQuery({ queryKey: qk.providers, queryFn: () => unwrap(api.GET("/api/v1/auth/providers")), staleTime: Infinity });
   const github = data?.find((p) => p.name === "github");
   if (!github) return null;
   return (

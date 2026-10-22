@@ -179,7 +179,7 @@ public class DeleteAccountTests(TechRatFactory api)
         var (gone, goneUsername, _) = await LearnerWithDataAsync();
         var (other, _, _) = await LearnerWithDataAsync();
         // Other tests may have cached this page for 30 s before these learners existed: start from a fresh page, then cache it.
-        await api.Services.GetRequiredService<ICacheService>().RemoveAsync(CacheKeys.Leaderboard(scope, "kubernetes", 1, 100));
+        await api.Services.GetRequiredService<ICacheService>().RemoveAsync(CacheEntries.Leaderboard(scope, "kubernetes", 1, 100));
         Assert.Contains((await BoardAsync(other, scope)).Entries, e => e.Username == goneUsername);   // also caches the page, which must not keep showing the learner
 
         Assert.Equal(HttpStatusCode.NoContent, (await DeleteAsync(gone, new { password = Password })).StatusCode);

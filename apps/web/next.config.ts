@@ -11,6 +11,9 @@ const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   transpilePackages: ["@techrat/api", "@techrat/auth", "@techrat/theme", "@techrat/types", "@techrat/ui", "@techrat/validation"],
+  // There is no layout above every page (one root layout per owner of the page language, ADR-0040), so URLs that match
+  // no route are answered by app/global-not-found.tsx.
+  experimental: { globalNotFound: true },
   ...(isDesktop
     ? { output: "export", images: { unoptimized: true }, trailingSlash: true }
     : {

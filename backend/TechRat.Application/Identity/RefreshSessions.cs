@@ -54,7 +54,6 @@ public sealed record RefreshSessionState(string Current, string? Previous, DateT
 /// </summary>
 public sealed class RefreshSessions(ICacheService cache, TimeProvider clock, IOptions<AuthSessionOptions> options)
 {
-    private static string Key(string sessionId) => $"auth:refresh:{sessionId}";
     private static string NewId() => Convert.ToHexString(RandomNumberGenerator.GetBytes(16));
 
     /// <summary>Starts tracking a new sign-in and returns the ids to put in its first tokens.</summary>
@@ -69,7 +68,7 @@ public sealed class RefreshSessions(ICacheService cache, TimeProvider clock, IOp
         if (string.IsNullOrEmpty(sessionId) || string.IsNullOrEmpty(presentedTokenId))
             return new(RefreshVerdict.Issued, await StartAsync(ct));
 
-        var state = await cache.GetAsync<RefreshSessionState>(Key(sessionId), ct);
+        var state = await cache.GetAsync<RefreshSessionState>(CacheEntries.RefreshSession(sessionId), ct);
         if (state is null) return new(RefreshVerdict.Issued, await TrackAsync(sessionId, previous: null, ct));
         if (state.Revoked) return new(RefreshVerdict.Revoked, null);
 
@@ -80,15 +79,14 @@ public sealed class RefreshSessions(ICacheService cache, TimeProvider clock, IOp
         if (presentedTokenId == state.Previous && clock.GetUtcNow() - state.RotatedAt < grace)
             return new(RefreshVerdict.Issued, await TrackAsync(sessionId, state.Previous, ct, rotatedAt: state.RotatedAt));
 
-        await cache.SetAsync(Key(sessionId), state with { Revoked = true }, AuthPolicy.RefreshTokenLifetime, ct);
+        await cache.SetAsync(CacheEntries.RefreshSession(sessionId), state with { Revoked = true }, ct);
         return new(RefreshVerdict.Reused, null);
     }
 
     private async Task<RefreshTokenIds> TrackAsync(string sessionId, string? previous, CancellationToken ct, DateTimeOffset? rotatedAt = null)
     {
         var ids = new RefreshTokenIds(sessionId, NewId());
-        await cache.SetAsync(Key(sessionId), new RefreshSessionState(ids.TokenId, previous, rotatedAt ?? clock.GetUtcNow(), Revoked: false),
-            AuthPolicy.RefreshTokenLifetime, ct);
+        await cache.SetAsync(CacheEntries.RefreshSession(sessionId), new RefreshSessionState(ids.TokenId, previous, rotatedAt ?? clock.GetUtcNow(), Revoked: false), ct);
         return ids;
     }
 }

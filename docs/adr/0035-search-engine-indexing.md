@@ -23,7 +23,7 @@ export of the desktop app, which builds from the same `app/` directory.
   `pt-BR`. `/` stays the adaptive page and is the English URL for crawlers. Both have their own canonical URL,
   reciprocal `hreflang` (`en`, `pt-BR`, `x-default` → `/`) and JSON-LD (`WebSite`, `Organization`). The canonical of `/`
   stays `/` even when a visitor sees it in Portuguese.
-- **`noindex`** for the `(app)` route group (`nofollow` too) and for the `(auth)` group (`follow`); `login` and `register`
+- **`noindex`** for the `(app)` route group (now under `app/(visitor-language)/`, ADR-0040) (`nofollow` too) and for the `(auth)` group (`follow`); `login` and `register`
   override it with `index, follow`, a canonical URL and their own title in the visitor's language.
 - **Titles and descriptions with search terms** in both languages, within what Google shows (~60 / ~160 characters).
 

@@ -28,9 +28,10 @@ public sealed class NotificationService(IAppDbContext db, ContentLocalizer local
         {
             if (n.Type != NotificationTypes.Achievement || n.ReferenceKey is null || !achievements.TryGetValue(n.ReferenceKey, out var a))
                 return new NotificationDto(n.Id, n.Type, n.Title, n.Body, n.CreatedAt, n.ReadAt != null);
+            var texts = tr.Achievement(a.Id, new(a.Name, a.Description, a.Category));
             return new NotificationDto(n.Id, n.Type,
-                Text.Get(Text.Keys.AchievementUnlockedTitle, tr.AchievementName(a.Id, a.Name)),
-                Text.Get(Text.Keys.AchievementUnlockedBody, tr.AchievementDescription(a.Id, a.Description), a.XPReward),
+                Text.Get(Text.Keys.AchievementUnlockedTitle, texts.Name),
+                Text.Get(Text.Keys.AchievementUnlockedBody, texts.Description, a.XPReward),
                 n.CreatedAt, n.ReadAt != null);
         }).ToList();
         return new NotificationListDto(unread, items);

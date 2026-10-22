@@ -1,13 +1,13 @@
 "use client";
 
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { isApiError } from "@techrat/api";
+import { isApiError, refreshAfterAnswer } from "@techrat/api";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Award, CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { I18nProvider, useT } from "@/i18n";
 import type { Locale } from "@/i18n/config";
 import { AUTH_MODE, api, bearerSession, hubUrl, unwrap } from "@/lib/api";
-import { invalidateProgress, qk, useMe } from "@/lib/queries";
+import { qk, useMe } from "@/lib/queries";
 
 // ------------------------------------------------------------------ toasts
 
@@ -79,7 +79,7 @@ function Realtime() {
             /* keep the name from the event */
           }
           toast({ kind: "achievement", title: tRef.current.shell.achievementUnlocked(name), body: tRef.current.common.plusXp(a.xpReward) });
-          invalidateProgress(qc);
+          void refreshAfterAnswer(qc);
         });
         connection.on("progressUpdated", () => qc.invalidateQueries({ queryKey: qk.dashboard }));
         if (!stopped) await connection.start();
