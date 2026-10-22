@@ -23,4 +23,9 @@ export const common = {
     label: "Language",
     choose: "Choose language",
   },
+  notFound: {
+    title: "Page not found",
+    body: "This page does not exist or has moved.",
+    home: "Back to the home page",
+  },
 };

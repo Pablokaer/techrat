@@ -8,10 +8,13 @@ import PtRoadmapRoute, { generateMetadata as ptRoadmapMetadata } from "../../app
 import PtCatalogRoute from "../../app/pt-BR/catalog/page.web";
 import sitemap from "../../app/sitemap";
 import { Landing } from "@/components/landing";
+import type { Locale } from "@/i18n/config";
 import { qk } from "@/lib/queries";
 import { renderApp } from "@/test/utils";
 
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }), headers: async () => ({ get: () => null }) }));
+// Catalog pages call connection() to render per request; outside Next.js there is no request scope to check.
+vi.mock("next/server", async (importOriginal) => ({ ...(await importOriginal<typeof import("next/server")>()), connection: async () => {} }));
 
 const ROADMAP = {
   summary: {
@@ -66,7 +69,8 @@ afterEach(() => vi.unstubAllGlobals());
 
 const signedOut = (c: import("@tanstack/react-query").QueryClient) => c.setQueryData(qk.me, null);
 const params = (slug: string) => ({ params: Promise.resolve({ slug }) });
-const show = (ui: ReactElement) => renderApp(ui, signedOut);
+/** Renders a catalog page with the language its root layout gives it (app/catalog: English, app/pt-BR: Portuguese). */
+const show = (ui: ReactElement, locale: Locale = "en") => renderApp(ui, signedOut, { locale });
 
 function structuredData(container: HTMLElement) {
   return [...container.querySelectorAll('script[type="application/ld+json"]')].map((s) => JSON.parse(s.textContent ?? "{}"));
@@ -104,7 +108,7 @@ describe("public roadmap page", () => {
   });
 
   it("asks the API in Portuguese and links inside /pt-BR on the Portuguese page", async () => {
-    show(await PtRoadmapRoute(params("backend-developer")));
+    show(await PtRoadmapRoute(params("backend-developer")), "pt-BR");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Roadmap Backend Developer");
     expect(screen.getByRole("link", { name: /Computer Networking/ })).toHaveAttribute("href", "/pt-BR/catalog/topics/networking");
     expect(screen.getByRole("link", { name: "Comece este roadmap grátis" })).toHaveAttribute("href", "/register");
@@ -146,7 +150,7 @@ describe("catalog index", () => {
   });
 
   it("is in Portuguese under /pt-BR", async () => {
-    show(await PtCatalogRoute());
+    show(await PtCatalogRoute(), "pt-BR");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Roadmaps e temas");
     expect(screen.getByRole("link", { name: /Backend Developer/ })).toHaveAttribute("href", "/pt-BR/catalog/roadmaps/backend-developer");
   });

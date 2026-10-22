@@ -1,9 +1,9 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import RegisterPage from "../../app/(auth)/register/page";
-import LoginPage from "../../app/(auth)/login/page";
-import ConfirmEmailPage from "../../app/(auth)/confirm-email/page";
+import RegisterPage from "../../app/(visitor-language)/(auth)/register/page";
+import LoginPage from "../../app/(visitor-language)/(auth)/login/page";
+import ConfirmEmailPage from "../../app/(visitor-language)/(auth)/confirm-email/page";
 import { renderApp } from "@/test/utils";
 import { qk } from "@/lib/queries";
 

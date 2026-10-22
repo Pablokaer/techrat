@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import LoginPage from "../../app/(auth)/login/page";
+import LoginPage from "../../app/(visitor-language)/(auth)/login/page";
 import { me, renderApp } from "@/test/utils";
 import { qk } from "@/lib/queries";
 

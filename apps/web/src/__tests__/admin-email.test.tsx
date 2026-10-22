@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Providers } from "@/components/providers";
 import { qk } from "@/lib/queries";
 import { me } from "@/test/utils";
-import AdminPage from "../../app/(app)/admin/page";
+import AdminPage from "../../app/(visitor-language)/(app)/admin/page";
 
 /** Answers the admin page's reads and the test-email POST with the given response. */
 function mockApi(testEmail: Response) {

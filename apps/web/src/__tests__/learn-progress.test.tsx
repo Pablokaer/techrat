@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { AnswerResult, Topic, TopicProgress } from "@techrat/types";
-import LearnPage from "../../app/(app)/learn/page";
+import LearnPage from "../../app/(visitor-language)/(app)/learn/page";
 import { QuestionPlayer } from "@/components/question-player";
 import { qk } from "@/lib/queries";
 import { makeSession, me, renderApp } from "@/test/utils";

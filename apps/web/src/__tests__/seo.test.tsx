@@ -3,12 +3,12 @@ import type { Metadata } from "next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import robots from "../../app/robots";
 import sitemap from "../../app/sitemap";
-import Landing, * as landingModule from "../../app/page";
+import Landing, * as landingModule from "../../app/(visitor-language)/page";
 import PortugueseLanding, { metadata as portugueseMetadata } from "../../app/pt-BR/page";
-import { metadata as appMetadata } from "../../app/(app)/layout";
-import { metadata as authMetadata } from "../../app/(auth)/layout";
-import * as loginLayout from "../../app/(auth)/login/layout";
-import * as registerLayout from "../../app/(auth)/register/layout";
+import { metadata as appMetadata } from "../../app/(visitor-language)/(app)/layout";
+import { metadata as authMetadata } from "../../app/(visitor-language)/(auth)/layout";
+import * as loginLayout from "../../app/(visitor-language)/(auth)/login/layout";
+import * as registerLayout from "../../app/(visitor-language)/(auth)/register/layout";
 import { qk } from "@/lib/queries";
 import { renderApp } from "@/test/utils";
 
@@ -89,8 +89,9 @@ describe("landing page", () => {
 });
 
 describe("Portuguese landing page (/pt-BR)", () => {
-  it("is always in Portuguese, whatever the visitor's saved language, so Google can index it", () => {
-    const { container } = renderApp(<PortugueseLanding />, signedOut, { locale: "en" });
+  // Its root layout fixes the language of the whole /pt-BR tree, whatever the visitor saved (root-layouts.test.tsx).
+  it("is the Portuguese version of the site, so Google can index it", () => {
+    const { container } = renderApp(<PortugueseLanding />, signedOut, { locale: "pt-BR" });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Aprenda. Pratique.");
     const graph = structuredData(container)["@graph"];
     expect(graph).toContainEqual(expect.objectContaining({ "@type": "WebSite", url: "https://techrat.io/pt-BR", inLanguage: "pt-BR" }));

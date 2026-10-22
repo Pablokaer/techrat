@@ -1,11 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { LegalLinks } from "@/components/legal-links";
 import { JsonLd } from "@/components/structured-data";
-import { I18nProvider } from "@/i18n";
 import type { Locale } from "@/i18n/config";
 import { messages } from "@/i18n/messages";
 import {
@@ -16,8 +16,15 @@ import { LANDING_PATHS, siteUrl } from "@/lib/site-metadata";
 /*
  * Public catalog pages (ADR-0036): server components that render the roadmaps and topics as plain HTML for visitors
  * without an account and for search engines. Texts come straight from `messages[locale]`, the data from the API in the
- * same language; only the footer is a client component, so it gets an I18nProvider fixed to the page's language.
+ * same language. The client components (the footer) get the page's language from the root layout of each tree
+ * (app/catalog for English, app/pt-BR for Portuguese, ADR-0040), never from a provider of their own.
  */
+
+/**
+ * Each catalog page is rendered per request (and its API answers cached by `fetch`): the root layout no longer reads the
+ * request, and without this Next.js would prerender /catalog at build time, when the image build has no API to ask.
+ */
+const renderPerRequest = () => connection();
 
 const OTHER: Record<Locale, Locale> = { en: "pt-BR", "pt-BR": "en" };
 const card = "rounded-2xl border border-border bg-card p-5";
@@ -41,8 +48,7 @@ function CatalogShell({ locale, kind, slug, crumbs, children }: {
   const t = messages[locale].catalog.nav;
   const other = OTHER[locale];
   return (
-    <I18nProvider initialLocale={locale}>
-      <div className="min-h-dvh">
+    <div className="min-h-dvh">
         <header className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-5 py-5">
           <Link href={LANDING_PATHS[locale]} className="flex items-center gap-2" aria-label={t.home}>
             <Image src="/brand/rat-192.png" alt="" width={36} height={36} />
@@ -71,8 +77,7 @@ function CatalogShell({ locale, kind, slug, crumbs, children }: {
         <footer className="mx-auto max-w-5xl border-t border-border-subtle px-5 py-6">
           <LegalLinks withDelete />
         </footer>
-      </div>
-    </I18nProvider>
+    </div>
   );
 }
 
@@ -99,6 +104,7 @@ export function catalogIndexMetadata(locale: Locale): Metadata {
 
 export async function CatalogIndexPage({ locale }: { locale: Locale }) {
   const t = messages[locale].catalog.index;
+  await renderPerRequest();
   const [roadmaps, topics] = await Promise.all([fetchRoadmaps(locale), fetchTopics(locale)]);
   return (
     <CatalogShell locale={locale} crumbs={homeCrumbs(locale)}>
@@ -144,6 +150,7 @@ export async function roadmapPageMetadata(locale: Locale, slug: string): Promise
 }
 
 export async function RoadmapPage({ locale, slug }: { locale: Locale; slug: string }) {
+  await renderPerRequest();
   const roadmap = await fetchRoadmap(slug, locale);
   if (!roadmap) notFound();
   const { summary, modules, prerequisites } = roadmap;
@@ -224,6 +231,7 @@ export async function topicPageMetadata(locale: Locale, slug: string): Promise<M
 }
 
 export async function TopicPage({ locale, slug }: { locale: Locale; slug: string }) {
+  await renderPerRequest();
   const detail = await fetchTopic(slug, locale);
   if (!detail) notFound();
   const { topic } = detail;

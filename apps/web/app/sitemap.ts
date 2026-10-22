@@ -6,7 +6,7 @@ import { LANDING_PATHS, siteUrl } from "@/lib/site-metadata";
 // Rebuilt every 15 minutes, so it follows the catalog; the desktop static export also requires a revalidate or static setting.
 export const revalidate = 900;
 
-/** Public pages besides the landing page and the catalog; everything behind sign-in is `noindex` (app/(app)/layout.tsx). */
+/** Public pages besides the landing page and the catalog; everything behind sign-in is `noindex` (app/(visitor-language)/(app)/layout.tsx). */
 const PAGES = ["/register", "/login", "/privacy", "/terms", "/account/delete"];
 
 /** One entry per language of a page, each listing both (`hreflang` in the sitemap). */
