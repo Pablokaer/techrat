@@ -6,7 +6,7 @@ import * as privacyModule from "../../app/(visitor-language)/privacy/page";
 import PrivacyPage from "../../app/(visitor-language)/privacy/page";
 import sitemap from "../../app/sitemap";
 import { LOCALES } from "@/i18n/config";
-import { PUBLIC_SITEMAP_PAGES, publicPageMetadata, publicPages, sitemapEntries, siteUrl } from "@/lib/public-pages";
+import { PUBLIC_SITEMAP_PAGES, publicPageMetadata, publicPages, siteMetadata, sitemapEntries, siteUrl } from "@/lib/public-pages";
 import { qk } from "@/lib/queries";
 import { renderApp } from "@/test/utils";
 
@@ -29,15 +29,24 @@ describe("link previews of the sign-in pages", () => {
     ["create account", registerLayout, "/register", "Create your free account", "Crie sua conta grátis"],
   ] as const)("the %s page describes itself in Open Graph and Twitter cards", async (_name, layout, url, en, pt) => {
     const meta = await layout.generateMetadata();
-    expect(meta.openGraph).toEqual({ type: "website", siteName: "TechRat", locale: "en_US", url, title: en, description: meta.description });
-    expect(meta.twitter).toEqual({ card: "summary_large_image", title: en, description: meta.description });
+    expect(meta.openGraph).toMatchObject({ type: "website", siteName: "TechRat", locale: "en_US", url, title: en, description: meta.description });
+    expect(meta.twitter).toMatchObject({ card: "summary_large_image", title: en, description: meta.description });
     server.cookie = "pt-BR";
     expect((await layout.generateMetadata()).openGraph).toMatchObject({ locale: "pt_BR", url, title: pt });
   });
 
+  it("every page names the preview image, which Next.js no longer attaches on its own without an app/ layout", async () => {
+    // app/opengraph-image.png only reaches pages through a layout in app/; since ADR-0040 there is none.
+    const pages = [siteMetadata("en"), await loginLayout.generateMetadata(), await privacyModule.generateMetadata(), publicPageMetadata(publicPages.catalog(), { locale: "en", title: "T", description: "D" })];
+    for (const meta of pages) {
+      expect(meta.openGraph?.images).toEqual([{ url: "/opengraph-image.png", width: 1200, height: 630, type: "image/png", alt: "TechRat" }]);
+      expect(meta.twitter?.images).toEqual([{ url: "/twitter-image.png", width: 1200, height: 630, type: "image/png", alt: "TechRat" }]);
+    }
+  });
+
   it("a legal page's Twitter card has its own title, not the landing page's", async () => {
     const meta = await privacyModule.generateMetadata();
-    expect(meta.twitter).toEqual({ card: "summary_large_image", title: "Privacy Policy", description: meta.description });
+    expect(meta.twitter).toMatchObject({ card: "summary_large_image", title: "Privacy Policy", description: meta.description });
   });
 });
 
@@ -51,8 +60,8 @@ describe("one description of the public pages", () => {
       canonical: "/pt-BR/catalog/roadmaps/backend-developer",
       languages: { en: "/catalog/roadmaps/backend-developer", "pt-BR": "/pt-BR/catalog/roadmaps/backend-developer", "x-default": "/catalog/roadmaps/backend-developer" },
     });
-    expect(meta.openGraph).toEqual({ type: "website", siteName: "TechRat", locale: "pt_BR", url: "/pt-BR/catalog/roadmaps/backend-developer", ...texts });
-    expect(meta.twitter).toEqual({ card: "summary_large_image", ...texts });
+    expect(meta.openGraph).toMatchObject({ type: "website", siteName: "TechRat", locale: "pt_BR", url: "/pt-BR/catalog/roadmaps/backend-developer", ...texts });
+    expect(meta.twitter).toMatchObject({ card: "summary_large_image", ...texts });
   });
 
   it("gives a page with one adaptive URL a canonical and no language alternates", () => {

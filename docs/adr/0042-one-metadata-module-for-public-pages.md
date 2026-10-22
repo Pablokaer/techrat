@@ -22,6 +22,10 @@ Next.js merges metadata shallowly: a page that sets no `openGraph` or `twitter` 
 `/login` and `/register` set no Open Graph, so a shared link previewed as the landing page (its title, `og:url` `/`); the
 legal and catalog pages set Open Graph but no Twitter card, so `twitter:title` was the landing page's on all of them.
 
+No page had a preview image at all: Next.js attaches `app/opengraph-image.png` and `app/twitter-image.png` through a
+layout in `app/` itself, and ADR-0040 removed `app/layout.tsx` (the images are still served, but no `og:image` or
+`twitter:image` tag pointed to them).
+
 The public page frame (logo header, language and sign-in links, legal footer) was written twice too: `PublicPage` in
 `components/legal-pages.tsx` and `CatalogShell` in `components/public-catalog.tsx`.
 
@@ -43,6 +47,8 @@ The public page frame (logo header, language and sign-in links, legal footer) wa
     `landingStructuredData` use the same paths and Open Graph builder.
 - **Every page sets its own Open Graph and Twitter card**, since Next.js replaces these objects whole. Sign in and
   register now preview as themselves; legal and catalog pages get a Twitter card with their own title.
+- **The preview image is named in the module** (`/opengraph-image.png`, `/twitter-image.png`, 1200×630) for every page,
+  instead of relying on the file convention, which no longer reaches any page.
 - **One public frame**, `components/public-frame.tsx`, used by the legal pages (client components) and the catalog
   (server components); it uses no hooks so it renders in both. It takes the page description: a page with a URL per
   language links to its other URL (`hreflang` set, followable by crawlers), a page with one URL offers the language
@@ -53,7 +59,8 @@ The public page frame (logo header, language and sign-in links, legal footer) wa
 ## Consequences
 
 - Every URL, title, description, canonical, `hreflang` and robots value is the same as before (checked on the production
-  build); `og:*` changed only on `/login` and `/register`, `twitter:*` on the legal and catalog pages.
+  build); `og:*` changed only on `/login` and `/register`, `twitter:*` on the legal and catalog pages, and every page now
+  has `og:image` and `twitter:image` again.
 - A new public page is one entry in `publicPages` (and in `PUBLIC_SITEMAP_PAGES` if it is fixed) plus a call to
   `publicPageMetadata` in its route; it cannot be listed in the sitemap under a URL other than its canonical.
 - Giving the legal pages a URL per language later means changing their entry: their metadata, sitemap entries and the

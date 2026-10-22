@@ -82,11 +82,19 @@ export function otherLanguage(page: PublicPage, locale: Locale): { locale: Local
   return page.perLanguage ? { locale: OTHER[locale], path: page.paths[OTHER[locale]] } : null;
 }
 
+/**
+ * The preview image of every page (1200×630, the TechRat logo). Next.js attaches `app/opengraph-image.png` and
+ * `app/twitter-image.png` only through a layout in `app/` itself, and since ADR-0040 there is none (one root layout per
+ * owner of the page language), so the images are still served at these URLs but must be named here.
+ */
+const PREVIEW_IMAGE = { url: "/opengraph-image.png", width: 1200, height: 630, type: "image/png", alt: "TechRat" };
+const TWITTER_IMAGE = { ...PREVIEW_IMAGE, url: "/twitter-image.png" };
+
 /** Open Graph and Twitter card of a page. Next.js replaces these objects whole (shallow merge), so each page sets both. */
 function socialCards(locale: Locale, title: string, description: string, url: string): Pick<Metadata, "openGraph" | "twitter"> {
   return {
-    openGraph: { type: "website", siteName: "TechRat", locale: OG_LOCALE[locale], title, description, url },
-    twitter: { card: "summary_large_image", title, description },
+    openGraph: { type: "website", siteName: "TechRat", locale: OG_LOCALE[locale], title, description, url, images: [PREVIEW_IMAGE] },
+    twitter: { card: "summary_large_image", title, description, images: [TWITTER_IMAGE] },
   };
 }
 
