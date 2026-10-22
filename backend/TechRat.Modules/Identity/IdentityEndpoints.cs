@@ -316,41 +316,42 @@ public sealed class IdentityEndpoints : IEndpointModule
         return TypedResults.SignIn(principal, authenticationScheme: IdentityConstants.BearerScheme);
     }
 
-    private static async Task<NoContent> LogoutAsync(SignInManager<ApplicationUser> signIn, UserManager<ApplicationUser> users, ICurrentUser current)
+    /// <summary>Signs out; what ending a session involves is <see cref="IAccountSessions.EndThisSessionAsync"/>'s business.</summary>
+    private static async Task<NoContent> LogoutAsync(IAccountSessions sessions, ICurrentUser current, CancellationToken ct)
     {
-        await signIn.SignOutAsync();
-        // Rotating the security stamp invalidates outstanding refresh tokens (bearer clients).
-        if (current.UserId is { } id && await users.FindByIdAsync(id.ToString()) is { } user)
-            await users.UpdateSecurityStampAsync(user);
+        await sessions.EndThisSessionAsync(current.UserId, ct);
         return TypedResults.NoContent();
     }
 
     private static async Task<ApplicationUser> RequireAccountAsync(UserManager<ApplicationUser> users, ICurrentUser current) =>
         await users.FindByIdAsync(current.RequireUserId().ToString()) ?? throw new NotFoundException("User", current.RequireUserId());
 
+    private static ValidationProblem Invalid(string field, string key) =>
+        TypedResults.ValidationProblem(new Dictionary<string, string[]> { [field] = [Text.Get(key)] });
+
+    /// <summary>A refused re-authentication, reported on the endpoint's password field (or on "confirmation" for the username).</summary>
+    private static ValidationProblem Refused(Reauthentication result, string passwordField) =>
+        Invalid(result.Outcome == ReauthenticationOutcome.UsernameMismatch ? "confirmation" : passwordField, result.MessageKey!);
+
+    /// <summary>
+    /// Re-authentication and ending the other sessions belong to <see cref="IAccountSessions"/> (ADR-0018, ADR-0037); this
+    /// translates them to HTTP and keeps the calling session the way it signed in.
+    /// </summary>
     private static async Task<Results<NoContent, SignInHttpResult, ValidationProblem>> ChangePasswordAsync(
         ChangePasswordRequest request, HttpContext http, UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
-        ICurrentUser current, IAccountEmailSender email, ILoggerFactory loggers, CancellationToken ct)
+        ICurrentUser current, IAccountSessions sessions, CancellationToken ct)
     {
-        static ValidationProblem Invalid(string field, string key) =>
-            TypedResults.ValidationProblem(new Dictionary<string, string[]> { [field] = [Text.Get(key)] });
-
         var user = await RequireAccountAsync(users, current);
         if (string.IsNullOrEmpty(request.NewPassword)) return Invalid("newPassword", Text.Keys.PasswordRequired);
 
+        var proof = await sessions.ReauthenticateAsync(user, new(request.CurrentPassword, TypedUsername: null), WithoutPassword.NothingToProve, ct);
+        if (!proof.Succeeded) return Refused(proof, "currentPassword");
+
         IdentityResult result;
-        if (await users.HasPasswordAsync(user))
+        if (proof.HasPassword)
         {
-            if (string.IsNullOrEmpty(request.CurrentPassword)) return Invalid("currentPassword", Text.Keys.CurrentPasswordRequired);
-            if (await users.IsLockedOutAsync(user)) return Invalid("currentPassword", Text.Keys.LockedOut);
-            if (!await users.CheckPasswordAsync(user, request.CurrentPassword))
-            {
-                // A stolen session must not be a way to guess the password: wrong guesses lock the account like logins do.
-                await users.AccessFailedAsync(user);
-                return Invalid("currentPassword", Text.Keys.CurrentPasswordIncorrect);
-            }
             if (request.NewPassword == request.CurrentPassword) return Invalid("newPassword", Text.Keys.NewPasswordSameAsCurrent);
-            result = await users.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+            result = await users.ChangePasswordAsync(user, request.CurrentPassword!, request.NewPassword);
         }
         else
         {
@@ -359,18 +360,7 @@ public sealed class IdentityEndpoints : IEndpointModule
         if (!result.Succeeded)
             return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["newPassword"] = [.. result.Errors.Select(e => e.Description)] });
 
-        // Both calls rotated the security stamp: refresh tokens stop working and other cookies fail their next validation.
-        await users.ResetAccessFailedCountAsync(user);
-        var log = loggers.CreateLogger("TechRat.Identity");
-        log.LogInformation("Password changed for user {UserId}", user.Id);
-        try
-        {
-            await email.SendPasswordChangedAsync(user.Email!, ct);
-        }
-        catch (EmailDeliveryException)
-        {
-            log.LogWarning("Password change notice could not be delivered to user {UserId}", user.Id);
-        }
+        await sessions.EndOtherSessionsAsync(user, ct);
 
         // Keep the session that made the change, following how it signed in.
         if (http.Request.Headers.Authorization.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
@@ -382,34 +372,18 @@ public sealed class IdentityEndpoints : IEndpointModule
     /// <summary>
     /// Deleting the account removes the Identity user; the learner profile and everything that hangs off it (attempts,
     /// sessions, XP, progress, achievements, notifications, photo) go with it through the database cascades, in one
-    /// statement, so there is no half-deleted state. See ADR-0023.
+    /// statement, so there is no half-deleted state. Re-authentication and ending every session belong to
+    /// <see cref="IAccountSessions"/>. See ADR-0023 and ADR-0037.
     /// </summary>
     private static async Task<Results<NoContent, ValidationProblem, ProblemHttpResult>> DeleteAccountAsync(
-        [FromBody] DeleteAccountRequest request, UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, ICurrentUser current,
-        ICacheService cache, IAccountEmailSender email, ILoggerFactory loggers, CancellationToken ct)
+        [FromBody] DeleteAccountRequest request, UserManager<ApplicationUser> users, ICurrentUser current, IAccountSessions sessions,
+        CancellationToken ct)
     {
-        static ValidationProblem Invalid(string field, string key) =>
-            TypedResults.ValidationProblem(new Dictionary<string, string[]> { [field] = [Text.Get(key)] });
-
         var user = await RequireAccountAsync(users, current);
 
-        // Re-authenticate: a stolen session or an unlocked phone must not be enough to destroy an account.
-        if (await users.HasPasswordAsync(user))
-        {
-            if (string.IsNullOrEmpty(request.Password)) return Invalid("password", Text.Keys.CurrentPasswordRequired);
-            if (await users.IsLockedOutAsync(user)) return Invalid("password", Text.Keys.LockedOut);
-            if (!await users.CheckPasswordAsync(user, request.Password))
-            {
-                // Same as changing the password: wrong guesses lock the account like failed logins do.
-                await users.AccessFailedAsync(user);
-                return Invalid("password", Text.Keys.CurrentPasswordIncorrect);
-            }
-        }
-        else if (!string.Equals(request.Confirmation?.Trim(), user.UserName, StringComparison.OrdinalIgnoreCase))
-        {
-            // No password to prove (external sign-in): typing the username is a deliberate, explicit confirmation.
-            return Invalid("confirmation", Text.Keys.AccountDeleteConfirmation);
-        }
+        // A stolen session or an unlocked phone must not be enough to destroy an account.
+        var proof = await sessions.ReauthenticateAsync(user, new(request.Password, request.Confirmation), WithoutPassword.TypeUsername, ct);
+        if (!proof.Succeeded) return Refused(proof, "password");
 
         // The platform must always have someone who can administer it.
         if (await users.IsInRoleAsync(user, Roles.Admin) && (await users.GetUsersInRoleAsync(Roles.Admin)).Count <= 1)
@@ -422,25 +396,7 @@ public sealed class IdentityEndpoints : IEndpointModule
         if (!deleted.Succeeded)
             throw new InvalidOperationException("Account deletion failed: " + string.Join("; ", deleted.Errors.Select(e => e.Code)));
 
-        // Tokens: refresh tokens die with the user (their security stamp can no longer be validated); access tokens are
-        // stateless, so evicting the cached "account exists" answer makes the next request of any device fail at once.
-        await cache.RemoveAsync(CacheKeys.AccountExists(id), ct);
-        await signIn.SignOutAsync();
-
-        var log = loggers.CreateLogger("TechRat.Identity");
-        log.LogInformation("Account deleted {UserId}", id);
-        if (!string.IsNullOrWhiteSpace(address))
-        {
-            try
-            {
-                await email.SendAccountDeletedAsync(address, ct);
-            }
-            catch (EmailDeliveryException)
-            {
-                // The deletion already happened and cannot be undone: a lost notice is only logged (no address in the log).
-                log.LogWarning("Account deletion notice could not be delivered for {UserId}", id);
-            }
-        }
+        await sessions.EndEverySessionAsync(id, address, ct);
         return TypedResults.NoContent();
     }
 

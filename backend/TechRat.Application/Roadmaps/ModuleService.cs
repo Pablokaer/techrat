@@ -15,7 +15,7 @@ public sealed record ModuleRefDto(string Slug, string Name);
 public sealed record ModuleDetailDto(ModuleSummaryDto Summary, IReadOnlyList<RoadmapStepDto> Steps, IReadOnlyList<ModuleRefDto> Requires);
 
 /// <summary>Read side of the module catalog (published modules only).</summary>
-public sealed class ModuleService(IAppDbContext db, RoadmapProgressService progress, ContentLocalizer localizer)
+public sealed class ModuleService(IAppDbContext db, RoadmapProgressService progress, LearnerSteps learnerSteps, ContentLocalizer localizer)
 {
     public async Task<IReadOnlyList<ModuleSummaryDto>> ListAsync(Guid? userId, ModuleKind? kind, string? category, CancellationToken ct)
     {
@@ -35,40 +35,13 @@ public sealed class ModuleService(IAppDbContext db, RoadmapProgressService progr
         var tr = await localizer.LoadAsync(ct);
         var summary = (await SummariesAsync([module], userId, tr, ct))[0];
 
-        var steps = await (from s in db.ModuleSteps.AsNoTracking()
-                           where s.ModuleId == module.Id && s.IsActive
-                           join t in db.Topics on s.TopicId equals t.Id
-                           join st in db.Subtopics on s.SubtopicId equals st.Id into sts
-                           from st in sts.DefaultIfEmpty()
-                           orderby s.Order
-                           select new { Step = s, TopicSlug = t.Slug, TopicName = t.Name, SubSlug = st != null ? st.Slug : null, SubName = st != null ? st.Name : null })
-                          .ToListAsync(ct);
-
-        var snapshot = userId is { } uid
-            ? await progress.SnapshotAsync(uid, [module.Id], track: false, ct)
-            : new ModuleProgressSnapshot { StepsByModule = [], CompletedSteps = [], ModuleProgress = [] };
-        var current = RoadmapComposition.CurrentStep(steps.Select(s => s.Step), snapshot.CompletedSteps);
-        // Administrators review everything, so every uncompleted step is open (not just the next one).
-        var openSteps = isAdmin ? steps.Select(s => s.Step).Where(s => !snapshot.CompletedSteps.Contains(s.Id)).ToList()
-            : current is null ? [] : [current];
-        var criteria = userId is { } u2 && openSteps.Count > 0 ? await progress.EvaluateStepsAsync(u2, openSteps, ct) : [];
-        snapshot.ModuleProgress.TryGetValue(module.Id, out var mp);
-
-        var stepDtos = steps.Select(s =>
-        {
-            var status = snapshot.CompletedSteps.Contains(s.Step.Id) ? StepStatus.Completed
-                : isAdmin || s.Step.Id == current?.Id ? StepStatus.Current : StepStatus.Locked;
-            var isNew = mp?.CompletedVersion is { } v && s.Step.AddedInVersion > v;
-            return new RoadmapStepDto(s.Step.Id, tr.StepTitle(s.Step.Id, s.Step.Title), tr.StepDescription(s.Step.Id, s.Step.Description),
-                s.Step.Order, s.Step.Difficulty.ToString(), s.Step.EstimatedMinutes, s.TopicSlug, tr.TopicName(s.Step.TopicId, s.TopicName),
-                s.SubSlug, s.Step.SubtopicId is { } sid && s.SubName is not null ? tr.SubtopicName(sid, s.SubName) : s.SubName,
-                s.Step.MinimumQuestions, s.Step.MinimumAccuracy, s.Step.XPReward, status, criteria.GetValueOrDefault(s.Step.Id), isNew);
-        }).ToList();
+        // Steps (status, new content, criteria, texts) come from the same place as the roadmap page, so both always agree.
+        var steps = (await learnerSteps.ForModuleAsync(module.Id, userId, isAdmin, ct)).Steps(module.Id);
 
         var requiredIds = module.Dependencies.Select(d => d.RequiredModuleId).ToList();
         var requires = await db.LearningModules.AsNoTracking().Where(m => requiredIds.Contains(m.Id))
             .Select(m => new { m.Id, m.Slug, m.Name }).ToListAsync(ct);
-        return new ModuleDetailDto(summary, stepDtos, requires.Select(r => new ModuleRefDto(r.Slug, tr.ModuleName(r.Id, r.Name))).ToList());
+        return new ModuleDetailDto(summary, steps, requires.Select(r => new ModuleRefDto(r.Slug, tr.ModuleName(r.Id, r.Name))).ToList());
     }
 
     private async Task<List<ModuleSummaryDto>> SummariesAsync(List<LearningModule> modules, Guid? userId, ContentTranslations tr, CancellationToken ct)

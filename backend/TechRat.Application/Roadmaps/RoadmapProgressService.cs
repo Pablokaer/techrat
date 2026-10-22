@@ -26,11 +26,18 @@ public static class StepCriteria
     }
 }
 
+/// <summary>
+/// The one place that decides whether a roadmap's prerequisites are met: the catalog cards, the detail page (its
+/// prerequisite list) and enrolment all use it, so a roadmap never looks unlocked on one and locked on another.
+/// </summary>
 public static class RoadmapUnlock
 {
+    /// <summary>A prerequisite is met once the learner reached its minimum completion percent of the required roadmap.</summary>
+    public static bool IsMet(int minimumPercent, double actualPercent) => actualPercent >= minimumPercent;
+
     /// <summary>Administrators review all content, so they never need to meet a roadmap's prerequisites.</summary>
     public static bool IsUnlocked(IEnumerable<(int MinimumPercent, double ActualPercent)> dependencies, bool isAdmin = false) =>
-        isAdmin || dependencies.All(d => d.ActualPercent >= d.MinimumPercent);
+        isAdmin || dependencies.All(d => IsMet(d.MinimumPercent, d.ActualPercent));
 }
 
 /// <summary>A module's place in a roadmap.</summary>
@@ -163,13 +170,12 @@ public sealed class RoadmapProgressService(IAppDbContext db, XpService xp, Conte
             snapshot.StepsPerModule, snapshot.CompletedStepsPerModule, snapshot.CompletedModules).Percent);
     }
 
+    /// <summary>Whether the learner may enrol; the decision itself (administrator bypass included) is <see cref="RoadmapUnlock"/>'s.</summary>
     public async Task<bool> IsUnlockedAsync(Guid userId, Guid roadmapId, bool isAdmin, CancellationToken ct)
     {
-        if (isAdmin) return true;
-        var deps = await db.RoadmapDependencies.Where(d => d.RoadmapId == roadmapId).ToListAsync(ct);
-        if (deps.Count == 0) return true;
+        var deps = isAdmin ? [] : await db.RoadmapDependencies.Where(d => d.RoadmapId == roadmapId).ToListAsync(ct);
         var pct = await CompletionPercentAsync(userId, deps.Select(d => d.RequiredRoadmapId), ct);
-        return RoadmapUnlock.IsUnlocked(deps.Select(d => (d.MinimumPercent, pct.GetValueOrDefault(d.RequiredRoadmapId))));
+        return RoadmapUnlock.IsUnlocked(deps.Select(d => (d.MinimumPercent, pct.GetValueOrDefault(d.RequiredRoadmapId))), isAdmin);
     }
 
     /// <summary>
