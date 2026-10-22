@@ -6,7 +6,7 @@ import type { AdminComposition, AdminModule } from "@techrat/types";
 import { Providers } from "@/components/providers";
 import { qk } from "@/lib/queries";
 import { me } from "@/test/utils";
-import AdminPage from "../../app/(app)/admin/page";
+import AdminPage from "../../app/(visitor-language)/(app)/admin/page";
 
 const mod = (slug: string, name: string, kind: AdminModule["kind"], overrides: Partial<AdminModule> = {}): AdminModule => ({
   id: `id-${slug}`, slug, name, description: "", kind, category: "devops", level: "Beginner", icon: "box", isPublished: true, isStandalone: true,

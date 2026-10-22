@@ -1,8 +1,8 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import Landing from "../../app/page";
-import LoginPage from "../../app/(auth)/login/page";
+import Landing from "../../app/(visitor-language)/page";
+import LoginPage from "../../app/(visitor-language)/(auth)/login/page";
 import { AppShell } from "@/components/shell";
 import { qk } from "@/lib/queries";
 import { renderApp } from "@/test/utils";

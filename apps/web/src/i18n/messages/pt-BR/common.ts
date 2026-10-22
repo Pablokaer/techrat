@@ -24,4 +24,9 @@ export const common: Messages["common"] = {
     label: "Idioma",
     choose: "Escolher idioma",
   },
+  notFound: {
+    title: "Página não encontrada",
+    body: "Esta página não existe ou mudou de endereço.",
+    home: "Voltar para a página inicial",
+  },
 };

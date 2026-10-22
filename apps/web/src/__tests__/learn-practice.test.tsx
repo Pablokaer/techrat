@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { TopicQuestion } from "@techrat/types";
 import { TopicQuestions } from "@/components/topic-questions";
-import PracticePage from "../../app/(app)/practice/page";
+import PracticePage from "../../app/(visitor-language)/(app)/practice/page";
 import { qk } from "@/lib/queries";
 import { makeSession, renderApp } from "@/test/utils";
 
