@@ -1,17 +1,14 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import { LegalLinks } from "@/components/legal-links";
+import { PublicFrame } from "@/components/public-frame";
 import { JsonLd } from "@/components/structured-data";
 import type { Locale } from "@/i18n/config";
 import { messages } from "@/i18n/messages";
-import {
-  catalogMetadata, catalogPath, fetchRoadmap, fetchRoadmaps, fetchTopic, fetchTopics, type CatalogKind,
-} from "@/lib/public-catalog";
-import { LANDING_PATHS, siteUrl } from "@/lib/site-metadata";
+import { fetchRoadmap, fetchRoadmaps, fetchTopic, fetchTopics } from "@/lib/public-catalog";
+import { catalogPath, publicPageMetadata, publicPages, siteUrl, type CatalogKind } from "@/lib/public-pages";
 
 /*
  * Public catalog pages (ADR-0036): server components that render the roadmaps and topics as plain HTML for visitors
@@ -26,7 +23,6 @@ import { LANDING_PATHS, siteUrl } from "@/lib/site-metadata";
  */
 const renderPerRequest = () => connection();
 
-const OTHER: Record<Locale, Locale> = { en: "pt-BR", "pt-BR": "en" };
 const card = "rounded-2xl border border-border bg-card p-5";
 
 /** `total` is optional in the API contract; the four difficulties always add up to it. */
@@ -42,42 +38,27 @@ const breadcrumbData = (crumbs: Crumb[]) => ({
   itemListElement: crumbs.map((c, i) => ({ "@type": "ListItem", position: i + 1, name: c.name, item: `${siteUrl()}${c.path}` })),
 });
 
+/** The public frame (ADR-0042) with the breadcrumb trail; the catalog has a URL per language, so it links the other one. */
 function CatalogShell({ locale, kind, slug, crumbs, children }: {
   locale: Locale; kind?: CatalogKind; slug?: string; crumbs: Crumb[]; children: ReactNode;
 }) {
   const t = messages[locale].catalog.nav;
-  const other = OTHER[locale];
   return (
-    <div className="min-h-dvh">
-        <header className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-5 py-5">
-          <Link href={LANDING_PATHS[locale]} className="flex items-center gap-2" aria-label={t.home}>
-            <Image src="/brand/rat-192.png" alt="" width={36} height={36} />
-            <span className="text-xl font-extrabold">Tech<span className="text-primary">Rat</span></span>
-          </Link>
-          <nav aria-label={t.label} className="flex items-center gap-2">
-            <Link href={catalogPath(other, kind, slug)} hrefLang={other} className="btn-ghost">{t.otherLanguage}</Link>
-            <Link href="/login" className="btn-ghost">{t.signIn}</Link>
-            <Link href="/register" className="btn-primary hidden sm:inline-flex">{t.startFree}</Link>
-          </nav>
-        </header>
-        <main id="main" className="mx-auto max-w-5xl px-5 pb-16">
-          <nav aria-label={t.breadcrumb}>
-            <ol className="flex flex-wrap gap-2 text-sm text-text-muted">
-              {crumbs.map((c, i) => (
-                <li key={c.path} className="flex gap-2">
-                  {i > 0 && <span aria-hidden>›</span>}
-                  {i < crumbs.length - 1 ? <Link href={c.path} className="hover:text-primary">{c.name}</Link> : <span aria-current="page">{c.name}</span>}
-                </li>
-              ))}
-            </ol>
-          </nav>
-          <JsonLd data={breadcrumbData(crumbs)} />
-          {children}
-        </main>
-        <footer className="mx-auto max-w-5xl border-t border-border-subtle px-5 py-6">
-          <LegalLinks withDelete />
-        </footer>
-    </div>
+    <PublicFrame page={publicPages.catalog(kind, slug)} locale={locale} layout="wide"
+      labels={{ home: t.home, signIn: t.signIn, nav: t.label, otherLanguage: t.otherLanguage, startFree: t.startFree }}>
+      <nav aria-label={t.breadcrumb}>
+        <ol className="flex flex-wrap gap-2 text-sm text-text-muted">
+          {crumbs.map((c, i) => (
+            <li key={c.path} className="flex gap-2">
+              {i > 0 && <span aria-hidden>›</span>}
+              {i < crumbs.length - 1 ? <Link href={c.path} className="hover:text-primary">{c.name}</Link> : <span aria-current="page">{c.name}</span>}
+            </li>
+          ))}
+        </ol>
+      </nav>
+      <JsonLd data={breadcrumbData(crumbs)} />
+      {children}
+    </PublicFrame>
   );
 }
 
@@ -91,7 +72,7 @@ function CallToAction({ label, text }: { label: string; text: string }) {
 }
 
 const homeCrumbs = (locale: Locale): Crumb[] => [
-  { name: "TechRat", path: LANDING_PATHS[locale] },
+  { name: "TechRat", path: publicPages.landing.paths[locale] },
   { name: messages[locale].catalog.nav.catalog, path: catalogPath(locale) },
 ];
 
@@ -99,7 +80,7 @@ const homeCrumbs = (locale: Locale): Crumb[] => [
 
 export function catalogIndexMetadata(locale: Locale): Metadata {
   const t = messages[locale].catalog.index;
-  return catalogMetadata(locale, t.title, t.description);
+  return publicPageMetadata(publicPages.catalog(), { locale, title: t.title, description: t.description });
 }
 
 export async function CatalogIndexPage({ locale }: { locale: Locale }) {
@@ -146,7 +127,8 @@ export async function CatalogIndexPage({ locale }: { locale: Locale }) {
 export async function roadmapPageMetadata(locale: Locale, slug: string): Promise<Metadata> {
   const roadmap = await fetchRoadmap(slug, locale);
   if (!roadmap) return {};
-  return catalogMetadata(locale, messages[locale].catalog.roadmap.title(roadmap.summary.name), roadmap.summary.description, "roadmaps", slug);
+  const title = messages[locale].catalog.roadmap.title(roadmap.summary.name);
+  return publicPageMetadata(publicPages.catalog("roadmaps", slug), { locale, title, description: roadmap.summary.description });
 }
 
 export async function RoadmapPage({ locale, slug }: { locale: Locale; slug: string }) {
@@ -227,7 +209,8 @@ export async function topicPageMetadata(locale: Locale, slug: string): Promise<M
   if (!detail) return {};
   const { topic } = detail;
   const t = messages[locale].catalog.topic;
-  return catalogMetadata(locale, t.title(topic.name), t.description(totalQuestions(topic.questions), topic.name, topic.description), "topics", slug);
+  const description = t.description(totalQuestions(topic.questions), topic.name, topic.description);
+  return publicPageMetadata(publicPages.catalog("topics", slug), { locale, title: t.title(topic.name), description });
 }
 
 export async function TopicPage({ locale, slug }: { locale: Locale; slug: string }) {

@@ -8,7 +8,7 @@ import { ArrowRight, BarChart3, BookOpen, BrainCircuit, Code2, Map as MapIcon, S
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { LegalLinks } from "@/components/legal-links";
 import { useLocale, useT } from "@/i18n";
-import { catalogPath } from "@/lib/public-catalog";
+import { catalogPath } from "@/lib/public-pages";
 import { useMe } from "@/lib/queries";
 
 const PILLARS = [

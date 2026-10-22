@@ -1,5 +1,5 @@
 import type { Locale } from "@/i18n/config";
-import { landingStructuredData } from "@/lib/site-metadata";
+import { landingStructuredData } from "@/lib/public-pages";
 
 /** JSON-LD for search engines. `<` is escaped so no text in the data can close the script tag. */
 export function JsonLd({ data }: { data: object }) {

@@ -11,7 +11,7 @@ import TermsPage, * as termsModule from "../../app/(visitor-language)/terms/page
 import { RichText } from "@/components/legal-pages";
 import { AppShell } from "@/components/shell";
 import { LEGAL } from "@/lib/legal";
-import { pageMetadata } from "@/lib/page-metadata";
+import { legalPageMetadata as pageMetadata } from "@/lib/public-pages";
 import { qk } from "@/lib/queries";
 import { renderApp } from "@/test/utils";
 

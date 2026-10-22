@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Providers } from "@/components/providers";
 import type { PageLocale } from "@/i18n/server";
-import { buildMetadata } from "@/lib/site-metadata";
+import { siteMetadata } from "@/lib/public-pages";
 import "./globals.css";
 
 /*
@@ -18,7 +18,7 @@ const mono = localFont({ src: "./fonts/JetBrainsMono-Variable.woff2", variable: 
 
 export const rootViewport: Viewport = { themeColor: "#000000", colorScheme: "dark" };
 
-export const rootMetadata = ({ locale }: PageLocale): Metadata => buildMetadata(locale);
+export const rootMetadata = ({ locale }: PageLocale): Metadata => siteMetadata(locale);
 
 export function RootDocument({ page, children }: { page: PageLocale; children: React.ReactNode }) {
   return (

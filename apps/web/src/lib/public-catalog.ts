@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import type { RoadmapDetail, RoadmapSummary, Topic, TopicDetail } from "@techrat/types";
 import type { Locale } from "@/i18n/config";
 
@@ -29,29 +28,3 @@ export const fetchRoadmaps = async (locale: Locale) => (await get<RoadmapSummary
 export const fetchTopics = async (locale: Locale) => (await get<Topic[]>("/topics", locale)) ?? [];
 export const fetchRoadmap = (slug: string, locale: Locale) => (isSlug(slug) ? get<RoadmapDetail>(`/roadmaps/${slug}`, locale) : Promise.resolve(null));
 export const fetchTopic = (slug: string, locale: Locale) => (isSlug(slug) ? get<TopicDetail>(`/topics/${slug}`, locale) : Promise.resolve(null));
-
-export type CatalogKind = "roadmaps" | "topics";
-const PREFIX: Record<Locale, string> = { en: "", "pt-BR": "/pt-BR" };
-const OG_LOCALE: Record<Locale, string> = { en: "en_US", "pt-BR": "pt_BR" };
-
-/** Path of a catalog page in one language: `/catalog`, `/catalog/roadmaps/<slug>`, `/pt-BR/catalog/topics/<slug>`… */
-export function catalogPath(locale: Locale, kind?: CatalogKind, slug?: string): string {
-  return `${PREFIX[locale]}/catalog${kind && slug ? `/${kind}/${slug}` : ""}`;
-}
-
-/** The same catalog page in every language, for `hreflang` (`x-default` is English). */
-export function catalogLanguages(kind?: CatalogKind, slug?: string) {
-  const en = catalogPath("en", kind, slug);
-  return { en, "pt-BR": catalogPath("pt-BR", kind, slug), "x-default": en };
-}
-
-/** Title (completed by the "· TechRat" template), description, canonical URL and language alternates of a catalog page. */
-export function catalogMetadata(locale: Locale, title: string, description: string, kind?: CatalogKind, slug?: string): Metadata {
-  const url = catalogPath(locale, kind, slug);
-  return {
-    title,
-    description,
-    alternates: { canonical: url, languages: catalogLanguages(kind, slug) },
-    openGraph: { type: "website", siteName: "TechRat", locale: OG_LOCALE[locale], title, description, url },
-  };
-}
