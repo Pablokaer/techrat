@@ -11,6 +11,7 @@ refresh whenever a new screen opens so the previous one leaves no ghost.
 local Blitbuffer = require("ffi/blitbuffer")
 local BottomContainer = require("ui/widget/container/bottomcontainer")
 local Button = require("ui/widget/button")
+local ConfirmBox = require("ui/widget/confirmbox")
 local ButtonDialog = require("ui/widget/buttondialog")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local Device = require("device")
@@ -230,7 +231,7 @@ function UI.close()
     current = nil
 end
 
---[[ Home. vm: title, hello, signed_in, level_text, xp_text, level_progress, next_text, streak_text, hint,
+--[[ Home. vm: title, hello, signed_in, notice, level_text, xp_text, level_progress, next_text, streak_text, hint,
      cards = { { title, subtitle, primary, callback } }, buttons = { { text, callback, primary } } ]]
 function UI.home(vm)
     local f = frame()
@@ -244,14 +245,23 @@ function UI.home(vm)
         rule(f.inner, 3),
         vspace(20),
     }
-    if vm.signed_in then
-        table.insert(body, levelBox(f.inner, vm))
-    else
-        table.insert(body, paragraph(vm.hint, 19, f.inner))
+    local first = true
+    local function add(widget)
+        if not first then table.insert(body, vspace(16)) end
+        first = false
+        table.insert(body, widget)
     end
+    if vm.notice then
+        local pad = px(14)
+        add(FrameContainer:new{
+            width = f.inner, bordersize = px(2), radius = px(10), padding = pad, background = PALE,
+            paragraph(vm.notice, 17, f.inner - 2 * (pad + px(2)), { bold = true, bg = PALE }),
+        })
+    end
+    if vm.level_text then add(levelBox(f.inner, vm)) end
+    if vm.hint then add(paragraph(vm.hint, 19, f.inner)) end
     for _, c in ipairs(vm.cards) do
-        table.insert(body, vspace(16))
-        table.insert(body, card(f.inner, c.title, c.subtitle, c.primary, c.callback))
+        add(card(f.inner, c.title, c.subtitle, c.primary, c.callback))
     end
     show(Page:new{ body = body, bottom = footer(f.inner, vm.buttons) })
 end
@@ -399,6 +409,16 @@ end
 
 function UI.message(text)
     UIManager:show(InfoMessage:new{ text = text })
+end
+
+--- A yes/no question. vm: text, ok_text, cancel_text, on_ok(), on_cancel()
+function UI.confirm(vm)
+    local box = ConfirmBox:new{
+        text = vm.text, ok_text = vm.ok_text, cancel_text = vm.cancel_text,
+        ok_callback = vm.on_ok, cancel_callback = vm.on_cancel,
+    }
+    UIManager:show(box)
+    return box
 end
 
 --- Email and password. vm: title, email, email_hint, password_hint, cancel, submit, on_submit(email, password)

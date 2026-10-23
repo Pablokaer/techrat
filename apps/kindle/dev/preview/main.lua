@@ -17,8 +17,11 @@ local NetworkMgr = require("ui/network/manager")
 local UIManager = require("ui/uimanager")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 
--- The emulator has no Wi-Fi to turn on and the sample API needs none.
+-- The emulator has no Wi-Fi to turn on and the sample API needs none (the walk-through switches it "off" for a while).
+local function online() return true end
+NetworkMgr.isOnline, NetworkMgr.isConnected = online, online
 NetworkMgr.runWhenOnline = function(_, fn) fn() end
+NetworkMgr.toggleWifiOn = function(_, fn) fn() end
 GetText.changeLang(os.getenv("TECHRAT_LANG") or "pt_BR")
 
 local settings = LuaSettings:open(DataStorage:getSettingsDir() .. "/techrat.lua")
@@ -64,6 +67,21 @@ function Preview:screenshots(dir)
             UI.choose = function(_, options) options[2].callback() end
             tr:chooseLanguage(tr.api:me())
             UI.choose = choose
+        end },
+        { "home-offline", function()
+            NetworkMgr.isOnline, NetworkMgr.isConnected = function() return false end, function() return false end
+            tr:openHome()
+        end },
+        { "wifi-question", function()
+            local confirm = UI.confirm
+            UI.confirm = function(vm) return keep(confirm(vm)) end
+            tr:online(function() end)
+            UI.confirm = confirm
+        end },
+        { "back-online", function()
+            closeOpen()
+            NetworkMgr.isOnline, NetworkMgr.isConnected = online, online
+            tr:openHome()
         end },
         { "topics", function()
             local list = UI.list
