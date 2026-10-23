@@ -1,6 +1,7 @@
 # ADR-0044: TechRat on the Kindle as a KOReader plugin
 
-**Status:** Accepted · Builds on ADR-0007 (the backend owns every rule) and ADR-0030 (single-use refresh tokens)
+**Status:** Accepted · Builds on ADR-0007 (the backend owns every rule) and ADR-0030 (single-use refresh tokens) ·
+The screens and the language choice are revised by ADR-0045
 
 ## Context
 
@@ -27,7 +28,7 @@ with progress counted like on the web. Options considered:
   questions), topics take 5, 10 or 20.
 - **Testable without KOReader**: requests, session handling and texts are plain Lua modules with the network, clock
   and settings passed in; `main.lua` only builds screens and is exercised by a test that loads it with stand-ins for
-  the KOReader widgets. Tests run on LuaJIT 2.1 in CI, installed by an action rather than apt.
+  the KOReader widgets. Tests run on LuaJIT 2.1 in CI, built from LuaJIT's GitHub repository.
 - **Texts in en and pt-BR** in the plugin itself (KOReader's gettext only knows KOReader's strings), following
   KOReader's interface language.
 - **Delivery**: CI builds `techrat.koplugin-<version>.zip` on every run (artifact) and attaches it to the release
