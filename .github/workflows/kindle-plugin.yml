@@ -1,0 +1,71 @@
+name: Kindle plugin
+
+# Tests the KOReader plugin (apps/kindle, ADR-0044) and builds techrat.koplugin-<version>.zip, the folder to copy to
+# koreader/plugins/ on the Kindle. Every run keeps the zip as an artifact; on main it is also attached to the GitHub
+# release koplugin-v<version> (the version comes from _meta.lua: change it to publish a new release, or the
+# release of that version gets the new zip).
+
+on:
+  pull_request:
+    paths: ["apps/kindle/**", ".github/workflows/kindle-plugin.yml"]
+  push:
+    branches: [dev, main]
+    paths: ["apps/kindle/**", ".github/workflows/kindle-plugin.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Kindle plugin (LuaJIT tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      # LuaJIT 2.1 (the line KOReader uses) built from its GitHub repository: no apt mirror involved (it stalled the e2e
+      # job on 2026-10-22), and no third-party download URL (the leafo action's LuaJIT tarball answered 404).
+      - name: LuaJIT 2.1
+        run: |
+          git clone --quiet --depth 1 --branch v2.1 https://github.com/LuaJIT/LuaJIT.git "$RUNNER_TEMP/luajit"
+          make -C "$RUNNER_TEMP/luajit" -j"$(nproc)" >/dev/null
+          echo "$RUNNER_TEMP/luajit/src" >> "$GITHUB_PATH"
+      - name: Tests
+        run: luajit -v && luajit apps/kindle/tests/run.lua
+
+  package:
+    name: Kindle plugin (zip)
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the zip
+        id: zip
+        run: |
+          version=$(sed -nE 's/^\s*version = "([0-9]+\.[0-9]+\.[0-9]+)".*/\1/p' apps/kindle/techrat.koplugin/_meta.lua)
+          test -n "$version" || { echo "::error::no version in _meta.lua"; exit 1; }
+          name="techrat.koplugin-$version.zip"
+          (cd apps/kindle && zip -qr "../../$name" techrat.koplugin)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.zip.outputs.name }}
+          path: ${{ steps.zip.outputs.name }}
+      - name: Release on main
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.zip.outputs.version }}
+          ZIP: ${{ steps.zip.outputs.name }}
+        run: |
+          tag="koplugin-v$VERSION"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$ZIP" --clobber
+          else
+            gh release create "$tag" "$ZIP" --target "$GITHUB_SHA" --title "TechRat for Kindle (KOReader) $VERSION" \
+              --notes "Unzip and copy the techrat.koplugin folder to koreader/plugins/ on the Kindle, then restart KOReader. See apps/kindle/README.md."
+          fi
