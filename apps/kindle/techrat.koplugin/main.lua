@@ -55,9 +55,19 @@ function TechRat:addToMainMenu(menu_items)
     }
 end
 
---- Runs `fn` once the Kindle is online (KOReader asks to turn the Wi-Fi on when needed).
+--- Runs `fn` once the Kindle is online. KOReader's own prompt says nothing when it is declined, and nothing at all on
+--- a Wi-Fi without internet, so TechRat asks itself, in its language: turning Wi-Fi on runs `fn`, declining leaves the
+--- screen as it was. When KOReader is set to turn Wi-Fi on by itself (or to wait silently), that choice is kept.
 function TechRat:online(fn)
-    NetworkMgr:runWhenOnline(fn)
+    if NetworkMgr:isOnline() then return fn() end
+    if NetworkMgr:isConnected() then return UI.message(self.t("error_network")) end
+    local action = G_reader_settings and G_reader_settings:readSetting("wifi_enable_action")
+    if action == "turn_on" or action == "ignore" then return NetworkMgr:runWhenOnline(fn) end
+    UI.confirm({
+        text = self.t("wifi_needed"), ok_text = self.t("wifi_turn_on"), cancel_text = self.t("not_now"),
+        on_ok = function() NetworkMgr:toggleWifiOn(fn) end,
+        on_cancel = function() end,
+    })
 end
 
 --- Says what went wrong, in the learner's language. An ended session also goes back to the signed-out home.
@@ -73,7 +83,8 @@ function TechRat:fail(kind, status)
 end
 
 local function name(me)
-    return type(me.displayName) == "string" and me.displayName ~= "" and me.displayName or me.username
+    if type(me.displayName) == "string" and me.displayName ~= "" then return me.displayName end
+    if type(me.username) == "string" then return me.username end
 end
 
 --- The level, XP and streak lines shared by the home and the summary.
@@ -90,25 +101,40 @@ end
 
 -- Home -----------------------------------------------------------------------------------------------------------
 
+--- Opens the home. Signed in without internet it still opens, with the progress saved the last time it was fetched
+--- (opening TechRat never asks for Wi-Fi: playing does).
 function TechRat:openHome()
     if not self.api:isSignedIn() then return self:showHome(nil) end
-    self:online(function()
-        local me, err, status = self.api:me()
-        if not me then return self:fail(err, status) end
-        self:showHome(me)
-    end)
+    if not NetworkMgr:isOnline() then return self:showOfflineHome() end
+    local me, err, status = self.api:me()
+    if err == "network" then return self:showOfflineHome() end
+    if not me then return self:fail(err, status) end
+    self.settings:saveSetting("me", {
+        username = me.username, displayName = me.displayName, currentStreak = me.currentStreak,
+        level = type(me.level) == "table" and me.level or nil,
+    })
+    self.settings:flush()
+    self:showHome(me)
 end
 
---- The home screen of a learner (`me` from /users/me), or the signed-out one when `me` is nil.
-function TechRat:showHome(me)
+function TechRat:showOfflineHome()
+    local saved = self.settings:readSetting("me")
+    self:showHome(type(saved) == "table" and saved or {}, true)
+end
+
+--- The home screen of a learner (`me` from /users/me, or saved: it may lack any field), or the signed-out one when
+--- `me` is nil. `offline` adds a line saying there is no internet and the progress shown is the saved one.
+function TechRat:showHome(me, offline)
     local t = self.t
-    local vm = { title = t("menu"), signed_in = me ~= nil }
-    if me then
-        local lv = type(me.level) == "table" and me.level or {}
+    local vm = { title = t("menu"), signed_in = me ~= nil, notice = offline and t("offline_notice") or nil }
+    if me and type(me.level) == "table" then
+        local lv = me.level
         local level = tonumber(lv.level) or 1
         for k, v in pairs(self:levelLines(level, tonumber(lv.totalXp) or 0, (tonumber(lv.progressPercent) or 0) / 100,
             tonumber(lv.xpToNextLevel) or 0, tonumber(me.currentStreak) or 0)) do vm[k] = v end
-        vm.hello = t("hello", name(me))
+    end
+    if me then
+        if name(me) then vm.hello = t("hello", name(me)) end
         vm.cards = {
             { title = t("daily"), subtitle = t("daily_hint"), primary = true,
               callback = function() self:play(function() return Game.startDaily(self.api) end, false) end },
@@ -118,10 +144,12 @@ function TechRat:showHome(me)
         vm.buttons = {
             { text = t("sign_out"), callback = function()
                 self.api:logout()
+                self.settings:delSetting("me")
+                self.settings:flush()
                 self:showHome(nil)
                 UI.message(t("signed_out"))
             end },
-            { text = t("language"), callback = function() self:chooseLanguage(me) end },
+            { text = t("language"), callback = function() self:chooseLanguage(me, offline) end },
             { text = t("close"), callback = UI.close },
         }
     else
@@ -136,14 +164,14 @@ function TechRat:showHome(me)
 end
 
 --- Offers the plugin's languages; the choice is remembered and also asks the server for questions in it.
-function TechRat:chooseLanguage(me)
+function TechRat:chooseLanguage(me, offline)
     local options = {}
     for i, lang in ipairs(I18n.languages) do
         options[i] = { text = lang.name, callback = function()
             self.locale, self.t, self.api.locale = lang.locale, I18n.new(lang.locale), lang.locale
             self.settings:saveSetting("language", lang.locale)
             self.settings:flush()
-            self:showHome(me)
+            self:showHome(me, offline)
         end }
     end
     UI.choose(self.t("language"), options, self.t("cancel"))

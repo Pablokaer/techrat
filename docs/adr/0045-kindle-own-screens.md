@@ -29,6 +29,11 @@ the other without changing KOReader itself.
 - **The language is chosen in the app**: a *Language* button on the home switches between English and Português
   (Brasil). The choice is kept in `koreader/settings/techrat.lua` and sent as `Accept-Language`, so the questions follow
   it; without a choice the plugin still follows KOReader's language.
+- **Without internet** (added in 0.2.1): the home still opens with the level, XP and streak saved the last time
+  `/users/me` answered, under a "No connection" notice, and opening never asks for Wi-Fi. Anything that needs the
+  server asks TechRat's own question, in its language, before turning Wi-Fi on: KOReader's prompt gives no sign when
+  it is declined and does nothing on a Wi-Fi without internet, which instead gets TechRat's network message. A
+  KOReader set to turn Wi-Fi on by itself keeps doing so. Still online only for playing (ADR-0044).
 
 ## Consequences
 

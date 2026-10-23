@@ -6,14 +6,17 @@ checked in the KOReader emulator (apps/kindle/dev).
 ]]
 local tests = {}
 
-local function harness(responses, saved)
+local function harness(responses, saved, koreader_settings)
     local screens, requests, settings_data = {}, {}, saved or {}
+    -- The Kindle's network as KOReader sees it; a test switches it off or leaves it on a Wi-Fi without internet.
+    local network = { online = true, connected = true, calls = {} }
     local function record(name)
         return function(vm, extra) screens[#screens + 1] = { screen = name, vm = vm, extra = extra } end
     end
     local ui = {
         home = record("home"), question = record("question"), feedback = record("feedback"), summary = record("summary"),
         list = record("list"), message = record("message"), signIn = record("signIn"), close = record("close"),
+        confirm = record("confirm"),
         choose = function(title, options, cancel) screens[#screens + 1] = { screen = "choose", vm = { title = title, options = options, cancel = cancel } } end,
     }
     local stubs = {
@@ -26,7 +29,16 @@ local function harness(responses, saved)
                 flush = function() end,
             }
         end },
-        ["ui/network/manager"] = { runWhenOnline = function(_, fn) fn() end },
+        ["ui/network/manager"] = {
+            isOnline = function() return network.online end,
+            isConnected = function() return network.connected end,
+            runWhenOnline = function(_, fn) table.insert(network.calls, "runWhenOnline"); if network.online then fn() end end,
+            toggleWifiOn = function(_, fn)
+                table.insert(network.calls, "toggleWifiOn")
+                network.online, network.connected = true, true
+                fn()
+            end,
+        },
         ["ui/widget/container/widgetcontainer"] = { extend = function(_, class)
             class.new = function(cls, o)
                 local obj = setmetatable(o or {}, { __index = cls })
@@ -47,9 +59,11 @@ local function harness(responses, saved)
         end,
     }
     for name, module in pairs(stubs) do package.loaded[name] = module end
+    local ko = koreader_settings or {}
+    _G.G_reader_settings = { readSetting = function(_, k) return ko[k] end }
     local TechRat = dofile((package.path:match("([^;]*)techrat%.koplugin/%?%.lua") or "") .. "techrat.koplugin/main.lua")
     local plugin = TechRat:new{ ui = { menu = { registerToMainMenu = function() end } } }
-    local h = { plugin = plugin, screens = screens, requests = requests, settings = settings_data }
+    local h = { plugin = plugin, screens = screens, requests = requests, settings = settings_data, network = network }
     function h.last() return screens[#screens] end
     function h.lastRequest() return requests[#requests] end
     function h.open()
@@ -259,6 +273,92 @@ function tests.a_saved_language_wins_over_koreaders_and_works_signed_out(t)
     h.button(home, "Language").callback()
     h.last().vm.options[2].callback()
     t.eq({ h.settings.language, h.last().vm.cards[1].title }, { "pt-BR", "Entrar" }, "back to Portuguese")
+end
+
+-- Without internet ------------------------------------------------------------------------------------------------
+
+local OFFLINE_NOTICE = "Sem conexão. Mostrando seu nível e XP da última vez."
+
+function tests.opening_techrat_offline_shows_the_last_known_progress_without_asking_for_wi_fi(t)
+    local h = harness(script())
+    signIn(h)
+    h.network.online, h.network.connected = false, false
+    local before = #h.requests
+    h.open()
+    local vm = h.last().vm
+    t.eq({ h.last().screen, vm.signed_in, vm.notice, vm.hello, vm.level_text, vm.xp_text },
+        { "home", true, OFFLINE_NOTICE, "Olá, Rato", "Nível 2", "120 XP" }, "the saved progress")
+    t.eq(#h.requests, before, "no request")
+    t.eq(h.network.calls, {}, "no Wi-Fi prompt just for opening")
+    t.eq(#vm.cards, 3, "the cards are still there")
+end
+
+function tests.offline_with_nothing_saved_the_home_has_the_notice_but_no_progress(t)
+    local h = harness(script(), { tokens = { access = "A", refresh = "R", expires_at = os.time() + 3600 } })
+    h.network.online, h.network.connected = false, false
+    h.open()
+    local vm = h.last().vm
+    t.eq({ vm.signed_in, vm.notice, vm.level_text, vm.hello }, { true, OFFLINE_NOTICE, nil, nil }, "no progress to show")
+end
+
+function tests.when_the_profile_cannot_be_fetched_the_home_falls_back_to_the_saved_one(t)
+    local h = harness(script())
+    signIn(h)
+    h.plugin.api.transport = function() return nil, nil, "timeout" end -- online, but the server never answers
+    h.open()
+    t.eq({ h.last().screen, h.last().vm.notice, h.last().vm.level_text }, { "home", OFFLINE_NOTICE, "Nível 2" }, "saved home")
+end
+
+function tests.playing_offline_asks_in_techrats_language_to_turn_on_wi_fi(t)
+    local h = harness(script({
+        ["GET /api/v1/topics"] = { { 200, { { slug = "kubernetes", name = "Kubernetes", questions = { total = 30 } } } } },
+    }))
+    signIn(h)
+    h.network.online, h.network.connected = false, false
+    h.open()
+    h.card(h.last().vm, "Temas").callback()
+    local ask = h.last()
+    t.eq({ ask.screen, ask.vm.text, ask.vm.ok_text, ask.vm.cancel_text },
+        { "confirm", "O TechRat precisa de internet para isso. Ligar o Wi-Fi?", "Ligar o Wi-Fi", "Agora não" }, "asks")
+    ask.vm.on_ok()
+    t.eq({ h.network.calls[1], h.last().screen, h.last().vm.items[1].text }, { "toggleWifiOn", "list", "Kubernetes" }, "turned on, then the topics")
+end
+
+function tests.declining_wi_fi_leaves_techrat_where_it_was(t)
+    local h = harness(script())
+    signIn(h)
+    h.network.online, h.network.connected = false, false
+    h.open()
+    local requests = #h.requests
+    h.card(h.last().vm, "Temas").callback()
+    h.last().vm.on_cancel()
+    t.eq({ #h.requests, h.network.calls }, { requests, {} }, "nothing requested, Wi-Fi left off")
+end
+
+function tests.a_wi_fi_without_internet_says_so_instead_of_doing_nothing(t)
+    local h = harness(script())
+    signIn(h)
+    h.network.online, h.network.connected = false, true
+    h.card(h.last().vm, "Temas").callback()
+    t.eq({ h.last().screen, h.last().vm }, { "message", "Não foi possível falar com o TechRat. Confira o Wi-Fi e tente de novo." }, "message")
+end
+
+function tests.koreader_set_to_turn_wi_fi_on_by_itself_is_left_to_do_so(t)
+    local h = harness(script({
+        ["GET /api/v1/topics"] = { { 200, {} } },
+    }), nil, { wifi_enable_action = "turn_on" })
+    signIn(h)
+    h.network.online, h.network.connected = false, false
+    h.card(h.last().vm, "Temas").callback()
+    t.eq(h.network.calls, { "runWhenOnline" }, "KOReader's own way, no TechRat question")
+end
+
+function tests.signing_out_forgets_the_saved_progress(t)
+    local h = harness(script({ ["POST /api/v1/auth/logout"] = { { 204, nil } } }))
+    signIn(h)
+    t.ok(h.settings.me ~= nil, "saved while signed in")
+    h.button(h.last().vm, "Sair").callback()
+    t.eq(h.settings.me, nil, "forgotten")
 end
 
 return tests
