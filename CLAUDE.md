@@ -13,6 +13,7 @@ All development follows test-driven development:
   - Backend: unit tests in `backend/TechRat.Tests/Unit`, API/integration tests (Testcontainers PostgreSQL) in `backend/TechRat.Tests/Integration` → `cd backend && dotnet test`. CI builds with warnings as errors (`dotnet build -warnaserror`).
   - Web: Vitest + Testing Library in `apps/web/src/__tests__` → `npm test -w @techrat/web`.
   - Shared packages / mobile: `npm test -w @techrat/<package>`.
+  - Kindle plugin (KOReader, Lua): `luajit apps/kindle/tests/run.lua`.
   - End to end: Playwright in `e2e/` → `npx playwright test` (with `docker compose up -d`).
   - Seed content: `python3 scripts/seed-src/validate_questions.py` must report 0 errors; seed scripts: `python3 -m unittest discover -s scripts/seed-src -p "test_*.py"`.
 - Before finishing, run the affected suites plus `npm run typecheck` and `npm run lint`, and report the real results.
