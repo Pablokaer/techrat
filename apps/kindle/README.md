@@ -3,6 +3,7 @@
 Practise TechRat on a jailbroken Kindle that runs [KOReader](https://koreader.rocks): pick a topic, a roadmap step or
 the daily challenge and answer its questions on the e-ink screen. Answers are graded by the TechRat server, so your XP,
 level, streak and roadmap progress are the same as on the web and the Android app ([ADR-0044](../../docs/adr/0044-kindle-koreader-plugin.md)).
+TechRat opens on its own full-screen screens drawn for e-ink ([ADR-0045](../../docs/adr/0045-kindle-own-screens.md)).
 
 It needs Wi-Fi while you play (KOReader offers to turn it on). There is no offline mode: the Kindle never receives the
 right answer before you answer.
@@ -18,30 +19,45 @@ right answer before you answer.
 5. Eject the Kindle safely and unplug it.
 6. Restart KOReader (menu → *Exit* → *Restart KOReader*).
 7. Open the top menu, then the tools tab (🔧): **TechRat**. If it is not there, enable it in *More tools → Plugin
-   management*.
-8. **Sign in** with your TechRat email and password (once; the session renews itself). The account must have a
-   password and a confirmed email.
+   management*. It opens TechRat's home screen.
+8. Tap **Sign in** and type your TechRat email and password (once; the session renews itself). The account must have
+   a password and a confirmed email.
 
-To update, replace the folder with the new one and restart KOReader. Signing out (TechRat → *Sign out*) forgets the
+To update, replace the folder with the new one and restart KOReader. **Sign out** on the home screen forgets the
 tokens kept on the Kindle (`koreader/settings/techrat.lua`).
 
 ## How to play
 
+The home screen shows your level, XP, progress to the next level and streak, and three cards:
+
+- **Daily challenge**: today's questions (and their bonus XP).
 - **Topics**: choose a topic and 5, 10 or 20 questions.
 - **Roadmaps**: a roadmap you have not started offers to start it; then its current steps can be practised (10
   questions, as on the web). Completed and locked steps are listed but cannot be opened.
-- **Daily challenge**: today's questions (and their bonus XP).
-- **My progress**: level, XP and streak.
 
-Each question shows its options as A–D buttons; after answering you see whether it was right, the correct option and
-the explanation. The plugin follows KOReader's language: Portuguese if KOReader is in Portuguese, English otherwise.
+A question fills the screen: the topic, difficulty and progress at the top, then the text (long ones scroll) and the
+options A–D as large boxes. Tap one to select it and **Answer** to send it. The next screen says whether it was right,
+with your answer, the correct one, the explanation and the XP earned; the last one shows the score, the XP of the
+session and your level.
+
+**Language** on the home screen switches between English and Português (Brasil), for the screens and for the questions
+the server sends. Until you pick one, TechRat follows KOReader's language (Portuguese if KOReader is in Portuguese,
+English otherwise).
 
 ## Development
 
-- `techrat.koplugin/` is the plugin. `main.lua` holds the KOReader screens; `techrat_api.lua` (requests and the
-  session), `techrat_game.lua` (where you are in a session) and `techrat_i18n.lua` (texts in en and pt-BR) do not
-  depend on KOReader. `techrat_transport.lua` is the HTTPS layer with KOReader's luasocket and JSON.
+- `techrat.koplugin/` is the plugin. `main.lua` is the flow (what to show next, which request to make) and builds a
+  plain table per screen; `techrat_ui.lua` draws those screens with KOReader widgets (`logo.png` is the rat in black
+  and white). `techrat_api.lua` (requests and the session), `techrat_game.lua` (where you are in a session) and
+  `techrat_i18n.lua` (texts in en and pt-BR) do not depend on KOReader. `techrat_transport.lua` is the HTTPS layer
+  with KOReader's luasocket and JSON.
 - Tests: `luajit apps/kindle/tests/run.lua` (LuaJIT 2.1, the interpreter KOReader uses). `test_main.lua` loads the real
-  `main.lua` with stand-ins for the KOReader widgets and plays a whole session, so screen mistakes fail there.
+  `main.lua` with `techrat_ui` replaced by a recorder and plays whole sessions, reading what each screen was asked to
+  show and tapping its callbacks.
+- **Seeing the screens**: `apps/kindle/dev/emulator.sh` (Linux, or Ubuntu on WSL with WSLg) downloads KOReader once
+  into `~/koreader-emu` and opens it in a Kindle-sized grayscale window on TechRat's home, signed in with sample data
+  (`dev/preview`, never shipped), so no account or network is needed. `emulator.sh shots DIR` walks through every
+  screen, saves a PNG of each into `DIR` and quits. `KINDLE_W`, `KINDLE_H`, `KINDLE_DPI` and `TECHRAT_LANG` (`pt_BR`
+  or `en`) change the window and the language.
 - CI (`.github/workflows/kindle-plugin.yml`) runs the tests and builds the zip; on `main` it publishes the release named
   after `version` in `_meta.lua`. Bump that version to publish a new release.
