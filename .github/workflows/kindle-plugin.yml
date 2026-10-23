@@ -23,12 +23,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      # Built from source by the action: no apt mirror involved (it stalled the e2e job on 2026-10-22).
-      - uses: leafo/gh-actions-lua@v10
-        with: { luaVersion: "luajit-2.1.0-beta3" }
-      - name: Tests
+      # LuaJIT 2.1 (the line KOReader uses) built from its GitHub repository: no apt mirror involved (it stalled the e2e
+      # job on 2026-10-22), and no third-party download URL (the leafo action's LuaJIT tarball answered 404).
+      - name: LuaJIT 2.1
         run: |
-          if command -v luajit >/dev/null; then luajit apps/kindle/tests/run.lua; else lua apps/kindle/tests/run.lua; fi
+          git clone --quiet --depth 1 --branch v2.1 https://github.com/LuaJIT/LuaJIT.git "$RUNNER_TEMP/luajit"
+          make -C "$RUNNER_TEMP/luajit" -j"$(nproc)" >/dev/null
+          echo "$RUNNER_TEMP/luajit/src" >> "$GITHUB_PATH"
+      - name: Tests
+        run: luajit -v && luajit apps/kindle/tests/run.lua
 
   package:
     name: Kindle plugin (zip)
