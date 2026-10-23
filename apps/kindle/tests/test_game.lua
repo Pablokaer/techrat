@@ -4,7 +4,7 @@ local tests = {}
 
 local function question(id, answered)
     return {
-        id = id, title = "Title " .. id, questionText = "Text " .. id, topicName = "Kubernetes", xpReward = 25,
+        id = id, title = "Title " .. id, questionText = "Text " .. id, topicName = "Kubernetes", xpReward = 25, difficulty = "Medium",
         options = { { id = id .. "a", text = "One" }, { id = id .. "b", text = "Two" }, { id = id .. "c", text = "Three" }, { id = id .. "d", text = "Four" } },
         answer = answered and { isCorrect = true } or nil,
     }
@@ -29,7 +29,7 @@ end
 local function result(correct, correct_id, answered, total, right, xp)
     return {
         feedback = { isCorrect = correct, correctOptionId = correct_id, explanation = "Because.", xpEarned = correct and 25 or 0 },
-        totalXp = 540, level = { level = 3 }, currentStreak = 4,
+        totalXp = 540, level = { level = 3, progressPercent = 25, xpToNextLevel = 150 }, currentStreak = 4,
         session = { answered = answered, total = total, correct = right, xpEarned = xp, isComplete = answered == total },
     }
 end
@@ -37,7 +37,7 @@ end
 function tests.the_first_question_is_shown_with_lettered_options(t)
     local game = Game.start(api({ question("Q1"), question("Q2") }, {}), { mode = "Practice", topicSlug = "kubernetes", count = 2 })
     local q = game:current()
-    t.eq({ q.number, q.total, q.title, q.text, q.topic }, { 1, 2, "Title Q1", "Text Q1", "Kubernetes" }, "question")
+    t.eq({ q.number, q.total, q.title, q.text, q.topic, q.difficulty }, { 1, 2, "Title Q1", "Text Q1", "Kubernetes", "Medium" }, "question")
     t.eq(q.options[2], { letter = "B", text = "Two", id = "Q1b" }, "option B")
 end
 
@@ -57,7 +57,8 @@ function tests.the_session_moves_on_and_ends_with_a_summary(t)
     t.eq(game:current().number, 2, "second")
     game:answer(1, 5)
     t.ok(not game:next(), "no third question")
-    t.eq(game:summary(), { answered = 2, total = 2, correct = 2, xp = 50, total_xp = 540, level = 3, streak = 4 }, "summary")
+    t.eq(game:summary(), { answered = 2, total = 2, correct = 2, xp = 50, total_xp = 540, level = 3, streak = 4,
+        level_progress = 0.25, xp_to_next = 150 }, "summary")
 end
 
 function tests.a_session_resumes_at_the_first_unanswered_question(t)

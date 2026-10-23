@@ -55,6 +55,7 @@ function Game:current()
         title = q.title,
         text = q.questionText,
         topic = q.topicName,
+        difficulty = type(q.difficulty) == "string" and q.difficulty or nil,
         xp = q.xpReward,
         options = options,
     }
@@ -97,13 +98,17 @@ end
 function Game:summary()
     local r = self.last or {}
     local s = type(r.session) == "table" and r.session or {}
+    local level = type(r.level) == "table" and r.level or {}
     return {
         answered = tonumber(s.answered) or 0,
         total = tonumber(s.total) or #self.questions,
         correct = tonumber(s.correct) or 0,
         xp = tonumber(s.xpEarned) or 0,
         total_xp = tonumber(r.totalXp) or 0,
-        level = type(r.level) == "table" and tonumber(r.level.level) or 0,
+        level = tonumber(level.level) or 0,
+        -- progressPercent is 0-100; screens draw a 0-1 bar.
+        level_progress = (tonumber(level.progressPercent) or 0) / 100,
+        xp_to_next = tonumber(level.xpToNextLevel) or 0,
         streak = tonumber(r.currentStreak) or 0,
     }
 end

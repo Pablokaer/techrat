@@ -1,7 +1,8 @@
 --[[--
 Texts of the TechRat plugin in English and Brazilian Portuguese (every learner-facing text exists in both, see
-CLAUDE.md). KOReader's own gettext only knows KOReader's strings, so the plugin carries its own table and follows
-KOReader's interface language: any Portuguese variant gets pt-BR, anything else English (the same rule as the web).
+CLAUDE.md). KOReader's own gettext only knows KOReader's strings, so the plugin carries its own table. It follows
+KOReader's interface language (any Portuguese variant gets pt-BR, anything else English, the same rule as the web)
+until the learner picks a language in TechRat's home.
 ]]
 local I18n = {}
 
@@ -10,6 +11,7 @@ I18n.texts = {
         menu = "TechRat",
         sign_in = "Sign in",
         sign_out = "Sign out",
+        language = "Language",
         signed_out = "Signed out of TechRat.",
         signed_in_as = "Signed in as %s",
         email = "Email",
@@ -47,11 +49,35 @@ I18n.texts = {
         error_login = "Email or password is incorrect.",
         error_unconfirmed = "Confirm your email first: open the link TechRat sent you.",
         error_server = "TechRat answered with an error (%s). Try again later.",
+        hello = "Hi, %s",
+        level = "Level %d",
+        xp_total = "%d XP",
+        xp_to_next = "%d XP to level %d",
+        streak_days = "%d-day streak",
+        home_hint = "Sign in with your TechRat account to play. Your XP, level and streak are the same as on techrat.io.",
+        sign_in_card = "With your techrat.io email and password",
+        daily_hint = "Today's questions, with bonus XP",
+        topics_hint = "Pick a topic and how many questions",
+        roadmaps_hint = "Follow a learning path, one step at a time",
+        close = "Close",
+        answer = "Answer",
+        your_answer = "Your answer",
+        right_answer = "Correct answer",
+        explanation = "Explanation",
+        no_explanation = "No explanation for this question.",
+        play_again = "Play again",
+        home = "Home",
+        score_caption = "correct · %d%% accuracy",
+        difficulty_Easy = "Easy",
+        difficulty_Medium = "Medium",
+        difficulty_Hard = "Hard",
+        difficulty_Expert = "Expert",
     },
     ["pt-BR"] = {
         menu = "TechRat",
         sign_in = "Entrar",
         sign_out = "Sair",
+        language = "Idioma",
         signed_out = "Você saiu do TechRat.",
         signed_in_as = "Conectado como %s",
         email = "E-mail",
@@ -89,7 +115,36 @@ I18n.texts = {
         error_login = "E-mail ou senha incorretos.",
         error_unconfirmed = "Confirme seu e-mail primeiro: abra o link que o TechRat enviou.",
         error_server = "O TechRat respondeu com um erro (%s). Tente mais tarde.",
+        hello = "Olá, %s",
+        level = "Nível %d",
+        xp_total = "%d XP",
+        xp_to_next = "%d XP para o nível %d",
+        streak_days = "Sequência de %d dias",
+        home_hint = "Entre com sua conta do TechRat para jogar. Seu XP, nível e sequência são os mesmos do techrat.io.",
+        sign_in_card = "Com o e-mail e a senha do techrat.io",
+        daily_hint = "As questões de hoje, com XP bônus",
+        topics_hint = "Escolha um tema e quantas questões",
+        roadmaps_hint = "Siga uma trilha, uma etapa de cada vez",
+        close = "Fechar",
+        answer = "Responder",
+        your_answer = "Sua resposta",
+        right_answer = "Resposta correta",
+        explanation = "Explicação",
+        no_explanation = "Esta questão não tem explicação.",
+        play_again = "Jogar de novo",
+        home = "Início",
+        score_caption = "corretas · %d%% de acerto",
+        difficulty_Easy = "Fácil",
+        difficulty_Medium = "Médio",
+        difficulty_Hard = "Difícil",
+        difficulty_Expert = "Expert",
     },
+}
+
+--- The languages a learner can pick in TechRat's home, each named in itself.
+I18n.languages = {
+    { locale = "en", name = "English" },
+    { locale = "pt-BR", name = "Português (Brasil)" },
 }
 
 --- The plugin locale for a KOReader language code ("pt_BR", "en", "C"…).
