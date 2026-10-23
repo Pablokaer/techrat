@@ -5,8 +5,20 @@ the daily challenge and answer its questions on the e-ink screen. Answers are gr
 level, streak and roadmap progress are the same as on the web and the Android app ([ADR-0044](../../docs/adr/0044-kindle-koreader-plugin.md)).
 TechRat opens on its own full-screen screens drawn for e-ink ([ADR-0045](../../docs/adr/0045-kindle-own-screens.md)).
 
-It needs Wi-Fi while you play (KOReader offers to turn it on). There is no offline mode: the Kindle never receives the
-right answer before you answer.
+It needs the internet while you play. There is no offline mode: the Kindle never receives the right answer before you
+answer.
+
+Without a connection:
+
+- **Opening TechRat** still shows the home, with a "No connection" notice and the level, XP and streak saved the last
+  time they were fetched. It does not ask for Wi-Fi just to open.
+- **Playing** (a card, a topic, a step, an answer) asks *"TechRat needs the internet for this. Turn Wi-Fi on?"*:
+  **Turn Wi-Fi on** connects and carries on; **Not now** leaves the screen as it was. If KOReader is set to turn Wi-Fi
+  on by itself (*Network → Action when Wi-Fi is off*), TechRat leaves that to KOReader.
+- **On a Wi-Fi without internet**, or when the server does not answer, it says *"Could not reach TechRat…"*. During a
+  question, the question and your selected option stay on screen: tap **Answer** again once the connection is back.
+
+Signing out also forgets the saved level and XP.
 
 ## Install
 
