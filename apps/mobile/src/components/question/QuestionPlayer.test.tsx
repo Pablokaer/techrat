@@ -84,8 +84,8 @@ async function setup() {
       <ApiProvider client={api}>{children}</ApiProvider>
     </QueryClientProvider>
   );
-  await render(<QuestionPlayer session={session} onExit={onExit} />, { wrapper });
-  return { fetchMock, bodies, onExit, qc };
+  const view = await render(<QuestionPlayer session={session} onExit={onExit} />, { wrapper });
+  return { fetchMock, bodies, onExit, qc, unmount: view.unmount };
 }
 
 describe("QuestionPlayer", () => {
@@ -107,6 +107,28 @@ describe("QuestionPlayer", () => {
     await fireEvent.press(await screen.findByText("See results"));
     await waitFor(() => expect(qc.getQueryState(qk.topicProgress)?.isInvalidated).toBe(true));
     qc.clear(); // no garbage-collection timers left behind for jest
+  });
+
+  it("refreshes progress when the learner leaves halfway after answering, so the home shows the new XP", async () => {
+    const { qc, unmount } = await setup();
+    qc.setQueryData(qk.dashboard, { totalXp: 0 });
+
+    await fireEvent.press(screen.getByTestId("option-B"));
+    await fireEvent.press(screen.getByTestId("submit-button"));
+    expect(await screen.findByText("Correct!")).toBeTruthy();
+    expect(qc.getQueryState(qk.dashboard)?.isInvalidated).toBe(false);
+
+    await unmount();
+    await waitFor(() => expect(qc.getQueryState(qk.dashboard)?.isInvalidated).toBe(true));
+    qc.clear();
+  });
+
+  it("leaves the cache alone when the learner leaves without answering", async () => {
+    const { qc, unmount } = await setup();
+    qc.setQueryData(qk.dashboard, { totalXp: 0 });
+    await unmount();
+    expect(qc.getQueryState(qk.dashboard)?.isInvalidated).toBe(false);
+    qc.clear();
   });
 
   it("grades a correct answer, then an incorrect one, and shows the summary", async () => {
