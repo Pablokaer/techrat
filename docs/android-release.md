@@ -45,7 +45,8 @@ CI runs the typecheck, tests, `expo-doctor` and the production-config check on e
 
 **Expected Android permissions** (the merged manifest of a release build): `INTERNET`, `VIBRATE` and `CAMERA` (taking a
 profile photo). `RECORD_AUDIO`, `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE` and `SYSTEM_ALERT_WINDOW` are blocked
-in `app.json` (`android.blockedPermissions`). To see what a build would ask for, run
+in `app.json` (`android.blockedPermissions`), and so are `USE_BIOMETRIC` and `USE_FINGERPRINT`, which `expo-secure-store`
+adds for keys kept behind a fingerprint: the app never stores its tokens that way. To see what a build would ask for, run
 `npx expo prebuild --platform android --no-install` in a scratch copy and read
 `android/app/src/main/AndroidManifest.xml` (do not commit the generated `android/` folder). Release builds block
 cleartext HTTP; only development builds allow it, for LAN testing.
@@ -149,9 +150,10 @@ production config, Android bundle export). What remains needs you:
 
 - [ ] Have the policy and terms reviewed by a solicitor, then set `LEGAL.draft` to `false`. Deploy the web app so `/privacy`, `/terms` and `/account/delete` are live.
 - [ ] Confirm `https://techrat.io` serves the API (register, login, refresh) and sends email.
-- [ ] Create the Expo account, then `eas login` and `eas init` (commit the `projectId`).
+- [x] Create the Expo account, then `eas login` and `eas init` (commit the `projectId`).
+- [x] Generate the upload keystore (done by the first `eas build`; kept in the Expo account).
 - [ ] `eas build --platform android --profile preview`, install the APK on a real phone and walk through register, practice,
-      profile photo, change password and delete account.
+      profile photo, change password and delete account (the first APK was checked on the emulator).
 - [ ] Create the Play Developer account (a personal one needs the 12 testers / 14 days closed test: start it first).
 - [ ] Register the review account in production and fill `reviewerInstructions`.
 - [ ] Take at least two phone screenshots from the preview build; optionally replace the placeholder feature graphic.

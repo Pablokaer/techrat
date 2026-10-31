@@ -85,8 +85,9 @@ From the repo root, `npm run typecheck` and `npm test` include this workspace.
 
 * Package name and iOS bundle id: `io.techrat.app` (it can never change after the first Play upload).
 * `version` in `app.json` is the version users see; `versionCode` belongs to EAS (`appVersionSource: "remote"`).
-* The merged Android manifest asks for `INTERNET`, `VIBRATE` and `CAMERA` only; the microphone, legacy external storage and
-  the overlay permission are blocked in `app.json`. Release builds block cleartext HTTP.
+* The merged Android manifest asks for `INTERNET`, `VIBRATE` and `CAMERA` only; the microphone, legacy external storage,
+  the overlay permission and the biometric ones `expo-secure-store` would add are blocked in `app.json`. Release builds
+  block cleartext HTTP.
 * The EAS archive is the whole monorepo, filtered by the root `.easignore`.
 
 Everything else (accounts, signing, the Play Console, the checklist) is in [`docs/android-release.md`](../../docs/android-release.md).
