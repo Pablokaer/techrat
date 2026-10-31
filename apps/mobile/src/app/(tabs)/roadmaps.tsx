@@ -12,6 +12,7 @@ export default function RoadmapsScreen() {
   const [category, setCategory] = useState(ALL);
   const categories = useMemo(() => [ALL, ...new Set((data ?? []).map((r) => r.category))], [data]);
   const visible = (data ?? []).filter((r) => category === ALL || r.category === category);
+  const names = useMemo(() => Object.fromEntries((data ?? []).map((r) => [r.slug, r.name])), [data]);
 
   if (isLoading) return <LoadingState label="Loading roadmaps" />;
   if (error) return <ErrorState error={error} retry={() => void refetch()} />;
@@ -21,7 +22,7 @@ export default function RoadmapsScreen() {
       <AppText variant="title" accessibilityRole="header">Roadmaps</AppText>
       <ChipGroup label="Category" options={categories.map((c) => ({ value: c, label: c }))} value={category} onChange={setCategory} scroll />
       {visible.length === 0 && <EmptyState text="No roadmaps in this category yet." />}
-      {visible.map((r) => <RoadmapCard key={r.slug} roadmap={r} onPress={() => router.push(`/roadmap/${r.slug}`)} />)}
+      {visible.map((r) => <RoadmapCard key={r.slug} roadmap={r} roadmapNames={names} onPress={() => router.push(`/roadmap/${r.slug}`)} />)}
     </Screen>
   );
 }
