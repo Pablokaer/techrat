@@ -25,6 +25,24 @@ describe("QuestionPlayer", () => {
     expect(screen.getAllByRole("radio")).toHaveLength(4);
   });
 
+  it("refreshes progress when the learner leaves halfway after answering, so the dashboard shows the new XP", async () => {
+    const submit = vi.fn(async (q: string, o: string) => result(q, o, "q1o0", 25));
+    const { client, unmount } = renderApp(<QuestionPlayer session={makeSession()} onSubmitAnswer={submit} />, (c) => c.setQueryData(["dashboard"], { totalXp: 0 }));
+    await userEvent.click(screen.getAllByRole("radio")[0]);
+    await userEvent.click(screen.getByRole("button", { name: /submit answer/i }));
+    expect(await screen.findByText("Correct!")).toBeInTheDocument();
+    expect(client.getQueryState(["dashboard"])?.isInvalidated).toBe(false);
+
+    unmount();
+    await waitFor(() => expect(client.getQueryState(["dashboard"])?.isInvalidated).toBe(true));
+  });
+
+  it("leaves the cache alone when the learner leaves without answering", () => {
+    const { client, unmount } = renderApp(<QuestionPlayer session={makeSession()} onSubmitAnswer={vi.fn()} />, (c) => c.setQueryData(["dashboard"], { totalXp: 0 }));
+    unmount();
+    expect(client.getQueryState(["dashboard"])?.isInvalidated).toBe(false);
+  });
+
   it("requires a selection before submitting", async () => {
     renderApp(<QuestionPlayer session={makeSession()} onSubmitAnswer={vi.fn()} />);
     expect(screen.getByRole("button", { name: /submit answer/i })).toBeDisabled();
