@@ -32,6 +32,21 @@ describe("Google Play store listing", () => {
     expect(listing(locale).reviewerInstructions).toMatch(/\{REVIEW_EMAIL\}.*\{REVIEW_PASSWORD\}|\{REVIEW_PASSWORD\}.*\{REVIEW_EMAIL\}/s);
   });
 
+  it("has 2 to 8 phone screenshots Play accepts: PNG, 320-3840 px, the long side at most twice the short one", () => {
+    const dir = path.join(STORE, "screenshots");
+    const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".png")) : [];
+    expect(files.length).toBeGreaterThanOrEqual(2);
+    expect(files.length).toBeLessThanOrEqual(8);
+    for (const file of files) {
+      const png = fs.readFileSync(path.join(dir, file));
+      expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
+      const [w, h] = [png.readUInt32BE(16), png.readUInt32BE(20)]; // the IHDR chunk
+      expect(Math.min(w, h)).toBeGreaterThanOrEqual(320);
+      expect(Math.max(w, h)).toBeLessThanOrEqual(3840);
+      expect(Math.max(w, h)).toBeLessThanOrEqual(2 * Math.min(w, h));
+    }
+  });
+
   it("both languages describe the same questions count as the README catalog", () => {
     const readme = fs.readFileSync(path.resolve(__dirname, "..", "..", "..", "README.md"), "utf8");
     const total = /\*\*([\d,]+)\*\* multiple-choice questions/.exec(readme)?.[1];
