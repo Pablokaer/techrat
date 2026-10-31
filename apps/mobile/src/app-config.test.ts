@@ -49,6 +49,12 @@ describe("Android permissions", () => {
     );
   });
 
+  it("blocks the biometric permissions expo-secure-store adds, since tokens are never stored behind a fingerprint", () => {
+    expect(app.android.blockedPermissions).toEqual(
+      expect.arrayContaining(["android.permission.USE_BIOMETRIC", "android.permission.USE_FINGERPRINT"]),
+    );
+  });
+
   it("does not ask the image picker for the microphone", () => {
     const picker = plugin("expo-image-picker") as [string, { microphonePermission?: unknown }];
     expect(picker[1].microphonePermission).toBe(false);
