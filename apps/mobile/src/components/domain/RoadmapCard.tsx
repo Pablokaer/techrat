@@ -8,9 +8,10 @@ import { IconTile } from "./IconTile";
 
 /**
  * Roadmap entry in the catalog list. Because modules are shared between roadmaps, it also tells the learner
- * how many of this roadmap's modules they already completed elsewhere.
+ * how many of this roadmap's modules they already completed elsewhere. `roadmapNames` (slug → name, from the same list)
+ * names the roadmaps a locked one requires: the summary only carries their slugs.
  */
-export function RoadmapCard({ roadmap: r, onPress }: { roadmap: RoadmapSummary; onPress: () => void }) {
+export function RoadmapCard({ roadmap: r, roadmapNames = {}, onPress }: { roadmap: RoadmapSummary; roadmapNames?: Record<string, string>; onPress: () => void }) {
   const locked = r.progress ? !r.progress.isUnlocked : r.prerequisites.length > 0;
   const status = locked ? "Locked" : r.progress?.isCompleted ? "Completed" : r.progress?.isStarted ? "In progress" : "Not started";
   // Once completed, "already have" is redundant with the Completed status.
@@ -48,7 +49,7 @@ export function RoadmapCard({ roadmap: r, onPress }: { roadmap: RoadmapSummary; 
       )}
       <View style={styles.row}>
         <AppText variant="caption" tone={locked ? "muted" : r.progress?.isStarted ? "primary" : "secondary"} style={styles.flex}>
-          {locked ? `Locked · requires ${r.prerequisites.join(", ") || "prerequisites"}` : status}
+          {locked ? `Locked · requires ${r.prerequisites.map((slug) => roadmapNames[slug] ?? slug).join(", ") || "prerequisites"}` : status}
           {r.progress?.isStarted && !r.progress.isCompleted ? ` · ${percent(r.progress.percentComplete)}%` : ""}
         </AppText>
         <XpPill xp={r.xpReward} />

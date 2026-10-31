@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { answerSender, refreshAfterAnswer, submitAnswer } from "@techrat/api";
@@ -38,6 +38,13 @@ export function QuestionPlayer({ session, onExit, onPracticeAgain, restarting }:
   const feedback = question ? answers[question.id] : null;
   const seconds = useTimer(!!question && !feedback, question?.id ?? "done");
 
+  // Answers not yet reflected in the rest of the app. The session's end refreshes progress; leaving halfway must too, or
+  // the tabs (which stay mounted) keep showing the XP from before the session.
+  const unrefreshed = useRef(false);
+  useEffect(() => () => {
+    if (unrefreshed.current) void refreshAfterAnswer(qc);
+  }, [qc]);
+
   const submit = useCallback(async () => {
     if (!question || !selected || feedback || submitting) return;
     setSubmitting(true);
@@ -46,6 +53,7 @@ export function QuestionPlayer({ session, onExit, onPracticeAgain, restarting }:
       const r = await submitAnswer(qc, answerSender(api), session.id, { questionId: question.id, selectedOptionId: selected, timeSpentSeconds: seconds });
       setResults((m) => ({ ...m, [question.id]: r }));
       setAnswers((m) => ({ ...m, [question.id]: r.feedback }));
+      unrefreshed.current = true;
     } catch (e) {
       setSubmitError(errorMessage(e, "Could not submit your answer"));
     } finally {
@@ -56,7 +64,10 @@ export function QuestionPlayer({ session, onExit, onPracticeAgain, restarting }:
   const next = useCallback(() => {
     setSelected(null);
     setIndex((i) => i + 1);
-    if (index + 1 >= session.questions.length) void refreshAfterAnswer(qc);
+    if (index + 1 >= session.questions.length) {
+      unrefreshed.current = false;
+      void refreshAfterAnswer(qc);
+    }
   }, [index, session.questions.length, qc]);
 
   if (!question) {

@@ -52,6 +52,13 @@ export function QuestionPlayer({ session, onSubmitAnswer }: {
   const feedback = question ? answers[question.id] : undefined;
   const result = question ? results[question.id] : undefined;
   const seconds = useTimer(!!question && !feedback, question?.id ?? "done");
+
+  // Answers not yet reflected in the rest of the app. The session's end refreshes progress; leaving halfway must too, or
+  // the dashboard keeps the XP from before the session until its cache goes stale.
+  const unrefreshed = useRef(false);
+  useEffect(() => () => {
+    if (unrefreshed.current) void refreshAfterAnswer(qc);
+  }, [qc]);
   const nextRef = useRef<HTMLButtonElement>(null);
   const questionRef = useRef<HTMLElement>(null);
   const shownIndex = useRef(index);
@@ -80,6 +87,7 @@ export function QuestionPlayer({ session, onSubmitAnswer }: {
       const r = await submitAnswer(qc, send, session.id, { questionId: question.id, selectedOptionId: selected, timeSpentSeconds: seconds });
       setResults((m) => ({ ...m, [question.id]: r }));
       setAnswers((m) => ({ ...m, [question.id]: r.feedback }));
+      unrefreshed.current = true;
       if (r.leveledUp) toast({ kind: "achievement", title: t.practice.player.toasts.levelUp(r.level.level) });
       if (r.topicLeveledUp) toast({ kind: "success", title: t.practice.player.toasts.topicLevel(r.topicLevel) });
       r.completedSteps.forEach((s) => toast({ kind: "success", title: t.practice.player.toasts.stepCompleted(s.stepTitle), body: t.practice.player.toasts.stepCompletedBody(s.xpEarned, s.roadmapName, s.moduleName || undefined) }));
@@ -95,7 +103,10 @@ export function QuestionPlayer({ session, onSubmitAnswer }: {
   const next = useCallback(() => {
     setSelected(null);
     setIndex((i) => i + 1);
-    if (index + 1 >= session.questions.length) void refreshAfterAnswer(qc);
+    if (index + 1 >= session.questions.length) {
+      unrefreshed.current = false;
+      void refreshAfterAnswer(qc);
+    }
   }, [index, session.questions.length, qc]);
 
   // Keyboard: 1-4 / A-D select, Enter submits or advances.
