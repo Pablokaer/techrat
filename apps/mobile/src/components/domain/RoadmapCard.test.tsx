@@ -41,6 +41,12 @@ describe("RoadmapCard", () => {
     expect(onPress).toHaveBeenCalled();
   });
 
+  it("names the roadmaps a locked one requires, not their slugs", async () => {
+    const locked = { ...roadmap(progress({ isUnlocked: false })), prerequisites: ["computer-science-fundamentals", "unknown-slug"] };
+    await render(<RoadmapCard roadmap={locked} roadmapNames={{ "computer-science-fundamentals": "Computer Science Fundamentals" }} onPress={jest.fn()} />);
+    expect(screen.getByText("Locked · requires Computer Science Fundamentals, unknown-slug")).toBeTruthy();
+  });
+
   it("omits the hint when nothing was completed elsewhere", async () => {
     await render(<RoadmapCard roadmap={roadmap(progress())} onPress={jest.fn()} />);
     expect(screen.queryByText(/You already have/)).toBeNull();
