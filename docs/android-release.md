@@ -83,7 +83,10 @@ eas build --platform android --profile production
    `eas submit` and a service-account key (see "Automating later").
 3. **Store listing:** title, short and full description in English and Portuguese are ready in `apps/mobile/store/listing/{en-US,pt-BR}.json` (a test keeps them inside the Play limits: 30 / 80 / 4000 characters; add pt-BR as a translation of the listing in the console), the icon `apps/mobile/store/play-store-icon-512.png` (512x512),
    the feature graphic `apps/mobile/store/feature-graphic-1024x500.png` (a **placeholder**: replace it with real
-   artwork if you want) and **at least two phone screenshots** (not in the repository: take them from a build).
+   artwork if you want) and the phone screenshots in `apps/mobile/store/screenshots/` (six, 1200x2400: taken on an Android emulator from the
+   first preview build, signed in as the review account, then padded with the app's black background because Play
+   rejects a long side more than twice the short one; a test checks the count and sizes). Retake them when a screen
+   changes.
    Regenerate icons and graphics with `npm run assets:android -w @techrat/mobile`.
 4. **App content** (all required before review):
    * **Privacy policy:** `https://techrat.io/privacy`.
@@ -153,6 +156,8 @@ production config, Android bundle export). What remains needs you:
 - [ ] `eas build --platform android --profile preview`, install the APK on a real phone and walk through register, practice,
       profile photo, change password and delete account.
 - [ ] Create the Play Developer account (a personal one needs the 12 testers / 14 days closed test: start it first).
-- [ ] Register the review account in production and fill `reviewerInstructions`.
-- [ ] Take at least two phone screenshots from the preview build; optionally replace the placeholder feature graphic.
+- [x] Register the review account in production (a normal learner with a confirmed email). Its email and password
+      go into the Play Console form only, never into the repository.
+- [x] Take the phone screenshots (`apps/mobile/store/screenshots/`). Optionally replace the placeholder feature
+      graphic.
 - [ ] `eas build --platform android --profile production`, upload the `.aab` to Internal testing, fill the App content forms.
