@@ -5,7 +5,8 @@ production build; the steps below are the ones that need a person (accounts, sig
 choices are in [ADR-0024](adr/0024-eas-build-and-versioning.md); account deletion is in
 [ADR-0023](adr/0023-account-deletion.md).
 
-> Nothing in CI builds or submits to the stores. `eas build` and `eas submit` are run by hand, as described here.
+> The first upload is manual. Later releases are built and submitted by the Android release workflow when an
+> `android-v<version>` tag is pushed and the owner approves it (section 8, ADR-0047); a normal merge never releases.
 
 ## Prerequisites
 
@@ -80,8 +81,8 @@ eas build --platform android --profile production
 
 1. **Create app** (name TechRat, default language, App, Free). Accept Play App Signing.
 2. **Upload the first `.aab` by hand** to *Testing → Internal testing → Create new release*. Play only learns about the
-   app, its package name and its signing from a manual first upload; later releases can be automated with
-   `eas submit` and a service-account key (see "Automating later").
+   app, its package name and its signing from a manual first upload; later releases go through the Android release
+   workflow (section 8).
 3. **Store listing:** title, short and full description in English and Portuguese are ready in `apps/mobile/store/listing/{en-US,pt-BR}.json` (a test keeps them inside the Play limits: 30 / 80 / 4000 characters; add pt-BR as a translation of the listing in the console), the icon `apps/mobile/store/play-store-icon-512.png` (512x512),
    the feature graphic `apps/mobile/store/feature-graphic-1024x500.png` (a **placeholder**: replace it with real
    artwork if you want) and the phone screenshots in `apps/mobile/store/screenshots/` (six, 1200x2400: taken on an Android emulator from the
@@ -120,22 +121,42 @@ eas build --platform android --profile production
 Both legal pages are **drafts that need legal review** (a banner says so; no `TODO` marker is left: the operator, contact email, Irish law, minimum age 16, Hostinger in the
 United Kingdom (EU adequacy decision until 27 December 2031), Resend in Ireland, backup and log periods are filled in, see [ADR-0033](adr/0033-backups-log-retention-and-irish-legal-basis.md)). Do not submit to production before a review.
 
-## Automating later (not enabled)
+## 8. Later releases: the Android release workflow
 
-Builds and submissions stay manual for now. If you want CI to do it, create an Expo access token, store it as the
-repository secret `EXPO_TOKEN`, and add a workflow run on a release tag that does:
+After the first manual upload, releases go through `.github/workflows/android-release.yml` ([ADR-0047](adr/0047-android-release-workflow.md)).
+It builds on EAS and sends the bundle to Play as a **draft** release; nothing reaches testers until you roll it out.
 
-```yaml
-- uses: expo/expo-github-action@v8
-  with: { eas-version: latest, token: "${{ secrets.EXPO_TOKEN }}" }
-- run: npm ci
-- run: eas build --platform android --profile production --non-interactive --wait
-  working-directory: apps/mobile
-- run: eas submit --platform android --profile production --latest --non-interactive   # needs a Play service-account key configured in eas.json
-  working-directory: apps/mobile
-```
+### One-time setup
 
-Add an environment with required reviewers before enabling it: a release should not depend on a green merge alone.
+1. **Google Cloud:** in a Google Cloud project, enable the *Google Play Android Developer API*, create a service account
+   and download a JSON key for it. Keep the file out of the repository.
+2. **Play Console → Users and permissions → Invite new users:** invite the service account's email, give it access to
+   TechRat with *Release apps to testing tracks* (add *Release to production* only if you want that later) and send.
+3. **Upload the key to EAS:** `cd apps/mobile && eas credentials -p android`, then *Google Service Account → Upload a
+   Google Service Account Key* and pick the JSON file. Delete the local copy afterwards; EAS uses its copy to submit.
+4. **Expo token:** expo.dev → Account settings → Access tokens → *Create token*. Store it as an environment secret:
+   `gh secret set EXPO_TOKEN --env google-play` (paste the token when asked).
+5. The **`google-play` environment** already exists in the repository settings: it requires the owner's approval and
+   accepts only `android-v*` tags and `main`.
+
+### Releasing a version
+
+1. Raise `expo.version` in `apps/mobile/app.json` (for example `1.0.1`) in a normal PR and let it reach `main`.
+2. Tag that commit on main and push the tag:
+   ```bash
+   git fetch && git tag android-v1.0.1 origin/main && git push origin android-v1.0.1
+   ```
+   (Or run *Android release* from the Actions tab on `main`, choosing the `internal` or `closed` track.)
+3. The **verify** job checks that the commit is on `main` and the tag matches `expo.version`, then runs the mobile
+   typecheck, tests and production-config check.
+4. Approve the **release** job (*Review deployments* on the run page). It builds the `.aab` on EAS (about 15–25 minutes;
+   `versionCode` goes up by itself) and submits it with the `production` submit profile (internal testing) or `closed`
+   (closed testing, the `alpha` track).
+5. In the Play Console, open the track, check the draft release and press **Review release → Start rollout**. Promote
+   it to production from there when it is ready (*Promote release*), without building again.
+
+If Play rejects the submission, the EAS submission page linked from the run explains why (a missing permission of the
+service account is the usual cause).
 
 ## Troubleshooting
 
@@ -148,18 +169,21 @@ Add an environment with required reviewers before enabling it: a release should 
 
 ## Owner checklist (what is left before the first upload)
 
-Everything the repository can do for the release is done and verified (typecheck, lint, 110 mobile tests, `expo-doctor` 21/21,
-production config, Android bundle export). What remains needs you:
+Everything the repository can do for the release is done and verified (typecheck, lint, mobile tests, `expo-doctor`,
+production config, Android bundle export, a production `.aab` with only the expected permissions). What remains needs you:
 
-- [ ] Have the policy and terms reviewed by a solicitor, then set `LEGAL.draft` to `false`. Deploy the web app so `/privacy`, `/terms` and `/account/delete` are live.
-- [ ] Confirm `https://techrat.io` serves the API (register, login, refresh) and sends email.
+- [ ] Have the policy and terms reviewed, then set `LEGAL.draft` to `false` and deploy, so `/privacy`, `/terms` and
+      `/account/delete` are final before Play reviews the app (they are live already).
+- [x] Confirm `https://techrat.io` serves the API (register, login, refresh) and sends email.
 - [x] Create the Expo account, then `eas login` and `eas init` (commit the `projectId`).
 - [x] Generate the upload keystore (done by the first `eas build`; kept in the Expo account).
-- [ ] `eas build --platform android --profile preview`, install the APK on a real phone and walk through register, practice,
-      profile photo, change password and delete account (the first APK was checked on the emulator).
-- [ ] Create the Play Developer account (a personal one needs the 12 testers / 14 days closed test: start it first).
+- [ ] Install the app on a real phone (from internal testing) and walk through register, practice, profile photo, change
+      password and delete account (it was checked on the emulator).
+- [x] Create the Play Developer account (a personal one needs the 12 testers / 14 days closed test: start it early).
 - [x] Register the review account in production (a normal learner with a confirmed email). Its email and password
       go into the Play Console form only, never into the repository.
 - [x] Take the phone screenshots (`apps/mobile/store/screenshots/`). Optionally replace the placeholder feature
       graphic.
-- [ ] `eas build --platform android --profile production`, upload the `.aab` to Internal testing, fill the App content forms.
+- [x] `eas build --platform android --profile production` (versionCode 4, 2026-11-05).
+- [ ] Upload that `.aab` by hand to Internal testing and fill the store listing and the App content forms (section 5).
+- [ ] Set up the Android release workflow for the next releases (section 8: service account, key in EAS, `EXPO_TOKEN`).

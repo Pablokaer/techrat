@@ -86,6 +86,52 @@ describe("EAS profiles", () => {
   });
 });
 
+/**
+ * Store submissions (ADR-0047): `eas submit` sends a production build to Play as a draft release, so a person still
+ * presses "Roll out" in the Play Console, and the Google service-account key lives in the Expo account, not here.
+ */
+describe("Play submissions", () => {
+  it("submits to internal testing, or to closed testing, as a draft release", () => {
+    expect(eas.submit.production.android).toEqual({ track: "internal", releaseStatus: "draft" });
+    expect(eas.submit.closed.android).toEqual({ track: "alpha", releaseStatus: "draft" });
+  });
+
+  it("keeps the Google service-account key out of the repository", () => {
+    expect(JSON.stringify(eas.submit)).not.toMatch(/serviceAccountKeyPath/);
+    expect(fs.readdirSync(MOBILE).filter((f) => /service-account|play-key|google.*\.json/i.test(f))).toEqual([]);
+  });
+});
+
+describe("Android release workflow", () => {
+  const workflow = fs.readFileSync(path.join(MOBILE, "../../.github/workflows/android-release.yml"), "utf8");
+
+  it("runs only for an android-v tag or by hand, never on a push to a branch", () => {
+    expect(workflow).toMatch(/tags:\s*\[\s*"android-v\*"\s*\]/);
+    expect(workflow).toMatch(/workflow_dispatch:/);
+    expect(workflow).not.toMatch(/branches:/);
+    expect(workflow).not.toMatch(/pull_request/);
+  });
+
+  it("refuses a tag whose version differs from app.json or that is not on main", () => {
+    expect(workflow).toContain("expo.version");
+    expect(workflow).toContain("git merge-base --is-ancestor");
+  });
+
+  it("builds and submits only after an approval in the google-play environment, with the Expo token", () => {
+    expect(workflow).toMatch(/environment:\s*google-play/);
+    expect(workflow).toContain("secrets.EXPO_TOKEN");
+    expect(workflow).toMatch(/eas build --platform android --profile production/);
+    expect(workflow).toMatch(/eas submit --platform android/);
+  });
+
+  it("sets a timeout on every job", () => {
+    const jobsSection = workflow.slice(workflow.indexOf("\njobs:"));
+    const jobs = jobsSection.match(/^ {2}[a-z-]+:\s*$/gm) ?? [];
+    expect(jobs.length).toBeGreaterThan(0);
+    expect((jobsSection.match(/^ {4}timeout-minutes:/gm) ?? []).length).toBe(jobs.length);
+  });
+});
+
 describe("icons and splash", () => {
   it("points the launcher icons at files that exist", () => {
     for (const file of [app.icon, app.android.adaptiveIcon.foregroundImage, app.android.adaptiveIcon.monochromeImage]) {
