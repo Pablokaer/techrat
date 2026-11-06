@@ -18,7 +18,8 @@ export interface LegalDocument {
  *
  * Text written as {{TODO(legal): …}} / {{TODO(owner): …}} marks a fact the code cannot prove. The renderer highlights it
  * and keeps the "TODO" visible on purpose, so the draft cannot be published unnoticed; the legal-pages tests fail while
- * one is open. None is open today, but LEGAL.draft (lib/legal.ts) stays true until a lawyer has reviewed the texts.
+ * one is open. None is open. The texts were reviewed against the GDPR, the LGPD, EU consumer law, the DSA and Google Play's
+ * rules on 2026-11-06 (ADR-0048), so LEGAL.draft (lib/legal.ts) is false; set it back to true while a change is unreviewed.
  * Keep the pt-BR file in step.
  * Facts here come from the code: see docs/play-store/data-safety.md for the evidence behind each statement.
  */
@@ -95,6 +96,7 @@ export const legal = {
           "When the account was created and when you last signed in.",
         ],
         closing: [
+          "Your email address, a username and a password are needed to create an account: without them we cannot give you one. Everything marked optional is up to you.",
           "Learning data created by using the app: your answers and attempts (the option you chose, whether it was correct, time spent), practice sessions, daily challenges, XP, levels, streaks, achievements, topic, roadmap and module progress, and the notifications shown inside the app.",
           "Technical data: your language choice (stored on your device), and the IP address and browser identification that any web server sees. The IP address is used to limit abusive requests and appears in our web server access logs. Application logs keep the method, route, status code, duration and your internal user identifier, never message bodies, passwords, tokens or email addresses.",
           "We do not collect your location, contacts, advertising or device identifiers, date of birth or payment information, and the app does not use analytics, advertising or tracking SDKs.",
@@ -109,7 +111,8 @@ export const legal = {
           "To protect the service: rate limiting, account lockout after repeated wrong passwords and fixing errors.",
         ],
         closing: [
-          "We do not sell your data, do not show advertising and do not use your data to train advertising profiles. Our legal bases under the GDPR are the contract with you (your account, your progress and the emails that make them work) and our legitimate interest in keeping the service secure (rate limits, lockouts and logs). We do not rely on your consent for these.",
+          "We do not sell your data, do not show advertising and do not use your data to train advertising profiles. Our legal bases under the GDPR are the contract with you (your account, your progress and the emails that make them work) and our legitimate interest in keeping the service secure (rate limits, lockouts and logs). We do not rely on your consent for these. Showing your username, name, photo and progress to other learners on leaderboards and profile pages is part of the service you sign up for (the contract), and you can leave the leaderboards at any time (section 3).",
+          "We make no decisions based solely on automated processing that have legal or similarly significant effects on you. The adaptive practice mode only picks which question to show next from your accuracy.",
         ],
       },
       {
@@ -127,7 +130,7 @@ export const legal = {
         heading: "4. Emails",
         paragraphs: [
           "We send only service emails: a link to confirm your email address when you sign up, a notice if someone tries to sign up with an address that already has an account, a password reset link when you ask for one, a notice that your password was changed and a confirmation that your account was deleted. We send no marketing emails.",
-          "Emails are delivered by Resend, which processes the message for us in its European region in Ireland. Resend is a United States company, so any transfer to it relies on the safeguards of its data processing agreement.",
+          "Emails are delivered by Resend, which processes the message for us in its European region in Ireland, under a data processing agreement. Resend is a United States company certified under the EU-U.S. Data Privacy Framework, so any transfer to it is covered by the European Commission’s adequacy decision for that framework (see section 7).",
         ],
       },
       {
@@ -148,12 +151,13 @@ export const legal = {
           "Email delivery, as described above.",
         ],
         closing: [
+          "Google Play distributes the Android app. Google receives the data it needs to install and update the app under its own privacy policy, as a separate controller; we receive only aggregated, anonymous install and crash statistics from it.",
           "We may disclose data when the law requires it. Study links inside the app open third-party sites that you choose to visit; their own policies apply there.",
         ],
       },
       {
         heading: "7. International transfers",
-        paragraphs: ["Your data is stored on the Hostinger server described above, in a data centre in the United Kingdom. The United Kingdom is outside the European Economic Area, but the European Commission recognises it as providing an adequate level of data protection (an adequacy decision, renewed in December 2025 and valid until 27 December 2031), so no further safeguard is needed for that transfer. Emails are processed in Ireland by Resend; because Resend is a United States company, any transfer to it relies on the safeguards of its data processing agreement, as described in section 4."],
+        paragraphs: [`Your data is stored on the Hostinger server described above, in a data centre in the United Kingdom. The United Kingdom is outside the European Economic Area, but the European Commission recognises it as providing an adequate level of data protection (an adequacy decision, renewed in December 2025 and valid until 27 December 2031), so no further safeguard is needed for that transfer. Emails are processed in Ireland by Resend; because Resend is a United States company, any transfer to it relies on its certification under the EU-U.S. Data Privacy Framework, which the European Commission recognises through an adequacy decision. You can ask us for more information about these safeguards at ${l.contactEmail}.`],
       },
       {
         heading: "8. How long we keep data",
@@ -181,16 +185,27 @@ export const legal = {
         items: [
           "Access and correction: you can see your data in the app and change your display name, bio, photo and password in Settings.",
           `Deletion: in Settings, Delete account (website), in Profile, Delete account (Android app), or at https://techrat.io/account/delete. It takes effect immediately.`,
-          `Other requests, such as a copy of your data in a portable format, objection or restriction: write to ${l.contactEmail}; we answer within one month, as the GDPR requires. You may also complain to the Data Protection Commission, Ireland’s supervisory authority (dataprotection.ie).`,
+          `Other requests, such as a copy of your data in a portable format, objection or restriction: write to ${l.contactEmail}; we answer within one month, as the GDPR requires. You may also complain to the Data Protection Commission, Ireland’s supervisory authority (dataprotection.ie), or to the supervisory authority of the EU country where you live or work.`,
         ],
       },
       {
-        heading: "12. Changes to this policy",
+        heading: "12. Users in Brazil (LGPD)",
+        paragraphs: [
+          "If you use TechRat from Brazil, Brazil’s Lei Geral de Proteção de Dados (Law 13.709/2018, “LGPD”) also applies. Under it we process your data to perform the contract with you (article 7, V) and for our legitimate interest in keeping the service secure (article 7, IX), for the purposes described in section 2.",
+        ],
+        items: [
+          `Your rights under article 18: confirmation that we process your data, access, correction, anonymisation, blocking or deletion of unnecessary data, portability, information about who we share data with, and review of automated decisions. Use the tools in the app or write to ${l.contactEmail}, which is also our channel for data subjects. We answer an access request within 15 days.`,
+          "Your data is stored in the United Kingdom and email is processed in Ireland. This international transfer is necessary to provide the service you asked for (article 33, IX, together with article 7, V).",
+          "You may complain to the Autoridade Nacional de Proteção de Dados (ANPD, gov.br/anpd).",
+        ],
+      },
+      {
+        heading: "13. Changes to this policy",
         paragraphs: ["When we change this policy we publish the new version on this page with a new date. For important changes we will also tell you in the app or by email."],
       },
       {
-        heading: "13. Contact",
-        paragraphs: [`Questions or requests about your data: ${l.contactEmail}.`],
+        heading: "14. Contact",
+        paragraphs: [`Questions or requests about your data: ${l.contactEmail}. We answer in English or Portuguese.`],
       },
     ],
   }),
@@ -220,7 +235,10 @@ export const legal = {
       {
         heading: "3. Your content",
         paragraphs: [
-          "Your display name, bio and photo stay yours. You allow us to show them to other learners inside TechRat as described in the Privacy Policy, only for as long as your account exists. We may remove content that breaks these terms.",
+          "Your display name, bio and photo stay yours. You allow us to show them to other learners inside TechRat as described in the Privacy Policy, only for as long as your account exists. We may remove content that breaks these terms or the law.",
+        ],
+        closing: [
+          `Reporting content: if you see a name, bio or photo that you believe is illegal or breaks these terms, write to ${l.contactEmail} with the username, what is wrong and why. We review every report diligently and without undue delay, and tell you what we decided.`,
         ],
       },
       {
@@ -237,11 +255,11 @@ export const legal = {
       },
       {
         heading: "6. Availability and changes",
-        paragraphs: ["We may change, suspend or discontinue features, and we may update these terms. Material changes are announced in the app or by email, and using TechRat afterwards means you accept them."],
+        paragraphs: ["We may change, suspend or discontinue features, and we may update these terms. We tell you about material changes to these terms in the app or by email at least 30 days before they take effect, unless a change is required sooner by law or to keep the service secure. If you do not agree, you can delete your account before then; using TechRat after that date means you accept the new terms."],
       },
       {
         heading: "7. Suspension and termination",
-        paragraphs: ["We may suspend or close an account that breaks these terms or puts the service or other users at risk. You may stop using TechRat and delete your account at any time. When an account is deleted, its data is deleted as described in the Privacy Policy."],
+        paragraphs: [`We may suspend or close an account that breaks these terms or puts the service or other users at risk. When we remove content or suspend or close an account, we send you a statement of the reasons (what we restricted, which rule or law it is based on and how we found out), unless the law prevents it, and you can ask us to review the decision by replying to ${l.contactEmail}. You may stop using TechRat and delete your account at any time. When an account is deleted, its data is deleted as described in the Privacy Policy.`],
       },
       {
         heading: "8. No warranty",
@@ -253,11 +271,11 @@ export const legal = {
       },
       {
         heading: "10. Governing law",
-        paragraphs: ["These terms are governed by the laws of Ireland and the courts of Ireland have jurisdiction. If you are a consumer living in another EU country, you keep the protection of the mandatory consumer law of that country and may also bring a claim in its courts."],
+        paragraphs: ["These terms are governed by the laws of Ireland and the courts of Ireland have jurisdiction. If you are a consumer, you keep the protection of the mandatory consumer law of the country where you live (for example another EU country, the United Kingdom or Brazil) and may also bring a claim in its courts."],
       },
       {
         heading: "11. Contact",
-        paragraphs: [`Questions about these terms: ${l.contactEmail}.`],
+        paragraphs: [`Questions about these terms, reports of content and messages from authorities: ${l.contactEmail}, our single point of contact. We answer in English or Portuguese.`],
       },
     ],
   }),

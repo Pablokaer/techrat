@@ -94,7 +94,8 @@ test("the privacy policy and the terms are public and linked from the footer", a
   await page.getByRole("contentinfo").getByRole("link", { name: "Privacy Policy" }).click();
   await expect(page).toHaveURL(/\/privacy$/);
   await expect(page.getByRole("heading", { level: 1, name: "Privacy Policy" })).toBeVisible();
-  await expect(page.getByRole("note")).toContainText("Draft");
+  // The texts are final (ADR-0048): no draft banner.
+  await expect(page.getByRole("note")).toHaveCount(0);
   await page.getByRole("contentinfo").getByRole("link", { name: "Terms of Service" }).click();
   await expect(page).toHaveURL(/\/terms$/);
   await expect(page.getByRole("heading", { level: 1, name: "Terms of Service" })).toBeVisible();

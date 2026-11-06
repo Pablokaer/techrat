@@ -1,6 +1,6 @@
 # ADR-0033: Automatic backups, log retention and the Irish legal basis of the policies
 
-**Status:** Accepted
+**Status:** Accepted · The open review was done on 2026-11-06, see ADR-0048
 
 ## Context
 
@@ -46,4 +46,4 @@ Hostinger VPS, email through Resend's European region (Ireland), no wish for a c
   data under a data processing agreement (GDPR Art. 28). Hostinger publishes one (`https://www.hostinger.com/legal/dpa`).
   The policy says both providers work under one, and the Play checklist (`docs/play-store/data-safety.md`) asks the
   owner to confirm it.
-- Still open: a review by a solicitor, then `LEGAL.draft = false`.
+- Still open: a review by a solicitor, then `LEGAL.draft = false`. Done as a compliance review by the coding agent, not a solicitor, in ADR-0048.
