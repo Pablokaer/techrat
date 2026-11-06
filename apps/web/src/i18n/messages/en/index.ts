@@ -18,6 +18,7 @@ import { modules } from "./modules";
 import { admin } from "./admin";
 import { legal } from "./legal";
 import { catalog } from "./catalog";
+import { agents } from "./agents";
 
 export const en = {
   common,
@@ -40,6 +41,7 @@ export const en = {
   admin,
   legal,
   catalog,
+  agents,
 };
 
 export type Messages = typeof en;

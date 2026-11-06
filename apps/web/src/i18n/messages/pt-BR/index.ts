@@ -19,6 +19,7 @@ import { modules } from "./modules";
 import { admin } from "./admin";
 import { legal } from "./legal";
 import { catalog } from "./catalog";
+import { agents } from "./agents";
 
 export const ptBR: Messages = {
   common,
@@ -41,4 +42,5 @@ export const ptBR: Messages = {
   admin,
   legal,
   catalog,
+  agents,
 };
