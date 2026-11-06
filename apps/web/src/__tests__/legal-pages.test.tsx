@@ -68,21 +68,48 @@ describe("TODO markers in legal texts", () => {
 });
 
 describe("Privacy policy page", () => {
-  it("renders the policy in English, signed out, with the draft banner and no open TODO marker", () => {
+  it("renders the reviewed policy in English, signed out, without the draft banner or an open TODO marker", () => {
     const { container } = renderApp(<PrivacyPage />, signedOut);
     expect(screen.getByRole("heading", { level: 1, name: "Privacy Policy" })).toBeInTheDocument();
-    expect(screen.getByRole("note")).toHaveTextContent("Draft: pending legal review");
-    expect(container.innerHTML).toContain("<!--");
-    // Neither the banner nor the hidden comment may point at TODO items when there are none.
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+    expect(container.innerHTML).not.toContain("<!--");
     expect(container.innerHTML).not.toContain("TODO");
     expectNoOpenMarker();
     expect(document.body.textContent).toContain(LEGAL.contactEmail);
   });
 
+  it("shows the draft banner and the hidden comment again whenever LEGAL.draft is set back to true", () => {
+    LEGAL.draft = true;
+    try {
+      const { container } = renderApp(<PrivacyPage />, signedOut);
+      expect(screen.getByRole("note")).toHaveTextContent("Draft: pending legal review");
+      expect(container.innerHTML).toContain("<!--");
+    } finally {
+      LEGAL.draft = false;
+    }
+  });
+
+  it("states the GDPR facts the review added: required data, no significant automated decisions, Google Play, a complaint where you live", () => {
+    renderApp(<PrivacyPage />, signedOut);
+    const text = document.body.textContent ?? "";
+    for (const fact of ["needed to create an account", "no decisions based solely on automated processing", "Google Play", "where you live or work"]) {
+      expect(text).toContain(fact);
+    }
+  });
+
   it.each([
-    ["en", "7. International transfers", ["in a data centre in the United Kingdom", "adequacy decision", adequacyEnd("en-GB"), "Resend", "data processing agreement"]],
-    ["pt-BR", "7. Transferências internacionais", ["em um data center no Reino Unido", "decisão de adequação", adequacyEnd("pt-BR"), "Resend", "acordo de processamento de dados"]],
-  ] as const)("states one safeguard per transfer in %s: the UK adequacy decision for the server, the processing agreement for Resend", (locale, heading, facts) => {
+    ["en", "12. Users in Brazil (LGPD)", ["Lei Geral de Proteção de Dados", "article 7, V", "article 7, IX", "article 18", "article 33, IX", "ANPD", "15 days"]],
+    ["pt-BR", "12. Usuários no Brasil (LGPD)", ["Lei Geral de Proteção de Dados", "art. 7º, V", "art. 7º, IX", "art. 18", "art. 33, IX", "ANPD", "15 dias"]],
+  ] as const)("has a section for learners in Brazil in %s: LGPD bases, rights, transfer and the ANPD", (locale, heading, facts) => {
+    renderApp(<PrivacyPage />, signedOut, { locale });
+    const section = screen.getByRole("heading", { name: heading }).closest("section");
+    for (const fact of facts) expect(section).toHaveTextContent(fact);
+  });
+
+  it.each([
+    ["en", "7. International transfers", ["in a data centre in the United Kingdom", "adequacy decision", adequacyEnd("en-GB"), "Resend", "EU-U.S. Data Privacy Framework"]],
+    ["pt-BR", "7. Transferências internacionais", ["em um data center no Reino Unido", "decisão de adequação", adequacyEnd("pt-BR"), "Resend", "EU-U.S. Data Privacy Framework"]],
+  ] as const)("states one safeguard per transfer in %s: the UK adequacy decision for the server, the Data Privacy Framework for Resend", (locale, heading, facts) => {
     renderApp(<PrivacyPage />, signedOut, { locale });
     const section = screen.getByRole("heading", { name: heading }).closest("section");
     for (const fact of facts) expect(section).toHaveTextContent(fact);
@@ -101,10 +128,10 @@ describe("Privacy policy page", () => {
     expect(deletion).toBeDefined();
   });
 
-  it("is reachable in Portuguese, with the draft banner and no open TODO marker", () => {
+  it("is reachable in Portuguese, without the draft banner or an open TODO marker", () => {
     const { container } = renderApp(<PrivacyPage />, signedOut, { locale: "pt-BR" });
     expect(screen.getByRole("heading", { level: 1, name: "Política de Privacidade" })).toBeInTheDocument();
-    expect(screen.getByRole("note")).toHaveTextContent("Rascunho: aguardando revisão jurídica");
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
     expect(container.innerHTML).not.toContain("TODO");
     expectNoOpenMarker();
     expectLegalLinks(screen, { privacy: "Política de Privacidade", terms: "Termos de Uso" });
@@ -121,7 +148,8 @@ describe("Privacy policy page", () => {
   it("states the same facts in Portuguese", () => {
     renderApp(<PrivacyPage />, signedOut, { locale: "pt-BR" });
     const text = document.body.textContent ?? "";
-    for (const fact of ["Data Protection Commission", "no prazo de um mês", "Resend", "Irlanda", "Hostinger", "sob um acordo de processamento de dados", "apagados automaticamente após 14 dias", "no máximo 40 dias", "16 anos ou mais"]) {
+    for (const fact of ["Data Protection Commission", "no prazo de um mês", "Resend", "Irlanda", "Hostinger", "sob um acordo de processamento de dados", "apagados automaticamente após 14 dias", "no máximo 40 dias", "16 anos ou mais",
+      "necessários para criar uma conta", "nenhuma decisão baseada exclusivamente em tratamento automatizado", "Google Play", "onde você mora ou trabalha"]) {
       expect(text).toContain(fact);
     }
   });
@@ -134,14 +162,23 @@ describe("Privacy policy page", () => {
 });
 
 describe("Terms of service page", () => {
-  it("renders in English with the draft banner, Irish governing law and the age of 16", () => {
+  it("renders in English without the draft banner, with Irish governing law and the age of 16", () => {
     renderApp(<TermsPage />, signedOut);
     expect(screen.getByRole("heading", { level: 1, name: "Terms of Service" })).toBeInTheDocument();
-    expect(screen.getByRole("note")).toBeInTheDocument();
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
     expect(document.body.textContent).toContain("governed by the laws of Ireland");
     expect(document.body.textContent).toContain("at least 16 years old");
     expectNoOpenMarker();
     expectLegalLinks(screen);
+  });
+
+  it.each([
+    ["en", ["Reporting content", "statement of the reasons", "ask us to review", "at least 30 days before", "the country where you live"]],
+    ["pt-BR", ["Denunciar conteúdo", "explicação dos motivos", "pedir que revisemos", "pelo menos 30 dias antes", "do país onde você mora"]],
+  ] as const)("covers what the review added in %s: reporting content, reasons and review of a decision, notice of changes, the consumer's own law", (locale, facts) => {
+    renderApp(<TermsPage />, signedOut, { locale });
+    const text = document.body.textContent ?? "";
+    for (const fact of facts) expect(text).toContain(fact);
   });
 
   it("renders in Portuguese", () => {

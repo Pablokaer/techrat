@@ -2,7 +2,8 @@ import type { Messages } from "../en";
 
 /*
  * Versão em português de en/legal.ts: mesmo significado, mesma ordem. Trechos {{TODO(legal): …}} / {{TODO(owner): …}}
- * marcam fatos que o código não consegue provar e ficam visíveis de propósito (veja o arquivo em inglês).
+ * marcam fatos que o código não consegue provar e ficam visíveis de propósito (veja o arquivo em inglês, também sobre a
+ * revisão de 2026-11-06 e LEGAL.draft).
  */
 export const legal: Messages["legal"] = {
   footer: {
@@ -77,6 +78,7 @@ export const legal: Messages["legal"] = {
           "Quando a conta foi criada e quando você entrou pela última vez.",
         ],
         closing: [
+          "Endereço de e-mail, nome de usuário e senha são necessários para criar uma conta: sem eles não conseguimos oferecê-la. Tudo o que está marcado como opcional fica a seu critério.",
           "Dados de aprendizado gerados pelo uso do app: suas respostas e tentativas (a opção escolhida, se estava correta, tempo gasto), sessões de prática, desafios diários, XP, níveis, sequências, conquistas, progresso por tópico, roadmap e módulo, e as notificações exibidas dentro do app.",
           "Dados técnicos: sua escolha de idioma (guardada no seu dispositivo) e o endereço IP e a identificação do navegador que qualquer servidor web enxerga. O IP é usado para limitar requisições abusivas e aparece nos logs de acesso do nosso servidor web. Os logs da aplicação guardam método, rota, código de status, duração e seu identificador interno de usuário, nunca corpos de mensagens, senhas, tokens ou e-mails.",
           "Não coletamos sua localização, contatos, identificadores de publicidade ou de dispositivo, data de nascimento nem dados de pagamento, e o app não usa SDKs de analytics, publicidade ou rastreamento.",
@@ -91,7 +93,8 @@ export const legal: Messages["legal"] = {
           "Para proteger o serviço: limite de requisições, bloqueio da conta após várias senhas erradas e correção de erros.",
         ],
         closing: [
-          "Não vendemos seus dados, não exibimos publicidade e não usamos seus dados para criar perfis publicitários. Nossas bases legais no GDPR são o contrato com você (sua conta, seu progresso e os e-mails que os fazem funcionar) e o nosso legítimo interesse em manter o serviço seguro (limites de requisições, bloqueios e logs). Não dependemos do seu consentimento para isso.",
+          "Não vendemos seus dados, não exibimos publicidade e não usamos seus dados para criar perfis publicitários. Nossas bases legais no GDPR são o contrato com você (sua conta, seu progresso e os e-mails que os fazem funcionar) e o nosso legítimo interesse em manter o serviço seguro (limites de requisições, bloqueios e logs). Não dependemos do seu consentimento para isso. Mostrar seu nome de usuário, nome, foto e progresso a outros alunos nos rankings e nas páginas de perfil faz parte do serviço que você contrata (o contrato), e você pode sair dos rankings a qualquer momento (seção 3).",
+          "Não tomamos nenhuma decisão baseada exclusivamente em tratamento automatizado que produza efeitos jurídicos ou igualmente significativos para você. O modo de prática adaptativa apenas escolhe a próxima questão a partir da sua taxa de acerto.",
         ],
       },
       {
@@ -109,7 +112,7 @@ export const legal: Messages["legal"] = {
         heading: "4. E-mails",
         paragraphs: [
           "Enviamos apenas e-mails de serviço: um link para confirmar seu endereço de e-mail quando você se cadastra, um aviso se alguém tentar se cadastrar com um endereço que já tem conta, um link de redefinição de senha quando você pede, um aviso de que sua senha foi alterada e uma confirmação de que sua conta foi excluída. Não enviamos e-mails de marketing.",
-          "Os e-mails são entregues pela Resend, que processa a mensagem por nós na sua região europeia, na Irlanda. A Resend é uma empresa dos Estados Unidos, então qualquer transferência para ela se apoia nas salvaguardas do seu acordo de processamento de dados.",
+          "Os e-mails são entregues pela Resend, que processa a mensagem por nós na sua região europeia, na Irlanda, sob um acordo de processamento de dados. A Resend é uma empresa dos Estados Unidos certificada no EU-U.S. Data Privacy Framework, então qualquer transferência para ela é coberta pela decisão de adequação da Comissão Europeia para esse mecanismo (veja a seção 7).",
         ],
       },
       {
@@ -130,12 +133,13 @@ export const legal: Messages["legal"] = {
           "Envio de e-mails, como descrito acima.",
         ],
         closing: [
+          "O Google Play distribui o app Android. O Google recebe os dados de que precisa para instalar e atualizar o app, sob a sua própria política de privacidade, como controlador independente; dele recebemos apenas estatísticas agregadas e anônimas de instalações e falhas.",
           "Podemos divulgar dados quando a lei exigir. Os links de estudo dentro do app abrem sites de terceiros que você escolhe visitar; lá valem as políticas deles.",
         ],
       },
       {
         heading: "7. Transferências internacionais",
-        paragraphs: ["Seus dados ficam armazenados no servidor da Hostinger descrito acima, em um data center no Reino Unido. O Reino Unido está fora do Espaço Econômico Europeu, mas a Comissão Europeia o reconhece como detentor de um nível adequado de proteção de dados (decisão de adequação, renovada em dezembro de 2025 e válida até 27 de dezembro de 2031), então essa transferência não exige outra salvaguarda. Os e-mails são processados na Irlanda pela Resend; como a Resend é uma empresa dos Estados Unidos, qualquer transferência para ela se apoia nas salvaguardas do seu acordo de processamento de dados, como descrito na seção 4."],
+        paragraphs: [`Seus dados ficam armazenados no servidor da Hostinger descrito acima, em um data center no Reino Unido. O Reino Unido está fora do Espaço Econômico Europeu, mas a Comissão Europeia o reconhece como detentor de um nível adequado de proteção de dados (decisão de adequação, renovada em dezembro de 2025 e válida até 27 de dezembro de 2031), então essa transferência não exige outra salvaguarda. Os e-mails são processados na Irlanda pela Resend; como a Resend é uma empresa dos Estados Unidos, qualquer transferência para ela se apoia na sua certificação no EU-U.S. Data Privacy Framework, que a Comissão Europeia reconhece por uma decisão de adequação. Você pode nos pedir mais informações sobre essas salvaguardas em ${l.contactEmail}.`],
       },
       {
         heading: "8. Por quanto tempo guardamos os dados",
@@ -163,16 +167,27 @@ export const legal: Messages["legal"] = {
         items: [
           "Acesso e correção: você vê seus dados no app e altera nome de exibição, bio, foto e senha em Configurações.",
           "Exclusão: em Configurações, Excluir conta (site), em Perfil, Excluir conta (app Android), ou em https://techrat.io/account/delete. Vale imediatamente.",
-          `Outros pedidos, como uma cópia dos seus dados em formato portável, oposição ou restrição: escreva para ${l.contactEmail}; respondemos no prazo de um mês, como exige o GDPR. Você também pode reclamar à Data Protection Commission, a autoridade de supervisão da Irlanda (dataprotection.ie).`,
+          `Outros pedidos, como uma cópia dos seus dados em formato portável, oposição ou restrição: escreva para ${l.contactEmail}; respondemos no prazo de um mês, como exige o GDPR. Você também pode reclamar à Data Protection Commission, a autoridade de supervisão da Irlanda (dataprotection.ie), ou à autoridade de supervisão do país da UE onde você mora ou trabalha.`,
         ],
       },
       {
-        heading: "12. Mudanças nesta política",
+        heading: "12. Usuários no Brasil (LGPD)",
+        paragraphs: [
+          "Se você usa o TechRat a partir do Brasil, a Lei Geral de Proteção de Dados (Lei 13.709/2018, “LGPD”) também se aplica. Por ela, tratamos seus dados para executar o contrato com você (art. 7º, V) e pelo nosso legítimo interesse em manter o serviço seguro (art. 7º, IX), para as finalidades descritas na seção 2.",
+        ],
+        items: [
+          `Seus direitos pelo art. 18: confirmação de que tratamos seus dados, acesso, correção, anonimização, bloqueio ou eliminação de dados desnecessários, portabilidade, informação sobre com quem compartilhamos dados e revisão de decisões automatizadas. Use as ferramentas do app ou escreva para ${l.contactEmail}, que também é o nosso canal de atendimento aos titulares. Respondemos a um pedido de acesso em até 15 dias.`,
+          "Seus dados ficam armazenados no Reino Unido e os e-mails são processados na Irlanda. Essa transferência internacional é necessária para prestar o serviço que você pediu (art. 33, IX, combinado com o art. 7º, V).",
+          "Você pode reclamar à Autoridade Nacional de Proteção de Dados (ANPD, gov.br/anpd).",
+        ],
+      },
+      {
+        heading: "13. Mudanças nesta política",
         paragraphs: ["Quando mudarmos esta política, publicaremos a nova versão nesta página com uma nova data. Em mudanças importantes, também avisaremos você no app ou por e-mail."],
       },
       {
-        heading: "13. Contato",
-        paragraphs: [`Dúvidas ou pedidos sobre seus dados: ${l.contactEmail}.`],
+        heading: "14. Contato",
+        paragraphs: [`Dúvidas ou pedidos sobre seus dados: ${l.contactEmail}. Respondemos em português ou inglês.`],
       },
     ],
   }),
@@ -202,7 +217,10 @@ export const legal: Messages["legal"] = {
       {
         heading: "3. Seu conteúdo",
         paragraphs: [
-          "Seu nome de exibição, bio e foto continuam sendo seus. Você nos autoriza a mostrá-los a outros alunos dentro do TechRat, como descrito na Política de Privacidade, apenas enquanto a sua conta existir. Podemos remover conteúdo que viole estes termos.",
+          "Seu nome de exibição, bio e foto continuam sendo seus. Você nos autoriza a mostrá-los a outros alunos dentro do TechRat, como descrito na Política de Privacidade, apenas enquanto a sua conta existir. Podemos remover conteúdo que viole estes termos ou a lei.",
+        ],
+        closing: [
+          `Denunciar conteúdo: se você vir um nome, uma bio ou uma foto que acredita ser ilegal ou violar estes termos, escreva para ${l.contactEmail} com o nome de usuário, o que está errado e por quê. Analisamos cada denúncia com cuidado e sem demora injustificada, e informamos o que decidimos.`,
         ],
       },
       {
@@ -219,11 +237,11 @@ export const legal: Messages["legal"] = {
       },
       {
         heading: "6. Disponibilidade e mudanças",
-        paragraphs: ["Podemos alterar, suspender ou encerrar funcionalidades e atualizar estes termos. Mudanças relevantes são avisadas no app ou por e-mail, e continuar usando o TechRat depois significa que você as aceita."],
+        paragraphs: ["Podemos alterar, suspender ou encerrar funcionalidades e atualizar estes termos. Avisamos sobre mudanças relevantes nestes termos no app ou por e-mail pelo menos 30 dias antes de entrarem em vigor, salvo quando a lei ou a segurança do serviço exigirem uma mudança antes. Se você não concordar, pode excluir sua conta antes disso; continuar usando o TechRat depois dessa data significa que você aceita os novos termos."],
       },
       {
         heading: "7. Suspensão e encerramento",
-        paragraphs: ["Podemos suspender ou encerrar uma conta que viole estes termos ou ponha o serviço ou outros usuários em risco. Você pode parar de usar o TechRat e excluir sua conta a qualquer momento. Quando uma conta é excluída, seus dados são apagados como descrito na Política de Privacidade."],
+        paragraphs: [`Podemos suspender ou encerrar uma conta que viole estes termos ou ponha o serviço ou outros usuários em risco. Quando removemos conteúdo ou suspendemos ou encerramos uma conta, enviamos uma explicação dos motivos (o que restringimos, em qual regra ou lei a decisão se baseia e como tomamos conhecimento), salvo se a lei impedir, e você pode pedir que revisemos a decisão respondendo para ${l.contactEmail}. Você pode parar de usar o TechRat e excluir sua conta a qualquer momento. Quando uma conta é excluída, seus dados são apagados como descrito na Política de Privacidade.`],
       },
       {
         heading: "8. Sem garantias",
@@ -235,11 +253,11 @@ export const legal: Messages["legal"] = {
       },
       {
         heading: "10. Lei aplicável",
-        paragraphs: ["Estes termos são regidos pelas leis da Irlanda e os tribunais da Irlanda têm competência. Se você é consumidor e mora em outro país da UE, mantém a proteção da lei de consumo obrigatória desse país e também pode ajuizar a ação nos tribunais dele."],
+        paragraphs: ["Estes termos são regidos pelas leis da Irlanda e os tribunais da Irlanda têm competência. Se você é consumidor, mantém a proteção da lei de consumo obrigatória do país onde você mora (por exemplo outro país da UE, o Reino Unido ou o Brasil) e também pode ajuizar a ação nos tribunais dele."],
       },
       {
         heading: "11. Contato",
-        paragraphs: [`Dúvidas sobre estes termos: ${l.contactEmail}.`],
+        paragraphs: [`Dúvidas sobre estes termos, denúncias de conteúdo e mensagens de autoridades: ${l.contactEmail}, o nosso ponto único de contato. Respondemos em português ou inglês.`],
       },
     ],
   }),

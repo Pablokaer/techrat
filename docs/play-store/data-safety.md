@@ -4,8 +4,8 @@ Ready to copy into **Play Console, App content, Data safety**. Every answer is d
 (evidence in the "Proof" columns). The Android app (`apps/mobile`, package `io.techrat.app`) talks to one backend only:
 the TechRat API at `https://techrat.io` (`apps/mobile/eas.json`, `EXPO_PUBLIC_API_URL`).
 
-> Status: prepared from the code on branch `feat/android-release-prep`. The privacy policy it points to is still a
-> draft pending legal review (see the checklist at the end). Re-check every answer whenever a feature, SDK or permission
+> Status: prepared from the code on branch `feat/android-release-prep`. The privacy policy it points to was
+> reviewed on 2026-11-06 and is final (ADR-0048; see the checklist at the end). Re-check every answer whenever a feature, SDK or permission
 > is added.
 
 ## 1. Top-level questions
@@ -99,9 +99,9 @@ storage (`expo-secure-store`); neither has its own checkbox.
 
 ## 7. Things the owner must double-check before submitting
 
-1. **The policy is a draft.** `/privacy`, `/terms` and `/account/delete` carry a "draft pending legal review" banner and
-   a legal review is pending. After the review, set `LEGAL.draft = false` in
-   `apps/web/src/lib/legal.ts`. Google rejects policies that are placeholders.
+1. **The policy is final** (reviewed on 2026-11-06, ADR-0048, `LEGAL.draft = false`). It was a compliance review by the
+   coding agent, not by a lawyer: ADR-0048 lists what it did not cover. Set `LEGAL.draft` back to `true` while a change
+   to the texts is unreviewed: Google rejects policies that are placeholders.
 2. **Company name and contact email** (`LEGAL` in `apps/web/src/lib/legal.ts`): currently `Pablo Carvalho` and
    `pablo.luan.carvalho@gmail.com`. Make sure the mailbox is monitored; the Play listing's developer email should
    match it. Replace both with the company's legal name and a `privacy@techrat.io` mailbox if you create one.
@@ -113,6 +113,8 @@ storage (`expo-secure-store`); neither has its own checkbox.
 4. **Are the data processing agreements in place?** The policy says Hostinger and Resend process data under one (GDPR
    Art. 28; the adequacy decision covers only where the data goes, not this contract). Confirm that Hostinger's
    (`https://www.hostinger.com/legal/dpa`) applies to your account and that Resend's is accepted in the Resend dashboard.
+   The policy says Resend is certified under the EU-U.S. Data Privacy Framework (its March 2025 DPA update); re-check
+   the certification on dataprivacyframework.gov once a year.
 5. **IP addresses.** Any HTTPS request reveals the client IP to the server. It is kept in Apache access logs
    (`deploy/apache/techrat.conf`, combined format) and used as an in-memory rate-limit key. Play does not list "IP
    address" as its own data type; if you want to be conservative, read Google's Data safety FAQ and decide whether this
