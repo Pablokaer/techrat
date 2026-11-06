@@ -118,8 +118,9 @@ eas build --platform android --profile production
 | Account deletion web link | `https://techrat.io/account/delete` |
 | Terms (store listing, optional) | `https://techrat.io/terms` |
 
-Both legal pages are **drafts that need legal review** (a banner says so; no `TODO` marker is left: the operator, contact email, Irish law, minimum age 16, Hostinger in the
-United Kingdom (EU adequacy decision until 27 December 2031), Resend in Ireland, backup and log periods are filled in, see [ADR-0033](adr/0033-backups-log-retention-and-irish-legal-basis.md)). Do not submit to production before a review.
+Both legal pages are final (reviewed on 2026-11-06, no draft banner): the operator, contact email, Irish law, minimum age 16, Hostinger in the
+United Kingdom (EU adequacy decision until 27 December 2031), Resend in Ireland under the EU-U.S. Data Privacy Framework, backup and log periods and a section for
+Brazil (LGPD) are filled in, see [ADR-0033](adr/0033-backups-log-retention-and-irish-legal-basis.md) and [ADR-0048](adr/0048-legal-texts-review.md). The review was not done by a lawyer; its residual risks are listed in ADR-0048.
 
 ## 8. Later releases: the Android release workflow
 
@@ -174,8 +175,7 @@ service account is the usual cause).
 Everything the repository can do for the release is done and verified (typecheck, lint, mobile tests, `expo-doctor`,
 production config, Android bundle export, a production `.aab` with only the expected permissions). What remains needs you:
 
-- [ ] Have the policy and terms reviewed, then set `LEGAL.draft` to `false` and deploy, so `/privacy`, `/terms` and
-      `/account/delete` are final before Play reviews the app (they are live already).
+- [x] Review the policy and terms, set `LEGAL.draft` to `false` and deploy (2026-11-06, ADR-0048; not a lawyer's review).
 - [x] Confirm `https://techrat.io` serves the API (register, login, refresh) and sends email.
 - [x] Create the Expo account, then `eas login` and `eas init` (commit the `projectId`).
 - [x] Generate the upload keystore (done by the first `eas build`; kept in the Expo account).
