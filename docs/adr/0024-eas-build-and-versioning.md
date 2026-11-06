@@ -1,6 +1,6 @@
 # ADR-0024: Android release with EAS Build, remote versioning and a release-safe configuration
 
-**Status:** Accepted · Builds on ADR-0005 (React Native with Expo) and ADR-0023 (account deletion)
+**Status:** Accepted · Builds on ADR-0005 (React Native with Expo) and ADR-0023 (account deletion) · Store automation revised by ADR-0047
 
 ## Context
 
