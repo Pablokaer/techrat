@@ -149,9 +149,11 @@ It builds on EAS and sends the bundle to Play as a **draft** release; nothing re
    (Or run *Android release* from the Actions tab on `main`, choosing the `internal` or `closed` track.)
 3. The **verify** job checks that the commit is on `main` and the tag matches `expo.version`, then runs the mobile
    typecheck, tests and production-config check.
-4. Approve the **release** job (*Review deployments* on the run page). It builds the `.aab` on EAS (about 15–25 minutes;
-   `versionCode` goes up by itself) and submits it with the `production` submit profile (internal testing) or `closed`
-   (closed testing, the `alpha` track).
+4. Approve the **release** job (*Review deployments* on the run page). It starts the EAS build of the `.aab`
+   (`versionCode` goes up by itself) with auto-submit, and its summary links to the build on expo.dev. The runner does
+   not wait: the build (15–25 minutes plus the EAS queue) and the submission with the `production` submit profile
+   (internal testing) or `closed` (closed testing, the `alpha` track) run on EAS, which emails the account if either
+   fails.
 5. In the Play Console, open the track, check the draft release and press **Review release → Start rollout**. Promote
    it to production from there when it is ready (*Promote release*), without building again.
 

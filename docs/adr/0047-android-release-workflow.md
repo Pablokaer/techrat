@@ -21,6 +21,9 @@ through the web deploy, so it must not start just because CI is green.
 - **A person approves it twice.** The build-and-submit job uses the `google-play` environment, which requires the
   owner's approval and accepts only `android-v*` tags and `main`. The submission is a **draft** release
   (`releaseStatus: "draft"` in `eas.json`), so it still has to be rolled out in the Play Console.
+- **The runner does not wait for EAS.** The job starts `eas build --auto-submit-with-profile … --no-wait`: the build and
+  the submission run on EAS (which emails on failure), and the job keeps the repository's 45-minute cap on jobs
+  (`deploy/test_workflows.py`) whatever the EAS queue is like. The run summary links to the build.
 - **Two submit profiles:** `production` goes to the internal testing track; `closed` goes to closed testing (`alpha`).
   Production is reached by promoting a tested release in the Play Console, never by a fresh build.
 - **No Google secret in GitHub or in the repository.** The Play service-account key is uploaded to the Expo account

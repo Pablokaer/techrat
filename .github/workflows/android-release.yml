@@ -1,6 +1,6 @@
 name: Android release
 
-# Builds the Android app bundle on EAS and sends it to Google Play as a DRAFT release (ADR-0047, docs/android-release.md).
+# Starts an EAS build of the Android app bundle that EAS submits to Google Play as a DRAFT release (ADR-0047, docs/android-release.md).
 # Start it by pushing a tag android-v<version> on a commit of main, where <version> is expo.version in
 # apps/mobile/app.json (for example android-v1.0.1), or by hand from the Actions tab on main. The release job waits for
 # an approval in the google-play environment, and the draft still has to be rolled out in the Play Console.
@@ -63,7 +63,7 @@ jobs:
     name: Build on EAS and submit to Google Play (draft)
     needs: verify
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 20
     environment: google-play
     steps:
       - uses: actions/checkout@v4
@@ -74,21 +74,21 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-      - name: Build the app bundle (versionCode is incremented by EAS)
-        id: build
-        working-directory: apps/mobile
-        run: |
-          eas build --platform android --profile production --non-interactive --wait --json > "$RUNNER_TEMP/build.json"
-          id=$(jq -r '.[0].id' "$RUNNER_TEMP/build.json")
-          code=$(jq -r '.[0].appBuildVersion' "$RUNNER_TEMP/build.json")
-          test -n "$id" && [ "$id" != "null" ] || { echo "::error::EAS returned no build id"; exit 1; }
-          echo "id=$id" >> "$GITHUB_OUTPUT"
-          echo "TechRat ${{ needs.verify.outputs.version }} (versionCode $code), EAS build $id" >> "$GITHUB_STEP_SUMMARY"
-      - name: Submit the build to Google Play as a draft
+      - name: Build the app bundle on EAS and have EAS submit it to Play as a draft
         working-directory: apps/mobile
         env:
-          BUILD_ID: ${{ steps.build.outputs.id }}
           PROFILE: ${{ needs.verify.outputs.profile }}
+          VERSION: ${{ needs.verify.outputs.version }}
+        # --no-wait: the build (15-25 minutes, plus the EAS queue) and the submission run on EAS, not on this runner;
+        # EAS emails the account if either fails. versionCode is incremented by EAS.
         run: |
-          eas submit --platform android --profile "$PROFILE" --id "$BUILD_ID" --non-interactive --wait
-          echo "Submitted with the '$PROFILE' submit profile: roll the draft out in the Play Console." >> "$GITHUB_STEP_SUMMARY"
+          eas build --platform android --profile production --auto-submit-with-profile "$PROFILE" \
+            --non-interactive --no-wait --json > "$RUNNER_TEMP/build.json"
+          id=$(jq -r '.[0].id' "$RUNNER_TEMP/build.json")
+          test -n "$id" && [ "$id" != "null" ] || { echo "::error::EAS returned no build id"; exit 1; }
+          {
+            echo "TechRat $VERSION: EAS build $id, submitted with the '$PROFILE' submit profile when it finishes."
+            echo ""
+            echo "Follow it at https://expo.dev/accounts/climboulths-team/projects/pablo-carvalho/builds/$id,"
+            echo "then roll the draft out in the Play Console."
+          } >> "$GITHUB_STEP_SUMMARY"

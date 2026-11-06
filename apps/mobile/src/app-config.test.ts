@@ -120,8 +120,7 @@ describe("Android release workflow", () => {
   it("builds and submits only after an approval in the google-play environment, with the Expo token", () => {
     expect(workflow).toMatch(/environment:\s*google-play/);
     expect(workflow).toContain("secrets.EXPO_TOKEN");
-    expect(workflow).toMatch(/eas build --platform android --profile production/);
-    expect(workflow).toMatch(/eas submit --platform android/);
+    expect(workflow).toMatch(/eas build --platform android --profile production --auto-submit-with-profile "\$PROFILE"/);
   });
 
   it("sets a timeout on every job", () => {
