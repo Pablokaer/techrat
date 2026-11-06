@@ -137,16 +137,23 @@ export function sitemapEntries(page: PublicPage): MetadataRoute.Sitemap {
 
 // Titles and descriptions carry the words people search for (interview questions, roadmaps), within the ~60 and ~160
 // characters Google shows. The question count follows the README catalog; keep it rounded down.
-const LANDING: Record<Locale, { title: string; description: string }> = {
+// `products` are the product terms of the Organization's `knowsAbout`: search engines and agent readiness checks pair
+// them with the brand name ("TechRat developer roadmaps"), so they repeat words of the title and the page.
+const LANDING: Record<Locale, { title: string; description: string; products: readonly string[] }> = {
   en: {
     title: "TechRat — Tech interview practice and developer roadmaps",
     description: "Practice 2,900+ tech interview questions with explanations, follow roadmaps from junior to senior and level up with XP. Free, in English and Portuguese.",
+    products: ["Tech interview practice", "Tech interview questions", "Developer roadmaps"],
   },
   "pt-BR": {
     title: "TechRat — Questões de entrevista e roadmaps para devs",
     description: "Pratique 2.900+ questões de entrevista de tecnologia com explicação, siga roadmaps do júnior ao sênior e suba de nível com XP. Grátis, em português e inglês.",
+    products: ["Questões de entrevista de tecnologia", "Roadmaps para devs"],
   },
 };
+
+/** Title and description of the landing page in one language (also the Markdown version served to agents). */
+export const landingTexts = (locale: Locale): { title: string; description: string } => ({ title: LANDING[locale].title, description: LANDING[locale].description });
 
 /**
  * Metadata of every root layout, including the link preview a page falls back to. The landing texts stand for the
@@ -165,7 +172,7 @@ export function siteMetadata(locale: Locale): Metadata {
 
 /** The landing page with texts in `locale`, at the URL of language `url` (`/` may be shown in Portuguese, canonical `/`). */
 export const landingMetadata = (locale: Locale, url: Locale = locale): Metadata =>
-  publicPageMetadata(publicPages.landing, { locale, url, absoluteTitle: true, ...LANDING[locale] });
+  publicPageMetadata(publicPages.landing, { locale, url, absoluteTitle: true, ...landingTexts(locale) });
 
 /**
  * A legal page in the visitor's language. These pages must stay indexable (Google Play links to them), so no `robots`
@@ -190,7 +197,10 @@ export function landingStructuredData(locale: Locale) {
     "@context": "https://schema.org",
     "@graph": [
       { "@type": "WebSite", "@id": `${base}/#website`, name: "TechRat", url: `${base}${publicPages.landing.paths[locale]}`, inLanguage: locale, description: LANDING[locale].description, publisher: { "@id": `${base}/#organization` } },
-      { "@type": "Organization", "@id": `${base}/#organization`, name: "TechRat", url: `${base}/`, logo: `${base}/brand/rat-192.png` },
+      {
+        "@type": "Organization", "@id": `${base}/#organization`, name: "TechRat", url: `${base}/`, logo: `${base}/brand/rat-192.png`,
+        description: LANDING[locale].description, knowsAbout: LANDING[locale].products,
+      },
     ],
   };
 }

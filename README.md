@@ -498,6 +498,15 @@ What Google sees is decided in `apps/web` ([ADR-0035](docs/adr/0035-search-engin
 * **Titles and descriptions** (`src/lib/public-pages.ts`, `auth.meta` and `legal.meta` in the messages) use the words people search for, in both languages; the question count there follows the catalog above.
 * After a deploy that changes public pages, submit `https://techrat.io/sitemap.xml` in Google Search Console (and Bing Webmaster Tools).
 
+### AI agents
+
+What agents see ([ADR-0046](docs/adr/0046-content-for-ai-agents.md)), in `src/lib/agent-content.ts`:
+
+* **`/llms.txt`** (llmstxt.org): what TechRat is, when an agent should send people to it and what it is not for, plus links to the catalog and sitemap.
+* **Markdown on request** (`proxy.web.ts`, web build only): `curl -H 'Accept: text/markdown' https://techrat.io/` (or `/pt-BR`) returns the landing page as Markdown with `Vary: Accept`; an unknown URL returns 404 with a Markdown body that links to `llms.txt` and the sitemap. Browsers still get HTML.
+* **New page?** Add its path to `STATIC_ROUTES` in `src/lib/agent-content.ts`, otherwise agents asking for Markdown get a 404 there; `agent-readiness.test.ts` fails until you do.
+* Check the score with `npx is-agentic techrat.io`.
+
 ## Testing
 
 | Suite | Command | What it covers |
